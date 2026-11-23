@@ -1799,6 +1799,273 @@
    "table_schema": "retail"
   }
  ],
+ "barrido_piso_hallazgos": [
+  {
+   "column_default": null,
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "barrido_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "codigo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "1",
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "foto_ruta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "persona_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "clock_timestamp()",
+   "column_name": "registrado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "anulada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "anulada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "barrido_piso_hallazgos",
+   "table_schema": "retail"
+  }
+ ],
+ "barrido_piso_lecturas": [
+  {
+   "column_default": null,
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "barrido_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "1",
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "codigo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "persona_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "clock_timestamp()",
+   "column_name": "leida_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "leida_en_aparato",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 8,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "anulada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "anulada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo_anulacion",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "barrido_piso_lecturas",
+   "table_schema": "retail"
+  }
+ ],
+ "barridos_piso": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "abierto_por",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "abierto_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'abierto'::text",
+   "column_name": "estado",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cerrado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cerrado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "barridos_piso",
+   "table_schema": "retail"
+  }
+ ],
  "caja_movimientos": [
   {
    "column_default": "gen_random_uuid()",
@@ -1979,6 +2246,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 8,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "empresa_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
    "table_name": "caja_traslados",
    "table_schema": "retail"
   }
@@ -2886,6 +3162,26 @@
    "is_nullable": "NO",
    "ordinal_position": 2,
    "table_name": "campana_regla_sedes",
+   "table_schema": "retail"
+  }
+ ],
+ "campana_regla_variantes": [
+  {
+   "column_default": null,
+   "column_name": "regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_regla_variantes",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_regla_variantes",
    "table_schema": "retail"
   }
  ],
@@ -4193,6 +4489,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 25,
+   "table_name": "clientas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "avisos_club_desde",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 26,
    "table_name": "clientas",
    "table_schema": "retail"
   }
@@ -10555,6 +10860,24 @@
    "ordinal_position": 10,
    "table_name": "cuadres_piso",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "'almacen'::text",
+   "column_name": "lado",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 11,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "barrido_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
   }
  ],
  "cuentas": [
@@ -10802,6 +11125,15 @@
    "data_type": "uuid",
    "is_nullable": "NO",
    "ordinal_position": 15,
+   "table_name": "cuentas_dinero",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "medio_ajeno",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
    "table_name": "cuentas_dinero",
    "table_schema": "retail"
   }
@@ -13591,6 +13923,141 @@
    "ordinal_position": 10,
    "table_name": "empresas",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ruc",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "razon_social",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "regimen",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "correo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "telefono",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "baja_pedida_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "baja_pedida_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "baja_el",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 18,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "baja_detenida",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 19,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "entra_a_campanas",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 20,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "domicilio_fiscal",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 21,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lucode_secreto_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 22,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lucode_termina",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 23,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lucode_estado",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 24,
+   "table_name": "empresas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lucode_probada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 25,
+   "table_name": "empresas",
+   "table_schema": "retail"
   }
  ],
  "envio_extras": [
@@ -14157,6 +14624,26 @@
    "is_nullable": "YES",
    "ordinal_position": 4,
    "table_name": "favoritos_web",
+   "table_schema": "retail"
+  }
+ ],
+ "feriados_nacionales": [
+  {
+   "column_default": null,
+   "column_name": "fecha",
+   "data_type": "date",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "feriados_nacionales",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "feriados_nacionales",
    "table_schema": "retail"
   }
  ],
@@ -14826,6 +15313,53 @@
    "is_nullable": "YES",
    "ordinal_position": 16,
    "table_name": "gasto_papeles_tardios",
+   "table_schema": "retail"
+  }
+ ],
+ "gasto_reparto_aliadas": [
+  {
+   "column_default": null,
+   "column_name": "empresa_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "gasto_reparto_aliadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "categoria",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "gasto_reparto_aliadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "pct",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "gasto_reparto_aliadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "actualizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "gasto_reparto_aliadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "gasto_reparto_aliadas",
    "table_schema": "retail"
   }
  ],
@@ -16033,6 +16567,424 @@
    "is_nullable": "YES",
    "ordinal_position": 9,
    "table_name": "historial_producto_cambios",
+   "table_schema": "retail"
+  }
+ ],
+ "hojas_reclamacion": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "anio",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "numero",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "codigo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "marca",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuenta_web_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_razon_social",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_ruc",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_domicilio",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_nombre",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_direccion",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 14,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_tipo_documento",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 15,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_documento",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 16,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_domicilio",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 17,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_telefono",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 18,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consumidor_correo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 19,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "menor_de_edad",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 20,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_nombre",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 21,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bien_tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 22,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bien_monto",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 23,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bien_descripcion",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 24,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 25,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "detalle",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 26,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "pedido",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 27,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "copia_enviada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 28,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "copia_intentos",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 29,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "copia_tomada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 30,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "respuesta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 31,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "respondida_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 32,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "respondida_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 33,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "respuesta_enviada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 34,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "respuesta_intentos",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 35,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "respuesta_tomada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 36,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'LR-WEB-01'::text",
+   "column_name": "libro_codigo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 37,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_tipo_documento",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 38,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_documento",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 39,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_domicilio",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 40,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_telefono",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 41,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apoderado_correo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 42,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "conforme",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 43,
+   "table_name": "hojas_reclamacion",
+   "table_schema": "retail"
+  }
+ ],
+ "hojas_reclamacion_intentos": [
+  {
+   "column_default": null,
+   "column_name": "id",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "hojas_reclamacion_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ip_hash",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "hojas_reclamacion_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "hojas_reclamacion_intentos",
    "table_schema": "retail"
   }
  ],
@@ -18002,6 +18954,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 20,
+   "table_name": "movimientos_dinero",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "empresa_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 21,
    "table_name": "movimientos_dinero",
    "table_schema": "retail"
   }

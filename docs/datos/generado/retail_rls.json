@@ -89,6 +89,21 @@
   "relkind": "r",
   "rls": true
  },
+ "barrido_piso_hallazgos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "barrido_piso_lecturas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "barridos_piso": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "caja_movimientos": {
   "forzado": false,
   "relkind": "r",
@@ -155,6 +170,11 @@
   "rls": true
  },
  "campana_regla_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_variantes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -774,6 +794,11 @@
   "relkind": "r",
   "rls": true
  },
+ "feriados_nacionales": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "fondo_plata_anotada": {
   "forzado": false,
   "relkind": "r",
@@ -800,6 +825,11 @@
   "rls": true
  },
  "gasto_papeles_tardios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gasto_reparto_aliadas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -870,6 +900,16 @@
   "rls": true
  },
  "historial_producto_cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "hojas_reclamacion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "hojas_reclamacion_intentos": {
   "forzado": false,
   "relkind": "r",
   "rls": true

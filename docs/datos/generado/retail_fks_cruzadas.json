@@ -70,6 +70,36 @@
   "src_table": "banco_cortes"
  },
  {
+  "conname": "barrido_piso_hallazgos_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barrido_piso_hallazgos"
+ },
+ {
+  "conname": "barrido_piso_hallazgos_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barrido_piso_hallazgos"
+ },
+ {
+  "conname": "barrido_piso_lecturas_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barrido_piso_lecturas"
+ },
+ {
+  "conname": "barrido_piso_lecturas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barrido_piso_lecturas"
+ },
+ {
+  "conname": "barridos_piso_abierto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barridos_piso"
+ },
+ {
+  "conname": "barridos_piso_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "barridos_piso"
+ },
+ {
   "conname": "caja_movimientos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "caja_movimientos"
@@ -610,6 +640,11 @@
   "src_table": "gasto_correcciones"
  },
  {
+  "conname": "gasto_reparto_aliadas_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_reparto_aliadas"
+ },
+ {
   "conname": "gasto_reparto_claure_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gasto_reparto_claure"
@@ -663,6 +698,11 @@
   "conname": "historial_producto_cambios_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "historial_producto_cambios"
+ },
+ {
+  "conname": "hojas_reclamacion_respondida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "hojas_reclamacion"
  },
  {
   "conname": "insumo_lote_cambios_hecho_por_fkey",

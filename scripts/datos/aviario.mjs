@@ -104,6 +104,9 @@ export const AVIARIO = [
       // ADR-0655 (Campañas y ofertas): los modelos elegidos uno por uno, las ofertas que le ceden a otra y las insignias que elige una oferta.
       // Se manejan desde la misma hoja de la oferta. Asignadas en el refresco del volcado del 2026-11-14.
       "campana_regla_productos", "campana_regla_cesiones", "campana_regla_insignias",
+      // Oferta por variante (20261118232000): los colores y tallas que alcanza una oferta. Se maneja desde la misma hoja. Asignada en el refresco
+      // del volcado del 2026-11-23.
+      "campana_regla_variantes",
       // ADR-0669 («Poner un %», 20261116182000): qué campañas son un cajón de % de una tienda. Se maneja desde Campañas y ofertas, como las
       // ofertas de arriba. Asignada en el refresco del volcado del 2026-11-17.
       "rebaja_cajones",
@@ -164,6 +167,9 @@ export const AVIARIO = [
       // ADR-0328 (actividad 3): el cuadre del piso de una sede y sus líneas; cada línea es un movimiento piso↔almacén. Nace con
       // dueño (20261004195000); hasta que se pegue y se refresque el volcado, el aviario lo avisa como «no en el volcado».
       "cuadres_piso", "cuadre_piso_items",
+      // El barrido del piso de una sede (lo que se lee prenda por prenda y lo que se encontró). Es del piso, como el cuadre. Está en producción;
+      // lo asignó el refresco del volcado del 2026-11-23.
+      "barridos_piso", "barrido_piso_lecturas", "barrido_piso_hallazgos",
       // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
       "capacidad_piso",
       // Plan del piso (20261006110000): la foto diaria de cuánto espacio ocupa cada categoría en el piso de cada sede. Es del piso, como su
@@ -254,6 +260,9 @@ export const AVIARIO = [
       // ADR-0518 (Tienda web ▸ Conf. Tienda): el horario por días de cada tienda en la web y los días que no abre. Son de la tienda web, como
       // `ubicacion_datos_web`. Asignadas en el refresco del volcado del 2026-10-26.
       "ubicacion_horario_web", "ubicacion_cierres_web",
+      // Libro de reclamaciones (20261118145000, 20261118151000): las hojas que deja un cliente, sus intentos y los feriados que no cuentan
+      // en el plazo de respuesta. Entra por la tienda web y se atiende en el ERP. Asignadas en el refresco del volcado del 2026-11-23.
+      "hojas_reclamacion", "hojas_reclamacion_intentos", "feriados_nacionales",
       // ADR-0495 (Tienda web ▸ Tráfico): cada paso anónimo de una persona en la tienda online (entró, vio prenda, eligió talla, bolsa,
       // separó), solo se agrega. Cuenta el embudo de los pedidos web: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-26.
       "trafico_web",
@@ -431,6 +440,9 @@ export const AVIARIO = [
       // ADR-0560: qué parte de cada categoría de gasto de una sede donde opera CLAURE es de CLAURE (alquiler 50 %, limpieza 100 %…). Es lo que se hace con un gasto, como
       // `categorias_gasto`: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-29.
       "gasto_reparto_claure",
+      // ADR-0683: la misma regla para cualquier empresa aliada (reemplaza a la de CLAURE, que queda como respaldo). Mismo pájaro. Asignada en
+      // el refresco del volcado del 2026-11-23.
+      "gasto_reparto_aliadas",
       // La cuenta donde se le paga a cada persona de la planilla y las salidas de planilla que se registran (`guardar_cuenta_planilla`, `registrar_salidas_planilla`). Están en
       // producción (sus migraciones aún no están en main) y las asignó el refresco del volcado del 2026-10-29, junto a `planilla_por_sede`. Finanzas (Felipe) confirma la asignación.
       "planilla_cuentas", "planilla_salidas",
