@@ -9,6 +9,7 @@
   o `var(--color-tenue)` al tocar cada archivo. Si se quiere de una vez, un barrido con su lámina antes (es café que hoy se ve).
 - [ ] **Las líneas por opacidad** (`border-tinta/NN`, 16 escalones) y `tinta-60` (otro secundario cálido del puente shadcn): ordenarlos con el
   mismo criterio.
-- [ ] **Las cifras en Inter** (Felipe eligió la B de la lámina): DM Sans no trae cifras tabulares, y hacerlo como en la lámina (solo los dígitos,
-  sin tocar letras ni la Garamond) pide un archivo de Inter con solo los dígitos. Espera el OK de Felipe para bajarlo.
+- [x] **Las cifras en Inter** (Felipe eligió la B de la lámina): las trajo ADR-0691 a `main` el mismo día; el commit de esta rama que las hacía
+  se revirtió. Sobre su letra, el N.° de documento de Historial de compras se partía en dos líneas: la columna pasó de 7,5 a 8,5 rem.
 - [ ] **Sin probar:** 375 px (el cambio es de color, igual en todos los anchos) y Safari.
+- [ ] **`ayuda-cabecera.css` tiene un texto de 10,5 px** (la etiqueta del globo), bajo el piso de 13 px de ADR-0691: no es de esta rama, queda anotado.

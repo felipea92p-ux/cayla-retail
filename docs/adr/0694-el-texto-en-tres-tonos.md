@@ -50,6 +50,18 @@ son iguales a las de la opción B de la lámina.
 - **Las líneas y bordes por opacidad** (`border-tinta/NN`, 16 escalones) siguen como están: se ordenan con el mismo criterio en otro paso.
 - **CAYLA Dynamic no cambia**: `taupe-profundo`, `secundario` y `tenue` no están en `docs/familia/contrato.json` ni en `vidrio/recetas.css`.
 
+## Actualización 2026-11-23: sobre la escala de letra y las cifras de ADR-0691
+
+El mismo día entró a `main` ADR-0691 (la letra sale de una escala de cinco escalones, nada baja de 13 px, y las cifras de DM Sans en Inter,
+solo los dígitos). Esta rama también había hecho las cifras; se revirtió ese commit y quedan las de ADR-0691. Medido otra vez sobre esa letra
+(mismas pantallas, 1440 × 900): **0 textos bajo 4,5:1** en claro y en oscuro; en oscuro, los débiles para APCA son 10 + 7 + 19 = 36.
+
+- **El fondo Seda** (ADR-0681), que entró después: su prueba (`lib/tema-tokens.test.ts`) medía `taupe-profundo` como un hex, y ahora es la tinta
+  al 80 %. Mide en su lugar `secundario` y `tenue`, mezclados sobre cada uno de sus cuatro tonos: los dos pasan 4,5:1 en los dos temas.
+- **El N.° de documento de Historial de compras** se partía en dos líneas con la letra de ADR-0691 (un número de SUNAT completo, como
+  «B001-11111111», pide 127,9 px a 16 px; la columna tenía 120). Ya no cabía antes con un número lleno de ceros. La columna pasa a 8,5 rem.
+- **La ayuda de la cabecera** (`ayuda-cabecera.css`) pedía DM Sans directo y sus dígitos no salían en Inter: pasa a `--font-sans`.
+
 ## Alternativas descartadas
 
 - **A · Hoy** (13 opacidades y el café): Felipe no la eligió; además deja el doble de texto débil en oscuro.
