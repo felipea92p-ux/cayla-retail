@@ -129,7 +129,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // De quién son las unidades de cada prenda aquí (ADR-0542): solo donde conviven dos empresas (Lima). La cajera elige de cuál sale cuando hay
     // de las dos. Dato secundario: si la base no responde por las empresas, no se pregunta y la base decide (rechaza si de verdad hay duda).
     getEmpresasAqui(persona.ubicacionId)
-      .catch(() => null)
+      .catch(() => null) // relleno-a-proposito: sin las empresas no se pregunta y la base decide (lo dice arriba)
       .then((empresasAqui) => getStockPorDueno(persona.ubicacionId, empresasAqui)),
     proformaId ? getProformaParaCobrar(proformaId, ahora.getTime()) : Promise.resolve(null),
     repetirVentaId

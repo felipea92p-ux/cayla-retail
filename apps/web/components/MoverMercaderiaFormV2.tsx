@@ -89,6 +89,7 @@ async function leerNumeroDelTraslado(supabase: ReturnType<typeof createClient>, 
       const { data } = await supabase.from("transferencias").select("numero").eq("id", id).maybeSingle();
       return typeof data?.numero === "number" ? data.numero : null;
     } catch {
+      // relleno-a-proposito: el traslado ya está guardado: sin esta lectura solo se pierde el número en pantalla.
       return null;
     }
   })();

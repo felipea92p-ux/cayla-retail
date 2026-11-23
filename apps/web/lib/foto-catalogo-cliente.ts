@@ -97,6 +97,7 @@ export async function leerPermisoDeFotos(): Promise<PermisoDeFotos> {
     const j = (await r.json()) as Partial<PermisoDeFotos>;
     return { fotos: j.fotos === true, ia: j.fotos === true && j.ia === true };
   } catch {
+    // relleno-a-proposito: sin respuesta, sin fotos: la prenda se crea como antes (principio 9).
     return { fotos: false, ia: false };
   }
 }
