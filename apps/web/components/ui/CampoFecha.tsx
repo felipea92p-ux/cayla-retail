@@ -372,7 +372,7 @@ export function CampoFecha({
           aria-expanded={abierto}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => (abierto ? setAbierto(false) : abrir())}
-          className={`area-dedo -mr-1 shrink-0 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
+          className={`area-dedo -mr-1 shrink-0 rounded-sm p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
         >
           <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
             <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
@@ -407,7 +407,7 @@ export function CampoFecha({
                 aria-label="Mes anterior"
                 disabled={!mesAlAlcance(sumarMeses(cursor, -1).a, sumarMeses(cursor, -1).m, limites)}
                 onClick={() => setCursor(sumarMeses(cursor, -1))}
-                className="area-dedo rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                className="area-dedo rounded-sm p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
               >
                 <Flecha lado="izq" />
               </button>
@@ -419,7 +419,7 @@ export function CampoFecha({
                 aria-label="Mes siguiente"
                 disabled={!mesAlAlcance(sumarMeses(cursor, 1).a, sumarMeses(cursor, 1).m, limites)}
                 onClick={() => setCursor(sumarMeses(cursor, 1))}
-                className="area-dedo rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                className="area-dedo rounded-sm p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
               >
                 <Flecha lado="der" />
               </button>

@@ -354,7 +354,7 @@ export function PanelTalla({
       margin: "0",
       zIndex: "60",
       pointerEvents: "none",
-      borderRadius: "9px",
+      borderRadius: "var(--radius-md)",
       transition: `left ${MS_FOTO_CRUZA}ms var(--ease-cayla), top ${MS_FOTO_CRUZA}ms var(--ease-cayla), width ${MS_FOTO_CRUZA}ms var(--ease-cayla), height ${MS_FOTO_CRUZA}ms var(--ease-cayla), border-radius ${MS_FOTO_CRUZA}ms var(--ease-cayla)`,
     });
     document.body.appendChild(vuela);
@@ -368,7 +368,7 @@ export function PanelTalla({
     };
     const marco = requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        Object.assign(vuela.style, { left: `${r2.left}px`, top: `${r2.top}px`, width: `${r2.width}px`, height: `${r2.height}px`, borderRadius: "14px" });
+        Object.assign(vuela.style, { left: `${r2.left}px`, top: `${r2.top}px`, width: `${r2.width}px`, height: `${r2.height}px`, borderRadius: "var(--radius-campo)" });
       })
     );
     vuela.addEventListener("transitionend", terminar, { once: true });
@@ -634,7 +634,7 @@ export function PanelTalla({
         {abre && <ChevronRight aria-hidden className="absolute bottom-2 right-1.5 h-3.5 w-3.5 text-taupe" />}
       </>
     );
-    const base = `relative grid gap-1 rounded-[11px] px-3 py-3 text-left sm:px-2.5 sm:py-2 ${fondo}`;
+    const base = `relative grid gap-1 rounded-md px-3 py-3 text-left sm:px-2.5 sm:py-2 ${fondo}`;
     return abre ? (
       <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] ${HOVER_CASILLA}`}>
         {cuerpo}
@@ -659,7 +659,7 @@ export function PanelTalla({
         aria-pressed={elegida}
         onClick={() => setCapa(elegida ? null : cual)}
         title={elegida ? "Ver piso y almacén" : `Ver solo lo que está ${cual === "piso" ? "en el piso" : "en el almacén"}`}
-        className={`relative grid gap-1 rounded-[11px] border px-3 py-3 text-left transition-[opacity,box-shadow,border-color,outline] sm:px-2 sm:py-2 ${HOVER_CASILLA} ${tono} ${
+        className={`relative grid gap-1 rounded-md border px-3 py-3 text-left transition-[opacity,box-shadow,border-color,outline] sm:px-2 sm:py-2 ${HOVER_CASILLA} ${tono} ${
           elegida ? "border-tinta shadow-[0_0_0_1px_var(--color-tinta)]" : "border-transparent"
         } ${apagada ? "opacity-45" : ""}`}
       >
@@ -675,11 +675,11 @@ export function PanelTalla({
 
   /** La celda de totales de «Todas» (ADR-0391): en hueso, sin borde, no se toca; sigue a la capa (una cifra) o apila las dos. */
   const totalCelda = (pisoN: number, almacenN: number) => {
-    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-sm font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{almacenN}</div>;
+    if (!separa) return <div className="grid h-[52px] place-items-center rounded-md vd-hundido text-sm font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-md vd-hundido text-lg font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-md vd-hundido text-lg font-semibold tabular-nums text-tinta">{almacenN}</div>;
     return (
-      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] vd-hundido tabular-nums text-tinta">
+      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-md vd-hundido tabular-nums text-tinta">
         <span className="flex items-center justify-center gap-1 text-sm font-semibold">
           <IconoPercha aria-hidden className="h-3 w-3 text-taupe" />
           {pisoN}
@@ -787,7 +787,7 @@ export function PanelTalla({
                   onKeyDown={prenda.fotoUrl ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setFotoGrande(true)) : undefined}
                   aria-label={prenda.fotoUrl ? `Ver la foto de ${prenda.referencia} en grande` : undefined}
                   title={prenda.fotoUrl ? "Ver la foto en grande" : undefined}
-                  className={`group relative w-full overflow-hidden rounded-[14px] vd-hundido outline-none ring-tinta/40 transition-[box-shadow,height] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? "h-20 sm:h-[168px]" : "h-36 sm:h-[362px]"} ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
+                  className={`group relative w-full overflow-hidden rounded-campo vd-hundido outline-none ring-tinta/40 transition-[box-shadow,height] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? "h-20 sm:h-[168px]" : "h-36 sm:h-[362px]"} ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
                 >
                   {prenda.fotoUrl ? (
                     <>
@@ -1103,7 +1103,7 @@ export function PanelTalla({
                                         <b className="block text-detalle font-semibold text-tinta">{a.texto}</b>
                                         <small className="block text-sm text-taupe">{a.sub}</small>
                                       </span>
-                                      <kbd className="hidden rounded border border-sand px-1.5 text-xs text-taupe sm:inline">{a.tecla}</kbd>
+                                      <kbd className="hidden rounded-sm border border-sand px-1.5 text-xs text-taupe sm:inline">{a.tecla}</kbd>
                                       <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
                                     </button>
                                   </li>
@@ -1301,7 +1301,7 @@ export function PanelTalla({
                                             </span>
                                           )}
                                           {celda.estado === "agotada" ? (
-                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-md border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
                                               {/* ADR-0640: si lo único que queda de la talla está dañado, la celda lo dice: «Se acabó» escondía dónde estaba. */}
                                               {(f.danado ?? 0) > 0 ? (
                                                 <span className="inline-flex items-center gap-1">
@@ -1313,7 +1313,7 @@ export function PanelTalla({
                                               )}
                                             </button>
                                           ) : (
-                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-md border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
                                               {verPiso && (
                                                 <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-lg" : "text-sm"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
                                                   <span className="inline-flex items-center gap-1">

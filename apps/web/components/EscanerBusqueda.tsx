@@ -173,13 +173,13 @@ export function EscanerBusqueda({
               </div>
             ) : (
               <>
-                <div className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]">
+                <div className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-cajon shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]">
                   {(
                     [
-                      "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[30px]",
-                      "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[30px]",
-                      "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[30px]",
-                      "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[30px]",
+                      "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[calc(var(--radius-cajon)+3px)]",
+                      "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[calc(var(--radius-cajon)+3px)]",
+                      "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[calc(var(--radius-cajon)+3px)]",
+                      "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[calc(var(--radius-cajon)+3px)]",
                     ] as const
                   ).map((pos) => (
                     <span key={pos} aria-hidden className={`absolute h-11 w-11 border-crema ${pos}`} />

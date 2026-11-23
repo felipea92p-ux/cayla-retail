@@ -81,7 +81,7 @@
    (`.cfg-casilla`) ya tiene el suyo, en píldora (campos-y-botones.css). */
 .pantalla-en-vidrio .fin-control:not(.cfg-casilla > *) {
   border-color: var(--color-borde-control);
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
 }

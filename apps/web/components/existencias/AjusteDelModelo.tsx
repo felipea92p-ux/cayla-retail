@@ -69,7 +69,7 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
       </span>
       <span className="btn-cayla btn-primario mov-boton banda-ajustar-boton">
         Ajustar stock
-        <kbd className="hidden rounded border border-crema/40 px-1.5 text-xs text-crema/80 sm:inline">6</kbd>
+        <kbd className="hidden rounded-sm border border-crema/40 px-1.5 text-xs text-crema/80 sm:inline">6</kbd>
       </span>
     </button>
   );

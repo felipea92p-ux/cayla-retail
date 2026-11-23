@@ -215,7 +215,7 @@ function EntregarFondoModal({
                       disabled={guardando || soyYo}
                       title={soyYo ? "Tu fondo: que te la entregue otra persona" : p.sede ? `${p.nombre} · ${p.sede}` : p.nombre}
                       onClick={() => limpiar(setPersonaId)(p.id)}
-                      className={`card-cayla mov-boton relative flex min-w-0 flex-col items-center gap-1 rounded-[14px] px-2 py-3 text-center disabled:cursor-not-allowed disabled:opacity-55 ${
+                      className={`card-cayla mov-boton relative flex min-w-0 flex-col items-center gap-1 rounded-campo px-2 py-3 text-center disabled:cursor-not-allowed disabled:opacity-55 ${
                         elegida ? "border-tinta" : ""
                       }`}
                     >

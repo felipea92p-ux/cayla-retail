@@ -417,7 +417,7 @@ export function FiltrosExistencias({
           <span aria-live="polite">
             {calculando && elegidos.hoy ? (
               // Con un caso de «Hoy» puesto la cifra es del plan: mientras llega, su lugar, no un «0 prendas».
-              <Calculando className="h-4 w-64 max-w-full rounded" />
+              <Calculando className="h-4 w-64 max-w-full rounded-sm" />
             ) : (
               <>
                 <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}

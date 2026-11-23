@@ -98,13 +98,16 @@ Fuentes por clave en `referencia/fuentes.md`. «Calculado» = sale del CSS y fal
 
 ### E · Radios
 
-21. **Escala progresiva: más grande la pieza, más grande el radio.** Control 14 (`--radius-campo`) → tarjeta 22 (`--radius-tarjeta`) →
-    cajón 28 (`--radius-cajon`) → hoja 32 (`--radius-hoja`); botón píldora 999 (`--radius-boton`); lo que aún no es vidrio, 4 · 8 · 12 · 16 ·
-    20 (`--radius-sm…2xl`). Por qué (ADR-0012, comentario de `globals.css`): «un control chico con el mismo radio que una tarjeta grande se ve
-    deformado, no suave». `[Práctica]` CARBON, POLARIS, FLUENT, RADIX, TAILWIND: todos tienen escala, no un radio único.
-22. **Concéntricos:** una pieza pegada al borde de otra lleva radio ≈ radio de afuera − separación, y **nunca más redondo que su
-    contenedor**. → `medir.js` lo marca como «radio invertido». `[Práctica]` sin fuente leída.
-23. **≤ 3 radios distintos por pantalla** (sin contar la píldora). → `medir-oficio.js` de `/formidable` los cuenta. `[Práctica]`.
+21. **Escala cerrada y progresiva: más grande la pieza, más grande el radio (ADR-0698).** En una pantalla, cuatro: lo chico 6 (`rounded-sm`) →
+    lo de adentro 10 (`rounded-md`) → control 14 (`--radius-campo`) → tarjeta 22 (`--radius-tarjeta`). Lo que flota trae la suya: cajón 28
+    (`--radius-cajon`) y hoja 32 (`--radius-hoja`); botón píldora 999 (`--radius-boton`). Nunca un radio a mano: lo vigila
+    `lib/esquina-suelta.test.ts` (`.claude/rules/esquinas.md`). Por qué (ADR-0012, comentario de `globals.css`): «un control chico con el mismo
+    radio que una tarjeta grande se ve deformado, no suave». `[Práctica]` CARBON, POLARIS, FLUENT, RADIX, TAILWIND: todos tienen escala, no un
+    radio único.
+22. **Concéntricos:** una pieza pegada al borde de otra (a 12 px o menos) lleva radio = radio de afuera − separación, y **nunca más redondo
+    que su contenedor**. La escala está hecha para eso: cada escalón es otro menos 4 u 8 px. Si la cuenta no cae en un escalón, se escribe
+    la cuenta (`calc(var(--radius-tarjeta) - 9px)`). → `medir.js` lo marca como «radio invertido». `[Práctica]` sin fuente leída.
+23. **≤ 4 radios distintos por pantalla** (sin contar la píldora ni lo concéntrico). → `medir-oficio.js` de `/formidable` los cuenta. `[Práctica]`.
 
 ### F · Profundidad
 
@@ -208,6 +211,5 @@ Todas **propuesta, espera a Felipe**. Ninguna se aplica sin que la vea (candado 
    (TAILWIND, CARBON, PRIMER). *Propuesta:* en la ventana, solo `sm`/`lg`/`xl`; lo demás pasa a consulta de contenedor como `tabla-corte.css`,
    con una prueba de conteo que solo baje. *Riesgo:* cada corte a medida resolvía un caso real; migrar exige mirarlo a 1024–1920
    (`/multi-view-responsive`). *Se mide:* el grep del paso 4 y el informe de `/multi-view-responsive`.
-7. **Radios a medida.** *Hoy:* 126 `rounded-[…]` en TSX y dos escalas conviviendo (4–20 y la de vidrio 14–32). *Propuesta:* mapear cada
-   `rounded-[…]` a su token y escribir en `globals.css` qué escala va con qué tamaño de pieza (regla 21) y la regla concéntrica (22). *Riesgo:*
-   bajo. *Se mide:* `radiosInvertidos` de `medir.js` y el conteo con grep.
+7. **Radios a medida.** HECHO el 2026-11-23 (ADR-0698): la escala cerrada, lo concéntrico y su candado (`lib/esquina-suelta.test.ts`). Quedan las piezas
+   de diseño propio, que decide Felipe (`lib/esquina-suelta-archivos.ts`).

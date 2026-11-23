@@ -280,7 +280,7 @@
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--color-borde-control);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-crema);
   text-align: left;
   cursor: pointer;
@@ -306,7 +306,7 @@
 .cal-ev {
   padding: 12px 14px;
   border: 1px solid var(--color-sand);
-  border-radius: 12px;
+  border-radius: var(--radius-campo);
   background: var(--color-crema);
 }
 .cal-ev-g {

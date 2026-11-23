@@ -16,7 +16,7 @@
 
 /** Una banda del alto de una fila. `ancho` en porcentaje para que no se vean todas iguales. */
 function Banda({ ancho }: { ancho: number }) {
-  return <div className="h-4 animate-pulse rounded bg-tinta/10" style={{ width: `${ancho}%` }} />;
+  return <div className="h-4 animate-pulse rounded-sm bg-tinta/10" style={{ width: `${ancho}%` }} />;
 }
 
 /**
@@ -59,7 +59,7 @@ export function EsqueletoTarjetas({ tarjetas = 4 }: { tarjetas?: number }) {
       {Array.from({ length: tarjetas }, (_, i) => (
         <div key={i} className="space-y-3 bg-crema p-5">
           <Banda ancho={55} />
-          <div className="h-7 w-2/3 animate-pulse rounded bg-tinta/10" />
+          <div className="h-7 w-2/3 animate-pulse rounded-sm bg-tinta/10" />
         </div>
       ))}
     </div>
@@ -90,23 +90,23 @@ export function EsqueletoPantalla({ titulo }: { titulo?: string | null } = {}) {
         {titulo ? (
           <p className="font-display mt-1 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</p>
         ) : (
-          <div className="h-10 w-64 max-w-[70%] animate-pulse rounded bg-tinta/10" />
+          <div className="h-10 w-64 max-w-[70%] animate-pulse rounded-sm bg-tinta/10" />
         )}
       </div>
       <div aria-hidden className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="tarjeta-cifra card-cayla flex flex-col gap-3 p-5">
             <Banda ancho={50} />
-            <div className="h-7 w-2/3 animate-pulse rounded bg-tinta/10" />
+            <div className="h-7 w-2/3 animate-pulse rounded-sm bg-tinta/10" />
           </div>
         ))}
       </div>
       <div aria-hidden className="tabla-cayla card-cayla divide-y overflow-hidden">
         {anchos.map((ancho, i) => (
           <div key={i} className="flex items-center gap-4 px-5 py-4">
-            <div className="h-4 animate-pulse rounded bg-tinta/10" style={{ width: `${ancho}%` }} />
-            <div className="h-4 w-16 animate-pulse rounded bg-tinta/10" />
-            <div className="ml-auto h-4 w-10 animate-pulse rounded bg-tinta/10" />
+            <div className="h-4 animate-pulse rounded-sm bg-tinta/10" style={{ width: `${ancho}%` }} />
+            <div className="h-4 w-16 animate-pulse rounded-sm bg-tinta/10" />
+            <div className="ml-auto h-4 w-10 animate-pulse rounded-sm bg-tinta/10" />
           </div>
         ))}
       </div>

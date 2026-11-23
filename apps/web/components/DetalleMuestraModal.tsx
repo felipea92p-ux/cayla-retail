@@ -312,7 +312,7 @@ export function DetalleMuestraModal({
               {[0, 1, 2].map((i) => (
                 <li key={i} className="flex items-center gap-3">
                   <span /* beige-fijo: esqueleto de carga que espera datos */ className="h-9 w-9 shrink-0 animate-pulse rounded-md bg-sand/70" />
-                  <span /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-40 animate-pulse rounded bg-sand/70" />
+                  <span /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-40 animate-pulse rounded-sm bg-sand/70" />
                 </li>
               ))}
             </ul>

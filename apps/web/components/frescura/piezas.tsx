@@ -10,7 +10,7 @@ import type { NivelConfianza, Sugerencia } from "@/lib/frescura-reglas";
 export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; apilado?: boolean }) {
   return (
     <span className={apilado ? "flex flex-col items-start gap-0.5" : "inline-flex flex-wrap items-center gap-x-2 gap-y-0.5"}>
-      <Chip tono={estado.tono} tachado={false} className="!whitespace-normal !rounded-[11px]">
+      <Chip tono={estado.tono} tachado={false} className="!whitespace-normal !rounded-md">
         {estado.icono && <Info aria-hidden className="h-3 w-3 shrink-0" />}
         {estado.texto}
       </Chip>

@@ -200,7 +200,7 @@ const PASOS_WINDOWS: Paso[] = [
               <span className="my-1 block border-t border-sand" />
               <div className="flex items-center gap-2 px-1">
                 <ConNumero n={2} activa={activa} onActiva={onActiva}>
-                  <span className={`block rounded px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "vd-gota-chica font-semibold"}`}>Salir</span>
+                  <span className={`block rounded-sm px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "vd-gota-chica font-semibold"}`}>Salir</span>
                 </ConNumero>
               </div>
             </div>
@@ -257,7 +257,7 @@ const PASOS_MAC: Paso[] = [
       <Ventana titulo="Terminal" mac pie="Así se ve Terminal con la línea pegada. Al presionar Enter, la última línea dice «Listo».">
         <div className="space-y-2 font-mono text-xs text-tinta">
           <ConNumero n={2} activa={activa} onActiva={onActiva}>
-            <span className={`block break-all rounded px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "vd-gota-chica"}`}>{COMANDO_INSTALAR}</span>
+            <span className={`block break-all rounded-sm px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "vd-gota-chica"}`}>{COMANDO_INSTALAR}</span>
           </ConNumero>
           <ConNumero n={3} activa={activa} onActiva={onActiva}>
             <span className="block text-tinta/80">Instalando el ayudante de etiquetas CAYLA…<br />Listo. El ayudante responde en esta Mac.</span>

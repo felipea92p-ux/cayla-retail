@@ -1235,7 +1235,7 @@ function GrupoPorCompletar({
                   key={p.productoId}
                   className={fila(
                     plantilla,
-                    `relative cursor-pointer transition-[background-color,opacity] duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla sm:items-center ${
+                    `relative cursor-pointer transition-[background-color,opacity] duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:rounded-sm before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla sm:items-center ${
                       marcada ? "bg-rojo/[0.045] before:scale-y-100" : "before:scale-y-0 hover:bg-tinta/[0.03] hover:before:scale-y-100"
                     } ${apagada}`,
                   )}

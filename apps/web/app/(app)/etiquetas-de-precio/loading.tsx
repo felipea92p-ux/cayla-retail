@@ -7,13 +7,13 @@ export default function LoadingEtiquetasDePrecio() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando etiquetas de precio">
         <div className="space-y-2">
-          <div className="h-3 w-32 rounded bg-sand" />
-          <div className="h-7 w-64 rounded bg-sand" />
-          <div className="h-3 w-96 max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-32 rounded-sm bg-sand" />
+          <div className="h-7 w-64 rounded-sm bg-sand" />
+          <div className="h-3 w-96 max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="card-cayla space-y-3 p-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-10 rounded bg-sand/50" />
+            <div key={i} className="h-10 rounded-sm bg-sand/50" />
           ))}
         </div>
       </div>

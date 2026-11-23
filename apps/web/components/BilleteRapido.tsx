@@ -24,7 +24,7 @@ export function BilleteRapido({ valor, onSumar, disabled }: { valor: number; onS
     >
       <span
         style={{ backgroundColor: SALVIA, backgroundImage: TRAMA_BILLETE, borderColor: HILO_OLIVO, color: OLIVO, outlineColor: `${HILO_OLIVO}99` }}
-        className="font-display relative flex h-10 items-center justify-center rounded-[5px] border pl-2.5 text-lg leading-none outline-1 -outline-offset-[4px]"
+        className="font-display relative flex h-10 items-center justify-center rounded-sm border pl-2.5 text-lg leading-none outline-1 -outline-offset-[4px]"
       >
         {/* El óvalo del costado, como el retrato de un billete. */}
         <span aria-hidden style={{ borderColor: HILO_OLIVO }} className="absolute top-1/2 left-1.5 h-2.5 w-1.5 -translate-y-1/2 rounded-full border" />

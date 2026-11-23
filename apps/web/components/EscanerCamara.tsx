@@ -446,18 +446,18 @@ export function EscanerCamara({
               <>
                 <div
                   ref={marcoRef}
-                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]"
+                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-cajon shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]"
                 >
                   {/* Lo que se mueve con cada lectura va en esta capa (re-montada por `destello.id`): el marco que lleva
                       la sombra se queda quieto, así el velo no «respira» con el visor. */}
                   <div key={destello?.id ?? 0} className={`absolute inset-0 ${destello ? "anim-captura" : ""}`}>
-                    {destello && <span aria-hidden className={`anim-destello absolute inset-0 rounded-[28px] ${destello.tono === "verde" ? "bg-verde" : "bg-ambar"}`} />}
+                    {destello && <span aria-hidden className={`anim-destello absolute inset-0 rounded-cajon ${destello.tono === "verde" ? "bg-verde" : "bg-ambar"}`} />}
                     {(
                       [
-                        "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[30px]",
-                        "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[30px]",
-                        "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[30px]",
-                        "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[30px]",
+                        "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[calc(var(--radius-cajon)+3px)]",
+                        "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[calc(var(--radius-cajon)+3px)]",
+                        "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[calc(var(--radius-cajon)+3px)]",
+                        "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[calc(var(--radius-cajon)+3px)]",
                       ] as const
                     ).map((pos) => (
                       <span key={pos} aria-hidden className={`absolute h-11 w-11 border-crema ${pos}`} />
@@ -474,7 +474,7 @@ export function EscanerCamara({
 
           {/* La bandeja: lo que ya se leyó y el ticket. Alto fijo para las filas (ADR-0185): la hoja no salta al llegar la
               primera prenda. En pantallas bajas caben dos filas; desde 700 px de alto, tres. */}
-          <div className="relative z-10 rounded-t-[28px] bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <div className="relative z-10 rounded-t-cajon bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             {consultando && consulta ? (
               <>
                 {/* «Existencias»: en vez de las escaneadas y el ticket, lo que hay de la última prenda leída. Alto fijo, como el de

@@ -280,22 +280,16 @@ describe("las recetas pueden viajar a Dynamic", () => {
 
 // P10 (Felipe, 2026-11-05): una sola esquina de tarjeta, 22 px, en los dos sistemas. Lo que sigue en 20 o 24 px es porque no es una tarjeta, o porque tiene diseño propio
 // decidido: Felipe dice si se unifica (CLAUDE.md, «Una función, una pieza»). Una pieza nueva no entra a esta lista: lee `--radius-tarjeta`.
+// El 2026-11-23 (ADR-0698, la escala cerrada) salieron de aquí lo que flota (el aviso, la lista de un combo, los globos, el centro de avisos, el cajón de
+// un módulo), la placa de quien entró y la tarjeta Vitrina: ya piden su esquina a la escala.
 const FUERA_DE_P10: Record<string, string> = {
-  ".aviso-tarjeta": "flota: es un aviso, no una tarjeta",
-  ".lista-flotante": "flota: la lista de un combo",
-  ".globo-filtro": "flota: un globo",
-  ".tv-globo": "flota: un globo",
-  ".ca-panel": "flota: el panel del centro de avisos",
   ".acompana-recorte::after": "el recorte de la guía sobre lo que se explica",
-  ".marco-cajon-grupo": "el marco: grupo del menú en el celular",
-  ".marco-yo": "el marco: la placa de quien entró",
   ".mc-accion": "una gota grande que se aprieta: es un botón, no una tarjeta",
   ".obs .o-tj": "diseño propio: el Observatorio",
   ".obs .o-hpanel": "diseño propio: el Observatorio",
   ".o-tj": "diseño propio: el Observatorio",
   ".vs-carnet": "diseño propio: Las vitrinas de Configuración",
   ".vs-tubo": "diseño propio: Las vitrinas de Configuración",
-  ".tarjeta-vitrina": "diseño propio: la tarjeta Vitrina de Existencias (ADR-0589)",
   ".sl-pase": "diseño propio: Catálogo ▸ Insignias",
   ".sl-cab": "diseño propio: Catálogo ▸ Insignias",
   ".sl-pase:not(.sl-abierto) .sl-cab": "diseño propio: Catálogo ▸ Insignias",

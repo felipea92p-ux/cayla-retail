@@ -96,7 +96,7 @@ export function AnilloMision({
       <span className="leading-tight max-lg:hidden">
         {calculando ? (
           <span aria-hidden className="flex h-lh items-center text-sm">
-            <Calculando className="h-4 w-24 rounded" />
+            <Calculando className="h-4 w-24 rounded-sm" />
           </span>
         ) : (
           <b className="block whitespace-nowrap text-sm font-semibold tabular-nums text-tinta">{texto}</b>

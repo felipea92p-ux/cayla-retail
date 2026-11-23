@@ -353,7 +353,7 @@ export function FrescuraDetalle({
           <Bloque titulo={`Tallas en ${sede}`}>
             <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
-                <div key={t.varianteId} className="rounded-[10px] vd-placa px-2.5 py-2 text-sm leading-normal">
+                <div key={t.varianteId} className="rounded-md vd-placa px-2.5 py-2 text-sm leading-normal">
                   <b className="block text-sm font-semibold">{t.talla}</b>
                   <span className="text-taupe">Piso</span> {t.piso}
                   <br />

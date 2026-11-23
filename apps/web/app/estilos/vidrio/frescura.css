@@ -22,7 +22,7 @@
    elevación (va pegada a su sección): solo la luz de arriba de la placa. */
 .frescura-aguja-tarjeta {
   --c: var(--color-tinta);
-  border-radius: 18px;
+  border-radius: var(--radius-campo);
   border: 1px solid color-mix(in srgb, var(--c) var(--lente-chica-filo), transparent);
   background: linear-gradient(
     180deg,
@@ -39,7 +39,7 @@
    pozo no debe borrarlo. El pozo no cambia al pasar el mouse: ya dice «espera algo de ti»; lo que asoma es el hilo y la «›». */
 .fila-cayla[data-por-decidir] {
   margin: 6px 10px;
-  border-radius: 16px;
+  border-radius: var(--radius-campo);
   border-top-color: transparent;
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);

@@ -346,14 +346,30 @@
      asentado en ADR-0012. Toda la app se redondea desde estos cinco tokens,
      igual que antes colapsaba a 0 desde acá — ninguna pantalla se toca a mano.
      La escala es progresiva a propósito: un control chico con el mismo radio
-     que una tarjeta grande se ve deformado, no suave. */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;           /* «flotante» de la guía oficial (2026-09-22): modal, drawer, buscador. Antes 22. */
+     que una tarjeta grande se ve deformado, no suave.
 
-  /* Los radios de cada pieza de vidrio (contrato de familia v4, docs/familia/contrato.json). Los de arriba se quedan para lo que aún no es vidrio. */
+     LA ESCALA CERRADA (ADR-0698, 2026-11-23; Felipe: «cuatro radios, y concéntricas»). En una pantalla hay CUATRO esquinas:
+
+        6 px  `rounded-sm`       lo chico: una casilla, una tecla, una celda
+       10 px  `rounded-md`       lo que vive dentro de otra pieza: la miniatura, la fila que se toca, la opción de una lista
+       14 px  `rounded-campo`    un control: el campo, el combo, una opción grande
+       22 px  `rounded-tarjeta`  una tarjeta, una tabla, un bloque
+
+     Lo que flota trae la suya y una pantalla no la escribe: el cajón (28) y la hoja (32). La píldora y el círculo no son un radio.
+     Los cuatro grandes (14 · 22 · 28 · 32) son los del contrato de familia con Dynamic (docs/familia/contrato.json): no se mueven aquí.
+     CONCÉNTRICAS: cada escalón es el anterior menos 4 u 8 px (22 → 14 → 6, 22 → 10, 14 → 10 → 6), y el espacio del ERP va en
+     múltiplos de 4. Por eso una pieza pegada al borde de otra baja de escalón sola: adentro = afuera − separación, y nunca más
+     redonda que su contenedor. Si la cuenta no cae en un escalón, se escribe la cuenta: `calc(var(--radius-tarjeta) - 6px)`.
+     Nada se escribe a mano (`rounded-[9px]`, `border-radius: 9px`, ni `rounded` a secas, que son 4 px fijos): lo vigila
+     `lib/esquina-suelta.test.ts` (`pnpm --filter web tema:esquinas`). */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  /* Los otros tres nombres de Tailwind apuntan a la escala, para que nada quede fuera de ella: valen lo mismo que el escalón que nombran. */
+  --radius-lg: var(--radius-md);        /* era 12 */
+  --radius-xl: var(--radius-campo);     /* era 16 */
+  --radius-2xl: var(--radius-tarjeta);  /* era 20 */
+
+  /* Los radios de cada pieza de vidrio (contrato de familia v4, docs/familia/contrato.json). */
   --radius-boton: 999px;
   --radius-campo: 14px;
   --radius-tarjeta: 22px;
@@ -520,7 +536,7 @@ body {
   .card-cayla {
     background: var(--color-papel);
     border: 1px solid var(--color-sand);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-tarjeta);
   }
 
   /* Lista flotante de un combo (ComboBuscable, Desplegable, píldoras de filtro, Responsable). Va SOBRE un campo o una tarjeta
@@ -2265,7 +2281,7 @@ html[data-buscando] [data-resultados] {
     height: 100%;
     overflow: hidden;
     padding: 18px 18px 16px;
-    border-radius: 16px;
+    border-radius: var(--radius-tarjeta);
   }
   /* La luz especular: un resplandor blanco que sigue al cursor y solo aparece al pasar el mouse. */
   .kpi-vidrio::after {

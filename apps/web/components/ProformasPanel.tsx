@@ -286,7 +286,7 @@ export function ProformasPanel({
             <div className="mt-4 space-y-4">
               {/* En el celular la caja es más baja (en dvh) y la A4 más chica: a 375 px entra entera a lo ancho y solo se
                   desplaza hacia abajo, y el botón de imprimir no queda 150 px bajo el pliegue. */}
-              <div className="h-[42dvh] overflow-auto rounded-[10px] border border-tinta/10 vd-hundido p-3 sm:h-[62vh]" data-sin-cascada>
+              <div className="h-[42dvh] overflow-auto rounded-md border border-tinta/10 vd-hundido p-3 sm:h-[62vh]" data-sin-cascada>
                 {/* `zoom` (no `scale`): achica también el espacio que ocupa, así la hoja entera cabe sin cortarse. */}
                 <div className="papel-fijo mx-auto w-fit bg-white p-[8mm] shadow-sm [zoom:0.38] sm:[zoom:0.68]">
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />

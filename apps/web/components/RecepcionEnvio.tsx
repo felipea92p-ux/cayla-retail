@@ -855,7 +855,7 @@ export function RecepcionEnvio({
 
     if (l.varianteId) {
       return (
-        <div key={l.id} id={`recibir-linea-${l.id}`} onFocus={alEnfocar(l.id)} onBlur={alDesenfocar(l.id)} className={`group relative px-5 py-3 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla focus-within:before:scale-y-100 sm:py-2.5 ${completa ? "bg-verde/[0.045]" : estado === "faltan" ? "bg-ambar/[0.05]" : ""}`}>
+        <div key={l.id} id={`recibir-linea-${l.id}`} onFocus={alEnfocar(l.id)} onBlur={alDesenfocar(l.id)} className={`group relative px-5 py-3 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-sm before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla focus-within:before:scale-y-100 sm:py-2.5 ${completa ? "bg-verde/[0.045]" : estado === "faltan" ? "bg-ambar/[0.05]" : ""}`}>
           {/* la pistola acaba de leer esta fila: se tiñe de verde y se apaga sola */}
           {destello?.id === l.id && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
           {/* UNA sola pieza, dos formas según el ancho del panel (igual que el spike): en tarjeta —nombre arriba, paso − / + y estado
@@ -1075,7 +1075,7 @@ export function RecepcionEnvio({
                 className={`relative flex w-full items-center gap-3 border-t border-t-tinta/10 px-4 py-3 text-left transition-colors before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:bg-rojo before:transition-transform before:duration-[280ms] before:ease-cayla ${marcada ? "bg-rojo/[0.05] before:scale-y-100" : "hover:bg-tinta/[0.04]"}`}
               >
                 {recienMarcada?.id === c.id && <span key={recienMarcada.n} aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
-                <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
+                <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-sm border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
                   {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -1236,7 +1236,7 @@ export function RecepcionEnvio({
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {bloques.map(({ compra: c }) => (
-                    <span key={c.id} className={`${saliendoChip === c.id ? "anim-sale" : "anim-asentar"} inline-flex items-center gap-2.5 rounded-[10px] border border-sand bg-crema px-3 py-1.5 text-sm`}>
+                    <span key={c.id} className={`${saliendoChip === c.id ? "anim-sale" : "anim-asentar"} inline-flex items-center gap-2.5 rounded-md border border-sand bg-crema px-3 py-1.5 text-sm`}>
                       <Ini nombre={c.proveedorNombre} chico />
                       <span className="text-tinta/65">{c.proveedorNombre}</span>
                       <b className="font-semibold tabular-nums text-tinta">{c.documento}</b>

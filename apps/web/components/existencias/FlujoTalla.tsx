@@ -764,7 +764,7 @@ export function FlujoTalla({
                   escrita.rechazar(relleno, REGLA_RELLENO);
                   setRelleno("");
                 }}
-                className={`h-9 w-14 rounded-[9px] border vd-hundido text-center text-sm font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
+                className={`h-9 w-14 rounded-md border vd-hundido text-center text-sm font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
               />
               {subiendo ? (
                 <button type="button" disabled={nColgado === 0} onClick={() => conAtajo({ ...todoLoColgado })} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
@@ -1136,7 +1136,7 @@ export function FlujoTalla({
               {ultimo && <IconoFinal aria-hidden className="-my-1 h-4 w-4" />}
               {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
               {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
-              <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-xs font-normal text-crema/80 sm:inline">↵</kbd>
+              <kbd className="ml-1 hidden rounded-sm border border-crema/30 px-1 text-xs font-normal text-crema/80 sm:inline">↵</kbd>
             </span>
           </Boton>
         </div>

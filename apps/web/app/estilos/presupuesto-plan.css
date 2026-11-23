@@ -90,7 +90,7 @@
 .pp-res3 > div {
   padding: 10px 14px;
   border: 1px solid var(--color-sand);
-  border-radius: 12px;
+  border-radius: var(--radius-campo);
   background: var(--color-crema);
 }
 .pp-res3 .pp-t {
@@ -251,7 +251,7 @@
 .pp-ver-sin {
   margin: 0 -8px;
   padding: 12px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--color-verde) 35%, transparent);
   background: color-mix(in srgb, var(--color-verde) 8%, var(--color-papel));
 }
@@ -265,7 +265,7 @@
   gap: 3px;
   margin-top: 8px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--hundido-fondo);
   box-shadow: var(--hundido-sombra);
   font-size: var(--text-detalle);

@@ -241,7 +241,7 @@ export function HojaPrenda({
 
           {ganancia != null && (
             <p
-              /* unificar-fijo: el dato de la ganancia por prenda de la maqueta, no un aviso */ className={`flex items-center justify-between rounded-[14px] px-3.5 py-2.5 text-sm ${ganancia >= 0 ? "bg-verde/10" : "bg-ambar/10"}`}
+              /* unificar-fijo: el dato de la ganancia por prenda de la maqueta, no un aviso */ className={`flex items-center justify-between rounded-campo px-3.5 py-2.5 text-sm ${ganancia >= 0 ? "bg-verde/10" : "bg-ambar/10"}`}
             >
               <span className="text-tinta">{ganancia >= 0 ? "Por cada una ganas" : "Se vende por debajo de lo que costó"}</span>
               <b className={`tabular-nums ${ganancia >= 0 ? "text-verde" : "text-ambar"}`}>{soles(Math.abs(ganancia))}</b>
@@ -260,7 +260,7 @@ export function HojaPrenda({
                     aria-pressed={elegida}
                     title={tiendaAnterior === t.id ? "La de la prenda anterior" : undefined}
                     onClick={() => cambiar(alternarDestino(b, t.id))}
-                    className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${elegida ? "border-tinta vd-marca" : ""}`}
+                    className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-campo px-2 py-2 text-center ${elegida ? "border-tinta vd-marca" : ""}`}
                   >
                     {elegida && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                     <span className="text-sm font-medium leading-tight text-tinta">{nombreCortoTienda(t.nombre)}</span>

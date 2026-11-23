@@ -42,7 +42,7 @@
   .hoja-serena.hoja-con-lateral .pie-hoja-fijo { margin-left: 0; padding-left: 0; }
 }
 @media (max-width: 639.98px) {
-  .hoja-serena { border-radius: 26px 26px 0 0; }
+  .hoja-serena { border-radius: 26px 26px 0 0; } /* esquina-fija: en el celular lo que flota va a 26 px (contrato de familia, movil_px de la hoja) */
 }
 /* El título y la bajada: el serif sube a 27 px (Serena), como en la maqueta. */
 .hoja-serena > h2.font-display { font-size: 27px; line-height: 1.1; }
@@ -122,7 +122,7 @@
   .cajon-serena { top: 12px; bottom: 12px; right: 12px; height: auto; border-radius: var(--radius-cajon); overflow: hidden; }
 }
 @media (max-width: 639.98px) {
-  .cajon-serena { border-radius: 26px 26px 0 0; overflow: hidden; }
+  .cajon-serena { border-radius: 26px 26px 0 0; overflow: hidden; } /* esquina-fija: en el celular lo que flota va a 26 px (contrato de familia, movil_px del cajón) */
 }
 /* Las líneas de la banda y del pie del cajón: luz del vidrio, no tinta. */
 .cajon-serena :is(.border-b, .border-t) { border-color: var(--placa-borde); }

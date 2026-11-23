@@ -383,7 +383,7 @@ export function DevolucionesFlujo({
 
           {/* R-37: primero se intenta un cambio; la devolución es para cuando no hay talla ni
               nada de su agrado. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 posv-placa-plana rounded-[22px] px-5 py-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 posv-placa-plana rounded-tarjeta px-5 py-4 text-sm">
             <p className="max-w-xl text-tinta/80">
               <span className="font-semibold text-tinta">¿Le sirve otra talla o color?</span> Primero prueba un cambio; si no hay lo que busca, sigue con la devolución.
             </p>

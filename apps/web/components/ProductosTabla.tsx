@@ -551,7 +551,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
   return (
     <span className="flex items-center gap-1">
       {visibles.map((t) => (
-        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded vd-gota-chica px-1 font-mono text-xs text-tinta/75">
+        <span key={t} className="grid h-5 min-w-[22px] place-items-center rounded-sm vd-gota-chica px-1 font-mono text-xs text-tinta/75">
           {t}
         </span>
       ))}
