@@ -52,18 +52,6 @@ export function Ayuda({ texto }: { texto: string }) {
   );
 }
 
-/**
- * El contenido rico de un tooltip (una lista de prendas, «Por llegar: 13»…): va DENTRO del elemento que lo muestra y oculto;
- * el tooltip de la pantalla lo copia al pasar el mouse, tocarlo o enfocarlo.
- */
-export function TipRico({ children }: { children: ReactNode }) {
-  return (
-    <span className="tip-rico" hidden>
-      {children}
-    </span>
-  );
-}
-
 /** La prenda en miniatura: su foto o, sin foto, el ícono de su categoría sobre su color (ADR-0333). */
 export function TilePrenda({ prenda, tamano }: { prenda: Pick<PrendaAnalisis, "fotoUrl" | "colorHex" | "categoria" | "categoriaPrefijo" | "categoriaFamilia">; tamano: number }) {
   const radio = Math.round(tamano / 5);
@@ -190,14 +178,3 @@ export const pct = (parte: number, total: number): number => (total > 0 ? Math.r
 
 /** Soles sin decimales, como se lee en tienda: «S/ 1,250». */
 export const soles = (n: number): string => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
-
-/** Una cifra grande de arriba (la `numero()` de la maqueta): el número, qué es y su detalle. */
-export function Numero({ valor, et, sub }: { valor: string; et: ReactNode; sub: ReactNode }) {
-  return (
-    <div className="q-numero">
-      <b>{valor}</b>
-      <span className="et">{et}</span>
-      <span className="sub">{sub}</span>
-    </div>
-  );
-}

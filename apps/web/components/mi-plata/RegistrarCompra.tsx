@@ -42,8 +42,6 @@ import { soles } from "@/lib/compras-reglas";
 import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, registrarMarcaDeCompra, subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import {
-  HABITUALES_A_LA_VISTA,
-  ayudaDeHabituales,
   PROVEEDORES_POR_TANDA,
   tandaDeLista,
   MEDIOS_PAGO_COMPRA,
@@ -54,18 +52,15 @@ import {
   pideSerie,
   serieYNumeroParaBase,
   categoriasConProveedor,
-  categoriasDeHabituales,
   cuadraElPapel,
   gananciaDeCompra,
   fraseGanancia,
   detalleProveedor,
   detalleMarca,
   filtrarMarcas,
-  marcasDelProveedorElegido,
   marcasParaComprar,
   marcasRecientes,
   nombreSinSociedad,
-  pildorasDeMarca,
   proveedoresDeLaMarca,
   proveedoresSinMarca,
   inicialesProveedor,
@@ -94,9 +89,6 @@ import {
   lineaDeAvance,
   PASOS_DE_LA_COMPRA,
   piezasDeFila,
-  borradorDeAtajo,
-  cantidadDeAtajo,
-  conPrendaAgregada,
   candadoDeEnvio,
   pagoParaBase,
   textoLoQueFalta,
@@ -204,21 +196,16 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
   const [marcaElegida, setMarcaElegida] = useState<{ id: string; nombre: string } | null>(null);
   const [deQuien, setDeQuien] = useState<MarcaParaComprar | null>(null);
   const [marcaNueva, setMarcaNueva] = useState(false);
-  const [marcaHabitual, setMarcaHabitual] = useState<string | null>(null);
   const [habituales, setHabituales] = useState<Habitual[] | null | "cargando">("cargando");
   // La foto de cada prenda del catálogo entre sus habituales, por `producto_id`: llega después de la grilla (sin ella, su categoría).
   const [fotos, setFotos] = useState<ReadonlyMap<string, string>>(new Map());
-  const [catHabitual, setCatHabitual] = useState<string | null>(null);
-  const [verTodos, setVerTodos] = useState(false);
   const [enCurso, setEnCurso] = useState<EnCurso | null>(null);
   // El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28): las que van en el aire (su línea ya tiene lugar pero no cuenta todavía) y las que
   // acaban de aterrizar (su línea se ilumina una vez). Lo que dice «Tu compra» y la barra de abajo se cuenta sin las que vuelan.
   const [volando, setVolando] = useState<ReadonlySet<string>>(new Set());
   const [llegaron, setLlegaron] = useState<ReadonlySet<string>>(new Set());
-  // Las prendas que el «+ N» ya agregó: se sueltan cuando salen de la compra, para poder agregarlas otra vez.
   // El candado de «Guardar»: fuera del estado de React, para que dos clics del mismo instante no pasen los dos.
   const [candadoEnvio] = useState(candadoDeEnvio);
-  const atajosHechos = useRef<Set<string>>(new Set());
   const pendientesDeVuelo = useRef<{ clave: string; cantidad: number; salida: ReturnType<typeof salidaDelVuelo> }[]>([]);
   // Cómo llegó la hoja abierta: si lo escrito ya no es eso, cerrarla (o salir de la pantalla) pregunta antes de perderlo.
   const [hojaInicial, setHojaInicial] = useState<string | null>(null);
@@ -274,11 +261,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
   const listaMarcas = useMemo(() => marcasParaComprar(datos.marcasConProveedores ?? [], proveedores), [datos.marcasConProveedores, proveedores]);
   const sinMarca = useMemo(() => proveedoresSinMarca(proveedores, datos.marcasConProveedores ?? []), [proveedores, datos.marcasConProveedores]);
-  // Las píldoras del paso 2: las marcas del proveedor elegido, con cuántas prendas suyas hay (solo si trae dos o más).
-  const pildoras = useMemo(
-    () => (proveedor ? pildorasDeMarca(marcasDelProveedorElegido(listaMarcas, proveedor.id), Array.isArray(habituales) ? habituales : [], marcaElegida?.id ?? null) : []),
-    [proveedor, listaMarcas, habituales, marcaElegida],
-  );
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
   // Lo que se VE en «Tu compra» y en la barra de abajo: sin las prendas que todavía vuelan; al aterrizar, el total cuenta hasta la cifra nueva.
@@ -317,10 +299,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
         },
       });
     }
-  }, [lineas]);
-
-  useEffect(() => {
-    for (const clave of [...atajosHechos.current]) if (!lineas.some((l) => l.clave === clave)) atajosHechos.current.delete(clave);
   }, [lineas]);
 
   /** Anota que esta prenda va a volar a «Tu compra»: se guarda de dónde sale ANTES de cambiar la compra (la hoja se cierra y su botón deja de existir). */
@@ -397,7 +375,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
     void cargarHabituales(p.id).then((leidos) => {
       if (proveedorPedido.current !== p.id) return;
       setHabituales(leidos);
-      if (f.marcaElegida && leidos?.some((h) => h.marcaId === f.marcaElegida?.id)) setMarcaHabitual(f.marcaElegida.id);
       if (leidos?.length)
         void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then((fotosLeidas) => {
           if (proveedorPedido.current === p.id) setFotos(fotosLeidas);
@@ -441,23 +418,19 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
     setProveedor(p);
     setMarcaElegida(marca);
     setDeQuien(null);
-    setMarcaHabitual(null);
-    setCatHabitual(null);
-    setVerTodos(false);
     setHabituales("cargando");
     setFotos(new Map());
     setPaso("habituales");
     const leidos = await cargarHabituales(p.id);
     if (proveedorPedido.current !== p.id) return;
     setHabituales(leidos);
-    // Entró por una marca que tiene prendas suyas: la lista llega filtrada a esa marca (las demás del proveedor, a un toque).
-    if (marca && leidos?.some((h) => h.marcaId === marca.id)) setMarcaHabitual(marca.id);
     if (leidos?.length)
       void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then((f) => {
         if (proveedorPedido.current === p.id) setFotos(f);
       });
-    // Sin nada que se le haya comprado ni prendas suyas en el catálogo, o si se entró por «Es una marca nueva»: la hoja de «Algo nuevo», de entrada.
-    if (leidos !== null && (leidos.length === 0 || marcaNueva)) algoNuevo(leidos, marca, marcaNueva);
+    // La prenda se anota siempre escribiéndola (Felipe 2026-11-21: la lista de lo que se le compró antes confundía): elegido el proveedor,
+    // la hoja de «Anotar una prenda» se abre de entrada. Lo de antes solo sirve para sugerir la marca y la categoría, y para el «¿Es la …?».
+    if (leidos !== null) algoNuevo(leidos, marca, marcaNueva);
   }
 
   /** Tocar una marca: con un solo proveedor, sigue con él; con varios, pregunta de quién. */
@@ -484,9 +457,9 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
 
   // «Algo nuevo»: la misma hoja, con qué es, la marca y el nombre arriba. `suyos`: los habituales recién leídos (al elegir un proveedor
   // sin prendas, el estado todavía no los tiene).
-  // `preferida`: la marca por la que se entró o la de la píldora puesta (ADR-0644): la hoja llega con ella. `escribir`: entró por «Es una marca
+  // `preferida`: la marca por la que se entró (ADR-0644): la hoja llega con ella. `escribir`: entró por «Es una marca
   // nueva», así que la marca llega para escribirla.
-  function algoNuevo(suyos: Habitual[] = habitualesLeidos, preferida: { id: string } | null = marcaPreferida(), escribir = false) {
+  function algoNuevo(suyos: Habitual[] = habitualesLeidos, preferida: { id: string } | null = marcaElegida, escribir = false) {
     const ofrecidas = marcasParaNueva(marcasDeLaCompra, marcasDeHabituales(suyos));
     const base = nuevoVacio(ofrecidas);
     const nueva = escribir
@@ -495,9 +468,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
         ? { ...base, marcaId: preferida.id }
         : base;
     abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva });
-  }
-  function marcaPreferida(): { id: string } | null {
-    return marcaHabitual ? { id: marcaHabitual } : marcaElegida;
   }
 
   // La tienda llega marcada con la de la prenda anterior; el reparto, vacío hasta que se marque otra.
@@ -566,26 +536,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
       return [...resto.slice(0, desde), ...nuevas, ...resto.slice(desde)];
     });
     setEnCurso(null);
-  }
-
-  // «+ 9 como la vez pasada» (Felipe 2026-10-28): agrega de un toque con lo de la vez pasada —cantidad, costo y venta— a la tienda de la prenda
-  // anterior. Si no alcanza para agregarla (la primera prenda no tiene tienda anterior, o falta un precio), abre la hoja con eso ya escrito: nunca
-  // adivina una tienda. Una que ya va en la compra se corrige, no se agrega dos veces.
-  function agregarConAtajo(h: Habitual) {
-    // Dos toques en el mismo instante (antes de que la fila se rehaga) agregaban la prenda dos veces (/chaos 2026-10-28): la segunda no hace nada.
-    if (atajosHechos.current.has(h.clave)) return;
-    const ya = lineas.findIndex((l) => l.clave === h.clave);
-    if (ya >= 0) return corregir(ya);
-    const b = borradorDeAtajo(h, tiendaAnterior(lineas));
-    if (!b) return elegirHabitual(h);
-    const nuevas = lineasDeBorrador(h, b, deCategoria.get(h.categoriaId ?? "")?.admitePrecioCero === true);
-    if (nuevas.length === 0) {
-      abrirHoja({ habitual: h, ...b, edita: null });
-      return;
-    }
-    atajosHechos.current.add(h.clave);
-    iniciarVuelo(h.clave, prendasDeLineas(nuevas), null);
-    setLineas((ls) => conPrendaAgregada(ls, nuevas));
   }
 
   function quitarPrenda() {
@@ -695,7 +645,6 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
     setProveedor(null);
     setMarcaElegida(null);
     setMarcaNueva(false);
-    setMarcaHabitual(null);
     setPorMarca(hayMarcas);
     setLineas([]);
     setTipo(null);
@@ -841,96 +790,42 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
       {paso === "habituales" && proveedor && (
         <section className="flex flex-col gap-4">
           <h2 className="compra-pregunta">¿Qué le compraste?</h2>
-          <p className="-mt-2 text-sm text-taupe">
-            {ayudaDeHabituales(Array.isArray(habituales) ? habituales : null)}
-          </p>
+          <p className="-mt-2 text-sm text-taupe">Anota cada prenda: qué es, la marca y cómo la conoces.</p>
           {habituales === "cargando" ? (
-            // El lugar de la grilla, con sus tarjetas por dibujar (sin movimiento: no hay bucle en ADR-0136), para que la pantalla no salte al llegar.
-            <div role="status" aria-label="Buscando lo que le compras">
-              <ul aria-hidden className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-                {[0, 1, 2, 3].map((i) => (
-                  <li key={i} className="card-cayla flex flex-col gap-2 rounded-[18px] p-2.5">
-                    <span className="block aspect-[4/3] w-full rounded-xl bg-hueso" />
-                    <span className="block h-3 w-3/4 rounded bg-hueso" />
-                    <span className="block h-2.5 w-1/2 rounded bg-hueso" />
-                  </li>
-                ))}
-              </ul>
-              <span className="sr-only">Buscando lo que le compras…</span>
+            // El lugar del botón, por dibujar (sin movimiento: no hay bucle en ADR-0136), para que la pantalla no salte al llegar.
+            <div role="status" aria-label="Preparando la hoja de la prenda">
+              <span aria-hidden /* beige-fijo: esqueleto de carga, no es superficie */ className="block h-[72px] w-full rounded-[18px] bg-hueso" />
+              <span className="sr-only">Preparando la hoja de la prenda…</span>
             </div>
           ) : habituales === null ? (
-            <Aviso tono="error" titulo="No se pudieron leer sus prendas">
+            <Aviso tono="error" titulo="No se pudo leer al proveedor">
               Vuelve atrás y elige otra vez al proveedor.
             </Aviso>
           ) : (
             <>
-            {pildoras.length > 0 && (
-              // ADR-0644: un proveedor puede traer varias marcas (10 al 2026-11-11). Lo que compraste de cualquiera de ellas va en esta misma
-              // compra: las píldoras filtran sus prendas sin salir del paso.
-              <div className="card-cayla flex flex-col gap-2 rounded-2xl p-3" data-guia="compra.otras-marcas">
-                <p className="text-sm text-tinta/80">
-                  {nombreCorto} también te trae otras marcas. Si compraste de ellas, van en esta misma compra:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <BotonFiltro activo={marcaHabitual === null} onClick={() => setMarcaHabitual(null)} cuenta={habituales.length}>
-                    Todas
-                  </BotonFiltro>
-                  {pildoras.map((m) => (
-                    <BotonFiltro
-                      key={m.id}
-                      activo={marcaHabitual === m.id}
-                      onClick={() => {
-                        setMarcaHabitual(marcaHabitual === m.id ? null : m.id);
-                        setCatHabitual(null);
-                      }}
-                      cuenta={m.cuantos}
-                    >
-                      {m.nombre}
-                    </BotonFiltro>
-                  ))}
-                </div>
-              </div>
-            )}
-            <ListaHabituales
-              habituales={habituales}
-              marca={marcaHabitual}
-              lineas={lineas}
-              categorias={datos.categorias}
-              nombresTienda={nombresTienda}
-              cat={catHabitual}
-              setCat={setCatHabitual}
-              verTodos={verTodos}
-              setVerTodos={setVerTodos}
-              alElegir={elegirHabitual}
-              alAtajo={agregarConAtajo}
-              alCorregir={corregir}
-              fotos={fotos}
-            />
-            </>
-          )}
-          {/* La barra de abajo: «Algo nuevo» y la barra negra de la maqueta (lo que lleva la compra, y «Seguir»). Pegada al pie de la
-              columna, no a la ventana: fija, en escritorio el menú lateral la tapaba. */}
-          <div className="sticky bottom-0 z-10 flex flex-col gap-2 bg-crema/95 py-3 backdrop-blur">
-            {/* «Algo nuevo», fijo abajo junto a lo que lleva la compra (Felipe 2026-10-23): con muchas prendas, la tarjeta del final de la
-                grilla quedaba lejos y en el celular había que bajar hasta ella. */}
-            {Array.isArray(habituales) && (
+              {/* La única forma de anotar una prenda (Felipe 2026-11-21): ya no se muestra la lista de lo que se le compró antes, que
+                  confundía; se escribe lo que se compró, como se conoce. Es solo una referencia: Recibir la registra después. */}
               <button
                 type="button"
                 onClick={() => algoNuevo()}
                 data-guia="compra.algo-nuevo"
-                className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
+                className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} bg-papel px-4 py-3.5 text-left`}
               >
-                <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
-                  <Plus className="h-4 w-4" />
+                <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
+                  <Plus className="h-5 w-5" />
                 </span>
-                {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
-                    2026-10-23): la describe como la conoce, y Recibir la registra después. */}
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold leading-tight text-tinta">Algo nuevo</span>
-                  <span className="block truncate text-sm text-taupe">Una prenda que no está en la lista</span>
+                  <span className="block text-[15px] font-semibold leading-tight text-tinta">{lineas.length > 0 ? "Anotar otra prenda" : "Anotar una prenda"}</span>
+                  <span className="block truncate text-sm text-taupe">Escribe qué compraste</span>
                 </span>
+                <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
               </button>
-            )}
+              <ListaDeLaCompra lineas={lineas} categorias={datos.categorias} nombresTienda={nombresTienda} alCorregir={corregir} fotos={fotos} />
+            </>
+          )}
+          {/* La barra de abajo de la maqueta: lo que lleva la compra, y «Seguir». Pegada al pie de la columna, no a la ventana: fija, en
+              escritorio el menú lateral la tapaba. */}
+          <div className="sticky bottom-0 z-10 flex flex-col gap-2 bg-crema/95 py-3 backdrop-blur">
             {lineas.length > 0 ? (
               // La Isla oscura del sistema (`<BarraDeAbajo>`, ADR-0479): lo que llevas elegido a la izquierda y «Seguir» a la derecha; su botón
               // principal ya va en crema sobre la barra y, en modo oscuro, se invierte con ella.
@@ -946,7 +841,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                 </div>
               </BarraDeAbajo>
             ) : (
-              <p className="text-center text-sm text-taupe">Elige al menos una prenda para seguir</p>
+              <p className="text-center text-sm text-taupe">Anota al menos una prenda para seguir</p>
             )}
           </div>
         </section>
@@ -999,13 +894,16 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
           )}
           <button
             type="button"
-            onClick={() => setPaso("habituales")}
+            onClick={() => {
+              setPaso("habituales");
+              if (Array.isArray(habituales)) algoNuevo();
+            }}
             className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
           >
             <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
               <Plus className="h-4 w-4" />
             </span>
-            <span className="min-w-0 truncate text-sm font-semibold text-tinta">Otra prenda de {nombreCorto}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-tinta">Anotar otra prenda</span>
           </button>
           </div>
           {lineas.length > 0 && (
@@ -1080,7 +978,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     setRechazo(null);
                     setTipo(k);
                   }}
-                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${tipo === k ? "border-tinta bg-sand/40" : ""}`}
+                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${tipo === k ? "border-tinta vd-marca" : ""}`}
                 >
                   <span className="flex w-full items-center justify-between font-medium text-tinta">
                     {TIPOS_PAPEL[k].nombre}
@@ -1201,7 +1099,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     setRechazo(null);
                     setPago((p) => ({ ...p, forma: o.forma }));
                   }}
-                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${pago.forma === o.forma ? "border-tinta bg-sand/40" : ""}`}
+                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${pago.forma === o.forma ? "border-tinta vd-marca" : ""}`}
                 >
                   <span className="flex w-full items-center justify-between font-medium text-tinta">
                     {o.nombre}
@@ -1791,134 +1689,60 @@ function PasoProveedor({
   );
 }
 
-// «¿Qué le compraste?» como lista de filas (Felipe 2026-10-28, maqueta docs/maquetas/mis-compras-prendas-2026-10/): cada prenda con su miniatura, lo que
-// te costó, a cuánto la vendes y cuántas fueron la vez pasada. Si ya se le compró, «+ 9 como la vez pasada» la agrega de un toque; si ya va en la
-// compra, dice cuántas. Tocar la fila abre la hoja (o la corrige). Sin cambiar qué se guarda ni las reglas: solo cómo se ve y cómo se agrega.
-function ListaHabituales({
-  habituales: todos,
-  marca,
+// Lo que ya se anotó en esta compra, una fila por prenda (repartida entre tiendas, una prenda son varias líneas): su foto, lo que costó y a
+// cuánto se vende. Tocarla abre su hoja para corregirla o quitarla. Ya no se listan las prendas de antes del proveedor (Felipe 2026-11-21).
+function ListaDeLaCompra({
   lineas,
   categorias,
   nombresTienda,
-  cat,
-  setCat,
-  verTodos,
-  setVerTodos,
-  alElegir,
-  alAtajo,
   alCorregir,
   fotos,
 }: {
-  habituales: Habitual[];
-  /** La marca de la píldora puesta (ADR-0644): solo sus prendas. `null`, todas las del proveedor. */
-  marca: string | null;
   lineas: LineaCompra[];
   categorias: CategoriaParaComprar[];
   nombresTienda: ReadonlyMap<string, string>;
-  cat: string | null;
-  setCat: (v: string | null) => void;
-  verTodos: boolean;
-  setVerTodos: (v: boolean) => void;
-  alElegir: (h: Habitual) => void;
-  /** «+ 9 como la vez pasada»: agrega con lo de la vez pasada (o abre la hoja si no alcanza). */
-  alAtajo: (h: Habitual) => void;
   alCorregir: (i: number) => void;
   /** La foto de cada prenda del catálogo, por `producto_id`. */
   fotos: ReadonlyMap<string, string>;
 }) {
-  const habituales = marca ? todos.filter((h) => h.marcaId === marca) : todos;
-  const cats = categoriasDeHabituales(habituales);
-  const deCat = cat ? habituales.filter((h) => h.categoriaId === cat) : habituales;
-  const ver = verTodos || cat ? deCat : deCat.slice(0, HABITUALES_A_LA_VISTA);
   // La miniatura sin foto es el ícono de su categoría sobre su tono (ADR-0333): el prefijo y la familia salen de la categoría.
   const deCategoria = new Map(categorias.map((c) => [c.id, c]));
-  // Con todas las del proveedor (no solo las de la marca puesta): una prenda de otra marca que ya va en la compra no es «nueva».
-  const claves = new Set(todos.map((h) => h.clave));
-  // Las prendas nuevas que ya van en la compra también son filas: así se corrigen igual que las de siempre (una por prenda).
-  const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => !claves.has(l.clave) && lineas.findIndex((x) => x.clave === l.clave) === i);
-  // La guía interactiva ancla al primer atajo (nunca a clases ni a textos).
-  const primerAtajo = ver.find((h) => !lineas.some((l) => l.clave === h.clave) && cantidadDeAtajo(h) != null)?.clave;
-  const fila = (clave: string, productoId: string | null, nombre: string, categoriaId: string | null, categoria: string, h: Habitual | null, onClick: () => void) => {
-    const c = deCategoria.get(categoriaId ?? "");
-    // Repartida entre tiendas, una prenda son varias líneas: la fila suma todas.
-    const suyas = lineas.filter((l) => l.clave === clave);
-    const enCompra = suyas.length > 0;
-    const piezas = piezasDeFila(h, suyas);
-    const atajo = h && !enCompra ? cantidadDeAtajo(h) : null;
-    return (
-      <li key={clave} className="flex items-center gap-3 border-t border-sand px-3.5 py-2.5 first:border-t-0 hover:bg-hueso/50">
-        <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${nombre}${enCompra ? `, ${prendasDeLineas(suyas)} en la compra` : ""}`}>
-          <span data-vuelo-miniatura={clave} className="shrink-0">
-            <MiniaturaPrenda fotoUrl={(productoId && fotos.get(productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={categoria} tamano="lg" />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[14.5px] font-semibold leading-tight text-tinta">{nombre}</span>
-            <span className="mt-0.5 block text-sm leading-snug text-taupe">
-              {piezas.length > 0
-                ? piezas.map((p, i) => (
+  const prendas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => lineas.findIndex((x) => x.clave === l.clave) === i);
+  if (prendas.length === 0) return null;
+  return (
+    <ul className="card-cayla overflow-hidden rounded-[18px]" data-guia="compra.habituales">
+      {prendas.map(({ l, i }) => {
+        const c = deCategoria.get(l.categoriaId ?? "");
+        const suyas = lineas.filter((x) => x.clave === l.clave);
+        const piezas = piezasDeFila(null, suyas);
+        return (
+          <li key={l.clave} className="flex items-center gap-3 border-t border-sand px-3.5 py-2.5 first:border-t-0 vd-pasa">
+            <button type="button" onClick={() => alCorregir(i)} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${l.nombre}, ${prendasDeLineas(suyas)} en la compra`}>
+              <span data-vuelo-miniatura={l.clave} className="shrink-0">
+                <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} tamano="lg" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[14.5px] font-semibold leading-tight text-tinta">{l.nombre}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-taupe">
+                  {piezas.map((p, n) => (
                     <span key={p.etiqueta}>
-                      {i > 0 && " · "}
+                      {n > 0 && " · "}
                       <span className="whitespace-nowrap">
                         {p.etiqueta} <b className="font-semibold tabular-nums text-tinta">{p.valor}</b>
                       </span>
                     </span>
-                  ))
-                : `${categoria}${h?.marca ? ` · ${h.marca}` : ""}`}
-              {enCompra && <span className="sr-only"> · {textoPrendaEnCompra(suyas, nombresTienda)}</span>}
-            </span>
-          </span>
-        </button>
-        {enCompra ? (
-          <Chip tono="verde" versalitas={false} title={textoPrendaEnCompra(suyas, nombresTienda)}>
-            {prendasDeLineas(suyas)} en la compra
-          </Chip>
-        ) : atajo != null && h ? (
-          <Boton
-            type="button"
-            peso="fantasma"
-            onClick={() => alAtajo(h)}
-            title={`Agregar ${atajo} como la vez pasada`}
-            aria-label={`Agregar ${atajo} de ${nombre}, como la vez pasada`}
-            data-guia={clave === primerAtajo ? "compra.atajo" : undefined}
-            className="shrink-0 !px-3 sm:!px-4"
-          >
-            <span className="flex flex-col items-center leading-tight">
-              <span className="font-semibold tabular-nums">+ {atajo}</span>
-              <span className="hidden text-sm font-normal text-taupe sm:block">como la vez pasada</span>
-            </span>
-          </Boton>
-        ) : null}
-        <ChevronRight className="hidden h-4 w-4 shrink-0 text-taupe sm:block" aria-hidden />
-      </li>
-    );
-  };
-  return (
-    <>
-      {cats.length > 1 && (
-        <div className="flex flex-wrap gap-2" data-guia="compra.categorias-suyas">
-          <BotonFiltro activo={cat === null} onClick={() => setCat(null)} cuenta={habituales.length}>
-            Todos
-          </BotonFiltro>
-          {cats.map((c) => (
-            <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={c.cuantos}>
-              {c.nombre}
-            </BotonFiltro>
-          ))}
-        </div>
-      )}
-      {/* Una marca del proveedor sin prendas suyas todavía (ADR-0644): se dice, y «Algo nuevo» llega con esa marca puesta. */}
-      {marca && habituales.length === 0 && nuevas.length === 0 && (
-        <Vacio icono={<Store aria-hidden />} titulo="Todavía no le compraste esta marca" tamano="chico">
-          Descríbela con «Algo nuevo»: llega con esta marca puesta.
-        </Vacio>
-      )}
-      <ul className="card-cayla overflow-hidden rounded-[18px] empty:hidden" data-guia="compra.habituales">
-        {nuevas.map(({ l, i }) => fila(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
-        {ver.map((h) => fila(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, h, () => alElegir(h)))}
-      </ul>
-      {!verTodos && !cat && habituales.length > HABITUALES_A_LA_VISTA && (
-        <BotonVerMas forma="enlace" abierto={false} onCambiar={() => setVerTodos(true)} texto={`Ver todos los suyos (${habituales.length})`} className="self-center" />
-      )}
-    </>
+                  ))}
+                  <span className="sr-only"> · {textoPrendaEnCompra(suyas, nombresTienda)}</span>
+                </span>
+              </span>
+            </button>
+            <Chip tono="verde" versalitas={false} title={textoPrendaEnCompra(suyas, nombresTienda)}>
+              {prendasDeLineas(suyas)} en la compra
+            </Chip>
+            <ChevronRight className="hidden h-4 w-4 shrink-0 text-taupe sm:block" aria-hidden />
+          </li>
+        );
+      })}
+    </ul>
   );
 }

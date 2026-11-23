@@ -319,3 +319,45 @@ del mes» hasta «Cuatro listas». Visto con una ida y vuelta (avanzar, volver a
   qué se gastó, y «Qué le pasa a cada uno» de Vitrina marca la casilla antes de abrir su hoja.
 - **Descarté** que el motor guarde una foto de la pantalla en cada paso y la restaure al volver: no hay forma de saber qué tocó la
   persona entre medio, y restaurar a ciegas podría desarmar algo suyo. Repetir el `preparar` es lo mismo que ya hace al avanzar.
+
+## Actualización 2026-11-18 (d) — al volver, el motor rehace lo que cada paso dejó: su `demostrar` incluido
+
+La ida y vuelta en las 122 guías (`guias:recorrer -- --ida-y-vuelta`, PR #1955) dejó 32 que fallan, y dos causas eran del motor: la
+cadena de (c) tomaba como fuente el paso más cercano con `preparar` aunque ese `preparar` solo cerrara (Escape) o vaciara un buscador, y
+ahí se cortaba (Productos, Configuración, Devoluciones, Producción ▸ Proveedores, Colaboradores, Análisis, Recibir); y lo que abrió un
+`demostrar` no se repetía al volver (Compras, Inicio, Configuración, Flujo de caja, Vender).
+
+- **La fuente es el último paso que dejó algo que sigue abierto** (`fuenteAlVolver`, con su prueba): lo que deja un paso es su `preparar`
+  y su `demostrar`; un paso que solo cierra o vacía no deja nada y se salta; lo que un paso de después deshizo (vaciar ese buscador,
+  `para: "cerrar"` ese pliegue) tampoco cuenta.
+- **Lo que un Escape cerró lo sabe el motor, no el texto de la guía.** Al avanzar, el motor anota cuántas hojas había abiertas al empezar
+  cada paso y si su toque salió bien (`MemoriaDeIda`). Si entre la fuente y el paso hubo menos hojas que las que la fuente dejó, lo que
+  abrió ya se cerró y no es la fuente. Contar los Escape del texto se equivocaba: un Escape sin hoja abierta no cierra nada (Devoluciones
+  pide dos seguidos con una sola hoja) y una pestaña no se cierra con Escape. No es la «foto de la pantalla» que (c) descartó: son dos
+  datos por paso, y rehacer sigue siendo repetir lo que la guía hizo, nunca restaurar algo de la persona.
+- **El `demostrar` se repite al volver** (decisión de esta actualización, que reemplaza el «lo que depende de un `demostrar` lo pide el
+  paso» de (c)). La guía cuenta una historia —«mira, la abrimos» y el paso siguiente explica lo de adentro—, y 78 pasos tienen su
+  `demostrar` (42 tocan algo, 37 escriben un ejemplo). Pedirle a cada uno que repita en el `preparar` del paso siguiente lo que abrió
+  su `demostrar` duplicaba el toque al avanzar (un pliegue que alterna se cerraba, una hoja se tocaba dos veces) y partía un gesto en dos
+  pasos; y cada guía nueva tendría que acordarse. El motor sabe qué deja un paso, así que lo rehace él. También al volver al paso mismo:
+  «Una tasa nueva» queda con su hoja abierta, como la dejó la persona. Desde ahora **todo `demostrar` tiene que poder repetirse**, como
+  todo `preparar`: un toque que alterna (un pliegue, una casilla) lleva `para` (Flujo de caja: «¿Y si…?», «Pasar un pago», «Un gasto nuevo»).
+- **Al repetir, un toque no cierra ni desmarca** (`sinAlternar`): un pliegue abierto, una casilla marcada o un botón apretado se dejan
+  como están. Una pestaña elegida sí se toca: no alterna y vuelve a su vista principal.
+- **Todas las piezas de la fuente:** si falta cualquiera de las que toca (no solo la primera), se rehace antes lo de atrás. «Ritmo,
+  productos, equipo, stock» de Inicio toca el período, que siempre está, y la pestaña de la tienda que se acercó antes.
+- **Entre la fuente y el paso:** después de repetir la fuente, corren los «vaciar» y los cierres de los pasos de entre medio
+  (`limpiezasEntre`): Colaboradores repetía la búsqueda que «El equipo, por sede» había vaciado, y la ficha no encontraba su fila.
+- **Tres detalles del piloto.** Una pestaña con `href` navega: el piloto espera la URL nueva y que se vaya la silueta de carga
+  (`[data-esqueleto-pantalla]`) antes del toque siguiente (`destinoDeNavegacion`; Atributos ▸ «Su foto o su dibujo» ya elige «Tejidos»
+  antes de tocar la tarjeta), y la pieza de ese paso se espera más. Al rehacer, un toque «si está»
+  espera un momento a su pieza, que todavía entra (la píldora «Costo» de la página «Historial»). Y al volver, si la pieza del paso ya está
+  a la vista, no se rehace nada y un toque de su `preparar` cuya pieza no está se salta sin esperar ni avisar: «Ver todo lo recibido» no
+  existe dentro de «Todo lo recibido», y rehacer la cadena sacaba a la guía de ahí.
+- **Lo que era de la guía**, una línea cada uno: Productos vuelve a la Grilla en «Grilla o Tabla» y abre las variantes con `para`;
+  Vender abre el catálogo del celular con `para` y cierra la hoja de la prenda en «¿De quién sale?» (en el celular nadie la cerraba y
+  tapaba «Apartados»);
+  Atributos vuelve a las nueve temporadas con su «Volver» (`siEsta`); Análisis elige «Hoy»; Recibir vuelve de «Todo lo recibido» y elige «Terminados», donde vive ese botón;
+  Compras abre y cierra los filtros con `para`; Devoluciones elige «Compras»; Colaboradores, «Equipo»; Producción ▸ Proveedores,
+  «Proveedores».
+- **Descarté** que cada guía pida en su `preparar` lo que abrió un `demostrar` (arriba), y contar los Escape del texto de la guía (arriba).

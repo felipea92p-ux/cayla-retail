@@ -291,7 +291,7 @@ export function NuevoColorAlta({
                   {fotoDeReferencia && (
                     <div className="flex items-center gap-2.5">
                       {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de referencia (url de la foto o blob:), next/image no aporta a 40 px */}
-                      <img src={fotoDeReferencia} alt="La foto de la prenda" className="h-12 w-10 shrink-0 rounded-lg border border-sand bg-hueso object-contain" />
+                      <img src={fotoDeReferencia} alt="La foto de la prenda" className="h-12 w-10 shrink-0 rounded-lg border border-sand vd-hundido object-contain" />
                       <div className="min-w-0 space-y-0.5">
                         {tonoDeFoto && <p className="text-sm text-taupe">Arranca en el tono de la foto.</p>}
                         {/* Solo se ve si la persona movió el tono: con el de la foto puesto no hay nada que reponer. */}

@@ -30,6 +30,40 @@
  *  lento, y —para un buscador— la pausa típica entre letras mientras la persona sigue escribiendo. */
 export const VENTANA_TRAS_CLIC_MS = 1200;
 
+/**
+ * La variable CSS donde `<PaginaEstable>` publica la reserva vigente de una ventana (una hoja de `<Modal>`), en px.
+ * La lee el pie pegado (`.pie-hoja-fijo`, globals.css) para quedarse al fondo visible de la hoja: su pegado se mide
+ * desde el relleno de la hoja, y la reserva es relleno. Sin reserva la variable no existe (vale 0 px para quien la lee).
+ */
+export const VARIABLE_RESERVA = "--reserva-abajo";
+
+/**
+ * Lo que se publica en `VARIABLE_RESERVA`, o `null` si no debe existir. Solo en una ventana y solo mientras hay reserva:
+ * una variable CSS se hereda, y puesta en el `body` (la reserva de la PÁGINA) le llegaría al pie de toda hoja abierta
+ * encima, que bajaría sin que su propia hoja haya reservado nada. El pie de una página no la necesita: su pegado se mide
+ * desde la pantalla, no desde un relleno.
+ */
+export function reservaPublicada(reservaPx: number, enVentana: boolean): string | null {
+  return enVentana && reservaPx > 0 ? `${Math.round(reservaPx)}px` : null;
+}
+
+/**
+ * Al buscar el contenedor que se desliza bajo el clic, ¿se salta este ancestro porque FLOTA sobre otra superficie?
+ *
+ * Lo `position: fixed` con scroll propio suele ser la lista de un combo: elegir en ella acorta lo de DETRÁS (la hoja o la página), no
+ * la lista, así que se sigue subiendo hasta la superficie que la hospeda. Pero `fixed` no siempre es flotar (2026-11-19): la hoja de
+ * «Prendas parecidas» pasa a pantalla completa bajo 1280 px con `position: fixed`, y ella ES la superficie. Saltarla dejaba vigilando
+ * la página de atrás, que no se mueve: al plegar una tarjeta la vista subía sola sin reserva (medido: 208 px a 1024 × 768 y 229 px a
+ * 375 × 812).
+ *
+ * La diferencia no se lee del estilo (las dos son `fixed` y se deslizan) sino del papel: la hoja de un `<Modal>` es quien hospeda la
+ * capa de las listas flotantes (`[data-capa-flotante]`, donde `useDestinoFlotante` cuelga la lista de todo combo). Quien hospeda lo
+ * que flota no flota. Una lista, un calendario o un globo no hospedan esa capa: se siguen saltando, como siempre.
+ */
+export function flotaSobreOtraSuperficie(fija: boolean, hospedaLoQueFlota: boolean): boolean {
+  return fija && !hospedaLoQueFlota;
+}
+
 export type Medida = {
   /** `scrollTop` del contenedor. */
   arriba: number;

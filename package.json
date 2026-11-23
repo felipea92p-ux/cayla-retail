@@ -218,6 +218,7 @@
     "pruebas:tienda-ofertas-de-grupo": "node scripts/pruebas/tienda_ofertas_de_grupo.mjs",
     "pruebas:monto-con-escalones": "node scripts/pruebas/monto_con_escalones.mjs",
     "pruebas:ofertas-por-insignia": "node scripts/pruebas/ofertas_por_insignia.mjs",
+    "pruebas:ofertas-por-variante": "node scripts/pruebas/ofertas_por_variante.mjs",
     "pruebas:cambio-mismo-modelo": "node scripts/pruebas/cambio_mismo_modelo.mjs",
     "pruebas:cambio-con-comprobantes": "node scripts/pruebas/cambio_con_comprobantes.mjs",
     "pruebas:cambio-con-comprobantes-vigia": "node scripts/pruebas/cambio_con_comprobantes_vigia.mjs",

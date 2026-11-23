@@ -122,7 +122,7 @@ export function DetalleCategoriaResultados({
 
         {senal && senal.senal !== "bien" && (
           // Lo que antes era la fila de «Pedir más o impulsar»: qué hacer y, para la prenda exacta, el acceso a Análisis.
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl vd-placa px-4 py-3 text-sm text-tinta/80">
             {senal.senal === "pedir" ? <Chip tono="rojo">Pide más</Chip> : <Chip tono="ambar">Impúlsala</Chip>}
             <span className="min-w-0 flex-1">
               {senal.senal === "pedir"

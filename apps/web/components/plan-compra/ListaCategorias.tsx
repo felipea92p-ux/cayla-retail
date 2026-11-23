@@ -206,7 +206,7 @@ export function ListaCategorias({
                 type="button"
                 aria-expanded={sinMovAbiertas}
                 onClick={() => onSinMov(!sinMovAbiertas)}
-                className="flex w-full items-center gap-3 bg-hueso/60 px-5 py-3 text-left text-sm text-tinta/80 transition-colors hover:bg-hueso"
+                className="flex w-full items-center gap-3 vd-hundido px-5 py-3 text-left text-sm text-tinta/80 transition-colors vd-pasa"
               >
                 <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 transition-transform duration-200 ease-cayla motion-reduce:transition-none ${sinMovAbiertas ? "rotate-180" : ""}`} />
                 <span>

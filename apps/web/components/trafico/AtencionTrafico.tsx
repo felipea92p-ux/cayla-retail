@@ -80,7 +80,7 @@ export function AtencionTrafico({ atencion, hoy }: { atencion: Atencion; hoy: st
                 <Fila
                   key={w.id}
                   marca={
-                    <span aria-hidden className="grid h-12 w-10 place-items-center rounded-lg bg-hueso text-taupe">
+                    <span aria-hidden className="grid h-12 w-10 place-items-center rounded-lg vd-lente text-taupe">
                       <PackageCheck className="h-5 w-5" />
                     </span>
                   }

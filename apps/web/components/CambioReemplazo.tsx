@@ -87,7 +87,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
               className={`h-10 w-10 rounded-full border-2 transition-[box-shadow,transform] duration-300 ${
                 elegido ? "border-tinta shadow-[0_0_0_2px_var(--color-papel),0_0_0_4px_var(--color-tinta)]" : "border-tinta/15 hover:border-tinta/40"
               } ${hay ? "" : "opacity-40"}`}
-              style={{ background: hex ?? "var(--color-sand)" }}
+              /* beige-fijo: color de prenda sin dato */ style={{ background: hex ?? "var(--color-sand)" }}
             />
           );
         })}
@@ -249,7 +249,7 @@ export function CambioReemplazo({
               if (!er) return null;
               const cual = `${i + 2}.ª`;
               return (
-                <div key={extra.id} className="space-y-4 rounded-2xl bg-sand/45 p-4 sm:p-5">
+                <div key={extra.id} className="space-y-4 rounded-2xl vd-placa p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">Otra prenda · la {cual}</p>
                     <button

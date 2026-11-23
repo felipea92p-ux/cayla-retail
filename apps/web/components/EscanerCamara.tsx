@@ -125,7 +125,7 @@ const iniciales = (referencia: string) =>
 /** La foto de la prenda o, sin foto, sus iniciales sobre sand (el mismo plan B de las tarjetas de Vender). */
 function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado: number }) {
   return (
-    <span className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-sand font-display text-tinta/55" style={{ width: lado, height: lado, fontSize: lado * 0.34 }}>
+    <span className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl vd-gota-chica font-display text-tinta/55" style={{ width: lado, height: lado, fontSize: lado * 0.34 }}>
       {prenda?.fotoUrl ? <ImagenDePrenda src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" fallback={iniciales(prenda.referencia)} /> : prenda ? iniciales(prenda.referencia) : "?"}
     </span>
   );

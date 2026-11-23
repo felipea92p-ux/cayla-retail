@@ -136,7 +136,7 @@ export default async function FondosPage() {
             <TarjetaCifra
               etiqueta="En la mano"
               valor={soles(cifras.enMano)}
-              className={`bg-sand/40 ${conDeuda ? "" : "col-span-2 @min-[36rem]:col-span-1"}`}
+              className={`vd-marca ${conDeuda ? "" : "col-span-2 @min-[36rem]:col-span-1"}`}
             >
               {cifras.conPlata === 0 ? "Nadie tiene plata" : cifras.conPlata === 1 ? "Una persona" : `Entre ${cifras.conPlata} personas`}
             </TarjetaCifra>
@@ -275,7 +275,7 @@ export default async function FondosPage() {
                   <span
                     aria-hidden
                     className={`grid h-9 w-9 place-items-center rounded-full ${
-                      anulado ? "border border-dashed border-taupe/40 text-taupe" : vuelve ? "bg-verde/10 text-verde" : "bg-sand/60 text-tinta"
+                      anulado ? "border border-dashed border-taupe/40 text-taupe" : vuelve ? "bg-verde/10 text-verde" : "vd-gota-chica text-tinta"
                     }`}
                   >
                     <Icono className="h-4 w-4" />

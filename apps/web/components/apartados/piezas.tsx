@@ -87,7 +87,7 @@ export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string | null; hoy: st
         <span
           key={i}
           className={`h-1.5 rounded-sm ${
-            t.momento === "hoy" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-tinta") : t.momento === "pasado" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-taupe/50") : t.tipo === "gracia" ? "bg-rojo/20" : "bg-sand"
+            t.momento === "hoy" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-tinta") : t.momento === "pasado" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-taupe/50") : t.tipo === "gracia" ? "bg-rojo/20" : "bg-sand" /* beige-fijo: escala del dato: el tramo sin color del recorrido */
           }`}
         />
       ))}

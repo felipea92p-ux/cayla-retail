@@ -634,7 +634,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
         <BarraInfo control={control} responsable={responsable} creadoEn={conteo.creadoEn} />
 
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-sm text-taupe">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg vd-placa px-3 py-2 text-sm text-taupe">
           <p className="flex min-w-0 items-center gap-2">
             <Info aria-hidden className="h-4 w-4 shrink-0" />
             {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 ? (

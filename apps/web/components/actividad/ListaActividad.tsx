@@ -143,8 +143,8 @@ export function ListaActividad({
         <div className="space-y-3 py-2" aria-hidden>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-sand/60" />
-              <div className="h-3 flex-1 rounded bg-sand/60" />
+              <div className="h-8 w-8 rounded-full bg-sand/60" />{/* beige-fijo: esqueleto de carga */}
+              <div className="h-3 flex-1 rounded bg-sand/60" />{/* beige-fijo: esqueleto de carga */}
             </div>
           ))}
         </div>

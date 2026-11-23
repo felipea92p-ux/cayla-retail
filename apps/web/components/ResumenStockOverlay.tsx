@@ -32,7 +32,7 @@ function Seccion({ titulo, bajada, children }: { titulo: string; bajada?: string
 }
 
 function Vacio({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg bg-hueso/60 px-3.5 py-3 text-sm text-taupe">{children}</p>;
+  return <p className="rounded-lg vd-placa px-3.5 py-3 text-sm text-taupe">{children}</p>;
 }
 
 function FilaPrenda({ p, derecha }: { p: Pick<PrendaDelResumen, "referencia" | "color" | "colorHex" | "fotoUrl" | "categoria">; derecha: ReactNode }) {
@@ -139,7 +139,7 @@ export function ResumenStockOverlay({
         ) : (
           <Seccion titulo="Por categoría" bajada={separa ? "Cuántas prendas hay en el piso y en el almacén, y cuántas se vendieron este mes." : "Cuántas prendas hay y cuántas se vendieron este mes."}>
             <div className="overflow-hidden rounded-lg border border-tinta/10">
-              <div className="grid gap-x-3 bg-hueso/60 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
+              <div className="grid gap-x-3 vd-hundido px-3.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-taupe" style={{ gridTemplateColumns: columnas }}>
                 <span>Categoría</span>
                 {separa ? (
                   <>
@@ -170,7 +170,7 @@ export function ResumenStockOverlay({
                   </li>
                 ))}
               </ul>
-              <div className="grid gap-x-3 border-t border-tinta/15 bg-hueso/60 px-3.5 py-2.5 text-sm font-semibold tabular-nums text-tinta" style={{ gridTemplateColumns: columnas }}>
+              <div className="grid gap-x-3 border-t border-tinta/15 vd-hundido px-3.5 py-2.5 text-sm font-semibold tabular-nums text-tinta" style={{ gridTemplateColumns: columnas }}>
                 <span>Total</span>
                 {separa ? (
                   <>

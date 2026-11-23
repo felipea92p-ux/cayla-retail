@@ -1342,7 +1342,6 @@ export const DECISIONES = {
       { "archivo": "app/estilos/movimientos-sellos.css", "motivo": "los sellos de Movimientos (ADR-0353)" },
       { "archivo": "app/estilos/observatorio.css", "motivo": "el Observatorio del Admin (ADR-0322)" },
       { "archivo": "app/estilos/analisis.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
-      { "archivo": "app/estilos/analisis-hoy.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
       { "archivo": "app/estilos/analisis-pedir.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
       { "archivo": "app/estilos/ventas-sin-registrar.css", "motivo": "la mesa de Ventas sin registrar (ADR-0360)" },
       { "archivo": "app/estilos/inicio-almacen.css", "motivo": "Inicio de Almacén dibuja su propio juego de íconos (ADR-0292)" },

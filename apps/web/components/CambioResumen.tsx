@@ -35,7 +35,7 @@ function FotoDeBalanza({ prenda }: { prenda: PrendaFicha }) {
     </div>
   );
   return (
-    <div className="posv-foto relative aspect-square overflow-hidden bg-sand/40">
+    <div className="posv-foto relative aspect-square overflow-hidden vd-hundido">
       {prenda.fotoUrl ? <ImagenDePrenda src={prenda.fotoUrl} alt="" fill sizes="(max-width: 639px) 34vw, 180px" className="object-cover" fondo={prenda.colorHex} fallback={sinFoto} /> : sinFoto}
     </div>
   );

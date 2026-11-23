@@ -2,7 +2,7 @@
 // escribe un ejemplo o cierra como lo haría una persona. Antes de TOCAR algo le pregunta a `motivoParaNoTocar` (lib/guias):
 // la demo corre en la tienda de verdad y nunca guarda.
 
-import { motivoParaNoTocar, toqueDelPliegue } from "@/lib/guias/reglas";
+import { destinoDeNavegacion, motivoParaNoTocar, toqueDelPliegue } from "@/lib/guias/reglas";
 import type { AccionGuia, PiezaATocar } from "@/lib/guias/tipos";
 
 /** El selector de una pieza de la guía. Las anclas son claves de texto simples («vender.buscador»). */
@@ -153,23 +153,56 @@ export function hayModalAbierto(): boolean {
   return [...document.querySelectorAll("[role=dialog]")].some((d) => !d.closest("[data-guia-motor]"));
 }
 
-export type ResultadoAccion = { ok: true } | { ok: false; motivo: string };
+/**
+ * `nada`: salió bien sin tocar nada (no había qué cerrar, la pieza «si está» no estaba, ya estaba como se pedía). `navego`: el toque cambió
+ * la URL y la pantalla se rehízo; lo que viene después puede tardar en cargar.
+ */
+export type ResultadoAccion = { ok: true; nada?: true; navego?: true } | { ok: false; motivo: string };
+
+/**
+ * ¿Ya está abierto o marcado? Un pliegue (`aria-expanded`), una casilla o un botón que se queda apretado (`aria-pressed`). Al REPETIR lo
+ * que hizo un paso (`sinAlternar`), un toque sobre algo así solo lo cerraría o lo desmarcaría: lo que se está rehaciendo ya está. Una
+ * pestaña elegida sí se toca: no alterna, y tocarla vuelve a su vista principal.
+ */
+function yaEsta(control: HTMLElement): boolean {
+  const si = (atributo: string) => {
+    const v = control.getAttribute(atributo);
+    return v !== null && v !== "false";
+  };
+  if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) return control.checked;
+  return expandidoDe(control) === "true" || si("aria-pressed") || si("aria-checked");
+}
+
+/**
+ * Espera a que la pantalla nueva llegue, hasta 8 s: que la URL sea `destino` y que se vaya la silueta de carga (`[data-esqueleto-pantalla]`,
+ * la de todo `loading.tsx`). La URL cambia apenas empieza la navegación, con la silueta a la vista, y lo de la pantalla llega después
+ * (volver de «Todo lo recibido» a Recibir tarda unos 3 s en traer su lista). Después, dos cuadros para que se pinte.
+ */
+async function esperarNavegacion(destino: string, senal?: AbortSignal) {
+  const fin = performance.now() + 8000;
+  const llego = () => `${window.location.pathname}${window.location.search}` === destino && !document.querySelector("[data-esqueleto-pantalla]");
+  while (performance.now() < fin && !senal?.aborted && !llego()) await pausa(60);
+  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+}
 
 /** Hace una acción del piloto. Nunca lanza: si no puede, dice por qué y la guía sigue explicando. */
 /**
  * `apuntar` (opcional): lo llama el piloto con la pieza que está por tocar o donde va a escribir, y espera a que termine. El
  * motor lo usa para llevar el cursor fantasma hasta ahí y «hacer clic» a la vista, antes de que pase de verdad.
+ * `sinAlternar`: el motor está REPITIENDO lo que hizo un paso para volver a dejarlo a la vista (al volver con ←): un toque sin `para` sobre
+ * algo que ya está abierto, marcado o elegido no se hace (`yaEsta`), porque solo lo cerraría.
  */
 export async function ejecutar(
   accion: AccionGuia,
   senal?: AbortSignal,
   conMovimiento = true,
   apuntar?: (el: HTMLElement, modo: "clic" | "escribir") => Promise<void>,
+  { sinAlternar = false }: { sinAlternar?: boolean } = {},
 ): Promise<ResultadoAccion> {
   if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
   if (accion.tipo === "escape") {
     // Solo si hay algo que cerrar: un Escape suelto en la pantalla podría significar otra cosa (borrar la búsqueda).
-    if (!hayModalAbierto()) return { ok: true };
+    if (!hayModalAbierto()) return { ok: true, nada: true };
     const destino = (document.activeElement as HTMLElement | null) ?? document.body;
     despachandoEscape = true;
     try {
@@ -184,7 +217,7 @@ export async function ejecutar(
   // Cerrar un pliegue que no está a la vista es no tener nada que cerrar, como `siEsta`.
   const sinEsperar = accion.tipo === "clic" && (accion.siEsta || accion.para === "cerrar" || accion.para === "desmarcar");
   const el = sinEsperar ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
-  if (!el && sinEsperar) return { ok: true };
+  if (!el && sinEsperar) return { ok: true, nada: true };
   if (!el) return { ok: false, motivo: `no está a la vista (${accion.ancla})` };
 
   if (accion.tipo === "clic") {
@@ -198,15 +231,23 @@ export async function ejecutar(
     if (accion.para) {
       const toque = toqueDelPliegue(accion.para, esCasilla ? marcadaDe(control) : expandidoDe(control));
       if (toque === "no-es-pliegue") return { ok: false, motivo: `no dice si está ${esCasilla ? "marcada" : "abierto"} (${accion.ancla})` };
-      if (toque === "ya-esta") return { ok: true };
+      if (toque === "ya-esta") return { ok: true, nada: true };
+    } else if (sinAlternar && yaEsta(control)) {
+      return { ok: true, nada: true };
     }
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
     await pausa(conMovimiento ? 220 : 0);
     if (apuntar && conMovimiento) await apuntar(control, "clic");
     if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
+    // Una pestaña con `href` navega: hasta que la pantalla se rehaga, lo que se toque después es de la pantalla vieja (`destinoDeNavegacion`).
+    const destino = control instanceof HTMLAnchorElement ? destinoDeNavegacion(control.getAttribute("href"), window.location) : null;
     // Una pieza de un gráfico (una nota de `<Linea>`) es SVG y no tiene `click()`: recibe el mismo clic como evento.
     if (typeof (control as Partial<HTMLElement>).click === "function") control.click();
     else control.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    if (destino) {
+      await esperarNavegacion(destino, senal);
+      return { ok: true, navego: true };
+    }
     return { ok: true };
   }
 

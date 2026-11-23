@@ -40,7 +40,7 @@ export function CaminoDePasos({
             aria-current={enCurso ? "step" : undefined}
             className={`flex min-w-0 flex-col items-start gap-1.5 text-sm leading-tight ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}
           >
-            <span aria-hidden className={`block h-1 w-full rounded-full ${hecho ? "bg-verde" : enCurso ? "bg-tinta" : "bg-sand"}`} />
+            <span /* beige-fijo: pista del avance, la escala del dato */ aria-hidden className={`block h-1 w-full rounded-full ${hecho ? "bg-verde" : enCurso ? "bg-tinta" : "bg-sand"}`} />
             <span className="inline-flex items-start gap-0.5">
               {hecho && <Check className="mt-px h-3 w-3 shrink-0" aria-hidden />}
               {p}
@@ -66,7 +66,7 @@ export function CaminoDePasos({
                 <li aria-current={enCurso ? "step" : undefined} className={`flex shrink-0 items-center gap-2 text-sm ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}>
                   <span
                     aria-hidden
-                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${hecho ? "bg-verde/15 text-verde" : enCurso ? "bg-tinta text-crema" : "bg-sand text-taupe"}`}
+                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${hecho ? "bg-verde/15 text-verde" : enCurso ? "bg-tinta text-crema" : "vd-gota-chica text-taupe"}`}
                   >
                     {hecho ? <Check className="h-3 w-3" /> : i + 1}
                   </span>
@@ -76,7 +76,7 @@ export function CaminoDePasos({
                   </span>
                 </li>
                 {/* La línea que une un paso con el siguiente: todas del mismo largo, sea cual sea el texto de cada paso. */}
-                {i < pasos.length - 1 && <li aria-hidden className={`mx-3 h-0.5 min-w-5 flex-1 rounded-full ${hecho ? "bg-verde/55" : "bg-sand"}`} />}
+                {i < pasos.length - 1 && <li /* beige-fijo: línea entre pasos, no es superficie */ aria-hidden className={`mx-3 h-0.5 min-w-5 flex-1 rounded-full ${hecho ? "bg-verde/55" : "bg-sand"}`} />}
               </Fragment>
             );
           })}

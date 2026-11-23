@@ -98,7 +98,7 @@ export function FichaOrden({
     <aside
       ref={raiz}
       aria-label="La orden, tal como va a quedar"
-      className="sticky bottom-0 z-[2] -mx-6 -mb-6 border-t border-sand bg-papel px-6 pb-6 pt-3 @min-[880px]:top-[5.5rem] @min-[880px]:bottom-auto @min-[880px]:z-auto @min-[880px]:mx-0 @min-[880px]:mb-0 @min-[880px]:flex @min-[880px]:max-h-[calc(100dvh-7rem)] @min-[880px]:flex-col @min-[880px]:rounded-2xl @min-[880px]:border @min-[880px]:bg-hueso/40 @min-[880px]:p-4"
+      className="sticky bottom-0 z-[2] -mx-6 -mb-6 border-t border-sand bg-papel px-6 pb-6 pt-3 @min-[880px]:top-[5.5rem] @min-[880px]:bottom-auto @min-[880px]:z-auto @min-[880px]:mx-0 @min-[880px]:mb-0 @min-[880px]:flex @min-[880px]:max-h-[calc(100dvh-7rem)] @min-[880px]:flex-col @min-[880px]:rounded-2xl @min-[880px]:border @min-[880px]:[background:var(--placa-fondo)] @min-[880px]:[box-shadow:var(--placa-luz)] @min-[880px]:p-4"
     >
       <div className="scroll-cayla @min-[880px]:-mx-1.5 @min-[880px]:min-h-0 @min-[880px]:flex-1 @min-[880px]:overflow-y-auto @min-[880px]:px-1.5">
         <div data-guia="prod-orden-nueva.resumen" className="space-y-3">

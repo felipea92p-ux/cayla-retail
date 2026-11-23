@@ -40,7 +40,7 @@
 /* Lo que era papel o arena dentro de un bloque (una línea de la orden, lo que se recibe en un cierre, las cuentas del proveedor): la placa.
    Fuera lo que se toca, que lleva su propia cara, y un ícono sobre una foto, que tiene que seguir leyéndose (`aria-hidden`). */
 :where(.pantalla-en-vidrio) :is(div, section, ul, li, span).bg-papel:where(:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *, [aria-hidden])),
-:where(.pantalla-en-vidrio) div.bg-sand\/40 {
+:where(.pantalla-en-vidrio) div.bg-sand\/40 { /* beige-fijo: selector que traduce el beige a vidrio */
   border-color: var(--placa-borde);
   background: var(--placa-fondo);
   box-shadow: var(--placa-luz);
@@ -54,7 +54,7 @@
 }
 
 /* ---------- Lo que era hueso (la pista de una línea de tiempo, las personas que esperan una talla, un ícono sobre su fondo): el pozo ---------- */
-:where(.pantalla-en-vidrio) .bg-hueso:where(:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *)) {
+:where(.pantalla-en-vidrio) .bg-hueso:where(:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *)) { /* beige-fijo: selector que traduce el beige a vidrio */
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
 }

@@ -65,7 +65,7 @@
   .twc-sin-guardar { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-taupe); }
 
   /* ───────── La fachada: toldo de rayas del color de la sede ───────── */
-  .twc-fachada { position: relative; height: 96px; overflow: hidden; background: var(--color-hueso); transition: opacity 260ms var(--ease-cayla), filter 260ms var(--ease-cayla); }
+  .twc-fachada { position: relative; height: 96px; overflow: hidden; background: var(--hundido-fondo); transition: opacity 260ms var(--ease-cayla), filter 260ms var(--ease-cayla); }
   .twc-fachada img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .twc-toldo {
     position: absolute; inset: 0 0 auto 0; height: 34px;
@@ -117,7 +117,7 @@
   /* La foto de la fachada: se suelta o se elige; con foto, ella es el fondo y el texto queda abajo. */
   .twc-foto {
     position: relative; display: block; height: 104px; overflow: hidden; cursor: pointer;
-    border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); border-radius: 10px; background: var(--color-hueso); color: var(--color-taupe);
+    border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); border-radius: 10px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); color: var(--color-taupe);
     transition: border-color 220ms var(--ease-cayla), background-color 220ms var(--ease-cayla);
   }
   @media (hover: hover) { .twc-foto:hover { border-color: var(--color-tinta); background: var(--color-papel); } }
@@ -132,8 +132,8 @@
 
   /* El mapa de una tienda: una baldosa con calles y un pin, y lo que hará «Cómo llegar». */
   .twc-mapita { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-  .twc-mapita-tile { position: relative; display: grid; place-items: center; flex: none; width: 56px; height: 40px; overflow: hidden; border: 1px solid var(--color-sand); border-radius: 8px; background: var(--color-hueso); color: var(--color-rojo); }
-  .twc-mapita-tile::before, .twc-mapita-tile::after { content: ""; position: absolute; background: var(--color-sand); }
+  .twc-mapita-tile { position: relative; display: grid; place-items: center; flex: none; width: 56px; height: 40px; overflow: hidden; border: 1px solid var(--color-sand); border-radius: 8px; background: var(--color-hueso); color: var(--color-rojo); } /* beige-fijo: dibujo del mapa, no una superficie */
+  .twc-mapita-tile::before, .twc-mapita-tile::after { content: ""; position: absolute; background: var(--color-sand); } /* beige-fijo: dibujo del mapa, no una superficie */
   .twc-mapita-tile::before { left: -4px; right: -4px; top: 16px; height: 6px; transform: rotate(-14deg); }
   .twc-mapita-tile::after { top: -4px; bottom: -4px; left: 34px; width: 6px; transform: rotate(18deg); }
   .twc-mapita-tile svg { position: relative; z-index: 1; width: 20px; height: 20px; transition: transform 300ms var(--ease-cayla); }
@@ -157,7 +157,7 @@
     display: grid; place-items: center; padding: 0 4px;
     transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
   }
-  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--color-hueso); font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--color-tinta); }
+  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--color-tinta); }
   .twc-celda span { border-radius: 4px 4px 10px 10px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
   .twc-celda[data-poco] span { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); color: var(--color-ambar); }
   .twc-celda[data-tope] b { background: var(--color-tinta); color: var(--color-crema); }
@@ -183,12 +183,13 @@
   .twc-cierres-fecha .campo > div:last-child:empty { display: none; }
   .twc-cierre {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px 0 12px; border-radius: 999px;
-    background: var(--color-hueso); font-size: 14px; font-weight: 600; color: var(--color-tinta);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra); font-size: 14px; font-weight: 600; color: var(--color-tinta);
   }
   .twc-cierre[data-hoy] { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
   .twc-cierre button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
   .twc-cierre button svg { width: 12px; height: 12px; }
-  @media (hover: hover) { .twc-cierre button:hover { background: var(--color-sand); color: var(--color-tinta); } }
+  @media (hover: hover) { .twc-cierre button:hover { background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); } }
 
   /* ───────── El horario por días: una barra por día, con asas ───────── */
   .twc-horario { container-type: inline-size; }
@@ -210,14 +211,14 @@
   }
   .twc-pista {
     position: relative; height: 34px; overflow: hidden; border-radius: 8px; touch-action: pan-y;
-    background: repeating-linear-gradient(90deg, var(--color-hueso) 0 calc(100% / 16 - 1px), var(--color-sand) calc(100% / 16 - 1px) calc(100% / 16));
+    background: repeating-linear-gradient(90deg, var(--color-hueso) 0 calc(100% / 16 - 1px), var(--color-sand) calc(100% / 16 - 1px) calc(100% / 16)); /* beige-fijo: pista de horas, escala del dato */
   }
   .twc-pista[data-cerrado] { cursor: default; }
   .twc-pista[data-cerrado]::after {
     content: "Cerrado"; position: absolute; inset: 0; display: grid; place-items: center;
     font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
   }
-  .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); }
+  .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); } /* beige-fijo: pista de horas, escala del dato */
   .twc-pista[data-cierre]::after { content: "Cerrado hoy"; color: var(--color-ambar); }
   .twc-tramo {
     position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;

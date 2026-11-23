@@ -96,7 +96,7 @@
     display: inline-grid;
     flex-shrink: 0;
     border-radius: 999px;
-    background: var(--color-sand);
+    background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
     color: var(--color-tinta);
     font-family: var(--font-serif);
     line-height: 1;

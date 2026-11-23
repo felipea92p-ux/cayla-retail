@@ -58,7 +58,7 @@ export function ResumenDeHoy({
         type="button"
         onClick={() => setAbierto(true)}
         aria-haspopup="dialog"
-        className="flex w-full items-center gap-3 rounded-xl bg-hueso px-4 py-3 text-left transition-colors hover:bg-sand"
+        className="flex w-full items-center gap-3 rounded-xl vd-gota vd-pasa-gota px-4 py-3 text-left transition-colors"
       >
         <Clock className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
         <span className="min-w-0">

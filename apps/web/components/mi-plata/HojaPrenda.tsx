@@ -144,7 +144,7 @@ export function HojaPrenda({
   );
 
   return (
-    <Modal titulo={nueva ? "Algo nuevo" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja" antesDeCerrar={salida.pedirAccion}>
+    <Modal titulo={nueva ? "Anotar una prenda" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja" antesDeCerrar={salida.pedirAccion}>
       {(cerrar) => (
         <form
           className="space-y-4"
@@ -260,7 +260,7 @@ export function HojaPrenda({
                     aria-pressed={elegida}
                     title={tiendaAnterior === t.id ? "La de la prenda anterior" : undefined}
                     onClick={() => cambiar(alternarDestino(b, t.id))}
-                    className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${elegida ? "border-tinta bg-sand/40" : ""}`}
+                    className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${elegida ? "border-tinta vd-marca" : ""}`}
                   >
                     {elegida && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                     <span className="text-sm font-medium leading-tight text-tinta">{nombreCortoTienda(t.nombre)}</span>

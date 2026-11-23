@@ -151,7 +151,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
       {enlaces.length > 0 && (
         <nav aria-label="Pantallas relacionadas" className="mt-5 space-y-0.5 border-t border-dashed border-tinta/10 pt-3">
           {enlaces.map((e) => (
-            <Link key={e.href} href={e.href} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-hueso">
+            <Link key={e.href} href={e.href} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors vd-pasa">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-tinta">{e.texto}</span>
                 <span className="block text-sm text-tinta/55">{e.detalle}</span>

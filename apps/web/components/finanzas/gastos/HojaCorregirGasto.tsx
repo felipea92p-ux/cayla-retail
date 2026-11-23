@@ -115,7 +115,7 @@ export function HojaCorregirGasto({
 
         <CampoGuiado id="cambio" guia={guia} titulo="Lo que cambia">
           {cambios.length > 0 ? (
-            <ul className="rounded-[12px] bg-hueso px-3 py-2 text-sm">
+            <ul className="rounded-[12px] vd-placa px-3 py-2 text-sm">
               {cambios.map((c) => (
                 <li key={c.campo} className="text-tinta">
                   {textoDeCambioDeGasto(c)}

@@ -268,7 +268,7 @@ export function ImprimirRotulos({
                             type="button"
                             onClick={() => setMarcasElegidas((actual) => actual.filter((x) => x.id !== m.id))}
                             aria-label={`Quitar ${m.nombre}`}
-                            className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                            className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors vd-pasa-gota hover:text-tinta"
                           >
                             <X aria-hidden className="h-3.5 w-3.5" />
                           </button>
@@ -319,7 +319,7 @@ export function ImprimirRotulos({
                         type="button"
                         onClick={(ev) => quitar([m.productoId], ev.timeStamp)}
                         aria-label={`Quitar ${m.referencia}`}
-                        className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                        className="area-dedo grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors vd-pasa-gota hover:text-tinta"
                       >
                         <X aria-hidden className="h-3.5 w-3.5" />
                       </button>

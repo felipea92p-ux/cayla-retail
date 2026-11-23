@@ -43,3 +43,29 @@ function ejemplo(f: FormaVista, esta: boolean): { glifo: string; linea: string }
       return { glifo: `−${num(f.porcentaje)} %`, linea: "Descuento" };
   }
 }
+
+/**
+ * Lo que hace la forma elegida, en una línea bajo sus números (Felipe 2026-11-18: «saber para qué sirve cada cosa»): lo que la caja cobra,
+ * dicho como se lo dirías al cliente. Sale de las mismas reglas que la cuenta de grupos (`ofertas-de-grupo.ts`: en cada grupo, las más
+ * baratas son las que bajan). Vacío si los números todavía no arman una oferta (lo dice el error del campo).
+ */
+export function loQueHace(f: FormaVista): string {
+  switch (f.tipo) {
+    case "nxm": {
+      const gratis = f.lleva - f.paga;
+      if (gratis < 1 || f.paga < 1) return "";
+      return gratis === 1 ? `De cada ${f.lleva} prendas, la más barata va gratis.` : `De cada ${f.lleva} prendas, las ${gratis} más baratas van gratis.`;
+    }
+    case "n_por_monto":
+      return f.monto > 0 ? `${f.lleva} prendas juntas cuestan ${soles(f.monto)}.` : "";
+    case "nesima_pct":
+      return `De cada ${f.lleva} prendas, la más barata baja ${num(f.porcentaje)} %.`;
+    case "monto": {
+      const primero = f.escalones?.[0];
+      if (!primero || primero.desde <= 0 || primero.ahorra <= 0) return "";
+      return `Si compra ${soles(primero.desde)} o más, ahorra ${f.ahorroEn === "pct" ? `${num(primero.ahorra)} %` : soles(primero.ahorra)}.`;
+    }
+    default:
+      return `Cada prenda baja ${num(f.porcentaje)} % en caja.`;
+  }
+}

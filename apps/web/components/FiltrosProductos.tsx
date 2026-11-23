@@ -18,6 +18,7 @@ import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, sole
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
   alternarColor,
+  busquedaDeLaPistola,
   estadoDeColor,
   listaDeUrl,
   listaParaUrl,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { fondoDelPunto } from "@/lib/color-combinado";
 
@@ -215,6 +217,23 @@ export function FiltrosProductos({
     return () => window.removeEventListener("popstate", olvidar);
   }, []);
 
+  // La pistola, la misma pieza de Existencias y Vender (`usePistola`, 2026-11-20). Antes Productos mandaba a la base lo que
+  // quedaba en la caja: con un teclado en español la pistola escribe el guion como apóstrofo («ABR'0003'NEG'S») y un segundo
+  // escaneo se pegaba detrás del primero; las dos cosas daban «sin resultados» (medido en producción). Ahora lo leído reemplaza
+  // lo que hubiera escrito, con el guion en su sitio (`busquedaDeLaPistola`), y se busca al momento, sin la pausa del tipeo.
+  // `leer` y no `atraer`: con el cursor fuera del buscador (en una tarjeta, en la vista rápida) la lectura también busca, pero una
+  // tecla tecleada a mano no se roba el foco.
+  const buscadorRef = useRef<HTMLInputElement>(null);
+  usePistola(buscadorRef, {
+    fuera: "leer",
+    alLeer: ({ codigo }) => {
+      const q = busquedaDeLaPistola(codigo);
+      if (!q) return;
+      setTipeado((t) => ({ ...t, q }));
+      aplicar({ q }, { teclado: true });
+    },
+  });
+
   // Búsqueda y precio se mandan solos al dejar de tipear o arrastrar (350 ms). El slider de precio solo anota lo tipeado en
   // cada paso; este mismo efecto hace de espera para los dos. También se vuelve a armar cuando llega una URL: si otra
   // navegación descartó la del buscador, lo que la caja todavía dice se manda sobre la URL que de verdad quedó (antes la
@@ -335,7 +354,7 @@ export function FiltrosProductos({
           Copiar enlace
         </BotonCopiar>
         {/* En el celular «Ordenar» vive junto al buscador, como ícono (2026-10-09): aquí su fila le cedía el ancho a «Tamaño». */}
-        <div className="hidden min-w-0 rounded-lg bg-sand/50 p-0.5 sm:block">{ordenar(false)}</div>
+        <div className="hidden min-w-0 rounded-lg vd-hundido p-0.5 sm:block">{ordenar(false)}</div>
         {junto}
       </div>
     </div>
@@ -404,7 +423,7 @@ export function FiltrosProductos({
                     icono: (
                       <span
                         aria-hidden
-                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 align-middle"
                         style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
@@ -533,6 +552,7 @@ export function FiltrosProductos({
           onFocus={() => alEntrarCaja("q")}
           onBlur={alSalirCaja}
           id={ID_BUSCADOR}
+          ref={buscadorRef}
           etiqueta="Buscar"
           // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
           placeholder="Prenda, código o código de barras…"

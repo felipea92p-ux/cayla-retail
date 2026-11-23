@@ -231,7 +231,7 @@ export function NuevaTelaModal({
                     <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">
                       Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
                     </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control bg-hueso px-3 font-mono text-[15px] font-semibold text-tinta">
+                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-[15px] font-semibold text-tinta">
                       {codigo}
                     </p>
                   </div>
@@ -289,7 +289,7 @@ export function NuevaTelaModal({
               {leyoColores ? (
                 <ElegirColores colores={disponibles} grupos={grupos} elegidos={filas.map((f) => f.color)} onAlternar={alternarColor} onCreado={(c) => { setColoresCarta((cs) => [...cs, c]); alternarColor(c.codigo); }} cartaAbierta={false} sinElegidos enfocarBuscador={eligioColor} />
               ) : (
-                <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
               )}
             </CampoGuiado>
             {n === 0 ? (
@@ -297,7 +297,7 @@ export function NuevaTelaModal({
             ) : (
               <div className="overflow-x-auto">
                 <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                  <div className={`${FILA} bg-hueso text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
+                  <div className={`${FILA} vd-placa text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
                     <span>Color</span>
                     <span>Código</span>
                     {puedeSaldo && <span className="text-right">¿Ya tienes? ({unidadDeCompra})</span>}

@@ -64,7 +64,7 @@ export function SubirPedidoAlAlmacenModal({ pedido, ubicacion, onClose }: { pedi
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{prenda}</p>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{textoSubirAlAlmacen(pedido.reservaEn, pedido.otraSede)}</p>
+          <p className="rounded-xl vd-placa px-3.5 py-2.5 text-xs text-tinta/75">{textoSubirAlAlmacen(pedido.reservaEn, pedido.otraSede)}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
@@ -128,7 +128,7 @@ export function AvisarAlClienteModal({
     <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
-          <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>
+          <p className="rounded-xl vd-placa px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>
           {!conCelular && estado !== "hecho" && (
             <p className="text-xs text-tinta/70">No dejó celular: avísale como acordaron (llamada o en persona) y deja constancia aquí.</p>
           )}
@@ -231,7 +231,7 @@ export function SigueEnPieModal({
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{pedido.lineas.map(etiquetaLinea).join(", ")}</p>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{explicacion}</p>
+          <p className="rounded-xl vd-placa px-3.5 py-2.5 text-xs text-tinta/75">{explicacion}</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando !== null} />}
           <div className="pie-acciones">
             <Boton cargando={guardando === "cancela"} textoCargando="Cancelando…"

@@ -571,7 +571,7 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
       onClick={onElegir}
       title={rol.descripcion ?? undefined}
       className={`grid content-start gap-1.5 rounded-xl px-3 py-2.5 text-left transition-colors duration-150 ease-cayla ${
-        elegido ? "bg-hueso shadow-[inset_3px_0_0_var(--color-rojo)]" : "hover:bg-hueso/60"
+        elegido ? "vd-marca shadow-[inset_3px_0_0_var(--color-rojo)]" : "vd-pasa"
       }`}
     >
       <span className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight text-tinta">

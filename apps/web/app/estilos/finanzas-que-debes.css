@@ -299,7 +299,7 @@
   }
   @media (hover: hover) {
     .qd-prov button:hover {
-      background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
+      background: var(--gota-fondo);
     }
   }
 
@@ -439,11 +439,12 @@
     color: var(--color-taupe);
   }
   .qd-tipo-ley button[aria-pressed="true"] {
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
   @media (hover: hover) {
     .qd-tipo-ley button:hover {
-      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+      background: var(--gota-fondo);
     }
   }
 

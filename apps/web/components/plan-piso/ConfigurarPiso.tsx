@@ -198,7 +198,7 @@ function HojaConfigurarPiso({ datos, onClose }: { datos: DatosDelPiso; onClose: 
           </CampoGuiado>
         </div>
 
-        <div className="rounded-md bg-hueso px-4 py-3" aria-live="polite" data-campo-resultado>
+        <div className="rounded-md vd-placa px-4 py-3" aria-live="polite" data-campo-resultado>
           {caben !== null ? (
             <>
               <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">

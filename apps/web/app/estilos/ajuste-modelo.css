@@ -43,7 +43,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-sand) 70%, transparent) 50%, transparent 70%);
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-vidrio) 70%, transparent) 50%, transparent 70%);
   transform: translateX(-100%);
   animation: ajuste-luz 1100ms var(--ease-cayla) 500ms 1 both;
 }
@@ -68,7 +68,7 @@
   padding: 10px 12px;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
-  background: color-mix(in srgb, var(--color-hueso) 60%, var(--color-papel));
+  background: var(--placa-fondo); box-shadow: var(--placa-luz);
 }
 .ajuste-banda-fila { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 10px; align-items: center; }
 .ajuste-banda-tit { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
@@ -126,7 +126,7 @@
   overflow: hidden;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--color-tinta) 16%, transparent);
-  background: var(--color-hueso);
+  background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
 }
 .ajuste-planilla-barra { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; white-space: nowrap; font-size: 12.5px; color: var(--color-taupe); }
 .ajuste-planilla-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
@@ -139,8 +139,8 @@
 .ajuste-tabla { --fila: var(--color-papel); width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
 .ajuste-tabla th,
 .ajuste-tabla td { padding: 4px 8px; text-align: center; vertical-align: middle; font-weight: inherit; white-space: nowrap; background: var(--fila); }
-.ajuste-tabla thead th { position: sticky; top: 0; z-index: 3; padding: 7px 8px; background: var(--color-hueso); border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); }
-.ajuste-tabla tfoot > tr > * { position: sticky; bottom: 0; z-index: 3; padding: 8px; background: var(--color-hueso); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-family: var(--font-serif); font-size: 17px; color: var(--color-tinta); }
+.ajuste-tabla thead th { position: sticky; top: 0; z-index: 3; padding: 7px 8px; background: var(--color-papel); border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); }
+.ajuste-tabla tfoot > tr > * { position: sticky; bottom: 0; z-index: 3; padding: 8px; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-family: var(--font-serif); font-size: 17px; color: var(--color-tinta); }
 .ajuste-tabla tbody tr + tr > * { border-top: 1px solid var(--color-sand); }
 .ajuste-tabla tbody tr:nth-child(even) { --fila: color-mix(in srgb, var(--color-hueso) 42%, var(--color-papel)); }
 /* Con una talla, la fila ES la cantidad: se tiñe al cambiar. Con varias, solo la celda que cambió (Felipe 2026-10-26). */

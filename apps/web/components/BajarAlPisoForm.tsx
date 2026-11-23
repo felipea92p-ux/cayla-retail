@@ -1043,7 +1043,7 @@ export function BajarAlPisoForm({
                   <button
                     type="button"
                     onClick={() => elegirPorNombre(p)}
-                    className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-hueso/70 focus-visible:bg-hueso/70"
+                    className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors vd-pasa"
                   >
                     <MiniaturaPrenda fotoUrl={p.fotoUrl} {...categoriaDe(p)} />
                     {/* El modelo arriba y «talla · color» debajo, con el código al final de esa línea: lo que distingue una fila de otra

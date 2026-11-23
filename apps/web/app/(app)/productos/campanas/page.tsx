@@ -40,6 +40,7 @@ export default async function CampanasPage() {
       disenoWeb={veModulo(persona, "campanas_web")}
       reglas={datos.reglas}
       reglasDisponibles={datos.reglasDisponibles}
+      ofertasPorVariante={datos.ofertasPorVariante}
       insignias={datos.insignias}
       choquesAbiertos={datos.choquesAbiertos ?? []}
       descuentos={datos.descuentos}

@@ -163,7 +163,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
         </div>
 
         {telas.length > 0 && (
-          <div data-guia="prod-orden-salida.tela" className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+          <div data-guia="prod-orden-salida.tela" className="space-y-3 rounded-xl vd-hundido px-4 py-3">
             <p className="text-sm text-tinta">
               <b className="font-semibold">El corte se hace afuera.</b> ¿Cuánta tela le mandas? Sale del estante y queda en la orden; lo que te devuelvan lo anotas con «Devolver lo que sobró».
             </p>

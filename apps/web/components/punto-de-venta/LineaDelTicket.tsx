@@ -122,7 +122,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             disabled={bloqueado}
             aria-label={`Descuento para ${nombre} (importe ${money(f.importe)})`}
             title="Descuento de esta prenda"
-            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent max-sm:order-4 max-sm:ml-auto"
+            className="area-dedo -mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors vd-pasa-gota disabled:hover:bg-transparent max-sm:order-4 max-sm:ml-auto"
           >
             <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
             <span className="min-w-[4.25rem]">

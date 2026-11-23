@@ -519,7 +519,7 @@ export function AjustarInventarioModal({
                     if (!candidata || !variante) return null;
                     const eleccion = elecciones[varianteId];
                     return (
-                      <div className="mt-2 space-y-1.5 rounded-lg bg-hueso px-3 py-2.5" role="group" aria-label={`Faltante de conteo · ${nombreDe(variante)}`}>
+                      <div className="mt-2 space-y-1.5 rounded-lg vd-hundido px-3 py-2.5" role="group" aria-label={`Faltante de conteo · ${nombreDe(variante)}`}>
                         <p className="text-xs text-tinta">
                           {textoFaltanteConteo(candidata.faltante)} <b className="font-medium">¿Es la que se encontró?</b>
                         </p>

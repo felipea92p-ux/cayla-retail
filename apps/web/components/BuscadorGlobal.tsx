@@ -228,7 +228,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
                         cerrar();
                       }}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                        idx === marcada ? "bg-hueso text-tinta" : "text-tinta/80 hover:bg-sand/40"
+                        idx === marcada ? "vd-marca text-tinta" : "text-tinta/80 vd-pasa"
                       }`}
                     >
                       <span className="min-w-0 flex-1">{p.etiqueta}</span>
@@ -247,7 +247,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
                   {equipoFiltrado.map((m, idx) => {
                     const i = pantallasFiltradas.length + idx;
                     return (
-                      <div key={m.personaId} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${i === marcada ? "bg-hueso" : ""}`}>
+                      <div key={m.personaId} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${i === marcada ? "vd-marca" : ""}`}>
                         <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
                         <span className="flex-1">
                           <span className="block text-tinta">{m.nombre}</span>

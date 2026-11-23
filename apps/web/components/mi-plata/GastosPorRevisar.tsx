@@ -48,13 +48,13 @@ export function MiniFotoGasto({ gasto }: { gasto: GastoConFoto }) {
   const Icono = ICONO_GASTO[gasto.concepto];
   if (!gasto.fotoUrl || gasto.fotoRuta?.toLowerCase().endsWith(".pdf")) {
     return (
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-tinta" title={gasto.fotoUrl ? "Un PDF" : "Sin papel"}>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl vd-lente text-tinta" title={gasto.fotoUrl ? "Un PDF" : "Sin papel"}>
         <Icono className="h-5 w-5" aria-hidden />
       </span>
     );
   }
   return (
-    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-hueso">
+    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl vd-hundido">
       {/* La foto es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={gasto.fotoUrl} alt="" className="h-full w-full object-cover" />
@@ -67,7 +67,7 @@ function FotoGasto({ gasto }: { gasto: GastoConFoto }) {
   if (!gasto.fotoUrl) {
     const Icono = ICONO_GASTO[gasto.concepto];
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-hueso p-4 text-taupe">
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl vd-hundido p-4 text-taupe">
         <Icono /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-14 w-14" strokeWidth={1.5} aria-hidden />
         <Chip tono="neutro" versalitas={false}>
           <CameraOff className="h-3 w-3" aria-hidden />
@@ -82,7 +82,7 @@ function FotoGasto({ gasto }: { gasto: GastoConFoto }) {
       href={gasto.fotoUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="relative flex min-h-64 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl bg-hueso p-3 text-taupe"
+      className="relative flex min-h-64 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl vd-hundido p-3 text-taupe"
       title={esPdf ? "Abrir el PDF" : "Ver la foto en grande"}
     >
       {esPdf ? (

@@ -105,7 +105,7 @@ export async function cargarEtiquetasPantalla({
       ? leerTodas((desde, hasta) =>
           supabase
             .from("variantes")
-            .select("id, sku, precio, color_codigo, producto:productos!inner ( id, referencia, categoria_id, empresa_id )")
+            .select("id, sku, precio, color_codigo, talla:tallas ( valor ), producto:productos!inner ( id, referencia, categoria_id, empresa_id )")
             .eq("activo", true)
             .eq("producto.estado", "activo")
             .order("id")
@@ -134,6 +134,14 @@ export async function cargarEtiquetasPantalla({
   }
   const sedesDisponibles = !resSedes.error;
   const reglasDisponibles = !resReglas.error;
+  // ¿La base ya guarda una oferta por talla y color (ADR-0682, 20261118232000)? Lo dice la columna `variantes` de `campana_reglas()`: con
+  // ofertas se ve en sus filas; sin ninguna se le pregunta. Sin ella, la hoja no ofrece elegir tallas sueltas (la base ignoraría el dato).
+  const filasDeReglas = reglasDisponibles ? (resReglas.data ?? []) : [];
+  const ofertasPorVariante =
+    reglasDisponibles &&
+    (filasDeReglas.length > 0
+      ? filasDeReglas.some((f) => "variantes" in f)
+      : !(await (supabase.rpc("campana_reglas" as never) as unknown as { select: (c: string) => { limit: (n: number) => PromiseLike<{ error: unknown }> } }).select("variantes").limit(1)).error);
   const reglas = reglasDisponibles ? (resReglas.data ?? []).map(reglaDeFila) : [];
 
   const etiquetaCategorias = new Map<string, string[]>();
@@ -190,6 +198,8 @@ export async function cargarEtiquetasPantalla({
       // El modelo elegible uno por uno en una oferta (ADR-0655): el producto, con todas sus tallas y colores, y su nombre.
       productoId: v.producto?.id ?? undefined,
       referencia: v.producto?.referencia ?? undefined,
+      // Su talla: la hoja de una oferta deja elegir tallas sueltas de un modelo (ADR-0682).
+      talla: v.talla?.valor ?? null,
       deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
       insignias: [...new Set([...(manualesPorPrenda.get(v.id) ?? []), ...(v.producto?.categoria_id ? (insigniasPorCategoria.get(v.producto.categoria_id) ?? []) : [])])],
     };
@@ -236,6 +246,7 @@ export async function cargarEtiquetasPantalla({
     tiendas: sedesDisponibles ? tiendas : [],
     reglas,
     reglasDisponibles,
+    ofertasPorVariante,
     // El nombre de cada campaña (de todos los modos): Catálogo ▸ Insignias nombra la campaña de una oferta que usa la insignia que se
     // desactiva (ADR-0655).
     choquesAbiertos: await cargaChoques,

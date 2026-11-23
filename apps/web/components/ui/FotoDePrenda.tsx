@@ -14,7 +14,7 @@ export function FotoDePrenda({ fotoUrl, colorHex = null, prefijo, familia, categ
     </div>
   );
   return (
-    <div className="relative w-full overflow-hidden rounded-xl border border-tinta/10 bg-sand/50" style={{ aspectRatio: "3 / 4" }}>
+    <div className="relative w-full overflow-hidden rounded-xl border border-tinta/10 vd-hundido" style={{ aspectRatio: "3 / 4" }}>
       {fotoUrl ? <ImagenDePrenda src={fotoUrl} alt="" fill sizes="176px" className="object-cover" fondo={colorHex} fallback={sinFoto} /> : sinFoto}
     </div>
   );

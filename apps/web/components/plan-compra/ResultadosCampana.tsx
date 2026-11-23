@@ -286,7 +286,7 @@ export function ResultadosCampana({
               data-guia="plan-resultados.fila"
               aria-label={`Ver el detalle de ${c.nombre}`}
               aria-current={abierta?.id === c.id ? "true" : undefined}
-              className={fila(plantilla, "w-full cursor-pointer text-left transition-colors hover:bg-hueso")}
+              className={fila(plantilla, "w-full cursor-pointer text-left transition-colors vd-pasa")}
             >
               <span className={celda("izq")}>
                 <span className="flex items-center gap-1.5 font-semibold text-tinta">

@@ -85,7 +85,7 @@ export function HojaCatalogoIA({
       {(cerrar) => (
         <div className="space-y-5">
           {molde && (
-            <div className="flex w-fit items-center gap-3 rounded-2xl border border-sand bg-hueso p-2 pr-4">
+            <div className="flex w-fit items-center gap-3 rounded-2xl border border-sand vd-placa p-2 pr-4">
               {molde.url ? (
                 <span className="relative block aspect-[4/5] w-11 shrink-0 overflow-hidden rounded-lg border border-dashed border-borde-control">
                   {/* eslint-disable-next-line @next/next/no-img-element -- el molde puede ser una vista local (blob:) del alta */}

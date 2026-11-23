@@ -177,7 +177,7 @@ export function EscanerConteo({
   const sinCamara = estado === "sin-permiso" || estado === "sin-camara";
   const botonRedondo =
     "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-crema/15 text-crema backdrop-blur-md transition-[background-color,transform] duration-200 ease-cayla hover:bg-crema/25 active:scale-95";
-  const botonPaso = "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-sand bg-papel text-tinta transition-colors active:bg-sand/60";
+  const botonPaso = "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-sand bg-papel text-tinta transition-colors active:[background:var(--gota-marca)]";
 
   return (
     <Modal variante="camara" titulo={t.titulo} subtitulo={t.subtitulo} onClose={onClose}>

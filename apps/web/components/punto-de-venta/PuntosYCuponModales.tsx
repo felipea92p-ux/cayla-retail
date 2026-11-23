@@ -277,7 +277,7 @@ export function CodigoDeCuponModal({ totalDelTicket, cuponesDeLaClienta, nombreC
                     <button
                       type="button"
                       onClick={() => escribir(c.codigo)}
-                      className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-sand/40"
+                      className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left transition-colors vd-pasa"
                     >
                       <Ticket className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
                       <span className="min-w-0 flex-1 text-sm text-tinta">

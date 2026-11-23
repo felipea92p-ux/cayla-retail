@@ -47,7 +47,7 @@ export function FichaDeLaPrenda({
   ];
 
   return (
-    <div className="space-y-3 rounded-xl border border-sand bg-hueso p-3">
+    <div className="space-y-3 rounded-xl border border-sand vd-placa p-3">
       <div className="grid gap-4 sm:grid-cols-[13rem_minmax(0,1fr)]">
         <div className="mx-auto w-full max-w-[13rem]">
           <FotoDePrenda fotoUrl={prenda.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />

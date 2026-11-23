@@ -73,7 +73,7 @@ export function TablaEnvios({ grupos, hoy, conRonda = false, guia }: { grupos: G
       {grupos.map((g) => (
         <Fragment key={g.clave}>
           {g.titulo && (
-            <div className="flex items-center justify-between gap-3 bg-hueso px-5 py-2">
+            <div className="flex items-center justify-between gap-3 vd-hundido px-5 py-2">
               <span className="min-w-0 truncate text-sm">
                 <b className="font-display text-base font-medium text-tinta">{g.titulo}</b>
                 {g.detalle && <span className="ml-2 text-sm text-taupe">{g.detalle}</span>}

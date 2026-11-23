@@ -101,7 +101,7 @@ function RelojBarra({ alTerminar }: { alTerminar: () => void }) {
   const quieto = useQuieto();
   useCuentaAtrasQuieta(barra, quieto ? MS_DESTACADO : null, alTerminar, { zona: (el) => el.closest<HTMLElement>('[role="dialog"]') });
   return (
-    <div aria-hidden className="mt-5 h-1 overflow-hidden rounded-full bg-sand/60">
+    <div aria-hidden /* beige-fijo: pista del gráfico de tiempo */ className="mt-5 h-1 overflow-hidden rounded-full bg-sand/60">
       <div
         ref={barra}
         className="destacado-reloj h-full rounded-full bg-verde"

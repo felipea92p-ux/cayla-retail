@@ -112,11 +112,12 @@
     background: transparent;
   }
   .din-cuad-it[aria-pressed="true"] {
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
   @media (hover: hover) {
     .din-cuad-it:hover {
-      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+      background: var(--gota-fondo);
     }
   }
   .din-cuad-ini {
@@ -127,7 +128,8 @@
     border-radius: 50%;
     font-size: 13px;
     font-weight: 700;
-    background: var(--color-hueso);
+    background: var(--gota-chica-fondo);
+    box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
     color: var(--color-tinta);
   }
   .din-cuad-it[aria-pressed="true"] .din-cuad-ini {
@@ -918,11 +920,12 @@
     transition: background 0.2s;
   }
   .dp-cuenta[aria-pressed="true"] {
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
   @media (hover: hover) {
     .dp-cuenta:hover {
-      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+      background: var(--gota-fondo);
     }
   }
   .dp-pt {
@@ -1001,7 +1004,8 @@
   .dp-meta > div {
     padding: 10px 14px;
     border-radius: 10px;
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
   }
   .dp-meta .dp-versalita {
     display: block;
@@ -1396,11 +1400,12 @@
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .dp-franja-celda[aria-pressed="true"] {
-    background: var(--color-hueso);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
   }
   @media (hover: hover) {
     .dp-franja-celda:hover {
-      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+      background: var(--gota-fondo);
     }
   }
   .dp-franja-pie {
@@ -1451,7 +1456,7 @@
   }
   @media (hover: hover) {
     button.dp-mov-fila:hover {
-      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+      background: var(--gota-fondo);
     }
   }
   .dp-mov-fila .dp-m {
@@ -1487,7 +1492,8 @@
     margin: 0;
     padding: 10px 14px;
     border-radius: 10px;
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
     font-size: 14px;
   }
 
@@ -1509,7 +1515,8 @@
   .dp-dueno-stats > div {
     padding: 10px 12px;
     border-radius: 10px;
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
+    box-shadow: var(--hundido-sombra);
   }
   .dp-dueno-stats dt {
     font-size: 11px;
@@ -1530,7 +1537,8 @@
     margin: 14px 4px 10px;
     padding: 14px 16px;
     border-radius: 12px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
   }
   .dp-leyenda-etapas ul {
     list-style: none;

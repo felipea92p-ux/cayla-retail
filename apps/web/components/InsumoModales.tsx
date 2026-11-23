@@ -120,7 +120,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
         </div>
         <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
 
-        <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
+        <div className="flex items-baseline justify-between rounded-md vd-hundido px-3 py-2 text-sm">
           <span className="text-tinta/70">Valor del lote</span>
           <span className="font-display text-lg tabular-nums text-tinta">{listo ? soles(total) : "—"}</span>
         </div>

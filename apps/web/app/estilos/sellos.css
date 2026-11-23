@@ -150,7 +150,7 @@
   .sl-pase[data-tono="viva"] .sl-cab { background: var(--color-tinta); color: var(--color-crema); }
   .sl-pase[data-tono="viene"] .sl-cab { background: color-mix(in srgb, var(--color-pizarra) 12%, var(--color-papel)); }
   .sl-pase[data-tono="guardada"] .sl-cab,
-  .sl-pase[data-tono="apagada"] .sl-cab { background: var(--color-hueso); }
+  .sl-pase[data-tono="apagada"] .sl-cab { background: var(--gota-fondo-encima); box-shadow: var(--gota-luz); }
   .sl-pase:not(.sl-abierto) .sl-cab { border-radius: 20px; }
 
   .sl-cab-nombre { font-weight: 600; font-size: 15.5px; line-height: 1.2; }
@@ -238,14 +238,16 @@
     place-items: center;
     aspect-ratio: 3 / 4;
     border-radius: 12px;
-    background: var(--color-hueso);
+    border: 1px solid var(--vidrio-claro-borde);
+    background: var(--vidrio-claro-fondo);
+    box-shadow: var(--vidrio-claro-sombra);
     text-align: center;
     font-size: 14px;
     color: var(--color-tinta-60);
     transition: background-color 300ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .sl-mas:hover { background: var(--color-sand); }
+    .sl-mas:hover { background: var(--gota-marca); }
   }
   .sl-mas b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1; color: var(--color-tinta); }
 
@@ -255,7 +257,7 @@
   .sl-listo-marca { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; }
   .sl-listo-fila[data-estado="hecho"] .sl-listo-marca { background: color-mix(in srgb, var(--color-verde) 15%, transparent); color: var(--color-verde); }
   .sl-listo-fila[data-estado="falta"] .sl-listo-marca { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
-  .sl-listo-fila[data-estado="opcional"] .sl-listo-marca { background: var(--color-hueso); color: var(--color-tinta-60); }
+  .sl-listo-fila[data-estado="opcional"] .sl-listo-marca { border: 1px solid var(--gota-chica-borde); background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta-60); }
   .sl-listo-fila[data-estado="opcional"] { color: var(--color-tinta-60); }
   .sl-listo-marca path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: sl-traza 600ms var(--ease-cayla) forwards; animation-delay: calc(var(--i, 0) * 120ms + 300ms); }
   .sl-listo-detalle { margin-left: auto; font-size: 14px; color: var(--color-tinta-60); }
@@ -303,7 +305,7 @@
 
   /* El mapa «¿Insignia, campaña u oferta?» (ADR-0655): tres placas dentro de una hoja (la placa explica, ADR-0596) y la lista de tareas. */
   .mapa-placa { border: 1px solid var(--placa-borde); background: var(--placa-fondo); box-shadow: var(--placa-luz); border-radius: 18px; padding: 16px; }
-  .mapa-icono { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); }
+  .mapa-icono { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-tinta); }
   .mapa-donde { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--color-sand); font-size: 14px; color: var(--color-taupe); }
   .mapa-tareas { list-style: none; margin: 0; padding: 0; }
   .mapa-tareas li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid var(--color-sand); font-size: 14px; }

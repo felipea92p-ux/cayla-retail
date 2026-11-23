@@ -44,13 +44,13 @@ type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 export function MiniVoucher({ fila }: { fila: Fila }) {
   if (!fila.fotoUrl) {
     return (
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : fila.fotoNoAbrio ? "No se pudo abrir la foto" : "Sin foto del voucher"}>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl vd-lente text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : fila.fotoNoAbrio ? "No se pudo abrir la foto" : "Sin foto del voucher"}>
         <ImageOff className="h-5 w-5" aria-hidden />
       </span>
     );
   }
   return (
-    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-hueso">
+    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl vd-hundido">
       {/* El voucher es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={fila.fotoUrl} alt="" className="h-full w-full object-cover" />
@@ -64,7 +64,7 @@ function VoucherGrande({ fila }: { fila: Fila }) {
   if (!fila.fotoUrl) {
     const Icono = yaTenia ? Wallet : ImageOff;
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-hueso p-4 text-taupe">
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl vd-hundido p-4 text-taupe">
         <Icono /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-14 w-14" strokeWidth={1.5} aria-hidden />
         <Chip tono="neutro" versalitas={false}>
           {yaTenia ? (
@@ -88,7 +88,7 @@ function VoucherGrande({ fila }: { fila: Fila }) {
       href={fila.fotoUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="relative flex min-h-64 items-center justify-center overflow-hidden rounded-2xl bg-hueso p-3"
+      className="relative flex min-h-64 items-center justify-center overflow-hidden rounded-2xl vd-hundido p-3"
       title="Ver el voucher en grande"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -196,7 +196,7 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
               )}
             </CampoGuiado>
             {yaTenia ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-hueso p-3">
+              <div className="flex items-center gap-3 rounded-2xl vd-placa p-3">
                 <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-papel text-taupe">
                   <Wallet className="h-4 w-4" />
                 </span>

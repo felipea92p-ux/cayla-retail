@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "./analisis-liquidar-reglas";
-import { etiquetasEje, finDelEje, marcasEje, pistaQuieta } from "./analisis-quietas";
 import { LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido } from "./analisis-reglas";
 
 // «Liquidar desde» sin tope (Felipe, 2026-10-07): una caja con − y + en lugar de la barra de 30 a 85 días, y de 1 a 999 días, lo
@@ -30,30 +29,5 @@ describe("lo que se escribe en la caja de «Liquidar desde»", () => {
     expect(liquidarDesdeValido(0)).toBe(1);
     expect(liquidarDesdeValido(5000)).toBe(999);
     expect(liquidarDesdeValido("no")).toBe(60);
-  });
-});
-
-describe("el carril «Días sin venderse» se alarga si «Liquidar desde» pasa de 4 meses", () => {
-  it("hasta 100 días el eje llega a 4 meses, como antes", () => {
-    for (const d of [1, 30, 60, 85, 100]) expect(finDelEje(d)).toBe(120);
-    expect(marcasEje(60)).toEqual({ liquidar: 50, tresMeses: 75 });
-    expect(etiquetasEje(60)).toEqual({ fin: "4 meses", tresMeses: true });
-  });
-  it("con más, termina en un mes justo con aire detrás de la marca", () => {
-    expect(finDelEje(101)).toBe(150);
-    expect(finDelEje(180)).toBe(210);
-    expect(etiquetasEje(180).fin).toBe("7 meses");
-    expect(marcasEje(180).liquidar).toBeCloseTo((180 / 210) * 100, 6);
-    expect(finDelEje(999)).toBeGreaterThan(999);
-  });
-  it("«3 meses» se calla si pisaría a «Liquidar»", () => {
-    expect(etiquetasEje(85).tresMeses).toBe(false);
-    expect(etiquetasEje(95).tresMeses).toBe(false);
-    expect(etiquetasEje(15).tresMeses).toBe(true);
-  });
-  it("una prenda de 104 días queda dentro del carril también con «Liquidar desde» en 180", () => {
-    const { n } = pistaQuieta(104, 180);
-    expect(n).toBeCloseTo(104 / 210, 6);
-    expect(pistaQuieta(104, 60).n).toBeCloseTo(104 / 120, 6);
   });
 });

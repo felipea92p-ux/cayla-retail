@@ -309,7 +309,7 @@ describe("el modo `soloCantidades` (Nueva orden): solo cuántas, sin precios ni 
   it("la franja del color es dato (no se invierte en oscuro) y el nombre del color tiene fondo OPACO en las filas con cebra (sticky sobre celdas que se deslizan)", () => {
     const h = solo();
     expect(h).toContain("data-color-dato");
-    expect(h).toContain("bg-[color-mix(in_srgb,var(--color-hueso)_40%,var(--color-papel))]");
+    expect(h).toContain("vd-pegado-cebra"); // opaco y neutro: no beige (Felipe 2026-11-19)
     // El modo de siempre no cambia: la franja sin marca y el fondo translúcido de siempre (lo fijan los golden de arriba).
     const defecto = html({ celdas, tallas: TALLAS.slice(0, 2), colores: COLORES.slice(0, 2), excluidas: new Set<string>(), cantidades: {} });
     expect(defecto).not.toContain("data-color-dato");

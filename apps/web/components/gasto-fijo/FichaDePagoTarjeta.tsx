@@ -89,7 +89,7 @@ export function FichaDePagoTarjeta({ gastoFijoId, hoy }: { gastoFijoId: string; 
 
   return (
     <div className="anim-revelar mb-4 space-y-3" aria-live="polite">
-      <div className="rounded-xl border border-sand bg-sand/40 p-4">
+      <div className="rounded-xl border border-sand vd-placa p-4">
         <p className="label-cayla text-[10px] text-tinta/55">Se le paga a</p>
         <div className="mt-1 divide-y divide-tinta/10">
           {f.beneficiario && (

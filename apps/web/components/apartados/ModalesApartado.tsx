@@ -93,10 +93,13 @@ function imprimirYSeguir(cerrar: () => void) {
 }
 
 /** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
- *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. `-bottom-6`/`-mx-6` compensan el `p-6` de `<Modal>`. */
+ *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. Es el pie del sistema (`pie-hoja-fijo`, globals.css): él
+ *  compensa el relleno de `<Modal>`, pinta el vidrio y baja lo que la hoja reserve (ADR-0185, act. 2026-11-18). Antes era
+ *  un `sticky -bottom-6` propio: en la hoja de vidrio quedaba 4 px corto y, con una reserva, a media hoja. Lo suyo es la
+ *  línea de arriba y el aire entre sus filas. */
 function Botones({ cerrar, principal }: { cerrar: () => void; principal: string }) {
   return (
-    <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 space-y-2 border-t border-sand bg-crema px-6 pt-3 pb-6">
+    <div className="pie-hoja-fijo space-y-2 border-t border-sand pt-3">
       <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full">
         {principal}
       </BotonImprimir>
@@ -164,7 +167,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
               </p>
               <div aria-hidden className="mt-2 grid grid-cols-7 gap-0.5">
                 {Array.from({ length: PLAZO_DIAS }, (_, i) => (
-                  <span key={i} className={`h-1 rounded-sm ${i === 0 ? "bg-tinta" : i === PLAZO_DIAS - 1 ? "bg-rojo" : "bg-sand"}`} />
+                  <span /* beige-fijo: tramos de la escala del plazo, el beige es el dato */ key={i} className={`h-1 rounded-sm ${i === 0 ? "bg-tinta" : i === PLAZO_DIAS - 1 ? "bg-rojo" : "bg-sand"}`} />
                 ))}
               </div>
               <p className="mt-1.5 text-sm text-tinta/60">El aviso para escribirle sale el {fechaCorta(sumarDiasIso(a.venceEl, -AVISO_DIAS))}.</p>
@@ -389,7 +392,7 @@ function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado;
     <div className="space-y-4">
       <div className="card-cayla space-y-2 p-4">
         <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
-        <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+        <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
       </div>
       <div className="pie-acciones">
         <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
@@ -479,7 +482,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
             <p className="font-display mt-1 text-3xl text-tinta">{money(apartado.adelanto)}</p>
             <p className="mt-1 text-sm text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
           </div>
-          <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
+          <div className="grid grid-cols-5 gap-1 rounded-xl vd-hundido p-1">
             {medios.map((m) => (
               <button
                 key={m}
@@ -636,7 +639,7 @@ export function RecordarModal({
           )}
           <div className="card-cayla space-y-2 p-4">
             <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {actual.nombres}</p>
-            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+            <p className="rounded-xl rounded-bl-sm vd-placa px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
             <p className="text-sm text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
           <div className="pie-acciones">
@@ -767,7 +770,7 @@ export function AbonarFormulario({
         <span className="text-sm text-tinta/70">Falta pagar hoy</span>
         <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
       </div>
-      <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1" role="radiogroup" aria-label="Cómo paga el abono">
+      <div className="grid grid-cols-5 gap-1 rounded-xl vd-hundido p-1" role="radiogroup" aria-label="Cómo paga el abono">
         {METODOS_PAGO.map((m) => (
           <button
             key={m}
@@ -813,7 +816,7 @@ export function AbonarFormulario({
           <span className="block text-sm text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
         </span>
       </label>
-      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
+      <p className="rounded-xl vd-placa px-3.5 py-2.5 text-sm text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
       <ComboResponsable control={responsable} deshabilitado={enviando} />
       </fieldset>
       {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -1150,7 +1153,7 @@ export function EditarApartadoModal({
           {conGrupos && cambio && <p className="text-sm text-tinta/65">Con una oferta de grupo, el grupo se vuelve a armar con el trato del día en que se apartó.</p>}
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy (y su descuento, si le pones uno); lo que ya estaba conserva el suyo. El adelanto ya recibido sigue valiendo.</p>
+          <p className="rounded-xl vd-placa px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy (y su descuento, si le pones uno); lo que ya estaba conserva el suyo. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -1264,7 +1267,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
               </ul>
             </div>
           ))}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
+          <p className="rounded-xl vd-placa px-3.5 py-2.5 text-sm text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
@@ -1338,7 +1341,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
             <span className={campoEtiqueta}>¿Cuándo llega?</span>
             <input type="date" value={llega} min={manana.slice(0, 10)} onChange={(e) => setLlega(e.target.value)} className={campoTexto} />
           </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
+          <p className="rounded-xl vd-placa px-3.5 py-2.5 text-sm text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}

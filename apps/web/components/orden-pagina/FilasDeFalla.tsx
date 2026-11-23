@@ -46,7 +46,7 @@ export function FilasDeFalla({
           </button>
         )
       ) : (
-        <CampoGuiado id="fallas" guia={guia} className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+        <CampoGuiado id="fallas" guia={guia} className="space-y-3 rounded-xl vd-hundido px-4 py-3">
           <span className={campoEtiqueta}>{guia.etiqueta("fallas", "Prendas con falla")}</span>
           {fallas.map((f, i) => (
             <div key={i} className="space-y-2 border-b border-sand pb-3 last:border-b-0 last:pb-0">

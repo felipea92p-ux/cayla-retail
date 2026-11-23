@@ -119,7 +119,7 @@ export function DescuentoApartado({
                   { clave: "monto", etiqueta: "S/", ayuda: "En soles, del total de lo elegido" },
                 ]}
               />
-              <div className={`grid gap-1 rounded-xl bg-sand/50 p-1 ${porMonto ? "grid-cols-4" : "grid-cols-3"}`}>
+              <div className={`grid gap-1 rounded-xl vd-hundido p-1 ${porMonto ? "grid-cols-4" : "grid-cols-3"}`}>
                 {(porMonto ? ATAJOS_MONTO : ATAJOS_PCT).map((v) => {
                   const activo = (porMonto ? monto : pct) === String(v);
                   return (
@@ -168,7 +168,7 @@ export function DescuentoApartado({
 
           {/* El motivo es de una lista cerrada (R-45): a fin de mes se suma cuánto margen se fue por cada uno, igual que en la venta. */}
           <CampoGuiado id="motivo" guia={guia} titulo="Motivo">
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-xl vd-hundido p-1">
               {RAZONES_DESCUENTO.map((r) => (
                 <button
                   key={r.valor}

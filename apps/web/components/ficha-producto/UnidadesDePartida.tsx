@@ -37,7 +37,7 @@ export function PasosDeAgregar({ primero, segundo, hechoPrimero }: { primero: st
   return (
     <ol className="flex items-center gap-3" aria-label="Pasos">
       {paso(1, primero, hechoPrimero, !hechoPrimero)}
-      <span aria-hidden className="relative h-px flex-1 bg-sand">
+      <span /* beige-fijo: línea entre dos puntos, no es superficie */ aria-hidden className="relative h-px flex-1 bg-sand">
         <span className={`absolute inset-0 origin-left bg-verde transition-transform duration-500 ease-cayla motion-reduce:transition-none ${hechoPrimero ? "scale-x-100" : "scale-x-0"}`} />
       </span>
       {paso(2, segundo, false, hechoPrimero)}
@@ -86,7 +86,7 @@ export function UnidadesDeLasNuevas({
       <div className="overflow-x-auto rounded-xl border border-sand">
         <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-hueso">
+            <tr className="vd-hundido">
               <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-tinta">
                 Color
               </th>
@@ -211,7 +211,7 @@ export function VistaPreviaDeLaTabla({ columnas, filas }: { columnas: readonly {
     <div className="overflow-x-auto rounded-xl border border-sand">
       <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-hueso">
+          <tr className="vd-hundido">
             <th scope="col" className="px-3 py-2" />
             {columnas.map((c, i) => (
               <th key={i} scope="col" className={`px-2 py-2 text-sm font-semibold tabular-nums ${c.nueva ? "bg-ambar/15 text-ambar-profundo" : "text-tinta"}`}>

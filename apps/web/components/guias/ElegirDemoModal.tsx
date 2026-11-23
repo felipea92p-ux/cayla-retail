@@ -60,7 +60,7 @@ export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly Fil
                   cerrar();
                   setTimeout(abrirGuiaAqui, 260);
                 }}
-                className="group flex w-full items-center gap-3 rounded-xl border border-tinta/25 bg-papel px-4 py-3 text-left transition-colors hover:bg-sand/35"
+                className="group flex w-full items-center gap-3 rounded-xl border border-tinta/25 bg-papel px-4 py-3 text-left transition-colors vd-pasa"
               >
                 <PlayCircle className="h-4 w-4 shrink-0 text-tinta" aria-hidden />
                 <span className="flex-1">
@@ -87,7 +87,7 @@ export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly Fil
                           if (rutaCoincide(h.href, pathname)) setTimeout(abrirGuiaAqui, 260);
                           else router.push(`${h.href}?demo=1`);
                         }}
-                        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sand/35"
+                        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors vd-pasa"
                       >
                         <PlayCircle className="h-4 w-4 shrink-0 text-tinta/70" aria-hidden />
                         <span className="flex-1 text-sm text-tinta">{h.etiqueta}</span>

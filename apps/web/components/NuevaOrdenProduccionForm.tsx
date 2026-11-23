@@ -1019,7 +1019,7 @@ export function NuevaOrdenProduccionForm({
           />
         )}
 
-        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{decision.fallo}</p>}
+        {!esNuevo && decision?.fallo && <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && !esNuevo && (
           <ConsejoDeLaRed

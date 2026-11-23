@@ -52,7 +52,7 @@ export function CierreCampana({ c, veAnalisis }: { c: Cierre; veAnalisis: boolea
             <MuestraTramo clase="bg-ambar" /> Con rebaja
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <MuestraTramo clase="bg-sand" /> Sobra
+            <MuestraTramo clase="bg-sand" /> Sobra{/* beige-fijo: escala del dato en la leyenda */}
           </span>
           <Ayuda titulo="Lo que había">
             Sin facturas de compra ligadas al plan, «lo que había» se mide como lo vendido en la campaña más lo que quedó al cerrar, en todas las

@@ -166,7 +166,7 @@
   max-width: 80px;
   overflow: hidden;
   border-radius: 99px;
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: pista del gráfico */
 }
 .pp-delta .pp-b i {
   position: absolute;
@@ -266,7 +266,8 @@
   margin-top: 8px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: var(--color-hueso);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
   font-size: 14px;
 }
 .pp-dif-pie {

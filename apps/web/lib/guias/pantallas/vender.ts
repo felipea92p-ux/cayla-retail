@@ -91,7 +91,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       titulo: "Ver catálogo",
       texto: "En el celular el catálogo empieza escondido para que el escáner quede arriba. Tócalo para ver las prendas con foto (te lo abrimos).",
-      demostrar: [{ tipo: "clic", ancla: "vender.ver-catalogo" }],
+      demostrar: [{ tipo: "clic", ancla: "vender.ver-catalogo", para: "abrir" }],
     },
     {
       id: "solo-stock",
@@ -145,6 +145,8 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
     {
       id: "dueno",
       ancla: "vender.dueno",
+      // Vive en el ticket: cierra la hoja de la prenda. En el celular nadie más la cerraba y tapaba «Apartados» hasta el final.
+      preparar: [{ tipo: "escape" }],
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "¿De quién sale?",

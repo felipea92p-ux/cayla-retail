@@ -47,7 +47,7 @@
     gap: 12px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--color-sand);
-    background: color-mix(in srgb, var(--color-hueso) 72%, var(--color-papel));
+    background: var(--placa-fondo);
   }
   /* Una luz cruza la barra una sola vez, cuando la ventana termina de asentarse: «la página cargó». */
   .tw-marco-barra::after {
@@ -105,7 +105,7 @@
     overflow: hidden;
     aspect-ratio: 3 / 4;
     border-radius: 12px;
-    background: var(--color-hueso);
+    background: var(--hundido-fondo);
     animation: tw-tesela 560ms var(--ease-cayla) both;
     animation-delay: calc(min(var(--i, 0), 14) * 45ms + 280ms);
     transition: transform 240ms var(--ease-cayla), box-shadow 240ms var(--ease-cayla);
@@ -209,7 +209,7 @@
   .tw-pendiente[data-tono="urgente"] { --tono: var(--color-rojo-profundo); }
   .tw-pendiente[data-tono="atencion"] { --tono: var(--color-ambar-profundo); }
   @media (hover: hover) {
-    .tw-pendiente:hover { border-color: var(--color-taupe); transform: translateY(-1px); background: color-mix(in srgb, var(--color-sand) 22%, var(--color-papel)); }
+    .tw-pendiente:hover { border-color: var(--color-taupe); transform: translateY(-1px); background: var(--gota-fondo); }
   }
   /* El filo del tono se dibuja de arriba abajo al llegar. */
   .tw-pendiente::before {
@@ -316,7 +316,7 @@
     left: -50%;
     width: 100%;
     height: 2px;
-    background: var(--color-sand);
+    background: var(--color-sand); /* beige-fijo: línea del paso, no una superficie */
     transform-origin: left;
     animation: tw-crece-x 520ms var(--ease-cayla) both;
     animation-delay: calc(var(--i, 0) * 180ms + 200ms);
@@ -361,7 +361,7 @@
     .tw-carta:hover { border-color: var(--color-taupe); transform: translateY(-2px); box-shadow: 0 14px 28px -20px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
   }
   .tw-carta[data-elegida] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
-  .tw-carta-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); cursor: pointer; }
+  .tw-carta-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--hundido-fondo); cursor: pointer; }
   .tw-carta-foto > :first-child { position: absolute; inset: 0; }
   /* Apagada: el cliente no la ve, así que la foto se apaga un poco (la tarjeta sigue legible). */
   .tw-carta[data-oculta] .tw-carta-foto { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
@@ -416,7 +416,7 @@
   .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-foto { opacity: 0.4; }
   .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-nombre { color: var(--color-taupe); }
   .tw-elegir-motivo { padding: 0 8px; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--color-taupe); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .tw-elegir-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); }
+  .tw-elegir-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--hundido-fondo); }
   .tw-elegir-foto > :first-child { position: absolute; inset: 0; }
   .tw-elegir-visto {
     position: absolute;
@@ -442,7 +442,7 @@
   /* ───────── Looks: la percha con sus prendas ───────── */
   .tw-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
   @container tw (max-width: 560px) { .tw-looks { grid-template-columns: minmax(0, 1fr); padding: 12px; } }
-  .tw-look-collage { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; width: 100%; aspect-ratio: 16 / 10; background: var(--color-hueso); cursor: pointer; }
+  .tw-look-collage { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; width: 100%; aspect-ratio: 16 / 10; background: var(--hundido-fondo); cursor: pointer; }
   .tw-carta[data-oculta] .tw-look-collage { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
   .tw-look-collage > span { position: relative; overflow: hidden; }
   .tw-look-collage > span > :first-child { position: absolute; inset: 0; }
@@ -471,7 +471,8 @@
     max-width: 100%;
     padding: 10px 14px;
     border-radius: 4px 14px 14px 14px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo);
+    box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
     color: var(--color-tinta);
     font-size: 15px;
     line-height: 1.45;

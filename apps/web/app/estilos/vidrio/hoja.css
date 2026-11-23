@@ -170,7 +170,7 @@
    `absolute`, `rounded-full`: globos, menús, los puntos de una línea de tiempo, encabezados de tabla que tapan lo que pasa por debajo), el papel físico y el color
    de dato, y los controles, que ya tienen su receta (campos, botones). Un `hover:bg-…` o un `bg-…/50` no se tocan: son otra clase. */
 :is(.hoja-serena, .cajon-serena)
-  :is(.bg-hueso, .bg-papel, .bg-crema):not(
+  :is(.bg-hueso, .bg-papel, .bg-crema):not( /* beige-fijo: selector que traduce el beige a vidrio */
     .sticky, .fixed, .absolute, .rounded-full, .card-cayla, input, textarea, select, button,
     .papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-color-dato], [data-color-dato] *
   ) {

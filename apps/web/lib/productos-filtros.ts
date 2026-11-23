@@ -1,5 +1,6 @@
 import { terminoParaBuscar } from "@cayla-retail/shared/busqueda";
 import { enEscala } from "./color-escala";
+import { guionDeLaPistola } from "./escaner-guion";
 import { agruparPorFamilia } from "./colores-familias";
 import { alternarEnLista, type EstadoCasilla } from "./pildora-reglas";
 import { leerMonto, textoRangoPrecio } from "./productos-filtro-precio";
@@ -21,6 +22,14 @@ export function consultaConCambios(actual: string, cambios: Record<string, strin
   }
   p.delete("pagina");
   return p.toString();
+}
+
+/** Lo que la pistola acaba de leer, listo para el buscador (2026-11-20). Productos busca en la base (`fn_productos_buscar_palabras`),
+ *  que compara el texto tal cual: con un teclado en español la pistola escribe «ABR'0003'NEG'S» y no encontraba nada (medido en
+ *  producción: con guion, 1 prenda; con apóstrofo, 0). Aquí el guion vuelve a su sitio, como en Existencias y Vender
+ *  (`guionDeLaPistola`). Solo a lo LEÍDO por la pistola, nunca a lo tecleado: «O'Neil» escrito a mano se sigue buscando así. */
+export function busquedaDeLaPistola(codigo: string): string {
+  return guionDeLaPistola(codigo).trim();
 }
 
 export function hrefDeConsulta(pathname: string, consulta: string): string {

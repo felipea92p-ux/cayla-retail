@@ -1257,7 +1257,7 @@ export function InventarioPanel({
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-taupe/25 bg-hueso" />
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-taupe/25 vd-gota-chica" />
                   Piso · almacén de cada talla
                 </span>
                 <span className="inline-flex items-center gap-1.5">
@@ -1340,7 +1340,7 @@ export function InventarioPanel({
                   }
                 }}
                 className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors @min-[880px]:items-center ${plantilla} ${
-                  filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
+                  filaAbierta ? "vd-marca" : marcadaFila ? "vd-hundido" : "vd-pasa"
                 }`}
               >
                 {/* Tabla angosta: casilla + prenda arriba. Tabla ancha: `@min-[880px]:contents` devuelve cada pieza a su columna, en el orden del encabezado. */}
@@ -1387,7 +1387,7 @@ export function InventarioPanel({
                       (`pisoDisponible`/`almacenDisponible`, 2026-09-26): las mismas que decide «Acción hoy» y que muestra el modal de
                       Reponer; lo apartado va debajo. */}
                   <span
-                    className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 text-[15px] tabular-nums")}
+                    className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 text-[15px] tabular-nums")}
                     title={
                       separa
                         ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientes: ${f.apartado}` : ""}`
@@ -1411,7 +1411,7 @@ export function InventarioPanel({
                     )}
                   </span>
                   {separa && (
-                    <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0")}>
+                    <span className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0")}>
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Cobertura piso</span>
                       <CeldaCoberturaPiso f={f} calculando={ritmoCalculando.has(f.varianteId)} />
                     </span>
@@ -1420,7 +1420,7 @@ export function InventarioPanel({
                     // El botón del detalle no abre el cajón de la prenda: el clic se queda aquí.
                     <span
                       onClick={(e) => e.stopPropagation()}
-                      className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 overflow-visible")}
+                      className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 overflow-visible")}
                     >
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Ritmo reciente</span>
                       {ritmoCalculando.has(f.varianteId) ? (
@@ -1430,7 +1430,7 @@ export function InventarioPanel({
                       )}
                     </span>
                   )}
-                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:px-0 @min-[880px]:py-0 text-sm tabular-nums text-tinta")}>
+                  <span className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 text-sm tabular-nums text-tinta")}>
                     <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">En camino</span>
                     {f.enTransito}
                   </span>

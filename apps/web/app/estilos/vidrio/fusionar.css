@@ -277,7 +277,7 @@
   overflow: hidden;
   border-radius: 12px;
   aspect-ratio: 4 / 3;
-  background: color-mix(in srgb, var(--color-sand) 50%, transparent);
+  background: var(--hundido-fondo);
 }
 
 /* ---------- «Lo que es distinto»: una fila por dato, cada celda bajo su columna ---------- */
@@ -544,7 +544,7 @@
   max-height: 256px;
   aspect-ratio: 4 / 3;
   border-radius: 16px;
-  background: color-mix(in srgb, var(--color-sand) 50%, transparent);
+  background: var(--hundido-fondo);
 }
 .fus-galeria-grande img {
   animation: fus-funde var(--t-cambio) var(--ease-cayla) both;

@@ -69,7 +69,7 @@ export function FilaCategoria({
       data-guia="plan.categoria"
       style={{ ["--i" as string]: paso }}
       // La fila que se acaba de guardar se enciende en verde una vez y se apaga sola (la confirmación de Por pagar, `anim-destello-ok`).
-      className={`${fila(plantilla)} ${recienGuardada ? "anim-destello-ok" : "anim-sube"} w-full text-left transition-colors hover:bg-sand/30`}
+      className={`${fila(plantilla)} ${recienGuardada ? "anim-destello-ok" : "anim-sube"} w-full text-left transition-colors vd-pasa`}
       aria-label={`${linea ? "Corregir" : "Armar"} el plan de ${c.nombre}`}
     >
       <span className={celda("izq", "min-w-0")}>

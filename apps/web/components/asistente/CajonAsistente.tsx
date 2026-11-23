@@ -118,7 +118,7 @@ export function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: reado
     <Cajon
       onCerrar={onCerrar}
       marca={
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-sand/60 text-tinta">
+        <span className="grid h-10 w-10 place-items-center rounded-full vd-lente text-tinta">
           <MessageCircleQuestion className="h-5 w-5" aria-hidden />
         </span>
       }
@@ -157,7 +157,7 @@ export function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: reado
                     <ol className="mt-3 space-y-1.5">
                       {vigente.resultado.tarea.map((p, k) => (
                         <li key={`${p.guiaId}-${p.pasoId}-${k}`} className="flex items-baseline gap-2.5 text-[15px] text-tinta">
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sand text-[11px] tabular-nums text-tinta">{k + 1}</span>
+                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full vd-gota-chica text-[11px] tabular-nums text-tinta">{k + 1}</span>
                           {p.orden}
                         </li>
                       ))}
@@ -328,7 +328,7 @@ function FilaGuia({ titulo, detalle, aqui = false, enLista = false, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sand/35 ${enLista ? "" : "rounded-xl border border-tinta/25 bg-papel"}`}
+      className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors vd-pasa ${enLista ? "" : "rounded-xl border border-tinta/25 bg-papel"}`}
     >
       <PlayCircle className="h-4 w-4 shrink-0 text-tinta/70" aria-hidden />
       <span className="min-w-0 flex-1">

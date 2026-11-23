@@ -75,7 +75,7 @@ const config: KnipConfig = {
       ...(produccion
         ? {
             ignoreFiles: [
-              "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos}.ts",
+              "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos,beige-plano-archivos}.ts",
               "lib/*-fixture{,s}.ts",
               // La ayuda de precio de «Nueva orden de compra» (`docs/pantallas/compras-ordenes-precio-y-stock.md`, actividad 1 de 7): las reglas
               // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).

@@ -150,13 +150,17 @@ export function HojaDeDescuento({
       <form onSubmit={confirmar} onKeyDown={enterNoGuarda} className="space-y-6">
         <CampoGuiado id="pct" guia={guia} titulo="Porcentaje">
           <div className="space-y-3">
+            {/* El % es lo único que decide esta hoja: va en el paso «grande» del sistema (68 px, el número a 36 px), como en la hoja de una oferta
+                (Felipe 2026-11-18: «las cosas muy pequeñas no funcionan»). */}
             <PasoCantidad
+              tamano="grande"
               sufijo="%"
+              className="w-full"
               menos={{ onClick: () => sumar(-1), deshabilitado: (pct ?? 0) <= 1, etiqueta: "Un % menos" }}
               mas={{ onClick: () => sumar(1), deshabilitado: (pct ?? 0) >= 70, etiqueta: "Un % más" }}
               campo={{ value: texto, onChange: (ev) => elegirPct(ev.target.value), inputMode: "decimal", "aria-label": "Porcentaje de descuento" }}
             />
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Porcentajes a un toque">
+            <div className="of-opciones" role="group" aria-label="Porcentajes a un toque">
               {PCTS_SUGERIDOS.map((v) => (
                 <button key={v} type="button" className="pildora-cayla" aria-pressed={pct === v} onClick={() => elegirPct(String(v))}>
                   {textoPct(v)}

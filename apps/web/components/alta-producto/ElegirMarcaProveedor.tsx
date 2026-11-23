@@ -278,7 +278,7 @@ export function ElegirMarcaProveedor({
 
       {/* Lo que se soltó o se puso solo: sin esto, un campo que cambia solo parece un error. */}
       {nota && (
-        <p className="rounded-lg bg-hueso px-3 py-2 text-[12.5px] text-tinta/80" role="status">
+        <p className="rounded-lg vd-placa px-3 py-2 text-[12.5px] text-tinta/80" role="status">
           {nota}
         </p>
       )}

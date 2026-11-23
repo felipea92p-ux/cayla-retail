@@ -485,7 +485,7 @@
   height: 6px;
   overflow: hidden;
   border-radius: 99px;
-  background: var(--color-sand);
+  background: var(--color-sand); /* beige-fijo: pista del avance */
 }
 /* Se llena al entrar (desde cero) y después sigue lo que ella completa. `backwards`: al terminar, la transición manda. */
 .club-avance-relleno {
@@ -570,7 +570,7 @@
     background-color: var(--color-papel);
   }
   30% {
-    background-color: var(--color-hueso);
+    background: var(--hundido-fondo);
   }
 }
 /* «SIGUE AQUÍ», sentado en el borde de arriba de la tarjeta: aparece y se va sin mover nada de lugar. */
@@ -581,7 +581,8 @@
   z-index: 1;
   padding: 5px 10px;
   border-radius: 99px;
-  background: var(--color-hueso);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
   color: var(--color-rojo-profundo);
   font-size: 11px;
   font-weight: 700;
@@ -651,7 +652,8 @@
   padding: 0 14px;
   border: 1px solid var(--color-sand);
   border-radius: 12px;
-  background: var(--color-hueso);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
   color: var(--color-tinta);
   font: inherit;
   font-size: 18px;
@@ -696,7 +698,8 @@
   gap: 6px;
   padding: 4px;
   border-radius: 12px;
-  background: var(--color-hueso);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
 }
 .club-segmento button {
   min-height: 44px;
@@ -863,7 +866,8 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: var(--color-hueso);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde);
   font-size: 14px;
   line-height: 1.4;
 }

@@ -17,7 +17,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 //     apaga las demás (`onFoco`); tocarlo abre su vista rápida (`onAbrir`). «34 %» no decía QUIÉN.
 //
 // El tramo «Resto» no es un proveedor: se dibuja pero no responde a nada.
-const COLOR_TRAMO = ["bg-tinta", "bg-tinta/60", "bg-tinta/30", "bg-sand"];
+const COLOR_TRAMO = ["bg-tinta", "bg-tinta/60", "bg-tinta/30", "bg-sand"]; // beige-fijo: escala del dato en la barra
 
 // Entrada escalonada: cada tarjeta llega 38 ms después de la anterior (`--i`, ver globals.css).
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
