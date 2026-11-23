@@ -25,21 +25,21 @@
     container-name: analisis;
     /* ───────── Botones, chips, píldoras ───────── */
     .btn-cayla svg{width:15px;height:15px}
-    .btn-s{padding:6px 10px;font-size:14px;border-radius:8px}
-    .chip{--c:var(--color-pizarra);display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;line-height:1;padding:4px 9px 4px 7px;border-radius:999px;
+    .btn-s{padding:6px 10px;font-size:var(--text-detalle);border-radius:8px}
+    .chip{--c:var(--color-pizarra);display:inline-flex;align-items:center;gap:5px;font-size:var(--text-detalle);font-weight:600;line-height:1;padding:4px 9px 4px 7px;border-radius:999px;
       color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);white-space:nowrap;border:0}
     .chip svg{width:12px;height:12px}
     .chip.urg{--c:var(--color-rojo-profundo)} .chip.ate{--c:var(--color-ambar)} .chip.bien{--c:var(--color-verde)} .chip.info{--c:var(--color-pizarra)} .chip.nd{--c:var(--color-taupe)}
     @media (hover: hover) {
       button.chip:hover{background:color-mix(in srgb,var(--c) 18%,transparent)}
     }
-    .pil{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);border-radius:999px;padding:3px 9px;white-space:nowrap}
+    .pil{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-detalle);font-weight:500;color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);border-radius:999px;padding:3px 9px;white-space:nowrap}
     .pil b{color:var(--color-tinta)}
-    .pil .cod{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--color-taupe)}
+    .pil .cod{font-size:var(--text-xs);font-weight:700;letter-spacing:.05em;color:var(--color-taupe)}
     .ayuda{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--color-taupe);background:transparent;
-      font:600 11px/1 var(--font-sans);color:var(--color-taupe);padding:0;flex:none}
-    .sello{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-tinta-60);border:1px dashed var(--color-taupe);border-radius:999px;padding:3px 10px}
-    .sello i{font-style:normal;font-size:10px}
+      font:600 var(--text-xs)/1 var(--font-sans);color:var(--color-taupe);padding:0;flex:none}
+    .sello{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--color-tinta-60);border:1px dashed var(--color-taupe);border-radius:999px;padding:3px 10px}
+    .sello i{font-style:normal;font-size:var(--text-xs)}
     /* ───────── Pestañas ───────── */
     .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px}
     @container analisis (max-width:620px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
@@ -54,12 +54,12 @@
     .tarjeta{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:14px}
     .bloque{padding:16px 18px}
     .b-cab{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:14px}
-    .b-tit{font:500 21px/1.2 var(--font-serif);margin:0;display:flex;align-items:center;gap:8px}
-    .b-nota{font-size:14px;color:var(--color-tinta-60);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:var(--color-tinta-60);margin-top:12px}
+    .b-tit{font:500 var(--text-xl)/1.2 var(--font-serif);margin:0;display:flex;align-items:center;gap:8px}
+    .b-nota{font-size:var(--text-detalle);color:var(--color-tinta-60);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:var(--text-detalle);color:var(--color-tinta-60);margin-top:12px}
     .leyenda span{display:inline-flex;align-items:center;gap:6px}
     .leyenda i{display:inline-block;width:12px;height:12px;border-radius:3px}
-    .sec{display:flex;align-items:baseline;gap:10px;justify-content:space-between;margin:10px 0 -4px;font-size:12px;font-weight:600;letter-spacing:.11em;
+    .sec{display:flex;align-items:baseline;gap:10px;justify-content:space-between;margin:10px 0 -4px;font-size:var(--text-xs);font-weight:600;letter-spacing:.11em;
       text-transform:uppercase;color:var(--color-taupe)}
     [data-ps]{transition:opacity 160ms var(--ease-cayla)}
     &.atenuar [data-ps]:not(.hl){opacity:.28}
@@ -73,7 +73,7 @@
     .c-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 18px 6px}
     .c-eje,.c-fila{display:grid;grid-template-columns:36px minmax(120px,210px) minmax(140px,1fr) 150px 140px;gap:12px;align-items:center;padding:7px 18px;
       grid-template-areas:"tile nom pista pil acc"}
-    .c-eje{padding-top:6px;padding-bottom:2px;font-size:11px;color:var(--color-tinta-60)}
+    .c-eje{padding-top:6px;padding-bottom:2px;font-size:var(--text-xs);color:var(--color-tinta-60)}
     .c-eje .ticks{grid-area:pista;position:relative;height:16px}
     .c-eje .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
     .c-eje .ticks span:first-child{transform:none}
@@ -81,15 +81,15 @@
     .c-grupo{display:flex;align-items:center;gap:10px;padding:14px 18px 6px;border-top:1px solid var(--color-sand);margin-top:6px;border-radius:0}
     .c-grupo .ic{--c:var(--color-ambar);width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);flex:none}
     .c-grupo .ic svg{width:16px;height:16px}
-    .c-grupo h4{margin:0;font-size:15px;font-weight:600}
-    .c-grupo .n{font-size:14px;font-weight:600;color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);border-radius:999px;padding:2px 8px}
+    .c-grupo h4{margin:0;font-size:var(--text-sm);font-weight:600}
+    .c-grupo .n{font-size:var(--text-detalle);font-weight:600;color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);border-radius:999px;padding:2px 8px}
     .c-grupo .btn-cayla{margin-left:auto}
     .c-grupo.mudo h4{color:var(--color-tinta-60);font-weight:500}
-    .c-grupo .detalle{font-size:14px;color:var(--color-tinta-60)}
-    .c-cab .c-sub{display:block;font-size:14px;color:var(--color-tinta-60);margin-top:2px}
+    .c-grupo .detalle{font-size:var(--text-detalle);color:var(--color-tinta-60)}
+    .c-cab .c-sub{display:block;font-size:var(--text-detalle);color:var(--color-tinta-60);margin-top:2px}
     /* «Ver N más»: lo que un grupo con corte deja bajo sus primeras filas (los tipos de «Nunca salió al piso»). */
     .c-mas{display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px 66px;padding:4px 0;border:0;background:transparent;
-      font-size:14px;font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
+      font-size:var(--text-detalle);font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
     .c-mas svg{width:13px;height:13px}
     @media (hover: hover) {
       .c-mas:hover{color:var(--color-tinta)}
@@ -102,20 +102,20 @@
     .c-fila.mudo .tile, .c-fila.mudo .c-nom{opacity:.6}
     .c-fila .tile{grid-area:tile}
     .c-nom{grid-area:nom;min-width:0;line-height:1.25}
-    .c-nom b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .c-nom span{font-size:14px;color:var(--color-tinta-60)}
+    .c-nom b{display:block;font-size:var(--text-sm);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .c-nom span{font-size:var(--text-detalle);color:var(--color-tinta-60)}
     .c-pil{grid-area:pil;display:flex;gap:6px;flex-wrap:wrap}
     .c-acc{grid-area:acc;justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-    .alt{border:0;background:transparent;padding:0;font-size:14px;font-weight:600;color:var(--color-pizarra);text-decoration:underline;text-underline-offset:3px}
+    .alt{border:0;background:transparent;padding:0;font-size:var(--text-detalle);font-weight:600;color:var(--color-pizarra);text-decoration:underline;text-underline-offset:3px}
     .filtro-a{display:inline-flex;gap:6px;flex-wrap:wrap}
-    .pildora{border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:500;color:var(--color-tinta-60);transition:background-color 160ms var(--ease-cayla),color 160ms var(--ease-cayla)}
+    .pildora{border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;padding:5px 12px;font-size:var(--text-detalle);font-weight:500;color:var(--color-tinta-60);transition:background-color 160ms var(--ease-cayla),color 160ms var(--ease-cayla)}
     @media (hover: hover) {
       .pildora:hover{border-color:var(--color-taupe)}
     }
     .pildora[aria-pressed="true"]{background:var(--color-tinta);border-color:var(--color-tinta);color:var(--color-crema)}
     /* Con el dedo, la píldora llega a 44 px (ADR-0611, mejora 5); con mouse conserva su dibujo. */
     @media (pointer: coarse){ .pildora{min-height:44px} }
-    .filtro-a .nf{font-size:11px;font-weight:700;opacity:.75;margin-left:3px}
+    .filtro-a .nf{font-size:var(--text-xs);font-weight:700;opacity:.75;margin-left:3px}
     .pil.llega{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .pil.llega svg{width:12px;height:12px}
     .pil.llega b{color:var(--color-verde)}
@@ -125,7 +125,7 @@
     .pista{grid-area:pista;position:relative;height:20px;border-radius:6px;background:var(--color-hueso)} /* beige-fijo: pista del gráfico */
     .pista .linea{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1.5px dashed color-mix(in srgb,var(--color-tinta) 45%,transparent)}
     .pista .barra{position:absolute;left:0;top:4px;bottom:4px;border-radius:4px;width:calc(var(--n) * 100%);background:var(--c)}
-    .pista .d{position:absolute;left:calc(var(--n) * 100% + 7px);top:50%;transform:translateY(-50%);font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--color-tinta)}
+    .pista .d{position:absolute;left:calc(var(--n) * 100% + 7px);top:50%;transform:translateY(-50%);font-size:var(--text-xs);font-weight:600;white-space:nowrap;color:var(--color-tinta)}
     .pista .d.dentro{left:auto;right:calc((1 - var(--n)) * 100% + 7px);color:var(--color-crema-fija)}
     .pista .agot{position:absolute;left:0;top:2px;bottom:2px;width:10px;border-radius:4px;
       background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-rojo-profundo) 50%,transparent) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--color-rojo-profundo)}
@@ -144,30 +144,30 @@
       .c-grupo .detalle{order:9;flex-basis:100%;padding-left:40px}
       .c-mas{margin-left:68px}
     }
-    .umbral{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--color-tinta-60);flex-wrap:wrap}
+    .umbral{display:flex;align-items:center;gap:10px;font-size:var(--text-detalle);color:var(--color-tinta-60);flex-wrap:wrap}
     /* El modelo en tu tienda (opción B, Felipe 2026-10-10): la frase, la tabla talla × color con palabras y totales, la leyenda y las
        otras tiendas. Lo agotado va en ámbar (una tarea, no un error: sin rojo); lo que queda, en verde; lo que no hay, solo el filo. */
-    .m-frase{font:500 19px/1.25 var(--font-serif);margin:0 0 12px;text-wrap:balance}
+    .m-frase{font:500 var(--text-lg)/1.25 var(--font-serif);margin:0 0 12px;text-wrap:balance}
     .m-tabla{overflow-x:auto}
-    .m-tabla table{border-collapse:separate;border-spacing:4px;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
-    .m-tabla thead th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-taupe);text-align:center;padding:0 0 2px}
+    .m-tabla table{border-collapse:separate;border-spacing:4px;width:100%;font-size:var(--text-detalle);font-variant-numeric:tabular-nums}
+    .m-tabla thead th{font-size:var(--text-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-taupe);text-align:center;padding:0 0 2px}
     .m-tabla thead th.col-color{text-align:left}
-    .m-tabla th.color{text-align:left;white-space:nowrap;font-size:14px;font-weight:600;padding-right:6px}
+    .m-tabla th.color{text-align:left;white-space:nowrap;font-size:var(--text-detalle);font-weight:600;padding-right:6px}
     .m-tabla th.color .pt{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--prenda);margin-right:6px;vertical-align:-1px;
       box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 18%,transparent)}
     .m-tabla td{border-radius:8px;padding:6px 8px;text-align:center;line-height:1.25;min-width:82px}
-    .m-tabla td b{display:block;font-size:14px;font-weight:600}
-    .m-tabla td span{display:block;font-size:14px}
+    .m-tabla td b{display:block;font-size:var(--text-detalle);font-weight:600}
+    .m-tabla td span{display:block;font-size:var(--text-detalle)}
     .m-tabla td.pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
     .m-tabla td.queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-tabla td.nada{color:var(--color-tinta-60);box-shadow:inset 0 0 0 1px var(--color-sand)}
     .m-tabla td.nada b{font-weight:500}
     /* La alerta de «sin stock» (Felipe 2026-10-12): la fila del color sin stock lo dice junto al nombre, y cada celda agotada lleva su «!». */
-    .m-tabla .m-sin-stock{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    .m-tabla .m-sin-stock{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase; /* letra-fija: el aviso dentro de una celda de la matriz de tallas */
       color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 14%,transparent);border-radius:999px;padding:2px 7px;vertical-align:1px}
-    .m-tabla .m-alerta{display:inline-grid;place-items:center;width:14px;height:14px;margin-right:5px;border-radius:50%;font-size:10px;font-weight:800;line-height:1;
+    .m-tabla .m-alerta{display:inline-grid;place-items:center;width:14px;height:14px;margin-right:5px;border-radius:50%;font-size:10px;font-weight:800;line-height:1; /* letra-fija: la marca dentro de una celda de la matriz de tallas */
       color:var(--color-papel);background:var(--color-ambar);vertical-align:1px}
-    .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:14px}
+    .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:var(--text-detalle)}
     .m-tabla tfoot th.color{color:var(--color-tinta-60)}
     .m-tabla td:focus-visible{outline:2px solid var(--color-pizarra);outline-offset:1px}
     /* En un teléfono la tabla no cabe (color + una columna por talla + «Vendiste» = ~420 px en una hoja de ~325) y se desliza dentro de su
@@ -186,13 +186,13 @@
       .m-tabla thead th.col-color,.m-tabla th.color{position:sticky;left:0;z-index:1;background:var(--color-papel)}
     }
     .m-leyenda{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-    .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;border-radius:999px;padding:3px 9px}
+    .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-detalle);font-weight:600;border-radius:999px;padding:3px 9px}
     .m-leyenda span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
     .m-leyenda .pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
     .m-leyenda .queda{color:var(--color-verde-profundo);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-leyenda .nada{color:var(--color-tinta-60);background:var(--gota-chica-fondo);box-shadow:var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde)}
     .m-leyenda .nada::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
-    .m-otras{margin:12px 0 0;font-size:14px;color:var(--color-tinta-60);background:var(--placa-fondo);box-shadow:var(--placa-luz), inset 0 0 0 1px var(--placa-borde);border-radius:10px;padding:10px 12px}
+    .m-otras{margin:12px 0 0;font-size:var(--text-detalle);color:var(--color-tinta-60);background:var(--placa-fondo);box-shadow:var(--placa-luz), inset 0 0 0 1px var(--placa-borde);border-radius:10px;padding:10px 12px}
     .mu-falta{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-rojo-profundo) 16%,transparent) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--color-rojo-profundo) 55%,transparent)}
     .mu-poco{background:color-mix(in srgb,var(--color-ambar) 18%,transparent)}
     .mu-hay{background:var(--color-hueso)} /* beige-fijo: escala del dato */
@@ -202,13 +202,13 @@
     .ct{display:flex;flex-direction:column;align-items:center;gap:6px}
     .ct .par-c{display:flex;gap:5px;align-items:flex-end;height:130px}
     .ct .par-c i{display:block;width:28px;border-radius:5px 5px 0 0;position:relative}
-    .ct .par-c i span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;font-style:normal;white-space:nowrap;color:var(--color-tinta)}
+    .ct .par-c i span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:var(--text-xs);font-weight:600;font-style:normal;white-space:nowrap;color:var(--color-tinta)}
     .ct .v{background:var(--color-tinta)} .ct .t{background:var(--color-grafico-neutro)}
     .ct .nom{font:500 22px/1 var(--font-serif)}
-    .ct .flag{font-size:10.5px;font-weight:700;color:var(--color-ambar);min-height:14px}
-    .unica{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;min-height:190px;color:var(--color-tinta-60);font-size:14px}
+    .ct .flag{font-size:var(--text-xs);font-weight:700;color:var(--color-ambar);min-height:14px}
+    .unica{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;min-height:190px;color:var(--color-tinta-60);font-size:var(--text-detalle)}
     .unica svg{width:56px;height:56px;color:var(--color-taupe)}
-    .unica b{font-size:15px;color:var(--color-tinta)}
+    .unica b{font-size:var(--text-sm);color:var(--color-tinta)}
     /* Ranking */
     .rank{display:flex;flex-direction:column;gap:2px}
     .rank-f{display:grid;grid-template-columns:32px minmax(120px,230px) minmax(0,1fr) 100px;gap:12px;align-items:center;padding:6px 8px;border-radius:9px;cursor:pointer}
@@ -216,16 +216,16 @@
       .rank-f:hover{background:var(--gota-fondo)}
     }
     .rank-f .nm{min-width:0}
-    .rank-f .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .rank-f .nm span{font-size:14px;color:var(--color-tinta-60)}
+    .rank-f .nm b{display:block;font-size:var(--text-detalle);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .rank-f .nm span{font-size:var(--text-detalle);color:var(--color-tinta-60)}
     .rank-f .tr{position:relative;height:16px}
     .rank-f .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--color-tinta);width:calc(var(--n) * 100%)}
-    .rank-f .tr em{position:absolute;top:50%;transform:translateY(-50%);left:calc(var(--n) * 100% + 6px);font-style:normal;font-size:14px;font-weight:600;white-space:nowrap}
+    .rank-f .tr em{position:absolute;top:50%;transform:translateY(-50%);left:calc(var(--n) * 100% + 6px);font-style:normal;font-size:var(--text-detalle);font-weight:600;white-space:nowrap}
     .rank-f .q{justify-self:end}
     @container analisis (max-width:620px){ .rank-f{grid-template-columns:32px minmax(0,1fr) 92px} .rank-f .tr{grid-column:2 / -1} }
     /* Rinde */
     .rinde{display:flex;flex-direction:column;gap:9px}
-    .rinde .r{display:grid;grid-template-columns:132px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:14px}
+    .rinde .r{display:grid;grid-template-columns:132px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:var(--text-detalle)}
     .rinde .pista2{position:relative;height:14px}
     .rinde .pista2 .tallo{position:absolute;left:0;top:6px;height:2px;background:var(--color-grafico-neutro);width:calc(var(--n) * 100%)}
     .rinde .pista2 .cab{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c);left:calc(var(--n) * 100%)}
@@ -236,20 +236,20 @@
     .cuenta-reg{display:flex;align-items:center;gap:12px}
     .cuenta-reg svg{width:64px;height:64px;flex:none}
     .cuenta-reg b{font:500 34px/1 var(--font-serif);display:block}
-    .cuenta-reg span{font-size:14px;color:var(--color-tinta-60)}
+    .cuenta-reg span{font-size:var(--text-detalle);color:var(--color-tinta-60)}
     .riel{position:relative;height:50px}
     .riel .linea-r{position:absolute;left:0;right:0;top:23px;height:4px;border-radius:2px;background:var(--color-hueso)} /* beige-fijo: pista del gráfico */
     .riel .pasado{position:absolute;left:0;top:23px;height:4px;border-radius:2px;background:var(--color-taupe)}
-    .riel .hito{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;line-height:15px;white-space:nowrap}
+    .riel .hito{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:var(--text-xs);line-height:15px;white-space:nowrap}
     .riel .hito i{width:12px;height:12px;border-radius:50%;background:var(--color-papel);border:2px solid var(--color-tinta)}
     .riel .hito.hoy i{background:var(--color-tinta)}
     .riel .hito span{color:var(--color-tinta-60)}
     .riel .hito.hoy span{color:var(--color-tinta);font-weight:600}
-    .riel .mes{position:absolute;top:34px;font-size:10.5px;color:var(--color-tinta-60);transform:translateX(-50%)}
+    .riel .mes{position:absolute;top:34px;font-size:var(--text-xs);color:var(--color-tinta-60);transform:translateX(-50%)}
     @container analisis (max-width:700px){ .campana{grid-template-columns:minmax(0,1fr)} }
     /* Edad por tienda */
     .edad{display:flex;gap:2px;height:26px;border-radius:7px;overflow:hidden}
-    .edad i{display:flex;align-items:center;padding:0 7px;font-size:11.5px;font-weight:600;font-style:normal;min-width:5px;white-space:nowrap;overflow:hidden}
+    .edad i{display:flex;align-items:center;padding:0 7px;font-size:var(--text-xs);font-weight:600;font-style:normal;min-width:5px;white-space:nowrap;overflow:hidden}
     .e1{background:color-mix(in srgb,var(--color-rojo-profundo) 9%,var(--color-hueso));color:var(--color-tinta)} /* beige-fijo: escala del dato */
     .e2{background:color-mix(in srgb,var(--color-rojo-profundo) 26%,var(--color-hueso));color:var(--color-tinta)} /* beige-fijo: escala del dato */
     .e3{background:color-mix(in srgb,var(--color-rojo-profundo) 58%,var(--color-hueso));color:var(--color-crema-fija)} /* beige-fijo: escala del dato */
@@ -261,19 +261,19 @@
        `position:absolute; inset:0`, para dibujar el arco debajo de la cifra). Sin `position:static` el SVG de aquí flotaba sobre su
        título y su botón y los tres anillos de «Datos incompletos» se pisaban (hallazgo 5 de la auditoría del celular, 2026-10-23). */
     .anillo svg{position:static;inset:auto;flex:none;width:96px;height:96px}
-    .anillo .et{font-size:14px;font-weight:600;line-height:1.25}
-    .anillo .sub{font-size:14px;color:var(--color-tinta-60)}
+    .anillo .et{font-size:var(--text-detalle);font-weight:600;line-height:1.25}
+    .anillo .sub{font-size:var(--text-detalle);color:var(--color-tinta-60)}
     .anillo .btn-cayla{margin-top:4px}
     /* En un teléfono caben dos anillos por fila, no tres: las filas se centran para que el tercero no quede huérfano a la izquierda. */
     @container analisis (max-width:460px){ .anillos{justify-content:center} }
     .anim .arco{animation:an-arco 900ms var(--ease-cayla) both;animation-delay:200ms}
     .dias{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-    .dia{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--color-tinta-60)}
+    .dia{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--color-tinta-60)}
     .dia .barra{width:30px;height:84px;border-radius:6px;background:var(--color-hueso);position:relative;overflow:hidden} /* beige-fijo: pista del gráfico */
     .dia .barra i{position:absolute;left:0;right:0;bottom:0;background:var(--color-ambar);height:var(--h)}
     .dia .barra i.ok{background:var(--color-verde)}
     .dia .barra .m90{position:absolute;left:0;right:0;bottom:90%;border-top:1.5px dashed var(--color-verde);z-index:1}
-    .dia b{font-size:11.5px;color:var(--color-tinta)}
+    .dia b{font-size:var(--text-xs);color:var(--color-tinta)}
     .racha{display:flex;gap:3px;flex-wrap:wrap}
     .racha i{width:14px;height:14px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--color-sand);display:block}
     .racha i.ok{background:var(--color-verde);box-shadow:none}
@@ -283,22 +283,22 @@
     .todavia h2{font:500 32px/1.15 var(--font-serif);margin:8px 0 6px}
     .todavia .uno{margin:0 0 18px;color:var(--color-tinta-60)}
     .sabe{padding:14px 16px}
-    .sabe h4{margin:0 0 10px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
-    .sabe .nota{font-size:14px;color:var(--color-tinta-60);margin-top:8px}
+    .sabe h4{margin:0 0 10px;font-size:var(--text-sm);font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .sabe .nota{font-size:var(--text-detalle);color:var(--color-tinta-60);margin-top:8px}
     /* La fila de arriba de la ficha (cara B, ficha §6): miniatura de 72 + 16 px + el veredicto. */
     .h-cab{display:flex;gap:16px;align-items:center;margin:4px 0 0}
     .h-sec{margin-top:20px}
-    .h-sec h3{font-size:12px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--color-taupe);margin:0 0 10px}
+    .h-sec h3{font-size:var(--text-xs);font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--color-taupe);margin:0 0 10px}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
-    .h-nota{font-size:14px;color:var(--color-tinta-60);margin-top:10px}
-    .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:15px}
+    .h-nota{font-size:var(--text-detalle);color:var(--color-tinta-60);margin-top:10px}
+    .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:var(--text-sm)}
     .dl dt{color:var(--color-tinta-60)} .dl dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 
     /* ───────── Piezas del ERP dentro de Análisis ───────── */
     .tile-prenda{display:inline-flex;overflow:hidden;flex:none}
     .tile-foto{display:block;border:1px solid color-mix(in srgb,var(--color-tinta) 10%,transparent)}
     .tip-rico{display:none}
-    .top-f{display:grid;grid-template-columns:20px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:14px;padding:3px 0;width:100%;
+    .top-f{display:grid;grid-template-columns:20px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:var(--text-detalle);padding:3px 0;width:100%;
       border:0;background:transparent;text-align:left;border-radius:6px}
     @media (hover: hover) {
       .top-f:hover .nm{text-decoration:underline;text-underline-offset:3px}
@@ -307,8 +307,8 @@
     .top-f .nm .tl{color:var(--color-tinta-60)}
     .top-f .tr{position:relative;height:12px}
     .top-f .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 3px 3px 0;background:var(--color-tinta)}
-    .top-f .tr em{position:absolute;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;font-weight:600}
-    .nh-f{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:5px 0;border-bottom:1px solid var(--color-sand)}
+    .top-f .tr em{position:absolute;top:50%;transform:translateY(-50%);font-style:normal;font-size:var(--text-xs);font-weight:600}
+    .nh-f{display:flex;justify-content:space-between;gap:10px;font-size:var(--text-detalle);padding:5px 0;border-bottom:1px solid var(--color-sand)}
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
@@ -318,7 +318,7 @@
 
 /* El tooltip de la pantalla vive en el `body` (fuera de `.analisis`): sale al pasar el mouse, al enfocar y al tocar un «?». */
 @layer components {
-  .an-tip{position:fixed;z-index:70;pointer-events:none;background:var(--color-tinta);color:var(--color-crema);font-size:14px;line-height:1.4;padding:8px 10px;
+  .an-tip{position:fixed;z-index:70;pointer-events:none;background:var(--color-tinta);color:var(--color-crema);font-size:var(--text-detalle);line-height:1.4;padding:8px 10px;
     border-radius:8px;max-width:280px;opacity:0;transition:opacity 120ms var(--ease-cayla)}
   .an-tip.ver{opacity:1}
   .an-tip b{font-weight:600}

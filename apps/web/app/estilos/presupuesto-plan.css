@@ -15,7 +15,7 @@
   flex-wrap: wrap;
   gap: 6px 14px;
   margin-top: 10px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta-60);
 }
 .pp-leyenda > span {
@@ -45,7 +45,7 @@
 .pp-tope-valor small {
   display: block;
   margin-bottom: 2px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -71,7 +71,7 @@
 .pp-rango-extremos {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta-60);
 }
 
@@ -94,7 +94,7 @@
   background: var(--color-crema);
 }
 .pp-res3 .pp-t {
-  font-size: 12px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -107,7 +107,7 @@
 }
 .pp-res3 .pp-v small {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 400;
 }
 .pp-neg {
@@ -128,11 +128,11 @@
   align-items: center;
   padding: 9px 6px;
   border-top: 1px solid var(--color-sand);
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
 .pp-vrow.pp-h {
   border-top: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -182,7 +182,7 @@
 .pp-sup {
   display: grid;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
 }
 .pp-sup > div {
   display: flex;
@@ -202,7 +202,7 @@
 }
 .pp-sup .pp-pista {
   flex-basis: 100%;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta-60);
 }
 .pp-sup .pp-valor {
@@ -231,11 +231,11 @@
 }
 .pp-ver-top b {
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 .pp-ver-q {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta-60);
 }
 .pp-ver-nota {
@@ -268,10 +268,10 @@
   border-radius: 10px;
   background: var(--hundido-fondo);
   box-shadow: var(--hundido-sombra);
-  font-size: 14px;
+  font-size: var(--text-detalle);
 }
 .pp-dif-pie {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta-60);
 }
 .pp-ver-pie {

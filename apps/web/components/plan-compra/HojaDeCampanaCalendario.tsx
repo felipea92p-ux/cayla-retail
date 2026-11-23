@@ -105,7 +105,7 @@ function BloqueDeHistoria({ evidencia, tienda, nueva, historiaFallo }: { evidenc
   const nota = notaDelAnioRaro(evidencia);
   return (
     <div className="cal-ev" data-guia="calendario-hoja.historia">
-      <p className="mt-0! mb-1.5 text-[15px] font-semibold text-tinta">
+      <p className="mt-0! mb-1.5 text-sm font-semibold text-tinta">
         Qué dice tu historia{" "}
         <small className="text-sm font-normal text-taupe">
           {tienda ? `${tienda.nombre} · ` : ""}

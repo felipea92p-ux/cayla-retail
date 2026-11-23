@@ -27,9 +27,9 @@ import { imprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 function TablaDeCompra({ lista, comprar, inversion }: { lista: readonly FilaListaCompra[]; comprar: number; inversion: number }) {
   return (
-    <table className="w-full border-collapse text-[13px] tabular-nums text-tinta">
+    <table className="w-full border-collapse text-[13px] tabular-nums text-tinta">{/* letra-fija: la lista que se imprime, mide lo que su papel */}
       <thead>
-        <tr className="border-b border-tinta text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-tinta/65">
+        <tr className="border-b border-tinta text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-tinta/65">{/* letra-fija: la cabecera de la lista que se imprime */}
           <th className="px-2 py-1.5">Categoría</th>
           <th className="px-2 py-1.5 text-right">Comprar</th>
           <th className="px-2 py-1.5">Por talla</th>

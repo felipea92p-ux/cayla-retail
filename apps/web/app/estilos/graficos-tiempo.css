@@ -62,7 +62,7 @@
   }
   .linea-globo, .barra-t-globo {
     position: absolute; z-index: 10; padding: 6px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
-    background: var(--color-tinta); color: var(--color-crema); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums;
+    background: var(--color-tinta); color: var(--color-crema); font-size: var(--text-xs); line-height: 1.4; font-variant-numeric: tabular-nums;
     box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   }
   .linea-globo { transform: translate(-50%, calc(-100% - 10px)); animation: cayla-linea-aparece 160ms var(--ease-cayla) both; }

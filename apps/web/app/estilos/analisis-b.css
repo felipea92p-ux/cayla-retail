@@ -57,7 +57,7 @@
       .an-tarj:hover { transform: translateY(-2px); box-shadow: var(--serena-sombra-encima); }
     }
     .an-tarj-cuerpo { display: flex; flex-direction: column; min-width: 0; }
-    .an-tarj-nombre { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--color-tinta); }
+    .an-tarj-nombre { margin: 0; font-size: var(--text-sm); font-weight: 600; line-height: 1.3; color: var(--color-tinta); }
     .an-tarj-num { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 8px 0 0; }
     .an-tarj-num b {
       font-family: var(--font-serif);
@@ -67,7 +67,7 @@
       font-variant-numeric: lining-nums tabular-nums;
       color: var(--c);
     }
-    .an-tarj-num span { font-size: 15px; color: var(--color-taupe); }
+    .an-tarj-num span { font-size: var(--text-sm); color: var(--color-taupe); }
     .an-tarj-pie {
       grid-column: 1 / -1;
       display: flex;
