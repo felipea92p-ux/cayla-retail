@@ -2,10 +2,11 @@
   "guia": "inventario.cuadrar",
   "ruta": "/inventario/cuadrar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 27,
+  "total": 28,
   "controles": {
     "app/(app)/inventario/cuadrar/page.tsx": [
-      "Volver «/inventario»"
+      "Volver «/inventario»",
+      "BotonVer «Barrido del piso»"
     ],
     "components/EscanerConteo.tsx": [
       "button «Cerrar la cámara»",

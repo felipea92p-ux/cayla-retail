@@ -1,0 +1,29 @@
+{
+  "guia": "inventario.barrido.detalle",
+  "ruta": "/inventario/barrido/historial/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 15,
+  "controles": {
+    "app/(app)/inventario/barrido/historial/[id]/page.tsx": [
+      "Volver «/inventario/barrido/historial»",
+      "BotonVer «Ir al barrido»"
+    ],
+    "components/barrido-piso/HojaLoEscaneado.tsx": [
+      "button «Todas»",
+      "button «{nombre}»",
+      "Boton «Sí, quitar»",
+      "Boton «No»",
+      "Boton «Quitar»",
+      "Boton «Quitar tramo»",
+      "Boton «Sí, quitar» #2",
+      "Boton «No» #2",
+      "BotonVerMas «(sin nombre)»",
+      "Boton «Sí, quitar» #3",
+      "Boton «No» #3",
+      "Boton «Quitar» #2"
+    ],
+    "components/barrido-piso/VerLecturasDelBarrido.tsx": [
+      "Boton «barrido-detalle.lecturas»"
+    ]
+  }
+}

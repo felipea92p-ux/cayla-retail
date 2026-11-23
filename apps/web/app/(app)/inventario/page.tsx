@@ -37,6 +37,12 @@ import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
+import { BotonBarrido } from "@/components/existencias/BotonBarrido";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { getBarridoEstado } from "@/lib/barrido-piso";
+import { getCuadrePisoEstado } from "@/lib/cuadre-piso";
+import { avisoDeBarrido } from "@/lib/barrido-piso-reglas";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 import { ResumenExistencias } from "@/components/existencias/ResumenExistencias";
 import { FiltrosEnCabecera } from "@/components/existencias/FiltrosEnCabecera";
@@ -240,6 +246,9 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  // El barrido del piso (ADR-0690): si hay uno abierto («súmate») y cuándo fue el último cuadre («toca el del mes»). Dos lecturas
+  // chicas que salen YA y se esperan recién al dibujar; si fallan, Existencias no dice nada del barrido (el botón sigue).
+  const barridoDeLaSede = puedeBajarAlPiso ? Promise.all([getBarridoEstado(ubicacionActivaId), getCuadrePisoEstado(ubicacionActivaId)]).catch(() => null) : null;
   // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la
   // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
   // pantalla cuadra siempre la sede activa). Confirmar es solo de un líder: allí el botón se apaga y dice quién sí puede, y la base
@@ -297,6 +306,9 @@ export default async function InventarioPage({
   const pisoSinCuadrarAntes = vende && separa && capacidad !== null && capacidad.cuadradoEn === null;
 
   const vistaValor = armarVistaValor(await valorPendiente, ubicacionActivaId);
+  const [barridoLeido, cuadreLeido] = (await barridoDeLaSede) ?? [null, null];
+  const barridoAbierto = barridoLeido?.estado?.barrido ?? null;
+  const avisoBarrido = barridoLeido?.estado ? avisoDeBarrido({ barrido: barridoAbierto, cuadradoEn: cuadreLeido?.estado?.cuadradoEn ?? null, ahora: new Date() }) : null;
 
   // Las props del panel en un objeto: además de pasarlas, se mide cuánto pesan (lo que viaja al navegador), en la línea del registro.
   const propsPanel = {
@@ -382,6 +394,7 @@ export default async function InventarioPage({
         acciones={
           <>
             <BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />
+            {puedeBajarAlPiso && <BotonBarrido enCurso={barridoAbierto !== null} />}
             <ResumenExistencias key={`resumen-${ubicacionActivaId}`} cifras={propsCifras} valor={propsValor} />
             {/* Sin prendas no hay barra de filtros que abra la hoja: el botón no se dibuja. */}
             {stock.length > 0 && <FiltrosEnCabecera />}
@@ -398,6 +411,22 @@ export default async function InventarioPage({
           <CifrasExistencias {...propsCifras} />
         </div>
       </EncabezadoPagina>
+
+      {/* El barrido del piso (ADR-0690): hay uno en curso («Sumarme») o ya toca el del mes. Llega con la página: no aparece de golpe. */}
+      {avisoBarrido && (
+        <Aviso
+          chico
+          tono={avisoBarrido.tipo === "en_curso" ? "info" : "atencion"}
+          titulo={avisoBarrido.titulo}
+          accion={
+            <BotonVer href="/inventario/barrido" chico>
+              {avisoBarrido.boton}
+            </BotonVer>
+          }
+        >
+          {avisoBarrido.detalle}
+        </Aviso>
+      )}
 
       {/* La llave lleva un prefijo: `InventarioPanel`, su hermano, ya usa el id de la sede, y dos hermanos no pueden repetirla. En el
           celular, el valor a costo vive en la hoja «Resumen». */}

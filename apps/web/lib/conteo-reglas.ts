@@ -247,6 +247,8 @@ export type PrendaConteo = {
   codigosBarras: string[];
   /** Una variante inactiva (descontinuada) puede tener stock y estar en el conteo: se dibuja igual. */
   activo: boolean;
+  /** La marca, para la tarjeta de la prenda recién escaneada (el barrido del piso, ADR-0690). Opcional: sin ella, no se dice. */
+  marca?: string | null;
 };
 
 // ---------------------------------------------------------------------------------------------------------------

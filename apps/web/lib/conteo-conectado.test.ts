@@ -34,8 +34,16 @@ describe("sonidoDeLectura", () => {
   });
 
   it("cada sonido tiene su patrón: agudo y corto = bien, grave y largo = mira la pantalla", () => {
-    expect(Object.keys(PATRON_SONIDO).sort()).toEqual(["desconocida", "nueva", "suma"]);
+    expect(Object.keys(PATRON_SONIDO).sort()).toEqual(["desconocida", "nueva", "repetida", "suma"]);
     const duracion = (s: keyof typeof PATRON_SONIDO) => PATRON_SONIDO[s].tonos.reduce((acc, [, ms]) => acc + ms, 0);
     expect(duracion("desconocida")).toBeGreaterThan(duracion("suma"));
+  });
+
+  it("«ya la contaste» no suena igual que «no existe» (ADR-0690): otros tonos, ni el agudo de bien ni el grave de error", () => {
+    const firma = (s: keyof typeof PATRON_SONIDO) => JSON.stringify(PATRON_SONIDO[s].tonos);
+    expect(firma("repetida")).not.toBe(firma("desconocida"));
+    const hercios = PATRON_SONIDO.repetida.tonos.map(([h]) => h);
+    expect(Math.min(...hercios)).toBeGreaterThan(PATRON_SONIDO.desconocida.tonos[0][0]);
+    expect(Math.max(...hercios)).toBeLessThan(PATRON_SONIDO.suma.tonos[0][0]);
   });
 });

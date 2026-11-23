@@ -152,6 +152,11 @@ export const EJEMPLOS = {
         "select id from retail.proveedores order by created_at desc limit 1",
       )}`,
   },
+  // ADR-0690 (actividad 9): el barrido confirmado más nuevo de Tienda Lima (la sede de la cuenta de prueba), o el más nuevo de ella.
+  "/inventario/barrido/historial/[id]": {
+    url: () =>
+      `/inventario/barrido/historial/${id("select b.id from retail.barridos_piso b join retail.ubicaciones u on u.id = b.ubicacion_id where u.nombre = 'Tienda Lima' order by (b.estado = 'confirmado') desc, b.abierto_en desc limit 1")}`,
+  },
   // Abierto (se cuenta) y, si no hay, uno cerrado (el resultado), antes que uno cancelado: es la cara que más hay que enseñar.
   "/inventario/conteo/[id]": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, (estado = 'cerrado') desc, created_at desc limit 1")}` },
   "/inventario/conteo/[id]/confirmar": {

@@ -1,0 +1,13 @@
+{
+  "guia": "inventario.barrido.historial",
+  "ruta": "/inventario/barrido/historial",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 3,
+  "controles": {
+    "app/(app)/inventario/barrido/historial/page.tsx": [
+      "Volver «/inventario/barrido»",
+      "BotonVer «Ir al barrido»",
+      "Link «{fraseDeLaFila(b, ahora)}»"
+    ]
+  }
+}

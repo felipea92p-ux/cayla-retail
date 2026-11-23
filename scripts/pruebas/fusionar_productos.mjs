@@ -608,6 +608,8 @@ const A_VARIANTES = {
   "produccion_lineas.variante_id": "producción abierta frena",
   "conteo_items.variante_id": "conteo abierto frena",
   "prendas_danadas.variante_id": "en cuarentena frena",
+  // ADR-0690 (20261122194500): lo escaneado de la juntada en un barrido ABIERTO frena (junta_barrido); lo de uno cerrado es historia.
+  "barrido_piso_lecturas.variante_id": "barrido abierto frena; cerrado es historia",
   "apartados.variante_id": "apartada frena (stock.cantidad_apartada)",
   "separacion_items.variante_id": "apartada frena (stock.cantidad_apartada)",
   // Historia: se queda en la juntada, que vive en el producto que queda (sus ventas cuentan en él).
@@ -621,6 +623,8 @@ const A_VARIANTES = {
       "traslado_sobrantes.variante_id", "produccion_fallas.variante_id", "cambio_salidas.variante_id", "trafico_web.variante_id",
       "costo_correcciones.variante_id", "precios_sede_variante.variante_id", "variantes_nacidas_al_recibir.variante_id",
       "prendas_danadas.corregida_de_variante_id",
+      // ADR-0690: lo resuelto de un barrido confirmado (la prenda que era y la no cargada) se queda en la juntada.
+      "barrido_piso_resueltos.variante_id", "barrido_piso_resueltos.pendiente_variante_id",
     ].map((k) => [k, "historia"])
   ),
 };
