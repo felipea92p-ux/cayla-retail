@@ -8,7 +8,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../estilos/entrada.css";
 import "../../estilos/mi-cuenta.css";
 
-export const metadata: Metadata = { title: "Cambiar mi correo · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Cambiar mi correo", robots: { index: false, follow: false } };
 
 /**
  * «Cambiar mi correo» (Felipe 2026-10-15): el correo con que entra cambia recién cuando escribe el código que le llega al correo NUEVO

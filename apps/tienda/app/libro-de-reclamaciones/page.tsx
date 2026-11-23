@@ -9,7 +9,8 @@ import "../estilos/recomendaciones.css";
 import "../estilos/libro.css";
 
 export const metadata: Metadata = {
-  title: "Libro de Reclamaciones · CAYLA",
+  alternates: { canonical: "/libro-de-reclamaciones" },
+  title: "Libro de Reclamaciones",
   description: "Deja tu reclamo o queja en el Libro de Reclamaciones virtual de CAYLA. No necesitas una cuenta.",
 };
 

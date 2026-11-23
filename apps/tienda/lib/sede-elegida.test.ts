@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveDeLaOpcion, claveDeSede, resolverSede, sedeDeLaUrl, sedesEnOrden, soloTiendas } from "./sede-elegida";
+import { claveDeLaOpcion, claveDeSede, resolverSede, sedeDeLaUrl, sedePrincipal, sedesEnOrden, soloTiendas } from "./sede-elegida";
 
 const TRUJILLO = { id: "t", nombre: "Trujillo" };
 const LIMA = { id: "l", nombre: "Lima" };
@@ -43,13 +43,21 @@ describe("siempre una tienda (2026-10-19)", () => {
     expect(resolverSede("trujillo", "lima", sedes)).toEqual({ sede: TRUJILLO, redirigir: false });
   });
 
-  it("sin tienda en la dirección: la que eligió la última vez, o la primera en orden", () => {
+  it("sin tienda en la dirección: la que eligió la última vez, o la principal (Trujillo, Felipe 2026-11-23)", () => {
     expect(resolverSede(undefined, "lima", sedes)).toEqual({ sede: LIMA, redirigir: true });
-    expect(resolverSede("", undefined, sedes)).toEqual({ sede: AREQUIPA, redirigir: true });
+    expect(resolverSede("", undefined, sedes)).toEqual({ sede: TRUJILLO, redirigir: true });
   });
 
-  it("una tienda que no existe (en la dirección o recordada) cae a la primera, nunca a «Todas»", () => {
-    expect(resolverSede("cusco", "tumbes", sedes)).toEqual({ sede: AREQUIPA, redirigir: true });
+  it("si la principal no se ve en la web, manda la primera en orden: nunca una tienda que no está", () => {
+    const sinTrujillo = sedesEnOrden([LIMA, AREQUIPA]);
+    expect(sedePrincipal(sinTrujillo)).toBe(AREQUIPA);
+    expect(resolverSede(undefined, undefined, sinTrujillo)).toEqual({ sede: AREQUIPA, redirigir: true });
+    expect(sedePrincipal(sedes)).toBe(TRUJILLO);
+    expect(sedePrincipal([])).toBeUndefined();
+  });
+
+  it("una tienda que no existe (en la dirección o recordada) cae a la principal, nunca a «Todas»", () => {
+    expect(resolverSede("cusco", "tumbes", sedes)).toEqual({ sede: TRUJILLO, redirigir: true });
     expect(resolverSede("cusco", "lima", sedes)).toEqual({ sede: LIMA, redirigir: true });
   });
 

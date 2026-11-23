@@ -34,7 +34,7 @@ import "../estilos/mi-cuenta.css";
 import "../estilos/perfil.css";
 import "../estilos/puntos.css";
 
-export const metadata: Metadata = { title: "Mi perfil · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Mi perfil", robots: { index: false, follow: false } };
 
 /**
  * «Mi perfil» (maqueta v4, `vCuenta`; ordenada el 2026-10-15, Felipe: «podría estar mejor distribuido, más ordenado y entendible»). Arriba

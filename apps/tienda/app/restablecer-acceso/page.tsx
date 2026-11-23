@@ -5,7 +5,7 @@ import { PanelDeAcceso, PantallaDeEntrada } from "@/components/cuenta/PanelDeEnt
 import "../estilos/entrada.css";
 import "../estilos/mi-cuenta.css";
 
-export const metadata: Metadata = { title: "Restablecer mi acceso · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Restablecer mi acceso", robots: { index: false, follow: false } };
 
 /**
  * «Restablecer mi acceso» (Felipe 2026-10-15): quien ya no podía entrar lo pidió en una tienda CAYLA (el ERP, ficha del cliente ▸

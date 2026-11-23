@@ -19,6 +19,7 @@ import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/looks.css";
+import { canonicalDe, claveCanonica, DESCRIPCIONES } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -26,10 +27,14 @@ const esId = (id: string) => z.string().uuid().safeParse(id).success;
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  if (!esId(id)) return { title: "Outfits listos · CAYLA" };
+  if (!esId(id)) return { title: "Outfits listos" };
   const sedes = sedesEnOrden(await leerSedes());
   const lectura = await leerLook(id, sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
-  return { title: lectura?.look ? `${lectura.look.nombre} · Outfits listos · CAYLA` : "Outfits listos · CAYLA" };
+  return {
+    title: lectura?.look ? `${lectura.look.nombre} · Outfits listos` : "Outfits listos",
+    description: lectura?.look ? DESCRIPCIONES.look(lectura.look.nombre, lectura.look.frase) : DESCRIPCIONES.looks,
+    alternates: { canonical: canonicalDe(`/looks/${id}`, {}, claveCanonica(sedes)) },
+  };
 }
 
 // Un look abierto (maqueta v4, `vLook` y `lookInfo`): la lámina, «Look N de M», su nombre y su frase, cada prenda con su color y lo que cuesta

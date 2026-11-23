@@ -10,7 +10,7 @@ import { avisosVistos } from "@/lib/inicio-aviso-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import "../estilos/notificaciones.css";
 
-export const metadata: Metadata = { title: "Tus notificaciones · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Tus notificaciones", robots: { index: false, follow: false } };
 
 /** Cuántas notificaciones por página. */
 const POR_PAGINA = 10;
