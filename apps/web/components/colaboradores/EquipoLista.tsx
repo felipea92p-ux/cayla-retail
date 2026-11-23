@@ -84,7 +84,7 @@ function NombreMiembro({ m }: { m: MiembroEquipo }) {
     <>
       <span className="truncate" data-guia="colaboradores.nombre">{m.nombre}</span>
       {m.tipo === "persona" && m.esYo && <span className="text-sm font-normal text-tinta/60">(tú)</span>}
-      {m.tipo === "persona" && m.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
+      {m.tipo === "persona" && m.esAdmin && <span className="text-xs leading-tight font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
     </>
   );
 }
@@ -132,7 +132,7 @@ function FilaMiembro({
         <span className={apagado ? "opacity-60" : ""}>
           <CaraMiembro m={m} />
         </span>
-        <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] font-semibold leading-tight ${apagado ? "text-tinta/60" : "text-tinta"}`}>
+        <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-detalle font-semibold leading-tight ${apagado ? "text-tinta/60" : "text-tinta"}`}>
           <NombreMiembro m={m} />
           {/* Bajo 1280 px el estado va junto al nombre; desde ahí, en su columna: a 1024 px no le queda ancho y se salía de la tarjeta. */}
           {apagado && (
@@ -170,7 +170,7 @@ function TarjetaMiembro({ m, elegido, onTocar, guia }: { m: MiembroEquipo; elegi
         <span className="row-span-2">
           <CaraMiembro m={m} />
         </span>
-        <span className="flex min-w-0 items-center gap-x-2 text-[14.5px] font-semibold leading-tight text-tinta">
+        <span className="flex min-w-0 items-center gap-x-2 text-detalle font-semibold leading-tight text-tinta">
           <NombreMiembro m={m} />
         </span>
         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -200,7 +200,7 @@ function EsperanTuOk({
   const [preguntando, setPreguntando] = useState<string | null>(null);
   return (
     <section aria-label="Altas que esperan aprobación" className="colab-ok flex flex-wrap items-center gap-x-4 gap-y-2 border px-3.5 py-2.5" data-guia="colaboradores.esperan-ok">
-      <h2 className="w-full text-[11.5px] font-bold uppercase tracking-[0.1em] text-ambar-profundo sm:w-auto">Esperan tu ok · {pendientes.length}</h2>
+      <h2 className="w-full text-xs font-bold uppercase tracking-[0.1em] text-ambar-profundo sm:w-auto">Esperan tu ok · {pendientes.length}</h2>
       <ul className="colab-ok-lista flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
         {pendientes.map((p) => (
           <li
@@ -372,7 +372,7 @@ export function EquipoLista({
             {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). Las columnas miran el
                 ancho de la lista, no el de la ventana: a 640 px el lateral deja 266 px y «Último ingreso» no cabe (2026-11-05). */}
             {vista === "lista" && (
-              <div aria-hidden className={`${COLUMNAS} @max-[32rem]:hidden border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
+              <div aria-hidden className={`${COLUMNAS} @max-[32rem]:hidden border-b border-sand px-2.5 pb-2 text-xs font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
                 <span className="col-span-2">{enTerminales ? "Terminal" : "Persona"}</span>
                 <span>Rol</span>
                 <span className="hidden @[32rem]:block">Último ingreso</span>

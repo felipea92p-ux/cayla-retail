@@ -420,7 +420,7 @@ function GrupoLateral({
       {/* Con un solo grupo el título sobra: sería una etiqueta para TODO el
           menú, que es justo el ruido que se estaba sacando. Una Encargada ve
           las tres filas sin encabezado; el Líder ve los dos nombres. */}
-      {titulo && <p className="label-cayla px-4 pb-3 text-[11px] text-tinta/65">{titulo}</p>}
+      {titulo && <p className="label-cayla px-4 pb-3 text-xs text-tinta/65">{titulo}</p>}
       {/* Sin `gap`: las hijas de un grupo cerrado miden 0 pero seguirían pagando su separación. */}
       <div className="relative flex flex-col">
         {items.map((it, n) => {
@@ -599,7 +599,7 @@ function CajonGrupo({
       if (esGrupo(h)) {
         return (
           <div key={h.id} className="mt-1.5">
-            <p aria-hidden className="label-cayla px-3 pb-1 pt-1.5 text-[10px] text-tinta/50">{h.etiqueta}</p>
+            <p aria-hidden className="label-cayla px-3 pb-1 pt-1.5 text-xs text-tinta/50">{h.etiqueta}</p>
             {pintarFilas(h.hijos)}
           </div>
         );
@@ -630,7 +630,7 @@ function CajonGrupo({
       style={{ top, left }}
       className="anim-flota marco-cajon-grupo fixed z-[60] w-[15rem] p-2"
     >
-      <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-[11px] text-tinta/65">{grupo.etiqueta}</p>
+      <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-xs text-tinta/65">{grupo.etiqueta}</p>
       {pintarFilas(grupo.hijos)}
     </div>
   );
@@ -1014,7 +1014,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
           <span
             aria-hidden
-            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "hidden" : ""}`}
+            className={`label-cayla -mt-0.5 text-xs text-taupe-profundo transition-opacity duration-200 ${compacto ? "hidden" : ""}`}
             style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 2}rem` }}
           >
             Retail
@@ -1160,7 +1160,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         <div
           role="tooltip"
           style={{ top: etiqueta.top, left: etiqueta.left }}
-          className="anim-revelar pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-tinta px-3 py-1.5 text-[13px] font-medium text-crema"
+          className="anim-revelar pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-tinta px-3 py-1.5 text-xs font-medium text-crema"
         >
           {etiqueta.texto}
         </div>
@@ -1260,7 +1260,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                   enVistaGlobal={persona.vista === "global"}
                 />
               ) : (
-                <span className="label-cayla px-1.5 text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+                <span className="label-cayla px-1.5 text-xs text-tinta/65">{persona.ubicacionEtiqueta}</span>
               )}
             </div>
             {/* Celular: la lupa abre el mismo buscador de pantallas del menú que «Buscar…» en escritorio (Felipe 2026-11-07). Antes

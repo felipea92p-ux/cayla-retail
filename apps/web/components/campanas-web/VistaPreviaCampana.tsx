@@ -77,7 +77,7 @@ export function VistaPreviaCampana({
       <div className="space-y-4">
         {creado === null ? (
           <>
-            <p className="text-[15px] leading-relaxed text-tinta/80">
+            <p className="text-sm leading-relaxed text-tinta/80">
               Se crea un enlace que muestra este diseño, tal como lo guardaste, con las prendas de la tienda. Quien lo tenga lo ve durante 7 días; sin el enlace, nadie.
             </p>
             {cambiosSinGuardar && (

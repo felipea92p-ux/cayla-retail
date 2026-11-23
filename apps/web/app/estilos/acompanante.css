@@ -87,7 +87,7 @@
   background: var(--color-papel);
   padding: 6px 14px 6px 6px;
   color: var(--color-tinta);
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 500;
   line-height: 1.25;
   box-shadow: 0 14px 34px -16px color-mix(in srgb, var(--color-sombra) 55%, transparent);
@@ -118,7 +118,7 @@
   border-radius: 999px;
   background: var(--color-rojo);
   color: var(--color-crema-fija);
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

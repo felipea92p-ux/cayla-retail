@@ -49,7 +49,7 @@
   /* El logo oficial (ADR-0446) en crema, no «CAYLA» escrito: la palabra del logo queda del alto de la letra de antes. */
   .login-panel-logo { height: 34px; align-self: center; }
   .login-panel-marca small {
-    font-size: 10px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -135,7 +135,7 @@
   .login-sedes li:not(:first-child) { padding-left: 22px; }
   .login-sedes li:not(:last-child) { padding-right: 22px; }
   .login-sedes small {
-    font-size: 9.5px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.18em;
     color: color-mix(in srgb, var(--color-crema-fija) 55%, transparent);
@@ -181,7 +181,7 @@
   .login-saludo {
     min-height: 11px;
     margin-bottom: 12px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     line-height: 1;
     letter-spacing: 0.14em;
@@ -239,7 +239,7 @@
   .entrada-saludo-frase {
     display: block;
     padding-left: 0.22em;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.22em;
     text-transform: uppercase;

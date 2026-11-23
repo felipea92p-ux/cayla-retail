@@ -145,7 +145,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
                   {vitrina && (
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand px-5 py-3 text-sm">
                       <span className="text-tinta">
-                        <b className="font-display text-[19px] font-normal tabular-nums">
+                        <b className="font-display text-lg font-normal tabular-nums">
                           <CifraQueCuenta valor={vitrina.cifras.seVen} alMontar />
                         </b>{" "}
                         <span className="text-taupe">{fraseVentana(vitrina.cifras.seVen, tiendasVisibles)}</span>

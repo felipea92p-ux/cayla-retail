@@ -134,7 +134,7 @@ export function ModeloNuevoCampos({
       {(onElegirExistente || puedeEditarCatalogo) && (
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-tinta/70">
           {onElegirExistente && (
-            <button type="button" onClick={onElegirExistente} className="btn-cayla btn-enlace text-[12.5px]">
+            <button type="button" onClick={onElegirExistente} className="btn-cayla btn-enlace text-xs leading-tight">
               Mejor elegir uno que ya existe
             </button>
           )}

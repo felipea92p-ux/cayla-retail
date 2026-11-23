@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ESCALA } from "../tema/letra-suelta.mjs";
 
 // Tareas 158 y 161: la letra que se lee en Finanzas.
 //   · 158: en «Qué debes», vencimientos, proveedores y detalles se leían a 12–13.5 px; la regla del ERP pide 14 px para lo
@@ -12,12 +13,17 @@ import { describe, expect, it } from "vitest";
 
 const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
-/** El `font-size` en px de la primera regla cuyo selector es exactamente `selector` (dentro de `css`). */
+/**
+ * El `font-size` en px de la primera regla cuyo selector es exactamente `selector` (dentro de `css`). Desde ADR-0691 la letra de la
+ * interfaz pide su tamaño a la escala (`var(--text-detalle)`): se traduce con la misma escala que usa el candado de la letra. La letra
+ * de un dibujo (svg) sigue en unidades de su lienzo.
+ */
 function tamanoDe(css: string, selector: string): number | null {
   const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const m = new RegExp(`(?:^|[}\\s])${esc}\\s*\\{([^}]*)\\}`, "m").exec(css);
-  const t = m && /font-size:\s*([\d.]+)px/.exec(m[1]!);
-  return t ? Number(t[1]) : null;
+  const t = m && /font-size:\s*(?:([\d.]+)px|var\(--text-([a-z]+)\))/.exec(m[1]!);
+  if (!t) return null;
+  return t[1] ? Number(t[1]) : (ESCALA.find((e) => e.token === t[2])?.px ?? null);
 }
 
 /** El cuerpo del primer `<regla> (max-width: <ancho>)` (con llaves balanceadas): `@media` o `@container <nombre>`. */
@@ -55,14 +61,17 @@ describe("Qué debes: lo que se lee no baja de 14 px (tarea 158)", () => {
     expect(t, `${sel} no tiene font-size`).not.toBeNull();
     expect(t!).toBeGreaterThanOrEqual(14);
   });
-  it("el título de «En qué se va» queda sobre su detalle (15 px)", () => {
-    expect(tamanoDe(css, ".qd-tipo-cab b")).toBe(15);
+  it("el título de «En qué se va» queda sobre su detalle (16 px, el escalón de lo que se lee)", () => {
+    expect(tamanoDe(css, ".qd-tipo-cab b")).toBe(16);
+    expect(tamanoDe(css, ".qd-tipo-cab b")!).toBeGreaterThan(tamanoDe(css, ".qd-tipo-cab small")!);
   });
   it("«vencida hace 12 días» no se parte en la fila ancha", () => {
     expect(css).toMatch(/\.qd-fac-vence small\s*\{\s*white-space:\s*nowrap;/);
   });
-  it("control: el lector de tamaños ve un 12 px viejo", () => {
+  it("control: el lector de tamaños ve un 12 px viejo, y traduce un escalón de la escala", () => {
     expect(tamanoDe(".qd-pie { font-size: 12.5px; }", ".qd-pie")).toBe(12.5);
+    expect(tamanoDe(".qd-pie { font-size: var(--text-xs); }", ".qd-pie")).toBe(13);
+    expect(tamanoDe(".qd-pie { font-size: var(--text-detalle); }", ".qd-pie")).toBe(14);
   });
 });
 

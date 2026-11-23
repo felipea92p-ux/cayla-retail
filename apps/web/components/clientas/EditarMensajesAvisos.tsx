@@ -240,7 +240,7 @@ export function EditarMensajesAvisos({
           </div>
 
           <aside className="self-start rounded-xl border border-sand bg-crema p-4 md:sticky md:top-0" aria-label="Así le llega" data-guia="avisos.editar-previa">
-            <p className="label-cayla mb-2.5 text-[11px] text-taupe">Así le llega a {nombreDeEjemplo(tipo)}</p>
+            <p className="label-cayla mb-2.5 text-xs text-taupe">Así le llega a {nombreDeEjemplo(tipo)}</p>
             <BurbujaAviso texto={mensajeDeEjemplo(tipo, cuerpo, cierre, sede.nombre)} cierre={cierre} hora="10:24" />
             <p className="mt-2.5 text-sm text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
           </aside>

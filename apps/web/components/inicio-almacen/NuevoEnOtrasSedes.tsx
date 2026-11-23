@@ -58,7 +58,7 @@ export function NuevoEnOtrasSedes({
     <section id="nuevos" className="ia-rv" data-guia="inicio.almacen-nuevos">
       <div className="ia-sec-h">
         <div className="ia-l">
-          <p className="label-cayla text-[11px] text-tinta/65">{titulo.seccion}</p>
+          <p className="label-cayla text-xs text-tinta/65">{titulo.seccion}</p>
           {items && <span className="ia-cnt">{items.length}</span>}
           <span className="text-sm text-tinta/65">hoy y ayer</span>
         </div>

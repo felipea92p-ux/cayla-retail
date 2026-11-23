@@ -192,7 +192,7 @@ export function ProveedorProduccionModal({
 
         <CampoGuiado id="rubro" guia={guia} retiene="fila">
         <fieldset data-guia="prod-proveedor-modal.rubro">
-          <legend className="label-cayla text-[11px] text-tinta/65">{guia.etiqueta("rubro", "¿Qué le vende al Taller?")}</legend>
+          <legend className="label-cayla text-xs text-tinta/65">{guia.etiqueta("rubro", "¿Qué le vende al Taller?")}</legend>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {rubrosOfrecidos.map((r) => (
               <button
@@ -246,7 +246,7 @@ export function ProveedorProduccionModal({
 
         <CampoGuiado id="pagarle" guia={guia}>
         <div data-guia="prod-proveedor-modal.pagarle" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
-          <p className="label-cayla text-[11px] text-tinta/65">{guia.etiqueta("pagarle", "Cómo pagarle")}</p>
+          <p className="label-cayla text-xs text-tinta/65">{guia.etiqueta("pagarle", "Cómo pagarle")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <CampoTexto etiqueta="Banco" list="bancos-produccion" placeholder="BCP, Interbank…" value={banco} onChange={(e) => setBanco(e.target.value)} />
             <CampoTexto etiqueta="N.° de cuenta" mono inputMode="numeric" placeholder="Depósito o mismo banco" value={cuenta} onChange={(e) => setCuenta(e.target.value)} />
@@ -278,7 +278,7 @@ export function ProveedorProduccionModal({
               pie={errores.celular ?? errores.billeteras}
             />
             <div>
-              <p className="label-cayla text-[11px] text-tinta/65">App</p>
+              <p className="label-cayla text-xs text-tinta/65">App</p>
               <div className="mt-1.5 flex gap-1.5">
                 {BILLETERAS.map((b) => (
                   <button

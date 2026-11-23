@@ -28,7 +28,7 @@ export async function PaginaLegalClub({ cual, t }: { cual: "privacidad" | "termi
   const otro = cual === "privacidad" ? "terminos" : "privacidad";
   return (
     <HojaClub>
-      <p className="label-cayla mt-8 text-[11px] text-taupe-profundo">Club CAYLA</p>
+      <p className="label-cayla mt-8 text-xs text-taupe-profundo">Club CAYLA</p>
       <h1 className="font-display mt-2 text-[32px] leading-tight tracking-tight text-tinta">{TITULOS[cual]}</h1>
       <p className="mt-2 text-sm text-tinta/60">
         Versión {texto.version}

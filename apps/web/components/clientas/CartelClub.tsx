@@ -112,9 +112,7 @@ export function CartelClub({
               </p>
             )}
             <p className="nota-cayla">
-              Antes de pegarlo, escanéalo con un celular: tiene que abrir la tienda online, <b>cayla.pe</b>. Ahí el cliente crea
-              su cuenta y entra al Club. Al imprimir, papel A4 y, si el navegador pregunta por los márgenes, «Ninguno»: el fondo va hasta
-              el borde de la hoja.
+              Antes de pegarlo, escanéalo con un celular: tiene que abrir <b>cayla.pe</b>. Al imprimir, papel A4 y márgenes en «Ninguno».
             </p>
           </>
         )

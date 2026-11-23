@@ -123,8 +123,8 @@ export default async function SaludDelNegocioPage() {
         <div data-guia="global.motor">
           <TituloSeccion id="motor-titulo">¿El sistema ya puede recomendar?</TituloSeccion>
           <p className="mt-1 text-sm text-tinta/75">
-            Para sugerir qué colgar, trasladar, producir o comprar, cada tienda necesita tres cosas: que al menos 9 de cada 10
-            prendas vendidas se registren con su prenda durante 14 días seguidos, el piso cuadrado y el almacén contado.
+            Para sugerir, cada tienda necesita tres cosas: 9 de cada 10 ventas con su prenda durante 14 días seguidos, el piso
+            cuadrado y el almacén contado.
           </p>
         </div>
         {motor.falla ? (

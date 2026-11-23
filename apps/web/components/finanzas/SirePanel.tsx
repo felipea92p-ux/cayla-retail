@@ -67,13 +67,13 @@ function Fila({ l, mes, registro, onPedido }: { l: LineaConResolucion; mes: stri
   return (
     <div className={fila(PLANTILLA)} role="row">
       <div className={celda()} role="cell">
-        <p className="text-[15px] text-tinta">
+        <p className="text-sm text-tinta">
           {TIPO[l.tipo] ?? `Tipo ${l.tipo}`} {l.serie}-{l.numero}
         </p>
         <p className="texto-detalle">{l.fecha ? l.fecha.split("-").reverse().join("/") : "Sin fecha"}</p>
       </div>
       <div className={celda()} role="cell">
-        <p className="truncate text-[15px] text-tinta">{l.nombre}</p>
+        <p className="truncate text-sm text-tinta">{l.nombre}</p>
         {documento && <p className="texto-detalle">{documento}</p>}
       </div>
       <div className={celda("der", "tabular-nums")} role="cell">

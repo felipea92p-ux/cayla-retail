@@ -44,7 +44,7 @@ export function MediosDePago({
 
   return (
     <fieldset className="space-y-2.5">
-      <legend className="label-cayla text-[11px] text-tinta/65">Medios de pago</legend>
+      <legend className="label-cayla text-xs text-tinta/65">Medios de pago</legend>
       <ul className="space-y-2">
         {medios.map((m, i) => (
           <li key={i} className="grid grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,1.35fr)_auto] items-center gap-2 max-sm:grid-cols-[8rem_minmax(0,1fr)_auto]">
@@ -88,7 +88,7 @@ export function MediosDePago({
         <button
           type="button"
           onClick={() => onCambio([...medios, medioNuevo("efectivo", montoSugerido(medios, esperado))])}
-          className="btn-cayla btn-enlace gap-1.5 text-[13px]"
+          className="btn-cayla btn-enlace gap-1.5 text-xs leading-tight"
         >
           <Plus size={14} aria-hidden /> Agregar otro medio
         </button>

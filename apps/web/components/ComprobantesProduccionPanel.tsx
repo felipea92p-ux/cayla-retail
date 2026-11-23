@@ -199,11 +199,11 @@ export function ComprobantesProduccionPanel({
           ) : (
             <div data-guia="prod-facturas.lista" className="card-cayla @container overflow-hidden">
               <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 @min-[42rem]:grid">
-                <span className="label-cayla text-[11px] text-tinta/65">Fecha</span>
-                <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
-                <span className="label-cayla text-right text-[11px] text-tinta/65">Total</span>
-                <span className="label-cayla text-right text-[11px] text-tinta/65">Saldo</span>
-                <span className="label-cayla text-[11px] text-tinta/65">Estado</span>
+                <span className="label-cayla text-xs text-tinta/65">Fecha</span>
+                <span className="label-cayla text-xs text-tinta/65">Proveedor</span>
+                <span className="label-cayla text-right text-xs text-tinta/65">Total</span>
+                <span className="label-cayla text-right text-xs text-tinta/65">Saldo</span>
+                <span className="label-cayla text-xs text-tinta/65">Estado</span>
               </div>
               <ul>
                 {visibles.map((c, i) => {
@@ -217,7 +217,7 @@ export function ComprobantesProduccionPanel({
                       >
                         <span className="hidden text-sm tabular-nums text-tinta/75 @min-[42rem]:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">
-                          <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
+                          <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-detalle ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
                           <span className="block text-sm text-tinta/65">
                             {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero} · {plural(c.lineas, "línea", "líneas")}
                             <span className="@min-[42rem]:hidden"> · {diaMes(c.fechaEmision)}</span>

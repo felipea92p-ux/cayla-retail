@@ -113,7 +113,7 @@ export function RecibirProduccionPanel({
                 <li key={o.id} data-guia={i === 0 ? "prod-recibir.orden" : undefined} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] text-tinta">{o.proveedor}</p>
+                      <p className="truncate text-sm text-tinta">{o.proveedor}</p>
                       <p className="text-sm text-tinta/65">
                         {o.documento}
                         {cuando ? ` · ${cuando}` : ""}
@@ -181,7 +181,7 @@ export function RecibirProduccionPanel({
             <li key={g.comprobanteId} data-guia={i === 0 ? "prod-recibir.factura" : undefined} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] text-tinta">{g.proveedor}</p>
+                  <p className="truncate text-sm text-tinta">{g.proveedor}</p>
                   <p className="text-sm text-tinta/65">
                     {etiquetaTipo(g.tipo, true)} {g.documento} · emitido {diaMes(g.fechaEmision)}
                   </p>

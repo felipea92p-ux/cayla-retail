@@ -223,8 +223,8 @@ export function CompraDeLaTela({
               pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeMal ? MENSAJE_GRAMAJE : undefined}
             />
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
-              <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-[14px] text-tinta">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
+              <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">
                 {rinde === null ? "Falta el ancho y el gramaje" : `≈ ${rinde.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m por kilo`}
               </p>
             </div>

@@ -121,7 +121,7 @@ function Sintomas({ lista, irAlPaso }: { lista: Sintoma[]; irAlPaso: (n: number)
           <li key={s.sintoma} className="flex flex-wrap items-start justify-between gap-2 px-3 py-2.5">
             <span className="min-w-0 flex-1">
               <span className="block font-semibold text-tinta">{s.sintoma}</span>
-              <span className="block text-[13px] text-tinta/75">{s.arreglo}</span>
+              <span className="block text-xs text-tinta/75">{s.arreglo}</span>
             </span>
             <button type="button" className="btn-cayla btn-sutil shrink-0" onClick={() => irAlPaso(s.paso)}>
               Ir al paso {s.paso}
@@ -193,7 +193,7 @@ const PASOS_WINDOWS: Paso[] = [
                 <Control tipo="boton" resaltado={activa === 1}>⋮</Control>
               </ConNumero>
             </div>
-            <div className="rounded-md border border-sand bg-papel py-1 text-[13px]">
+            <div className="rounded-md border border-sand bg-papel py-1 text-xs">
               {["Nueva pestaña", "Nueva ventana", "Historial", "Descargas", "Imprimir…", "Configuración", "Ayuda"].map((o) => (
                 <span key={o} className="block px-3 py-1 text-tinta/70">{o}</span>
               ))}
@@ -255,7 +255,7 @@ const PASOS_MAC: Paso[] = [
     titulo: "Instala el ayudante de etiquetas (una vez por Mac)",
     visual: ({ activa, onActiva }) => (
       <Ventana titulo="Terminal" mac pie="Así se ve Terminal con la línea pegada. Al presionar Enter, la última línea dice «Listo».">
-        <div className="space-y-2 font-mono text-[12px] text-tinta">
+        <div className="space-y-2 font-mono text-xs text-tinta">
           <ConNumero n={2} activa={activa} onActiva={onActiva}>
             <span className={`block break-all rounded px-2 py-1 ${activa === 2 ? "bg-tinta text-crema" : "vd-gota-chica"}`}>{COMANDO_INSTALAR}</span>
           </ConNumero>
@@ -377,7 +377,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
                   onClick={() => ir(i)}
                   aria-current={i === indice ? "step" : undefined}
                   title={p.titulo}
-                  className={`w-full min-w-[2.5rem] border-t-[3px] pt-1.5 text-left text-[11px] leading-tight transition-colors duration-200 motion-reduce:transition-none ${
+                  className={`w-full min-w-[2.5rem] border-t-[3px] pt-1.5 text-left text-xs leading-tight transition-colors duration-200 motion-reduce:transition-none ${
                     i === indice ? "border-rojo text-tinta" : i < indice ? "border-tinta/60 text-tinta/70" : "border-sand text-tinta/50 hover:text-tinta/80"
                   }`}
                 >
@@ -411,7 +411,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
                       {a.marca !== undefined ? (
                         <span
                           aria-hidden
-                          className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold tabular-nums text-crema transition-colors duration-200 motion-reduce:transition-none ${
+                          className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums text-crema transition-colors duration-200 motion-reduce:transition-none ${
                             encendida ? "bg-rojo" : "bg-tinta"
                           }`}
                         >
@@ -431,7 +431,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
                 </p>
               )}
               {paso.ojo && (
-                <p className="text-[13px] leading-relaxed text-tinta/75">
+                <p className="text-xs leading-relaxed text-tinta/75">
                   <b className="font-semibold text-tinta">Ojo:</b> {paso.ojo}
                 </p>
               )}

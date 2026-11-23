@@ -239,7 +239,7 @@ export function LookHoja({
                         categoria={m?.categoria ?? antes?.categoria ?? null}
                       />
                       <span className="min-w-0 flex-1 space-y-1">
-                        <span className="flex flex-wrap items-center gap-2 text-[14px] font-medium text-tinta">
+                        <span className="flex flex-wrap items-center gap-2 text-detalle font-medium text-tinta">
                           <span className="truncate">{`${i + 1}. ${nombrePrenda}`}</span>
                           {!seVe && <Chip tono="ambar">No se ve en la web</Chip>}
                         </span>

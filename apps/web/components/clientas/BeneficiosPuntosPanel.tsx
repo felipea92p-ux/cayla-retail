@@ -239,7 +239,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
           <TituloGrupo>Lo que te cuesta</TituloGrupo>
           <CampoGuiado id="topeCostoPct" guia={guia} className="rounded-xl border border-sand px-4 py-4">
             <div data-guia="beneficios.retorno" className="space-y-3">
-              <p className="text-[15px] text-tinta">{retorno.frase}</p>
+              <p className="text-sm text-tinta">{retorno.frase}</p>
               <div>
                 <BarraAvance
                   pct={(retorno.pct / ESCALA_DEL_COSTO) * 100}
@@ -255,7 +255,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <label htmlFor={ID.topeCostoPct} className="text-[15px] text-tinta">
+                <label htmlFor={ID.topeCostoPct} className="text-sm text-tinta">
                   <ConMarca estado={guia.estado("topeCostoPct")}>No quiero devolver más de</ConMarca>
                 </label>
                 <Caja campo="topeCostoPct" titulo="Tope de costo" fin="%" decimal {...fila} />
@@ -327,7 +327,7 @@ function Ejemplo({
       <p className="mt-1 text-sm text-taupe">Con los números de la izquierda. Mueve la compra para probar.</p>
       <ol className="mt-3 divide-y divide-sand">
         <PasoEjemplo n={1}>
-          <label htmlFor="beneficios-compra-ejemplo" className="text-[15px] text-tinta">
+          <label htmlFor="beneficios-compra-ejemplo" className="text-sm text-tinta">
             Compra <b className="font-semibold tabular-nums">{soles(compra)}</b>
           </label>
           <input
@@ -340,15 +340,15 @@ function Ejemplo({
             onChange={(e) => onCompra(Number(e.target.value))}
             className="mt-1 block w-full accent-tinta"
           />
-          <p className="font-display text-[20px] leading-tight text-tinta">Gana {puntos(ejemplo.puntosDeLaCompra)}</p>
+          <p className="font-display text-xl leading-tight text-tinta">Gana {puntos(ejemplo.puntosDeLaCompra)}</p>
         </PasoEjemplo>
         <PasoEjemplo n={2}>
-          <p className="text-[15px] text-tinta">
+          <p className="text-sm text-tinta">
             Junta <b className="font-semibold">{puntos(config.canjeMinimo)}</b> y canjea
           </p>
           <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-dashed border-taupe px-3 py-2.5">
             <div>
-              <p className="label-cayla text-[10.5px] text-taupe">Cupón del club</p>
+              <p className="label-cayla text-xs text-taupe">Cupón del club</p>
               <p className="font-display text-[26px] leading-none text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</p>
             </div>
             <p className="text-right text-sm text-tinta/75">
@@ -362,10 +362,10 @@ function Ejemplo({
           </p>
         </PasoEjemplo>
         <PasoEjemplo n={3}>
-          <p className="text-[15px] text-tinta">En su mes de cumpleaños</p>
+          <p className="text-sm text-tinta">En su mes de cumpleaños</p>
           {config.regaloCumple > 0 ? (
             <>
-              <p className="font-display text-[20px] leading-tight text-tinta">+{puntos(config.regaloCumple)}</p>
+              <p className="font-display text-xl leading-tight text-tinta">+{puntos(config.regaloCumple)}</p>
               <p className="text-sm text-taupe">con su primera compra del mes ({soles(ejemplo.valorDelRegalo)})</p>
             </>
           ) : (
@@ -380,7 +380,7 @@ function Ejemplo({
 function PasoEjemplo({ n, children }: { n: number; children: ReactNode }) {
   return (
     <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2.5 py-3 first:pt-1">
-      <span className="grid h-6 w-6 place-items-center rounded-full vd-gota-chica text-[12px] font-semibold text-tinta" aria-hidden>
+      <span className="grid h-6 w-6 place-items-center rounded-full vd-gota-chica text-xs font-semibold text-tinta" aria-hidden>
         {n}
       </span>
       <div>{children}</div>
@@ -406,7 +406,7 @@ function Fila({ aviso, children, ...props }: PropsDeFila & { aviso?: string | nu
   return (
     <CampoGuiado id={campo} guia={guia} className="rounded-xl border border-sand px-4 py-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5">
-        <label htmlFor={ID[campo]} className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta" /* unificar-fijo: diseño A elegido por Felipe (2026-10-20): el título es una frase que se lee junto a su número, no la versalita de Campo */>
+        <label htmlFor={ID[campo]} className="flex flex-wrap items-center gap-2 text-sm font-semibold text-tinta" /* unificar-fijo: diseño A elegido por Felipe (2026-10-20): el título es una frase que se lee junto a su número, no la versalita de Campo */>
           <ConMarca estado={guia.estado(campo)}>{titulo}</ConMarca>
           {aviso && <Chip tono="ambar">{aviso}</Chip>}
         </label>

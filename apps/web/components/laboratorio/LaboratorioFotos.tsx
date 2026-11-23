@@ -359,7 +359,7 @@ function FilaPrueba({ prueba, molde, onMolde }: { prueba: Prueba; molde: Molde |
   const catalogo = CATALOGO.filter((c) => prueba.resultados[c.perfil]);
   return (
     <li className="card-cayla p-4">
-      <p className="mb-3 text-[15px] font-medium text-tinta">{prueba.nombre}</p>
+      <p className="mb-3 text-sm font-medium text-tinta">{prueba.nombre}</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Panel titulo="Tu foto" fondo="bg-papel">
           {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}

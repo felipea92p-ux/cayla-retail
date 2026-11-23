@@ -181,7 +181,7 @@ function LoginForm() {
               <LogoCayla className="h-12" />
               <span className="sr-only">CAYLA</span>
               {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
-              <p className="label-cayla mt-0.5 text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 3}rem` }}>
+              <p className="label-cayla mt-0.5 text-xs text-taupe-profundo" style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 3}rem` }}>
                 Retail
               </p>
             </div>

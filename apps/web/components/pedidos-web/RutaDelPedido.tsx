@@ -13,7 +13,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
   const paso = pasoDeLaRuta(p.estado);
   if (paso === null) {
     return (
-      <p className="card-cayla flex items-center gap-2.5 px-4 py-3 text-[15px] text-tinta" data-guia="pedido-web.ruta">
+      <p className="card-cayla flex items-center gap-2.5 px-4 py-3 text-sm text-tinta" data-guia="pedido-web.ruta">
         {p.estado === "entregado" ? <CircleCheck aria-hidden className="h-5 w-5 shrink-0 text-verde" /> : <Info aria-hidden className="h-5 w-5 shrink-0 text-taupe" />}
         {textoDeCierreDelPedido(p, ahora)}
       </p>
@@ -37,7 +37,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
             <span className={`flex items-center gap-2 text-sm ${ahoraEs ? "font-semibold text-tinta" : hecho ? "text-tinta" : "text-taupe"}`}>
               <span
                 aria-hidden
-                className={`grid h-6 w-6 place-items-center rounded-full border text-[11px] font-semibold ${
+                className={`grid h-6 w-6 place-items-center rounded-full border text-xs font-semibold ${
                   hecho ? "border-verde bg-verde text-crema" : ahoraEs ? "border-tinta bg-tinta text-crema" : "border-borde-control text-taupe"
                 }`}
               >

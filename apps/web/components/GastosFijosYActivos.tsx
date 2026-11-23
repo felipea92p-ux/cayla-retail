@@ -187,7 +187,7 @@ export function FijosDelMes({
         <span className="flex items-center gap-2.5">
           <Chip tono="verde">registrado</Chip>
           {g && (
-            <button type="button" className="btn-cayla btn-enlace min-h-6 text-[12.5px]" aria-label={`Ver el gasto de ${nombre(f)}`} onClick={() => onAbrirGasto(g)}>
+            <button type="button" className="btn-cayla btn-enlace min-h-6 text-xs leading-tight" aria-label={`Ver el gasto de ${nombre(f)}`} onClick={() => onAbrirGasto(g)}>
               Ver el gasto
             </button>
           )}
@@ -828,7 +828,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
       variante="hoja"
       titulo={
         <>
-          <span className="label-cayla mb-1 block font-sans text-[11px] font-semibold text-taupe">
+          <span className="label-cayla mb-1 block font-sans text-xs font-semibold text-taupe">
             {a.tipoNombre ?? "Activo fijo"}
             {a.cuenta ? ` · cuenta ${a.cuenta}` : ""}
           </span>

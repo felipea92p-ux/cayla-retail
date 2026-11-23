@@ -189,7 +189,7 @@ export function CampanasPanel({
       <div {...entra(3)} data-guia="fin-campanas.vienen">
         <Superficie>
           <Herramientas>
-            <b className="text-[14px]">Las que vienen</b>
+            <b className="text-detalle">Las que vienen</b>
             <span className="text-sm text-taupe">
               Antes de lanzarla: con ese descuento, ¿cuánto más hay que vender para ganar lo mismo que un día normal?
             </span>

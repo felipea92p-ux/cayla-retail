@@ -176,7 +176,7 @@ export function ClientasPanel({
             <BuscadorClientas params={params} />
             {/* «Para revisar»: lo que no es una cifra. Sin cifras (la base no las dio) vuelven todos los filtros como píldora. */}
             <nav className="flex flex-wrap items-center gap-2" aria-label="Filtrar la lista" data-guia="clientas.filtros">
-              {cifras && <span className="label-cayla mr-1 text-[10.5px] text-tinta/60">Para revisar</span>}
+              {cifras && <span className="label-cayla mr-1 text-xs text-tinta/60">Para revisar</span>}
               {filtrosParaRevisar(cifras !== null).map((f) => (
                 <Link
                   key={f.valor}
@@ -225,7 +225,7 @@ export function ClientasPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties} data-guia="clientas.nota">
-        La <b>sede</b> de cada cliente es donde más compró en 12 meses. «No reciben novedades»: miembros que aún no las pidieron por WhatsApp; solo les llegan los avisos informativos.
+        La <b>sede</b> de cada cliente es donde más compró en 12 meses. «No reciben novedades»: aún no las pidieron por WhatsApp.
       </p>
 
       {abriendoAlta && (
@@ -273,7 +273,7 @@ function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: Clienta
       <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} className="clientas-avatar" />
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-display text-[19px] leading-tight text-tinta" data-guia={guiaPrimera && nombreDeEjemplo ? "clientas.nombre" : undefined}>
+          <span className="font-display text-lg leading-tight text-tinta" data-guia={guiaPrimera && nombreDeEjemplo ? "clientas.nombre" : undefined}>
             {c.nombre ?? "Sin nombre"}
           </span>
           {fuera && (

@@ -440,7 +440,7 @@ export function Acompanante({ guias }: { guias: readonly GuiaEnIndice[] }) {
       >
         <div className="min-w-0 flex-1 py-1">
           {listo ? (
-            <p className="text-[19px] font-medium leading-snug text-tinta">¡Listo! Lo hiciste tú.</p>
+            <p className="text-lg font-medium leading-snug text-tinta">¡Listo! Lo hiciste tú.</p>
           ) : paso ? (
             <>
               <p className="flex items-center gap-2 whitespace-nowrap text-xs text-taupe">
@@ -451,7 +451,7 @@ export function Acompanante({ guias }: { guias: readonly GuiaEnIndice[] }) {
                 </span>
                 {i + 1} de {total}
               </p>
-              <p className="mt-1 text-[19px] font-medium leading-snug text-tinta">{orden}</p>
+              <p className="mt-1 text-lg font-medium leading-snug text-tinta">{orden}</p>
               {enOtraPantalla ? (
                 <p className="mt-1 text-sm text-taupe">{sinLlevar ? `Se abre en ${nombreDePantalla(guias, paso.href)}, con el paso anterior.` : `Está en ${nombreDePantalla(guias, paso.href)}.`}</p>
               ) : null}

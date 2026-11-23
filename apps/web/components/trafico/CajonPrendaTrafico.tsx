@@ -87,9 +87,9 @@ export function CajonPrendaTrafico({
       <div>
         <p className="flex items-baseline gap-2.5">
           <span className="font-display text-[40px] leading-[1.05] tabular-nums">{miles(miraron)}</span>
-          <span className="text-[15px] text-tinta/70">{miraron === 1 ? "persona la miró" : "personas la miraron"}</span>
+          <span className="text-sm text-tinta/70">{miraron === 1 ? "persona la miró" : "personas la miraron"}</span>
         </p>
-        <p className="mt-1 text-[15px] text-tinta/70">
+        <p className="mt-1 text-sm text-tinta/70">
           De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>.
           {p.anterior !== null && ` ${antes}: ${personas(p.anterior)}.`}
         </p>
@@ -103,9 +103,9 @@ export function CajonPrendaTrafico({
             const pct = i === 0 ? 100 : de100(n, miraron);
             return (
               <li key={paso.nombre} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1">
-                <span className="text-[15px]">
+                <span className="text-sm">
                   {paso.nombre}
-                  {atora?.i === i && <span className="label-cayla ml-2 text-[11px] font-bold text-rojo">Aquí se atora</span>}
+                  {atora?.i === i && <span className="label-cayla ml-2 text-xs font-bold text-rojo">Aquí se atora</span>}
                 </span>
                 <span className="text-sm tabular-nums">
                   {miles(n)}

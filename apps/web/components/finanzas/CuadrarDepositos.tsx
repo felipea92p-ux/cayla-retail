@@ -85,7 +85,7 @@ export function CuadrarDepositosHoja({ onCerrar }: { onCerrar: () => void }) {
           {filas.map((f) => (
             <li key={f.cuentaId} className="space-y-1 border-b border-sand pb-3 last:border-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[15px] font-medium">{f.maquina}</span>
+                <span className="text-sm font-medium">{f.maquina}</span>
                 {f.falta ? <Chip tono="ambar">{TEXTO_FALTA_CUADRE[f.falta]}</Chip> : <span className="text-sm text-taupe">a {f.banco}</span>}
               </div>
               <p className="text-sm text-taupe">

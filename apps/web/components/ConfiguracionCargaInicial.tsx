@@ -125,7 +125,7 @@ export function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }
           {esAdmin && (sede.hasta !== null || sinFecha) && (
             <button
               type="button"
-              className="btn-cayla btn-enlace mt-1.5 text-[12.5px]"
+              className="btn-cayla btn-enlace mt-1.5 text-xs leading-tight"
               disabled={enviando}
               onClick={() => {
                 setSinFecha((x) => !x);

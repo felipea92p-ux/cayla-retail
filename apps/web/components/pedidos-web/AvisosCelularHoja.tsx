@@ -195,7 +195,7 @@ export function AvisosCelularHoja({
               <BellRing className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-[14px] font-semibold text-tinta">{muestra.titulo}</span>
+              <span className="block truncate text-detalle font-semibold text-tinta">{muestra.titulo}</span>
               <span className="block truncate text-sm text-tinta/70">{muestra.texto.replace(/S\/ 0\.00/, "S/ 109.00")}</span>
             </span>
           </div>

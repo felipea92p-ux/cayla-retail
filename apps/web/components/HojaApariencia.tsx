@@ -97,7 +97,7 @@ function Ajuste({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span id={`${id}-nombre`} className="text-[15px] font-medium text-tinta">
+            <span id={`${id}-nombre`} className="text-sm font-medium text-tinta">
               {nombre}
             </span>
             {estado}
