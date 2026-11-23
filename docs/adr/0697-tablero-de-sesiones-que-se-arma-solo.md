@@ -44,7 +44,7 @@ en qué y no guarda nada en el repo:
    escribe el índice, así que nunca deja un `index.lock` en medio de un commit ajeno.
 7. **El ritual cambia.** CLAUDE.md y las ocho skills que leían `docs/SESIONES-ACTIVAS.md` (`formidable`, `innovar`, `focus`,
    `pantalla`, `milimetro`, `unificar`, `revision`, `sugerir`) ahora miran `pnpm sesiones`. El archivo no se borra: lleva un aviso
-   arriba y no recibe filas nuevas. Borrarlo lo decide Felipe.
+   arriba y no recibe filas nuevas. Felipe decidió el 2026-11-23 dejarlo así, como historia.
 
 La lógica es pura y está probada con `node --test` (`scripts/sesiones/reglas.test.mjs`: cómo se leen las salidas de git, cómo se
 juntan las fuentes, qué es activo, qué choca y qué dice al abrir; `al-abrir.test.mjs`: que el hook calle fuera de un repo). Corre en el

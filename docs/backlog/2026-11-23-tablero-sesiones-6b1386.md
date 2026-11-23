@@ -6,7 +6,7 @@
   uno con esta sesión. Medido: ~3 s con red, 1,5 s sin red ni `gh`, siempre sale con 0.
 - [x] Ritual de CLAUDE.md y las skills `formidable`, `innovar`, `focus`, `pantalla`, `milimetro`, `unificar`, `revision` y `sugerir`
   apuntan a `pnpm sesiones`; `docs/SESIONES-ACTIVAS.md` lleva el aviso de historia y no recibe filas.
-- [ ] **Decisión de Felipe:** borrar `docs/SESIONES-ACTIVAS.md` o dejarlo como historia para siempre (hoy: historia, con aviso).
+- [x] **Decisión de Felipe (2026-11-23):** `docs/SESIONES-ACTIVAS.md` se queda como historia, con su aviso arriba; no se borra.
 - [ ] **Sin probar en una sesión nueva de verdad:** el hook se probó corriéndolo como lo corre Claude Code (`CLAUDE_PROJECT_DIR` de esta
   worktree); falta verlo en el arranque de una sesión real, cuando esta rama esté en `main`.
 - [ ] **Aparte:** `pnpm abrir-pr:choques` lee los archivos de cada PR con `gh pr list --json files`, que corta en 100
