@@ -111,7 +111,7 @@
       inset 0 1px 0 var(--brillo-superior),
       0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent),
       0 24px 48px -20px color-mix(in srgb, var(--color-sombra) 30%, transparent);
-    font: 400 16px/1.6 var(--font-sans);
+    font: 400 16px/1.6 var(--font-dm-sans), system-ui, sans-serif;
     letter-spacing: 0;
     text-transform: none;
     transform-origin: var(--pico-x) -8px;
@@ -144,7 +144,7 @@
     gap: 10px;
     margin-bottom: 8px;
     color: var(--color-taupe-profundo);
-    font: 600 10.5px/1.4 var(--font-sans);
+    font: 600 10.5px/1.4 var(--font-dm-sans), system-ui, sans-serif;
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }

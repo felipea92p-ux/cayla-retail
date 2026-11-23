@@ -321,10 +321,8 @@
   --text-sm: 0.9375rem;
   --text-sm--line-height: 1.55;
 
-  /* Familias tipográficas. `--font-cifras` (Inter, solo los dígitos 0–9; app/layout.tsx) va delante de DM Sans: DM Sans no trae
-     cifras tabulares, y con `tabular-nums` una columna de montos alinea solo así (ADR-0694, act. 2026-11-23). Las letras y los
-     signos siguen en DM Sans; la Garamond ya alinea y no cambia. */
-  --font-sans: var(--font-cifras), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Familias tipográficas */
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   /* Radios — REVERSIÓN de la decisión de esquinas rectas del 2026-09-05.

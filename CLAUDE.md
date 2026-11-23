@@ -224,7 +224,7 @@ importa desde ambos lados.
 
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
 (crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra, `borde-control`; el texto, en sus tres tonos `tinta`,
-`secundario` y `tenue`, ADR-0694; los dígitos de DM Sans salen en Inter, `--font-cifras`, y una columna de cifras alinea pidiendo `tabular-nums`). Nunca un hex suelto. **Lo que se toca o se escribe (campo, combo, botón secundario, casilla, interruptor) lleva `borde-control`, que pasa 3:1; `sand` es solo la línea decorativa** (tarjeta, tabla, píldora con texto): lo vigila `lib/tema-tokens.test.ts` y es el mismo valor en CAYLA Dynamic (ADR-0516 act. 2026-10-26 b). Pantalla nueva
+`secundario` y `tenue`, ADR-0694). Nunca un hex suelto. **Lo que se toca o se escribe (campo, combo, botón secundario, casilla, interruptor) lleva `borde-control`, que pasa 3:1; `sand` es solo la línea decorativa** (tarjeta, tabla, píldora con texto): lo vigila `lib/tema-tokens.test.ts` y es el mismo valor en CAYLA Dynamic (ADR-0516 act. 2026-10-26 b). Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
 `pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es una sola en todo el ERP, Finanzas incluida desde el 2026-11-09 (Felipe 2026-10-14,
 `/unificar`, ADR-0358 y ADR-0220 act.):**
