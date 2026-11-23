@@ -19,6 +19,7 @@
     "adr:numeros": "node scripts/adr/numeros.mjs",
     "reservar": "node scripts/reservar/reservar.mjs",
     "abrir-pr:choques": "node scripts/abrir-pr/choques.mjs",
+    "sesiones": "node scripts/sesiones/tablero.mjs",
     "familia:comparar": "node scripts/familia/comparar.mjs",
     "focus": "node scripts/focus/escanear.mjs",
     "sugerir": "node scripts/sugerir/escanear.mjs",

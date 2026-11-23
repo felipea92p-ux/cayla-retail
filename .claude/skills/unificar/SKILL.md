@@ -48,7 +48,7 @@ El motor **encuentra y cuenta**; **tú juzgas**: qué es de verdad la misma func
 
 ## Método
 
-**0. Terreno.** `git status --short`, `git fetch origin` y cuánto va detrás de `main` (se mide el código de la rama); `docs/SESIONES-ACTIVAS.md`
+**0. Terreno.** `git status --short`, `git fetch origin` y cuánto va detrás de `main` (se mide el código de la rama); `pnpm sesiones`
 (si otra sesión está rediseñando ese módulo, avísalo: unificar encima de un rediseño en curso choca); `docs/unificar/README.md` (lo ya decidido).
 Servidor de esta worktree: `preview_start` con **`cayla-retail-dev-libre`** (toma un puerto libre; `cayla-retail-dev` fija el 3010 y suele
 estar ocupado por otra worktree). La base local responde (`curl -s -o /dev/null -w "%{http_code}" http://localhost:54421/rest/v1/`).
