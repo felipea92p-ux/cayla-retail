@@ -5,7 +5,7 @@
   `text-tinta/35`…`/85` y `text-taupe` en `tema.css`. Prueba: `lib/tema-tokens.test.ts` (los tres tonos, sus clases y su contraste).
 - [x] Verificado en el navegador con el medidor de `/color`: Compras, Movimientos y Ventas, claro y oscuro, iguales a la foto B de la lámina
   (`docs/milimetro/auditorias/2026-11-23-texto-en-tres-tonos.md`).
-- [ ] **El texto a mano en los CSS** (`color: var(--color-taupe)`, 319 líneas; `color-mix(…tinta N%…)`): pasarlo a `var(--color-secundario)`
+- [ ] **El texto a mano en los CSS** *(Felipe 2026-11-23, decidido: «Al tocar cada archivo»; sin barrido, y vale también para los bordes de abajo)* (`color: var(--color-taupe)`, 319 líneas; `color-mix(…tinta N%…)`): pasarlo a `var(--color-secundario)`
   o `var(--color-tenue)` al tocar cada archivo. Si se quiere de una vez, un barrido con su lámina antes (es café que hoy se ve).
 - [ ] **Las líneas por opacidad** (`border-tinta/NN`, 16 escalones) y `tinta-60` (otro secundario cálido del puente shadcn): ordenarlos con el
   mismo criterio.
