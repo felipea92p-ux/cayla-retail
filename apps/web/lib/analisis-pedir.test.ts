@@ -480,6 +480,21 @@ describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el
     expect(nombres("nombre")).toEqual(["Falda Prueba", "Polo Prueba"]);
   });
 
+  it("«lo que más se vende y quedan pocos»: primero lo que se acaba en 2 semanas o menos, de lo más vendido a lo menos; después el resto", () => {
+    // Datos inventados, con la forma de los de TRU del 2026-11-24: el que más vende se acaba en 13 días; otro vende poco y se acaba en 3.
+    const t = [
+      prenda({ productoId: "o1", nombre: "Polo Mucho", vendidas30: 60, piso: 26 }), // 2 por día: 13 días, quedan pocos
+      prenda({ productoId: "o2", nombre: "Falda Poca", vendidas30: 10, piso: 1 }), // 3 días, quedan pocos
+      prenda({ productoId: "o3", nombre: "Blusa Media", vendidas30: 30, piso: 20 }), // 20 días: no son pocos
+      prenda({ productoId: "o4", nombre: "Short Lento", vendidas30: 5, piso: 3 }), // 18 días: no son pocos
+    ];
+    const ms = armarModelos(t, "2026-11-24");
+    const nombres = (orden: string) => modelosQueNoLlegan(ms, sin, 30, 31, orden).map((a) => a.modelo.nombre);
+    expect(nombres("pocos")).toEqual(["Polo Mucho", "Falda Poca", "Blusa Media", "Short Lento"]);
+    expect(nombres("vende")).toEqual(["Polo Mucho", "Blusa Media", "Falda Poca", "Short Lento"]);
+    expect(nombres("acaba")).toEqual(["Falda Poca", "Polo Mucho", "Short Lento", "Blusa Media"]);
+  });
+
   it("el ritmo por día viaja con el alcance: es el que da «Vendes N por semana»", () => {
     // Polo Prueba: 6 + 6 vendidas en 30 días cada talla = 0,4 por día.
     expect(alcanceDelModelo(de("Polo Prueba"), sin, 30).porDia).toBeCloseTo(0.4);
