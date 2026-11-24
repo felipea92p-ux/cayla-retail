@@ -66,9 +66,22 @@ export function mensajeDeTicketCompartido(error: ErrorDeLaBase, accion: "mandar"
   }
   if (hint && CON_SU_TEXTO.has(hint) && error?.message) return { titulo: error.message };
   if (accion === "mandar") return { titulo: "No se pudo mandar a la caja", detalle: "El ticket sigue aquí. Revisa la conexión y vuelve a intentarlo." };
-  if (accion === "abrir") return { titulo: "No se pudo abrir el ticket", detalle: "Sigue esperando en la caja. Vuelve a intentarlo." };
+  if (accion === "abrir") return { titulo: "No se pudo abrir el ticket", detalle: "Sigue en «Del piso». Revisa la conexión y vuelve a tocar «Abrir»." };
   return { titulo: "No se pudo descartar el ticket", detalle: "Sigue esperando en la caja." };
 }
+
+/**
+ * Si «Abrir» se repite solo (/chaos g2). La base pudo haber abierto el ticket y la respuesta perderse en la red: entonces el ticket ya no
+ * está «esperando» y no vuelve a la lista. Por eso cada «Abrir» lleva su apertura (un id del equipo) y, ante cualquier error SIN marca de
+ * la base (la red, un 502, un tiempo agotado), se pide otra vez con la MISMA: si la base ya lo había abierto, devuelve lo mismo. Una
+ * respuesta con marca (`ticket_*`: ya lo abrió otro, se descartó, falta quién atiende) es definitiva y no se repite.
+ */
+export function abrirSeRepite(error: ErrorDeLaBase): boolean {
+  return !(error?.hint ?? "").startsWith("ticket_");
+}
+
+/** Cuánto se espera antes de cada reintento de «Abrir»: dos más, en menos de 3 s, lo que tarda la cajera en mirar la pantalla. */
+export const ESPERAS_AL_REABRIR_MS = [700, 1_800] as const;
 
 /** Lo que devuelve la base al abrir un ticket: la fila y el ticket entero, tal como lo guardó el celular. */
 export type TicketCompartidoAbierto = TicketCompartido & { contenido: unknown };

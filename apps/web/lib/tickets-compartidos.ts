@@ -1,7 +1,15 @@
 import type { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
-import { leerTicketAbierto, leerTicketCompartido, leerTicketsCompartidos, type TicketCompartido, type TicketCompartidoAbierto } from "@/lib/tickets-compartidos-reglas";
+import {
+  abrirSeRepite,
+  ESPERAS_AL_REABRIR_MS,
+  leerTicketAbierto,
+  leerTicketCompartido,
+  leerTicketsCompartidos,
+  type TicketCompartido,
+  type TicketCompartidoAbierto,
+} from "@/lib/tickets-compartidos-reglas";
 
 /**
  * Las llamadas de los tickets compartidos (ADR-0701). Cada una devuelve `{ dato }` o `{ error }` sin lanzar: la caja nunca se cae por un
@@ -36,12 +44,30 @@ export async function listarTicketsCompartidos(supabase: Supabase, ubicacionId: 
   return error ? { dato: null, error } : { dato: leerTicketsCompartidos(data), error: null };
 }
 
-/** Abre un ticket que espera en la caja: pasa a este equipo y vuelve con su contenido. De dos que lo abren a la vez, solo uno. */
-export async function tomarTicketCompartido(supabase: Supabase, firma: Firma | FirmaOmitida | null, id: string): Promise<Resultado<TicketCompartidoAbierto>> {
-  const { data, error } = await firmar(supabase.rpc("tomar_ticket_compartido" as never, { p_id: id } as never), firma);
-  if (error) return { dato: null, error };
-  const abierto = leerTicketAbierto(data);
-  return abierto ? { dato: abierto, error: null } : { dato: null, error: sinRespuesta };
+/**
+ * Abre un ticket que espera en la caja: pasa a este equipo y vuelve con su contenido. De dos que lo abren a la vez, solo uno.
+ * `aperturaId` lo elige el equipo para ESTE «Abrir»: si la respuesta se pierde, se pide otra vez con el mismo (dos reintentos solos, y
+ * después el que toque la cajera) y la base devuelve lo mismo en vez de «ya lo abrió» (/chaos g2, `abrirSeRepite`).
+ */
+export async function tomarTicketCompartido(
+  supabase: Supabase,
+  firma: Firma | FirmaOmitida | null,
+  id: string,
+  aperturaId: string,
+): Promise<Resultado<TicketCompartidoAbierto>> {
+  const una = async (): Promise<Resultado<TicketCompartidoAbierto>> => {
+    const { data, error } = await firmar(supabase.rpc("tomar_ticket_compartido" as never, { p_id: id, p_apertura_id: aperturaId } as never), firma);
+    if (error) return { dato: null, error };
+    const abierto = leerTicketAbierto(data);
+    return abierto ? { dato: abierto, error: null } : { dato: null, error: sinRespuesta };
+  };
+  let r = await una();
+  for (const ms of ESPERAS_AL_REABRIR_MS) {
+    if (r.error === null || !abrirSeRepite(r.error)) return r;
+    await new Promise((listo) => setTimeout(listo, ms));
+    r = await una();
+  }
+  return r;
 }
 
 /** Anota con qué venta se cobró un ticket que vino del piso (ADR-0701, actividad 5): la medida del cobro. */

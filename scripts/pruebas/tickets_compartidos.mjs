@@ -16,7 +16,7 @@
  *   T3 la cuenta: prendas y total como la web (`totalDeLineas`, en céntimos); la lista no trae el contenido; del más antiguo al más nuevo.
  *   T4 idempotencia: el mismo id reenviado no crea otro ni lo pisa; el mismo id hacia otra sede se rechaza.
  *   T5 la forma del contenido: sin carrito, carrito vacío, cantidad 0 o rara, más de 60 líneas → nada se escribe.
- *   T6 abrir: devuelve el contenido, firma quién y cuándo, sale de la lista; abrirlo otra vez dice quién lo abrió; no se descarta después.
+ *   T6 abrir: devuelve el contenido, firma quién y cuándo, sale de la lista; abrirlo otra vez dice quién lo abrió, salvo a la MISMA apertura (su respuesta se perdió): esa recibe lo mismo; no se descarta después.
  *   T7 descartar: queda escrito, sale de la lista; dos veces no falla; ya descartado no se abre.
  *   T8 historia: ni editar, ni borrar, ni vaciar, ni volver a «esperando», ni insertar un estado imposible.
  *   T9 tope: 20 esperando en una caja; el 21 se rechaza.
@@ -106,7 +106,8 @@ const BLUSAS = contenido(linea(2, 59.9, 10), linea(1, 100));
 const enviar = (id, cont = BLUSAS, sede = ":'sede'", nombre = "'Cliente 1'") =>
   `pg_temp.r(format('select retail.enviar_ticket_a_caja(%L, %L, %L, %L::jsonb)', ${id}, ${sede}, ${nombre}, ${cont}))`;
 const lista = (sede = ":'sede'") => `pg_temp.r(format('select retail.fn_tickets_compartidos(%L)', ${sede}))`;
-const tomar = (id) => `pg_temp.r(format('select retail.tomar_ticket_compartido(%L)', ${id}))`;
+/** Cada «Abrir» lleva su propia apertura (la elige el equipo); pasar la misma es repetir el pedido de ese equipo. */
+const tomar = (id, apertura = "gen_random_uuid()") => `pg_temp.r(format('select retail.tomar_ticket_compartido(%L, %L)', ${id}, ${apertura}))`;
 const descartar = (id) => `pg_temp.r(format('select retail.descartar_ticket_compartido(%L)', ${id}))`;
 const IDS = `select gen_random_uuid() as t1, gen_random_uuid() as t2, gen_random_uuid() as t3 \\gset\n`;
 /** Felipe manda un ticket (:t1) a la sede de prueba. */
@@ -149,7 +150,7 @@ caso(
   `select string_agg(proname || '(' || pg_get_function_identity_arguments(oid) || ')', ';' order by proname)
      from pg_proc where pronamespace = 'retail'::regnamespace
       and proname in ('enviar_ticket_a_caja', 'fn_tickets_compartidos', 'tomar_ticket_compartido', 'descartar_ticket_compartido', 'marcar_ticket_compartido_cobrado');`,
-  "descartar_ticket_compartido(p_id uuid);enviar_ticket_a_caja(p_id uuid, p_ubicacion_id uuid, p_nombre text, p_contenido jsonb);fn_tickets_compartidos(p_ubicacion_id uuid);marcar_ticket_compartido_cobrado(p_id uuid, p_venta_id uuid);tomar_ticket_compartido(p_id uuid)"
+  "descartar_ticket_compartido(p_id uuid);enviar_ticket_a_caja(p_id uuid, p_ubicacion_id uuid, p_nombre text, p_contenido jsonb);fn_tickets_compartidos(p_ubicacion_id uuid);marcar_ticket_compartido_cobrado(p_id uuid, p_venta_id uuid);tomar_ticket_compartido(p_id uuid, p_apertura_id uuid)"
 );
 caso(
   "T1 · las cuatro puertas: anon no, authenticated sí, security definer con el search_path de la casa; los ayudantes: nadie de afuera",
@@ -212,7 +213,7 @@ caso(
   "T2 · anon no puede llamar a ninguna puerta",
   `${MANDADO}${COMO_POSTGRES}set local role anon;
 select pg_temp.intento(format('select retail.fn_tickets_compartidos(%L)', :'sede')) ->> 'estado';
-select pg_temp.intento(format('select retail.tomar_ticket_compartido(%L)', :'t1')) ->> 'estado';`,
+select pg_temp.intento(format('select retail.tomar_ticket_compartido(%L, %L)', :'t1', gen_random_uuid())) ->> 'estado';`,
   (l) => l.at(-2) === "42501" && l.at(-1) === "42501"
 );
 caso(
@@ -319,6 +320,26 @@ select ${descartar(":'t1'")};`,
   (l) => error(l.at(-2), "ticket_ya_tomado") && json(l.at(-2)).msg.includes("ya lo abrió") && error(l.at(-1), "ticket_ya_tomado")
 );
 caso(
+  "T6 · si la respuesta se pierde, la MISMA apertura lo pide otra vez y recibe lo mismo (sin cambiar quién ni cuándo); otra apertura no",
+  `${MANDADO}select gen_random_uuid() as ap \\gset
+select ${tomar(":'t1'", ":'ap'")} ->> 'ok';
+${COMO_POSTGRES}select tomado_en as primera from retail.tickets_compartidos where id = :'t1' \\gset
+${sesion(FELIPE)}${COMO_API}select ${tomar(":'t1'", ":'ap'")} -> 'res' -> 'contenido' ->> 'nota';
+select ${tomar(":'t1'")};
+${COMO_POSTGRES}select concat_ws(',', apertura_id = :'ap', tomado_en = :'primera') from retail.tickets_compartidos where id = :'t1';`,
+  (l) => l.at(-4) === "true" && l.at(-3) === "probador 2" && error(l.at(-2), "ticket_ya_tomado") && l.at(-1) === "t,t"
+);
+caso(
+  "T6 · ya cobrado, ni la misma apertura lo vuelve a abrir; y sin apertura → ticket_sin_apertura",
+  `${MANDADO}select gen_random_uuid() as ap \\gset
+${COMO_POSTGRES}insert into retail.ventas (ubicacion_id, es_prueba) values (:'sede', true) returning id as venta \\gset
+${sesion(FELIPE)}${COMO_API}select ${tomar(":'t1'", ":'ap'")} ->> 'ok';
+select pg_temp.r(format('select retail.marcar_ticket_compartido_cobrado(%L, %L)', :'t1', :'venta')) ->> 'ok';
+select ${tomar(":'t1'", ":'ap'")};
+select ${tomar(":'t1'", "null")};`,
+  (l) => l.at(-4) === "true" && l.at(-3) === "true" && error(l.at(-2), "ticket_ya_tomado") && error(l.at(-1), "ticket_sin_apertura")
+);
+caso(
   "T6 · un id que no existe → ticket_no_existe",
   `${IDS}${sesion(FELIPE)}${COMO_API}select ${tomar(":'t3'")};
 select ${descartar(":'t3'")};`,
@@ -354,12 +375,14 @@ select ${CUANTOS} >= 1;`,
   (l) => l.at(-6).includes("solo cambia") && l.slice(-5).join(",") === "false,false,true,false,t"
 );
 caso(
-  "T8 · un estado imposible no entra ni a mano: «tomado» sin quién, o «esperando» con fecha de descarte",
+  "T8 · un estado imposible no entra ni a mano: «tomado» sin quién o sin apertura, o «esperando» con fecha de descarte",
   `${IDS}${COMO_POSTGRES}select pg_temp.intento(format($q$insert into retail.tickets_compartidos (id, ubicacion_id, nombre, contenido, prendas, total, enviado_por, estado)
   values (%L, %L, 'X', '{}', 1, 1, %L, 'tomado')$q$, :'t1', :'sede', :'felipe_p')) ->> 'estado';
 select pg_temp.intento(format($q$insert into retail.tickets_compartidos (id, ubicacion_id, nombre, contenido, prendas, total, enviado_por, descartado_en)
-  values (%L, %L, 'X', '{}', 1, 1, %L, now())$q$, :'t2', :'sede', :'felipe_p')) ->> 'estado';`,
-  (l) => l.at(-2) === "23514" && l.at(-1) === "23514"
+  values (%L, %L, 'X', '{}', 1, 1, %L, now())$q$, :'t2', :'sede', :'felipe_p')) ->> 'estado';
+select pg_temp.intento(format($q$insert into retail.tickets_compartidos (id, ubicacion_id, nombre, contenido, prendas, total, enviado_por, estado, tomado_por, tomado_en)
+  values (%L, %L, 'X', '{}', 1, 1, %L, 'tomado', %L, now())$q$, :'t3', :'sede', :'felipe_p', :'felipe_p')) ->> 'estado';`,
+  (l) => l.at(-3) === "23514" && l.at(-2) === "23514" && l.at(-1) === "23514"
 );
 
 // ===========================================================================
@@ -452,7 +475,7 @@ ${sesionConfirmada(FELIPE)}select retail.enviar_ticket_a_caja(gen_random_uuid(),
   if (preparado) {
     const id = preparado.split("\n").at(-1);
     const abre = (espera) => `${sesionConfirmada(FELIPE)}begin;
-select (retail.tomar_ticket_compartido('${id}') ->> 'estado');
+select (retail.tomar_ticket_compartido('${id}', gen_random_uuid()) ->> 'estado');
 select pg_sleep(${espera});
 commit;
 `;

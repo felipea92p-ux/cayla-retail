@@ -6,4 +6,5 @@ Por qué así: el cobro de TRU se traba porque cada asesora hace siete pasos seg
 lleva la espera simulada de unos 2 min a unos 9 s sin comprar equipo. El ticket viaja como una foto con un solo dueño a la vez: nadie lo
 edita desde dos equipos, así que no hay versiones que reconciliar.
 Felipe se lleva: pegar la migración (una sola parte, a cualquier hora) y, desde ese día, el tiempo real de cada cobro con la consulta de
-ADR-0701. Falta correr `/chaos`, `/milimetro auditar`, `/focus` y `/formidable` antes del PR.
+ADR-0701. `/chaos` encontró dos fallas en «Abrir» y se cerraron el mismo día: cada apertura lleva su id y, si la respuesta se pierde, se
+pide otra vez con el mismo (la base devuelve lo mismo en vez de «ya lo abrió»); y un candado que deja pasar un solo pedido por toque.

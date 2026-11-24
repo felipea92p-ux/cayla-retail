@@ -24,6 +24,10 @@ llegaba a la MacBook, porque «Dejar en espera» guarda solo en el navegador (`l
 2. **Al abrirlo, entra por la misma puerta que un ticket en espera** (`retomar` de `PuntoDeVenta.tsx`): precios del día, cliente, lo del
    cobro y quién atendió. `registrar_venta` vuelve a validar todo al cobrar. El ticket compartido **no reserva stock**.
 3. **De dos que abren el mismo ticket a la vez, solo uno se lo lleva** (UPDATE condicionado a «esperando»); el otro lee quién lo abrió.
+   **Cada «Abrir» lleva su apertura** (`apertura_id`, un id que elige el equipo, como el id al mandar): si la respuesta se pierde en la
+   red, la web pide otra vez con la misma (dos reintentos solos en menos de 3 s) y la base devuelve el ticket en vez de «ya lo abrió»,
+   mientras no se haya cobrado. Si los tres se pierden, el ticket se sigue viendo en «Del piso» y se abre al tocar otra vez (/chaos g2,
+   decidido por Felipe el 24-nov). No se usó «la misma persona puede reabrir»: la misma cuenta en dos equipos lo tendría en dos cajas.
 4. **La caja pregunta cada 5 s** (`useTicketsDelPiso`), solo con la caja abierta y la pestaña a la vista, y sin el contenido. Si una
    pregunta falla se queda la última lista buena.
 5. **Al cobrarlo se anota la venta** (`marcar_ticket_compartido_cobrado`): `enviado_en → tomado_en → ventas.created_at` es el tiempo real
@@ -45,7 +49,9 @@ llegaba a la MacBook, porque «Dejar en espera» guarda solo en el navegador (`l
 necesita: el ticket lo arma una persona y lo cobra otra. (b) La conexión permanente de Supabase (realtime) para la lista: el entorno de
 CAYLA no la usa en ninguna otra pantalla, y preguntar cada 5 s con un índice parcial cuesta decenas de filas por pregunta. (c) Reservar
 stock al mandar: el choque es improbable y `registrar_venta` ya lo frena con `FOR UPDATE`.
-**SE ROMPE SI:** la asesora sigue editando en su celular un ticket que ya mandó (no puede: al mandarlo se limpia); si alguien cobra un ticket
+**SE ROMPE SI:** la caja recarga la página justo después de una apertura cuya respuesta se perdió (la apertura vivía en la memoria de la
+pestaña: el ticket queda tomado, sin venta y en ningún equipo; se ve en la medida como «tomado sin venta» y hay que escanear sus prendas);
+la asesora sigue editando en su celular un ticket que ya mandó (no puede: al mandarlo se limpia); si alguien cobra un ticket
 del piso desde la cola sin conexión (la venta se sube después y esa medida no se anota: queda sin `venta_id`); si se pega la web antes que
 el SQL (no pasa nada: la opción no se dibuja hasta que `fn_tickets_compartidos` responde).
 
@@ -69,11 +75,14 @@ select date_trunc('day', t.enviado_en at time zone 'America/Lima') as dia, count
 
 ## Cómo se verificó
 
-- `pnpm pruebas:tickets-compartidos`: 27 casos contra Postgres (forma, permisos, la cuenta en céntimos, idempotencia, forma del contenido,
-  abrir, descartar, historia inmutable, estados imposibles, tope, la venta anotada y una **carrera real con COMMIT**). Una mutación que
-  quita el candado del WHERE de `tomar_ticket_compartido` pone en rojo 3 casos.
+- `pnpm pruebas:tickets-compartidos`: 29 casos contra Postgres (forma, permisos, la cuenta en céntimos, idempotencia, forma del contenido,
+  abrir, la misma apertura que pide otra vez, descartar, historia inmutable, estados imposibles, tope, la venta anotada y una **carrera
+  real con COMMIT**). Una mutación que quita el candado del WHERE de `tomar_ticket_compartido` pone en rojo 3 casos; otra que le quita la
+  rama de «la misma apertura», 1.
 - `lib/tickets-compartidos-reglas.test.ts`: lectura tolerante, nombre en la caja y mensajes de error.
 - En el navegador, contra una base local con todas las migraciones: a 375 px el ticket se manda y llega con su prenda y total; con 20
   esperando, avisa y el ticket se queda; en escritorio aparece en «Del piso», se abre, se descarta, se ve en la hoja de cierre y, cobrado en
   efectivo, la boleta queda unida al ticket (8 s hasta abrirlo, 16 s hasta cobrarlo).
-- **Sin correr todavía:** `/chaos`, `/milimetro auditar`, `/focus`, `/formidable` y el modo oscuro de las piezas nuevas.
+- `/chaos` (dos hallazgos, cerrados el mismo día con el ataque repetido en el navegador: tres clics en «Abrir» = 1 pedido; respuesta
+  perdida una vez → se abre solo; perdida tres veces → sigue en «Del piso» y se abre al tocar otra vez), `/milimetro auditar`, `/focus` y
+  `/formidable` (informes en `docs/`).

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { leerTicketAbierto, leerTicketCompartido, leerTicketsCompartidos, mensajeDeTicketCompartido, nombreDelTicketDelPiso, ticketDelPisoParaLaEspera } from "./tickets-compartidos-reglas";
+import {
+  abrirSeRepite,
+  ESPERAS_AL_REABRIR_MS,
+  leerTicketAbierto, leerTicketCompartido, leerTicketsCompartidos, mensajeDeTicketCompartido, nombreDelTicketDelPiso, ticketDelPisoParaLaEspera,
+} from "./tickets-compartidos-reglas";
 
 const FILA = { id: "t1", nombre: "Cliente 2", prendas: 3, total: "199.80", estado: "esperando", enviado_por: "Ana Pérez", enviado_en: "2026-11-24T17:00:00Z" };
 
@@ -33,6 +37,29 @@ describe("mensajeDeTicketCompartido", () => {
     expect(mensajeDeTicketCompartido(red, "mandar").titulo).toBe("No se pudo mandar a la caja");
     expect(mensajeDeTicketCompartido(red, "mandar").detalle).toContain("sigue aquí");
     expect(mensajeDeTicketCompartido({ message: "boom", hint: "otra_cosa" }, "mandar").titulo).not.toContain("boom");
+  });
+});
+
+describe("abrir sin perder el ticket por la red (ADR-0701, /chaos g2)", () => {
+  it("una respuesta de la base con su marca es definitiva: no se repite", () => {
+    for (const hint of ["ticket_ya_tomado", "ticket_descartado", "ticket_no_existe", "ticket_sin_responsable", "ticket_otra_sede"]) {
+      expect(abrirSeRepite({ message: "x", hint })).toBe(false);
+    }
+  });
+  it("la red, un 502 o un error sin marca se repiten con la MISMA apertura: la base devuelve lo mismo si ya lo había abierto", () => {
+    expect(abrirSeRepite({ message: "TypeError: Failed to fetch" })).toBe(true);
+    expect(abrirSeRepite({ message: "Bad Gateway", code: "" })).toBe(true);
+    expect(abrirSeRepite({ message: "canceling statement due to statement timeout", code: "57014" })).toBe(true);
+  });
+  it("tras los reintentos, el aviso dice que el ticket sigue en «Del piso» y que se vuelve a tocar «Abrir»", () => {
+    const m = mensajeDeTicketCompartido({ message: "TypeError: Failed to fetch" }, "abrir");
+    expect(m.titulo).toBe("No se pudo abrir el ticket");
+    expect(m.detalle).toContain("Del piso");
+    expect(m.detalle).toContain("Abrir");
+  });
+  it("se reintenta dos veces más, y no tarda más de 3 s en total", () => {
+    expect(ESPERAS_AL_REABRIR_MS.length).toBe(2);
+    expect(ESPERAS_AL_REABRIR_MS.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(3_000);
   });
 });
 
