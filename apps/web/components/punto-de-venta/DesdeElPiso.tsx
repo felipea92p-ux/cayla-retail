@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { nombreDelTicketDelPiso, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
+import { money } from "@/lib/money";
 
 /**
  * Los tickets que el piso mandó a la caja (ADR-0701, las tres estaciones del cobro). Cada fila dice de quién es el cliente (la asesora
@@ -39,7 +40,7 @@ export function ListaDesdeElPiso({
               {t.prendas} {t.prendas === 1 ? "prenda" : "prendas"} · {haceCuanto(t.enviadoEn, ahora)}
             </p>
           </div>
-          <span className="shrink-0 text-sm font-semibold tabular-nums">S/{t.total.toFixed(2)}</span>
+          <span className="shrink-0 text-sm font-semibold tabular-nums">{money(t.total)}</span>
           <Boton
             type="button"
             peso="fantasma"
