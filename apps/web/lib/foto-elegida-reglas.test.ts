@@ -151,6 +151,7 @@ describe("toda foto de prenda que se elige pasa por la puerta", () => {
     "components/fondos/FotoDelGasto.tsx": { aparte: "foto de un gasto de fondo" },
     "components/mi-plata/TarjetaFoto.tsx": { aparte: "foto de un recibo personal" },
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": { aparte: "papeles de una compra (guía, factura)" },
+    "components/foto-qr/SubirFotoPorQr.tsx": { aparte: "el celular sube la foto por el QR, sin sesión (ADR-0699): la ruta `POST /api/foto-qr/<permiso>` mira su firma y su peso; la computadora la abre con `abrirFotoElegida` al recibirla" },
     "components/recepcion-conteo/PlacaDelModelo.tsx": { aparte: "es el botón «Tomar foto» (ADR-0699): entrega el archivo a `ContarEnvio` (`tomarFoto`), que lo abre con `abrirFotoElegida` antes de usarlo" },
     "components/sellos/ElegirDibujoDeInsignia.tsx": { aparte: "dibujo de una insignia: `imagen-de-insignia.ts`" },
   };

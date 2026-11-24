@@ -2039,6 +2039,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "«Tomar foto» le pone cara al modelo en la lista, para no confundirlo con otro. Al crear la prenda, la foto ya está puesta y de ella sale su color.",
     },
     {
+      id: "foto-celular",
+      ancla: "recepcion.foto-celular",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      titulo: "La foto con el celular",
+      texto: "«Con el celular» muestra un QR: escanéalo, toma la foto y llega sola a este modelo. Vale 10 minutos y hasta 3 fotos, sin entrar al ERP.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,

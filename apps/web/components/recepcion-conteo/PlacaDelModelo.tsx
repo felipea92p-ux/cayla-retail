@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
-import { Ban, Banknote, Camera, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
+import { Ban, Banknote, Camera, Check, Package, QrCode, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -59,6 +59,7 @@ export function PlacaDelModelo({
   tallas,
   pasos,
   onFoto,
+  onFotoCelular,
   fotoTomada = false,
 }: {
   parada: ParadaDelConteo;
@@ -114,6 +115,8 @@ export function PlacaDelModelo({
   pasos?: ReactNode;
   /** Tomar la foto de un modelo nuevo que todavía no tiene prenda (ADR-0699): sirve para reconocerlo y entra sola al crearla. Sin ella, no se ofrece. */
   onFoto?: (archivo: File) => void;
+  /** «Con el celular»: abre el QR para tomar la foto con el celular, sin sesión (ADR-0699, 2c). */
+  onFotoCelular?: () => void;
   /** Ya se tomó una: el botón dice «Cambiar foto». */
   fotoTomada?: boolean;
 }) {
@@ -279,6 +282,12 @@ export function PlacaDelModelo({
                   }}
                 />
               </label>
+            )}
+            {onFotoCelular && (
+              <button type="button" className="btn-cayla btn-secundario btn-chico mov-boton" onClick={onFotoCelular} data-guia="recepcion.foto-celular" title="Tomar la foto con el celular">
+                <QrCode aria-hidden className="h-4 w-4" />
+                Con el celular
+              </button>
             )}
             {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
             {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}

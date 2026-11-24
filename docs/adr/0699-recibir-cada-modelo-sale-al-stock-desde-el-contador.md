@@ -1,6 +1,6 @@
 # ADR-0699 — Recibir: cada modelo sale al stock desde el contador
 
-- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida, con pruebas en verde y sin probar en el navegador; sin PR. Sin migración ni RPC nuevas.
+- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida y probada en local; 2c (foto por QR) construida, con migración `20261124161000` SOLO en local; sin PR.
 - **Rama:** `claude/mejora-recepcion-mercaderia-2c864b`. Número reservado con `pnpm reservar adr`.
 - **Relacionados:** ADR-0393 (Recibir contando primero, «Por terminar»), ADR-0645 (Contar en dos mitades: «lo nuevo queda para después»),
   ADR-0260 (los puntos de avance de Nuevo producto), ADR-0389 (guías interactivas).
@@ -61,3 +61,26 @@ SE ROMPE SI: alguien toma las fotos de 15 modelos y recarga la página antes de 
 ```
 
 Quien no tiene permiso de fotos del catálogo igual ve la foto para reconocer el modelo; la hoja de crear no la sube, como hoy.
+
+## Actividad 2c · La foto con el celular, por QR y sin sesión (2026-11-24)
+
+Felipe eligió que el celular suba la foto **sin entrar al ERP** («Sin sesión (B)»), después de ver la alternativa con sesión.
+
+```
+DECIDÍ:     El QR trae un permiso de 32 caracteres al azar que vale para UN modelo de UN envío abierto, vence a los 10 minutos y sube
+            como mucho 3 fotos (lo exige la tabla, no el código). La base guarda solo su huella sha256. El celular abre `/foto/<permiso>`
+            y sube a `POST /api/foto-qr/<permiso>`, que revisa la forma del permiso, su vigencia y la firma del archivo (no su nombre)
+            con la llave de servicio, y la guarda en un almacén privado SIN políticas. La computadora pregunta cada 2,5 s
+            (`fn_fotos_por_qr_llegadas`, sin loader), la recoge por `GET /api/recibir/foto-qr/<archivo>` (con sesión: solo la cuenta
+            que pidió el QR) y el servidor la borra del almacén al entregarla.
+DESCARTÉ:   (A) El celular con su sesión del ERP: era la recomendada (nadie sin cuenta sube nada) y Felipe prefirió cero pasos.
+            (C) Abrirle el almacén o una función a `anon`: una política mal puesta abriría más que una foto; con la ruta, la única
+            puerta es una.
+SE ROMPE SI: alguien fotografía el QR de la pantalla del almacén y, en esos 10 minutos, sube 3 fotos que no son de la prenda: el
+            modelo queda con una foto ajena hasta que se cambie. Lo acota el tope de 3, el vencimiento y que la foto solo entra
+            al catálogo cuando alguien crea la prenda mirándola.
+```
+
+**Si algo no responde:** sin `SUPABASE_SERVICE_ROLE_KEY` o con la base caída, el celular dice «No se pudo subir la foto» y la computadora
+sigue esperando; una foto que la base no anotó se borra en el acto. **Pendiente:** los permisos vencidos quedan como filas (no se borran
+datos); las fotos nunca recogidas quedan en el almacén privado hasta una limpieza que todavía no existe.

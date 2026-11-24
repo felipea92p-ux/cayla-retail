@@ -122,6 +122,7 @@ import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
+import { FotoPorQr } from "./FotoPorQr";
 import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
 import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
@@ -307,6 +308,8 @@ export function ContarEnvio({
     tomadasVivas.current = tomadas;
   }, [tomadas]);
   useEffect(() => () => tomadasVivas.current.forEach((t) => URL.revokeObjectURL(t.vista)), []);
+  // «Con el celular» (ADR-0699, 2c): el modelo cuyo QR está a la vista.
+  const [fotoQr, setFotoQr] = useState<{ clave: string; nombre: string } | null>(null);
   const vistasTomadas = useMemo(() => new Map([...tomadas].map(([clave, t]) => [clave, t.vista] as const)), [tomadas]);
   async function tomarFoto(clave: string, archivo: File) {
     const r = await abrirFotoElegida(archivo);
@@ -1027,6 +1030,9 @@ export function ContarEnvio({
               foto={(parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null) ?? tomadas.get(parada.clave)?.vista ?? null}
               onFoto={parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? (archivo) => void tomarFoto(parada.clave, archivo) : undefined}
               fotoTomada={tomadas.has(parada.clave)}
+              onFotoCelular={
+                parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? () => setFotoQr({ clave: parada.clave, nombre: nombreDeParada(parada) }) : undefined
+              }
               faltanTallas={conFaltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
               error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? errorHoja}
@@ -1302,6 +1308,17 @@ export function ContarEnvio({
           onUsar={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
           onCrear={() => setHoja({ ...hoja, tipo: "crear" })}
           onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {fotoQr && (
+        <FotoPorQr
+          despachoId={detalle.id}
+          paradaClave={fotoQr.clave}
+          nombre={fotoQr.nombre}
+          firma={() => responsable.firma()}
+          onFoto={(archivo) => void tomarFoto(fotoQr.clave, archivo)}
+          onCerrar={() => setFotoQr(null)}
         />
       )}
 

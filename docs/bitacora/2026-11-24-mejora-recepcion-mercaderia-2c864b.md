@@ -28,3 +28,17 @@ de un anotado no deja marca por modelo). En la base local quedó así.
 panel, que Felipe estaba usando en ENV-000644: un envío sin aviso de prueba (ENV-000717), un modelo nuevo, la foto en la lista y en la
 placa, y al crear la prenda la foto ya en «Fotos y colores» con su color leído. ENV-000717 quedó anulado; no se creó ninguna prenda. Trampa encontrada: el escáner de guías lee `accept="image/*"` como el inicio de un comentario y se traga el control siguiente; se
 escribió la lista de formatos.
+
+## 2026-11-24 · Recibir: la foto con el celular, por QR y sin sesión (ADR-0699, 2c)
+
+- **Qué hice:** «Con el celular» en la placa de un modelo nuevo muestra un QR. Quien lo escanea toma la foto sin entrar al ERP, y la foto
+  llega sola a ese modelo en la computadora. Vale 10 minutos y hasta 3 fotos.
+- **Por qué así:** Felipe eligió «sin sesión». La puerta es una sola ruta del servidor, que mira el permiso y que el archivo sea una foto de
+  verdad; la base solo guarda la huella del permiso y el almacén no tiene políticas.
+- **Qué se rompería sin esto:** la foto se toma con la cámara de la computadora o se pasa a mano del celular, y en el almacén eso no pasa.
+
+**Probado en local** (Playwright sin ventana: una computadora con sesión y un «celular» sin cookies): el QR aparece y trae un permiso de 32
+caracteres; un permiso inventado no pasa; un texto con nombre `.jpg` se rechaza («Eso no es una foto»); recoger sin sesión da 401. **Sin
+probar la subida completa:** el entorno local no tiene `SUPABASE_SERVICE_ROLE_KEY`, y la ruta respondió como debe sin ella («No se pudo
+subir la foto»). Los envíos de prueba ENV-000717, 718 y 719 quedaron anulados. **Migración `20261124161000` solo en local**: producción
+espera el OK de Felipe.
