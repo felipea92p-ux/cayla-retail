@@ -20,7 +20,7 @@ import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { filtrarModelos, hayFiltros, SIN_FILTROS, type FiltrosAnalisis } from "@/lib/analisis-filtros";
-import { ORDENES, ordenDe } from "@/lib/analisis-orden";
+import { MOSTRAR_PEDIR, ORDENES, ordenDe } from "@/lib/analisis-orden";
 import { BarraFiltros, VacioFiltros } from "@/components/analisis/FiltrosAnalisis";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
@@ -72,6 +72,8 @@ export function AnalisisPantalla({
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
   // El orden que eligió la persona en cada pestaña; la que no eligió, va como siempre (`analisis-orden.ts`).
   const [ordenes, setOrdenes] = useState<Partial<Record<VistaAnalisis, string>>>({});
+  // «Mostrar» de «Qué pedir»: 10 de entrada (Felipe 2026-11-24).
+  const [mostrarPedir, setMostrarPedir] = useState(MOSTRAR_PEDIR[0]?.valor ?? "10");
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [confianza, setConfianza] = useState(false);
   const [pedido, setPedido] = useState<{ origen: { id: string; nombre: string }; lineas: ReturnType<typeof lineasParaPedir> } | null>(null);
@@ -167,6 +169,7 @@ export function AnalisisPantalla({
       liquidarDesde,
       setLiquidarDesde,
       orden: Object.fromEntries(PESTANAS.map((p) => [p.clave, ordenDe(p.clave, ordenes)])) as Record<VistaAnalisis, string>,
+      mostrarPedir,
       filtros,
       sedeDe: (id: string) => datos.sedes.find((s) => s.id === id),
       abrirFicha,
@@ -175,7 +178,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, filtros, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, liquidarDesde, ordenes, mostrarPedir, filtros, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -290,6 +293,7 @@ export function AnalisisPantalla({
                   ? { valor: ordenDe(vista, ordenes), opciones: ORDENES[vista], onValor: (v) => setOrdenes((o) => ({ ...o, [vista]: v })) }
                   : undefined
               }
+              mostrar={vista === "pedir" ? { valor: mostrarPedir, opciones: MOSTRAR_PEDIR, onValor: setMostrarPedir } : undefined}
             />
           </div>
         )}
