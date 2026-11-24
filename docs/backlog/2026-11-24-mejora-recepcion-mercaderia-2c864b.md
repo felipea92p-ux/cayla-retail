@@ -24,8 +24,14 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
   el «No llegó falso»; pide decisión de Felipe.
 - [x] **2 · La foto primero (ADR-0699).** «Tomar foto» en la placa de un modelo nuevo sin prenda; la foto se ve en la lista y en la placa y
   entra sola a «Fotos y colores» al crear. No es un paso obligatorio. Tipos y pruebas en verde.
-- [ ] **2b · Sin probar en el navegador:** tomar la foto, verla en la lista y en la placa, y que entre al crear. ENV-000644 estaba en uso
-  por Felipe.
+- [x] **2b · Probado en local** (Playwright sin ventana, 1440 × 900, claro), en un envío sin aviso de prueba (ENV-000717, anulado al
+  terminar con «Se abrió por error»): «Tomar foto» → la foto en la lista y en la placa, «Cambiar foto»; «Crear la prenda» → «Fotos y
+  colores» ya trae la foto y lee su color (Terracota). No se creó ninguna prenda.
+- [ ] **2c · La foto con el celular por QR (Felipe 2026-11-24: «me parece una idea acertada»).** Necesita guardar la foto en algún lado
+  entre el celular y la computadora: es una migración, espera la decisión de Felipe sobre cómo entra el celular.
+- [ ] **Igual a la maqueta, con las piezas del ERP (Felipe 2026-11-24).** Lo que falta para que se vea como la maqueta: la cabecera de
+  categoría delgada (5a), la lista con la foto de cada modelo más grande, la galería «¿ya la tenemos?» (3) y el aviso de Admin como chapa
+  (5). Los pasos del modelo se quedan con los puntos de Nuevo producto: las cajitas de la maqueta serían una segunda pieza para lo mismo.
 - [ ] **3 · La galería «¿Ya la tenemos?» con fotos.** `YaExisteLaPrenda` muestra la foto de cada prenda de la misma categoría y marca,
   y el enlace «Ver todo el catálogo» se abre en otra pestaña, ya filtrado. Hay que ver si `buscarPrendasParaRecibir` ya trae la foto.
 - [ ] **4 · Temporada y etiquetas al crear.** Va contra lo decidido el 2026-11-03 («se ponen después en Productos»): Felipe lo pide

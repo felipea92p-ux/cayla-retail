@@ -24,7 +24,7 @@ de un anotado no deja marca por modelo). En la base local quedó así.
 - **Qué se rompería sin esto:** dos vestidos anotados por nombre («Vestido 1», «Vestido 2») se confunden en la lista, y la foto se toma dos
   veces: una para reconocerlos y otra al crear.
 
-**Verificado:** tipos, 908 pruebas de Recibir y guías, la huella de la guía. **Sin probar en el navegador:** ENV-000644, el único envío con
-aviso en la base local, estaba en uso por Felipe a la misma hora (cambió solo: Lirio pasó a «ya creado» con 10 y Bolsos se contó), y no se
-tocó más. Trampa encontrada: el escáner de guías lee `accept="image/*"` como el inicio de un comentario y se traga el control siguiente; se
+**Verificado:** tipos, 908 pruebas de Recibir y guías, la huella de la guía. En el navegador, con Playwright sin ventana para no tocar el
+panel, que Felipe estaba usando en ENV-000644: un envío sin aviso de prueba (ENV-000717), un modelo nuevo, la foto en la lista y en la
+placa, y al crear la prenda la foto ya en «Fotos y colores» con su color leído. ENV-000717 quedó anulado; no se creó ninguna prenda. Trampa encontrada: el escáner de guías lee `accept="image/*"` como el inicio de un comentario y se traga el control siguiente; se
 escribió la lista de formatos.
