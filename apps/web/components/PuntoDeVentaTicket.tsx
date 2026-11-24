@@ -2,7 +2,7 @@
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
-import { BadgePercent, Check, CirclePause, Percent, Play, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
+import { BadgePercent, Check, CirclePause, Percent, Play, Send, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/lib/vender-reglas";
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
@@ -107,6 +107,10 @@ type Props = {
   onIrAEspera: () => void;
   /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
   onDescartarEspera: (id: string) => void;
+  /** «Mandar a la caja» (ADR-0701): la asesora arma el ticket en el piso y lo manda a la caja de su sede, que lo cobra. Sin esta prop (la
+   *  base todavía no tiene los tickets compartidos) el botón no se dibuja. */
+  onMandarACaja?: () => void;
+  mandandoACaja?: boolean;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -195,6 +199,8 @@ export function PuntoDeVentaTicket({
   onRetomar,
   onIrAEspera,
   onDescartarEspera,
+  onMandarACaja,
+  mandandoACaja = false,
   total,
   prendas,
   vale = null,
@@ -760,6 +766,23 @@ export function PuntoDeVentaTicket({
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           ) : (
+            <>
+              {/* Las tres estaciones del cobro (ADR-0701): en el piso la asesora arma el ticket y lo manda; la caja solo cobra. Va sobre
+                  «Cobrar» y en su peso secundario: en la caja se sigue cobrando directo, y en el piso es el botón que se usa. */}
+              {onMandarACaja && carrito.length > 0 && (
+                <button
+                  key="mandar-a-caja"
+                  type="button"
+                  onClick={onMandarACaja}
+                  data-guia="vender.mandar-a-caja"
+                  disabled={bloqueado || mandandoACaja}
+                  aria-busy={mandandoACaja || undefined}
+                  className="btn-cayla btn-secundario mb-2 flex h-11 w-full items-center justify-center gap-2 text-sm"
+                >
+                  <Send className={ICONO_CHICO} aria-hidden />
+                  {mandandoACaja ? "Mandando a la caja…" : "Mandar a la caja"}
+                </button>
+              )}
             <button
               key="cobrar"
               type="button"
@@ -775,6 +798,7 @@ export function PuntoDeVentaTicket({
               </span>
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
+            </>
           )}
           {!cobrando && abajo}
         </div>

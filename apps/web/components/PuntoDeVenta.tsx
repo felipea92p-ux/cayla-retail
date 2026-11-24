@@ -162,6 +162,8 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
+import { enviarTicketACaja } from "@/lib/tickets-compartidos";
+import { mensajeDeTicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
@@ -426,6 +428,8 @@ type Props = {
    *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
    *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
   redondeoEfectivoDisponible?: boolean;
+  /** Los tickets compartidos ya están en la base (ADR-0701): el ticket armado en el piso se manda a la caja de la sede. */
+  ticketsCompartidos?: boolean;
   /** «Pedir y apartar para este cliente» desde «Dónde más hay» (ADR-0328 act. 17): las otras tiendas a las que se les puede
    *  pedir. `null`: la opción no aparece (no es una tienda, o la sede apagó «Pedir a otra sede» en sus opciones de Apartados). */
   pedirAOtraSede?: { tiendas: TiendaParaPedir[] } | null;
@@ -455,7 +459,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -537,6 +541,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El ticket que espera y se va a descartar, con lo que dice la hoja de confirmación (se guarda aparte: al descartarlo sale de
   // la espera y la hoja no puede leerlo de ahí mientras se cierra).
   const [porDescartar, setPorDescartar] = useState<{ id: string; nombre: string; prendas: number; total: number } | null>(null);
+  // «Mandar a la caja» (ADR-0701). El id se elige una vez por ticket: si la red corta la respuesta y se vuelve a tocar, la base reconoce el
+  // mismo ticket y no lo duplica. Cambiar el ticket después de un intento fallido pide un id nuevo (es otro ticket).
+  const [mandandoACaja, setMandandoACaja] = useState(false);
+  const idParaCaja = useRef<string | null>(null);
+  useEffect(() => {
+    idParaCaja.current = null;
+  }, [carrito]);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -1476,6 +1487,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setNombreTicket(siguienteNombreDeCliente(nueva.espera.map((t) => t.nombre)));
     buscador.current?.focus();
   }
+  /** «Mandar a la caja» (ADR-0701, las tres estaciones del cobro): la asesora arma el ticket en el piso y lo manda a la caja de su sede, que
+   *  lo abre y lo cobra. Si no llega (sin red, la base lo rechaza), el ticket se queda aquí tal cual: nunca se pierde por mandarlo. */
+  async function mandarACaja() {
+    if (carrito.length === 0 || mandandoACaja) return;
+    const id = (idParaCaja.current ??= crypto.randomUUID());
+    const nombre = nombreActivo;
+    const contenido = ticketParaEspera({ carrito, nota, nombre, clienta, cobro: cobroParaEspera() }, id, new Date().toISOString());
+    setMandandoACaja(true);
+    const r = await enviarTicketACaja(createClient(), responsable.firma(), { id, ubicacionId, nombre, contenido });
+    setMandandoACaja(false);
+    if (r.error) {
+      const m = mensajeDeTicketCompartido(r.error, "mandar");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      return;
+    }
+    idParaCaja.current = null;
+    setHojaTicket(false);
+    limpiarTicket();
+    avisar.exito(`${r.dato.nombre} está en la caja`, { detalle: "La caja lo abre y lo cobra. Acompaña a tu cliente." });
+    buscador.current?.focus();
+  }
   /** Cerrar la caja: con tickets que tienen prendas (los que esperan y el de la caja) primero se dice cuáles se pierden; sin ellos, directo. */
   function abrirCierreDeCaja() {
     if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
@@ -2279,6 +2311,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onNota={setNota}
             enEspera={enEspera}
             onDejarEnEspera={pedirDejarEnEspera}
+            onMandarACaja={ticketsCompartidos ? mandarACaja : undefined}
+            mandandoACaja={mandandoACaja}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
             onDescartarEspera={pedirDescartar}

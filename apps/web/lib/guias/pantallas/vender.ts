@@ -212,6 +212,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "En la terminal de la tienda, antes de cobrar eliges quién está atendiendo: la venta queda a su nombre. Solo salen las personas que marcaron su entrada hoy en esta tienda.",
     },
     {
+      id: "mandar-a-caja",
+      ancla: "vender.mandar-a-caja",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Mandar a la caja",
+      texto: "En el piso, con tu celular: armas el ticket con tu cliente y lo mandas a la caja de la tienda. Ahí lo abren y lo cobran sin volver a escanear; tú lo acompañas y le entregas su bolsa. Si no llega (sin señal), el ticket se queda en tu celular. En la demo no lo tocamos.",
+    },
+    {
       id: "cobrar",
       ancla: "vender.cobrar",
       opcional: true,
