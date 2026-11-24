@@ -148,6 +148,7 @@
     "pruebas:barrido-piso": "node scripts/pruebas/barrido_piso.mjs",
     "pruebas:barrido-piso-concurrencia": "node scripts/pruebas/barrido_piso_concurrencia.mjs",
     "pruebas:barrido-piso-confirmar": "node scripts/pruebas/barrido_piso_confirmar.mjs",
+    "pruebas:tickets-compartidos": "node scripts/pruebas/tickets_compartidos.mjs",
     "pruebas:bajada-desde-vender": "node scripts/pruebas/bajada_desde_vender.mjs",
     "pruebas:bajar-en-mano": "node scripts/pruebas/bajar_en_mano.mjs",
     "pruebas:bajar-en-mano-concurrencia": "node scripts/pruebas/bajar_en_mano_concurrencia.mjs",
