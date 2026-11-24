@@ -27,6 +27,8 @@ const SEO_DE_LAS_PAGINAS: Record<string, SeoDeLaPagina> = {
   "/libro-de-reclamaciones": { indexa: true },
   "/privacidad": { indexa: true },
   "/terminos-del-club": { indexa: true },
+  "/nuestra-historia": { indexa: true },
+  "/trabaja-con-nosotros": { indexa: true },
   "/looks/guardado/[id]": { indexa: false, motivo: "el look guardado de UNA persona" },
   "/tu-look": { indexa: false, motivo: "un look compartido por WhatsApp: uno por cada combinación posible" },
   "/bolsa": { indexa: false, motivo: "la bolsa de cada persona" },

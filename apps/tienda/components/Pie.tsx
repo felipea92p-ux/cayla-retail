@@ -4,6 +4,7 @@ import { hrefLooks } from "@/lib/looks";
 import { hrefDelProbador } from "@/lib/probador";
 import { RecomendacionEnElPie } from "./recomendaciones/RecomendacionFlotante";
 import { TEMAS_DE_AYUDA } from "./ayuda/temas";
+import { leerDatosDelLibro } from "@/lib/libro-reclamaciones-servidor";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
 import { Redes } from "./Redes";
@@ -28,16 +29,14 @@ const comprar = (sede: string | null): Columna => {
   };
 };
 
-/** Cuatro columnas (maqueta Premium): la marca, comprar, ayuda y el Club. La ayuda también va arriba, a la vista, con lo que promete cada
- *  página (`TEMAS_DE_AYUDA`); aquí suma «Envíanos una sugerencia», que abre la ventana de Recomendaciones (antes, un botón flotante). Las
- *  listas son de todos (la tienda se mira sin cuenta, Felipe 2026-10-17); sin cuenta, el Club ofrece crearla o entrar. */
+/** Cuatro columnas tras la marca: comprar, ayuda, el Club y la empresa. Los cuatro temas de la ayuda ya van arriba, a la vista, con lo que
+ *  promete cada página (`TEMAS_DE_AYUDA`): la columna Ayuda no los repite (el 2026-11-22 salían dos veces) y suma lo que no está arriba,
+ *  como «Envíanos una sugerencia», que abre la ventana de Recomendaciones. «Empresa» (plan «La casa CAYLA en la web», 2026-11-22): lo
+ *  que 11 de los 12 referentes estudiados tienen en su pie, con «Trabaja con nosotros», la frase que usan todas sus versiones en español.
+ *  Las listas son de todos (la tienda se mira sin cuenta, Felipe 2026-10-17); sin cuenta, el Club ofrece crearla o entrar. */
 const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   comprar(sede),
-  {
-    titulo: "Ayuda",
-    enlaces: [...TEMAS_DE_AYUDA.map((a) => [a.titulo, a.href] as [string, string]), ["Preguntas frecuentes", "/preguntas-frecuentes"]],
-    sugerencia: true,
-  },
+  { titulo: "Ayuda", enlaces: [["Preguntas frecuentes", "/preguntas-frecuentes"]], sugerencia: true },
   {
     titulo: "Club CAYLA",
     enlaces: [
@@ -49,7 +48,31 @@ const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
       ["Privacidad", "/privacidad"],
     ],
   },
+  {
+    titulo: "Empresa",
+    enlaces: [
+      ["Nuestra historia", "/nuestra-historia"],
+      ["Trabaja con nosotros", "/trabaja-con-nosotros"],
+    ],
+  },
 ];
+
+/**
+ * Quién vende (Ley 29733, art. 18; la revisión legal del 2026-11-18, H16): razón social, RUC y domicilio, leídos de la MISMA función que
+ * usa el Libro de Reclamaciones (`tienda_libro_reclamaciones_datos`). El domicilio ya estaba escrito en cuatro lugares: el pie no es el
+ * quinto. Sin base, los de respaldo (los mismos que copia la base). Se guarda armada por adelantado: no frena ninguna página.
+ */
+async function LineaLegal({ anio }: { anio: number }) {
+  const { razonSocial, ruc, domicilio } = await leerDatosDelLibro();
+  return (
+    <p className="t-pie-legal">
+      <span>© {anio} CAYLA</span>
+      <span>
+        {razonSocial} · RUC {ruc} · {domicilio}
+      </span>
+    </p>
+  );
+}
 
 /**
  * El pie: la ayuda a la vista, la marca, lo de comprar o la cuenta, y lo legal. `sede`: la clave de la tienda elegida (o null con
@@ -111,9 +134,7 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
               </div>
             ))}
           </div>
-          <p className="t-pie-legal">
-            <span>© {anio} CAYLA</span>
-          </p>
+          <LineaLegal anio={anio} />
         </div>
       </footer>
     </>

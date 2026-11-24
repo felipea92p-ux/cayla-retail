@@ -1,0 +1,40 @@
+/* =====================================================================================================
+   LA CASA CAYLA · «Nuestra historia» y «Trabaja con nosotros» (plan «La casa CAYLA en la web», 2026-11-22)
+   Se arman con las piezas de las páginas de ayuda (ayuda.css: la cabecera, los puntos, la línea de pasos y el llamado). Aquí va solo lo
+   que ellas no tienen: la fila de cifras y la remuneración de entrada. Solo los tokens de app/globals.css; lo que cambia con el ancho es
+   `@container tienda`, como en el resto de la tienda.
+   ===================================================================================================== */
+
+/* Las cifras de la casa: tres números grandes sobre un filo, como la portada de un informe. */
+.emp-cifras { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-top: 1px solid var(--tinta); }
+.emp-cifra { display: flex; flex-direction: column; gap: 6px; padding-top: 16px; min-width: 0; }
+.emp-cifra b { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 5cqi, 60px); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.emp-cifra span { font-size: 13.5px; line-height: 1.45; color: var(--tinta-60); text-wrap: pretty; }
+
+/* La remuneración de entrada: el monto que rige hoy, grande, y la que viene debajo. */
+.emp-sueldo { display: grid; gap: 22px; padding: 26px 22px; background: var(--hueso); }
+.emp-sueldo-monto { display: flex; flex-direction: column; gap: 8px; }
+.emp-sueldo-monto b { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 6cqi, 72px); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.emp-sueldo-monto span { font-size: 14.5px; line-height: 1.5; color: var(--tinta-60); max-width: 40ch; }
+.emp-sueldo-sube { margin: 0; font-size: 14.5px; font-weight: 600; }
+
+/* Los beneficios: título y una línea, en grilla. */
+.emp-beneficios { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.emp-beneficio { display: flex; flex-direction: column; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--sand); }
+.emp-beneficio b { font-size: 15px; font-weight: 600; }
+.emp-beneficio span { font-size: 14px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
+
+/* Los enlaces para postular dentro de cada área: uno por tienda, apilados. */
+.emp-postular { display: flex; flex-direction: column; margin-bottom: -12px; }
+
+@container tienda (min-width: 700px) {
+  /* Las cuatro áreas: de a dos en la tablet (de a tres, la cuarta quedaba sola en su fila) y las cuatro en fila en la computadora. */
+  .ay-puntos.emp-areas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emp-sueldo { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; column-gap: 40px; padding: 34px 32px; }
+  .emp-beneficios { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+}
+@container tienda (min-width: 960px) {
+  .ay-puntos.emp-areas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .emp-cifras { gap: 32px; }
+  .emp-cifra span { font-size: 14.5px; }
+}

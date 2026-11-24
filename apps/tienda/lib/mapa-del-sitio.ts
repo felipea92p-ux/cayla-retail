@@ -16,6 +16,8 @@ export const PAGINAS_FIJAS = [
   "/libro-de-reclamaciones",
   "/privacidad",
   "/terminos-del-club",
+  "/nuestra-historia",
+  "/trabaja-con-nosotros",
 ] as const;
 
 /** Las listas del catálogo que se indexan además de «Toda la tienda» (los favoritos son de cada persona: no). */
