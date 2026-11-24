@@ -2,7 +2,7 @@
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
-import { BadgePercent, Check, CirclePause, Percent, Play, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
+import { BadgePercent, Check, CirclePause, Percent, Play, Send, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/lib/vender-reglas";
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
@@ -24,6 +24,8 @@ import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { DesdeElPisoEnElTicket } from "@/components/punto-de-venta/DesdeElPiso";
+import type { TicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
@@ -107,6 +109,15 @@ type Props = {
   onIrAEspera: () => void;
   /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
   onDescartarEspera: (id: string) => void;
+  /** «Mandar a la caja» (ADR-0701): la asesora arma el ticket en el piso y lo manda a la caja de su sede, que lo cobra. Sin esta prop (la
+   *  base todavía no tiene los tickets compartidos) el botón no se dibuja. */
+  onMandarACaja?: () => void;
+  mandandoACaja?: boolean;
+  /** Lo que el piso mandó a la caja (ADR-0701): con el ticket vacío, la lista va adentro; ocupado, un chip la abre en una hoja. */
+  delPiso?: { tickets: readonly TicketCompartido[]; ahora: number; abriendo: string | null; onVerTodos: () => void };
+  /** «Abrir» uno de los tickets del piso (aparte de `delPiso`: dentro del objeto, el lint del compilador de React lee mal todo el componente). */
+  onAbrirDelPiso?: (t: TicketCompartido) => void;
+  onDescartarDelPiso?: (t: TicketCompartido) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -195,6 +206,11 @@ export function PuntoDeVentaTicket({
   onRetomar,
   onIrAEspera,
   onDescartarEspera,
+  onMandarACaja,
+  mandandoACaja = false,
+  delPiso,
+  onAbrirDelPiso,
+  onDescartarDelPiso,
   total,
   prendas,
   vale = null,
@@ -350,6 +366,24 @@ export function PuntoDeVentaTicket({
                 En espera · {enEspera.length}
               </button>
             )}
+            {/* Lo que espera del piso (ADR-0701), con el ticket ocupado: el chip abre la hoja «Del piso». Con el ticket vacío la lista ya
+                está adentro y el chip sobra. */}
+            {delPiso && delPiso.tickets.length > 0 && carrito.length > 0 && (
+              <button
+                type="button"
+                onClick={delPiso.onVerTodos}
+                disabled={bloqueado}
+                data-guia="vender.del-piso-chip"
+                aria-label={`Del piso: ${delPiso.tickets.length} ${delPiso.tickets.length === 1 ? "ticket esperando" : "tickets esperando"}`}
+                title="Del piso"
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
+              >
+                <Send className={ICONO_CHICO} aria-hidden />
+                {/* En la cabecera de 420 px, con «En espera · N» al lado, «Del piso» no cabe: queda el ícono con el número. */}
+                <span className={conChipEspera ? "hidden @min-[30rem]:inline" : undefined}>Del piso · </span>
+                {delPiso.tickets.length}
+              </button>
+            )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -481,6 +515,7 @@ export function PuntoDeVentaTicket({
           ) : !carrito.length ? (
             <>
               {arriba}
+              {delPiso && onAbrirDelPiso && <DesdeElPisoEnElTicket tickets={delPiso.tickets} ahora={delPiso.ahora} abriendo={delPiso.abriendo} onAbrir={onAbrirDelPiso} onDescartar={onDescartarDelPiso} />}
               <div className="anim-sube flex min-h-48 flex-col items-center justify-center px-8 text-center">
                 <p className="font-medium text-tinta">El ticket está vacío</p>
                 <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
@@ -760,6 +795,23 @@ export function PuntoDeVentaTicket({
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           ) : (
+            <>
+              {/* Las tres estaciones del cobro (ADR-0701): en el piso la asesora arma el ticket y lo manda; la caja solo cobra. Va sobre
+                  «Cobrar» y en su peso secundario: en la caja se sigue cobrando directo, y en el piso es el botón que se usa. */}
+              {onMandarACaja && carrito.length > 0 && (
+                <button
+                  key="mandar-a-caja"
+                  type="button"
+                  onClick={onMandarACaja}
+                  data-guia="vender.mandar-a-caja"
+                  disabled={bloqueado || mandandoACaja}
+                  aria-busy={mandandoACaja || undefined}
+                  className="btn-cayla btn-secundario mb-2 flex h-11 w-full items-center justify-center gap-2 text-sm"
+                >
+                  <Send className={ICONO_CHICO} aria-hidden />
+                  {mandandoACaja ? "Mandando a la caja…" : "Mandar a la caja"}
+                </button>
+              )}
             <button
               key="cobrar"
               type="button"
@@ -775,6 +827,7 @@ export function PuntoDeVentaTicket({
               </span>
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
+            </>
           )}
           {!cobrando && abajo}
         </div>

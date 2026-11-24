@@ -36,6 +36,7 @@ import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta"
 import { createClient } from "@/lib/supabase/client";
 import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { leerPermisoDeFotos, type PermisoDeFotos } from "@/lib/foto-catalogo-cliente";
+import type { FotoInicial } from "@/lib/recepcion-foto-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { claveCelda, leerErrorAlta, ordenarFotosAlta, textoFotosSinColor, type ColorAlta } from "@/lib/alta-producto";
@@ -160,10 +161,10 @@ export function HojaPrenda({
   /** Al crear una prenda nueva: lo que se recuerda de ella para ofrecerlo en la siguiente. */
   onRecordar?: (p: PrendaAnterior) => void;
   /** La foto que se tomó al contar (ADR-0699): entra a «Fotos y colores» al llegar ahí, y de ella sale su color. Solo al crear. */
-  fotosIniciales?: readonly File[];
+  fotosIniciales?: readonly FotoInicial[];
 }) {
   const nueva = destino.modo === "nueva";
-  const [porEntrar, setPorEntrar] = useState<readonly File[]>(() => (nueva ? (fotosIniciales ?? []) : []));
+  const [porEntrar, setPorEntrar] = useState<readonly FotoInicial[]>(() => (nueva ? (fotosIniciales ?? []) : []));
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
   const colores = useMemo(() => [...coloresIniciales, ...coloresCreados.filter((c) => !coloresIniciales.some((x) => x.codigo === c.codigo))], [coloresIniciales, coloresCreados]);
   const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);

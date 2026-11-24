@@ -6,6 +6,9 @@
 - [x] «Ordenar por ▸ Lo que más se vende y quedan pocos»: primero lo que se acaba en 2 semanas o menos, de lo más vendido a lo menos.
 - [x] Dos órdenes separados: «…y no hay stock» (arriba lo agotado) y «…y quedan pocos» (arriba lo que se acaba).
 - [x] «Mostrar» junto a «Ordenar por»: 10 de entrada, 20, 50 o Todas, para cada parte (reemplaza «Ver N más»).
+- [x] La tarjeta con cada cifra en su rótulo (cara «A»): VENDISTE / SE AGOTÓ y TIENES / VENDES / SE ACABA, con la otra tienda como etiqueta.
+- [x] La ficha de lo que está en «Qué pedir» cuenta lo mismo que su tarjeta: fecha arriba, sus cifras, tabla limpia y «Pedir a Lima» sin «Comprar».
+- [ ] **Decide Felipe:** si la ficha del resto de Análisis (No se vende, Sin salir, lo que va bien) también pasa a la tabla de «te quedan» y pierde «Comprar».
 - [x] Pruebas de la lógica, guía de Análisis al día y su huella aceptada; verificado en el navegador a 1600 y 375 px, claro y oscuro.
 - [ ] **Decide Felipe:** si «Comprar todas» de «Se acaba» también se va (hoy lleva a Mis compras, como lo hacía «Comprar»).
 - [ ] **Decide Felipe:** cómo marcar un agotado que fue compra de una sola vez y no se repite (hoy sale en «Ya se agotaron» hasta 8 semanas).

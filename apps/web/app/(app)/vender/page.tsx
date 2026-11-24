@@ -76,7 +76,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const cargaOfertasGrupo = leerOfertasDeGrupoVigentes(supabase, persona.ubicacionId);
   // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundario: sin ellos, la caja vende igual.
   const cargaOfertasMonto = leerOfertasDeMontoVigentes(supabase, persona.ubicacionId);
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre, resTicketsCompartidos] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
     getCatalogoParaOfrecer(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
@@ -144,6 +144,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       : Promise.resolve(null),
     // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
     getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
+    // Tickets compartidos (ADR-0701): ¿la base ya los tiene? Si la función no existe todavía (la web se publicó antes de pegar el SQL),
+    // o la sede no es una tienda, «Mandar a la caja» no se dibuja y Vender sigue como siempre.
+    supabase.rpc("fn_tickets_compartidos" as never, { p_ubicacion_id: persona.ubicacionId } as never),
   ]);
   const coloresLeidos = tolerar(resColores, "los colores").datos ?? [];
   const coloresActivos = coloresLeidos.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
@@ -307,6 +310,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}
         tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}
         redondeoEfectivoDisponible={resRedondeo.data === true}
+        ticketsCompartidos={resTicketsCompartidos.error === null}
         pedirAOtraSede={
           (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
             ? null

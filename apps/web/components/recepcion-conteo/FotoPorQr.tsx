@@ -5,15 +5,15 @@ import { QRCodeSVG } from "qrcode.react";
 import { Smartphone } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
-import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { ESPERA_ENTRE_PREGUNTAS_MS, urlDelQr } from "@/lib/foto-por-qr-reglas";
-import { crearFotoPorQr, fotosQueLlegaron, recogerFoto, type PermisoDeFoto } from "@/lib/foto-por-qr-acciones";
+import { crearFotoPorQr, fotosQueLlegaron, type PermisoDeFoto } from "@/lib/foto-por-qr-acciones";
 import type { Firma } from "@/lib/responsable-reglas";
 
 // «Con el celular» (ADR-0699, actividad 2c): la hoja con el QR de UN modelo. Al abrirse pide un permiso nuevo a la base, muestra el QR y
-// pregunta cada pocos segundos si llegó una foto; la primera que llega la pone en el modelo (como si se hubiera tomado aquí) y la hoja se
-// cierra. El permiso vence a los 10 minutos: entonces se ofrece otro. Si la base no responde, lo dice y no se queda esperando en silencio.
+// pregunta cada pocos segundos si llegó una foto. Apenas sabe que llegó una, se la pasa a la pantalla y se cierra: la pantalla la trae y,
+// mientras tanto, la miniatura del modelo dice «Cargando foto…» (Felipe 2026-11-24). El permiso vence a los 10 minutos: entonces se ofrece
+// otro. Si la base no responde, lo dice y no se queda esperando en silencio.
 
 type Estado = { tipo: "pidiendo" } | { tipo: "esperando"; permiso: PermisoDeFoto } | { tipo: "vencido" } | { tipo: "error"; texto: string };
 
@@ -22,14 +22,15 @@ export function FotoPorQr({
   paradaClave,
   nombre,
   firma,
-  onFoto,
+  onLlego,
   onCerrar,
 }: {
   despachoId: string;
   paradaClave: string;
   nombre: string;
   firma: () => Firma | null;
-  onFoto: (archivo: File) => void;
+  /** Llegó una foto (su id): la trae la pantalla, que mientras tanto dice «Cargando foto…». */
+  onLlego: (archivoId: string) => void;
   onCerrar: () => void;
 }) {
   const [estado, setEstado] = useState<Estado>({ tipo: "pidiendo" });
@@ -38,12 +39,12 @@ export function FotoPorQr({
     setEstado({ tipo: "pidiendo" });
     setVez((v) => v + 1);
   };
-  const onFotoVivo = useRef(onFoto);
+  const onLlegoVivo = useRef(onLlego);
   const onCerrarVivo = useRef(onCerrar);
   useEffect(() => {
-    onFotoVivo.current = onFoto;
+    onLlegoVivo.current = onLlego;
     onCerrarVivo.current = onCerrar;
-  }, [onFoto, onCerrar]);
+  }, [onLlego, onCerrar]);
 
   // Un permiso por apertura (y otro con «Otro código»).
   useEffect(() => {
@@ -59,7 +60,7 @@ export function FotoPorQr({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [despachoId, paradaClave, nombre, vez]);
 
-  // Mientras el QR está a la vista: ¿llegó algo? La primera que llega entra al modelo y la hoja se cierra.
+  // Mientras el QR está a la vista: ¿llegó algo? La primera que llega pasa a la pantalla y la hoja se cierra.
   const permiso = estado.tipo === "esperando" ? estado.permiso : null;
   useEffect(() => {
     if (!permiso) return;
@@ -74,11 +75,10 @@ export function FotoPorQr({
       }
       ocupado = true;
       const llegadas = await fotosQueLlegaron(permiso.id);
-      const primera = llegadas[0] ? await recogerFoto(llegadas[0]) : null;
       ocupado = false;
-      if (!vivo || !primera) return;
-      onFotoVivo.current(primera);
-      avisar.exito("Llegó la foto del celular");
+      if (!vivo || !llegadas[0]) return;
+      vivo = false;
+      onLlegoVivo.current(llegadas[0]);
       onCerrarVivo.current();
     }, ESPERA_ENTRE_PREGUNTAS_MS);
     return () => {

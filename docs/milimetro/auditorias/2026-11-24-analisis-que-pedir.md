@@ -25,6 +25,24 @@ Resumen: **0 graves · 0 medias · 1 leve** (la fecha grande baja a su propio re
 3. **375 px:** una tarjeta por fila, la fecha junto a su «Se agotó el», sin desbordes.
 4. **Leve:** a 1440 px, con nombres largos, «Hasta el» queda en un renglón y la fecha en el siguiente (el `flex-wrap` de siempre). Se lee bien; no se forzó en una línea porque desbordaría la tarjeta.
 
+## Actualización, la misma tarde: la tarjeta con cada cifra en su rótulo (cara «A»)
+
+Medido igual (página local con las cifras de TRU), a 1600 y 1440 px en claro y oscuro y a 375 px: ninguna cifra sale de su tarjeta ni se encima
+con la de al lado (medido con `getBoundingClientRect` en cada `dl > div`), y sin errores en consola. El rótulo va a 13 px en versalitas
+(`text-xs`, `text-secundario`), el valor a 18 px seminegrita con cifras tabulares (`text-lg`), lo que acompaña («en 8 días», «/sem.») a 14 px en
+`text-secundario`; la fecha, en rojo profundo o ámbar según su urgencia. La fila va en `flex-wrap` con 20 px entre cifras: en una tarjeta
+angosta baja de renglón en vez de encimarse. La otra tienda es una `<Chip versalitas={false}>` neutra con su ícono de 12 px (`h-3`), nunca roja
+(el tope de dos rojos por pantalla). Sin «·» entre datos (regla de Felipe del 2026-11-24).
+
+## Actualización: la ficha de lo que está en «Qué pedir»
+
+Medida con las fichas de Top Tokio (agotado) y Polo Básico Cayla (se acaba), con cifras de TRU, a 1440 px en claro y oscuro y a 375 px, sin
+errores en consola. Se arreglaron dos cosas al medir: la tabla de «Te quedan» escondía la columna «Vendiste» (cada celda pedía los 82 px de
+`.m-tabla td`): las celdas de número bajan a 44 px; y a 375 px el nombre largo («Amarillo mantequilla») empujaba la tabla: ahora baja de renglón
+con su punto pegado. A 375 px la última columna se desliza un poco (la caja ya tenía `overflow-x: auto`; Análisis no es pantalla de celular
+obligatorio). Las piezas son las de siempre: la frase con su color (`an-veredicto`), tres `TarjetaCifra`, `BarrasTiempo` y la caja de la tabla;
+el 0 en `text-rojo-profundo` y «—» en `text-tenue`; «Pedir a Lima» es `btn-primario`.
+
 ## Heredado
 
 - La unidad y lo que va antes del número usan `var(--color-taupe)` (`app/estilos/analisis-b.css`); la regla de tres tonos (ADR-0694) pide

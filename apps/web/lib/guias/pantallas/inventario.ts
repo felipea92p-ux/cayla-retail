@@ -2040,6 +2040,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "«Con el celular» muestra un QR: escanéalo, toma la foto y llega sola a este modelo. Vale 10 minutos y hasta 3 fotos, sin entrar al ERP.",
     },
     {
+      id: "sin-fondo",
+      ancla: "recepcion.sin-fondo",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      titulo: "Quitar el fondo de la foto",
+      texto: "Encendido, la IA deja la prenda sin fondo, como en Nuevo producto (tarda unos segundos). Apagado, queda tu foto tal cual. La × de la foto la quita.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
