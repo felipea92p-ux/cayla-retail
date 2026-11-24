@@ -1315,7 +1315,8 @@ caso(
       // `compro_quien_mira` y `recibio_quien_compro`: el rastro de que un Admin recibe lo que él mismo compró (ADR-0517, 20261026161000).
       "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,papeles,proveedores,recepcion,recibidos,recibio_quien_compro,sede,unidades,version",
     "cantidad,categoria,categoria_id,compra_item_id,descripcion,deuda_pendiente,id,marca,marca_id,orden,orden_compra_id,orden_compra_item_id," +
-      "posicion,precio_unitario,precio_venta_sugerido,producto,proveedor",
+      // ADR-0700 (20261124180000): cada línea suma lo que la prenda tiene según quien la compró y el precio que vio afuera.
+      "posicion,precio_unitario,precio_venta_sugerido,precio_visto_afuera,producto,proveedor,rasgos",
     "0:[]",
   ].join(" / "),
 );
