@@ -1,5 +1,32 @@
 # Ficha al milímetro — Los pasos del modelo en Recibir ▸ Contar
 
+## 2026-11-24 (tarde) · Forma A: los pasos son el cuerpo de la placa (reemplaza a la tira de puntos de abajo)
+
+Felipe, mirando la maqueta: «los pasos no deberían ser de esta forma… si lo pones arriba como una opción puede que ni se den cuenta». Eligió la
+**forma A**: los pasos van uno bajo otro DENTRO de la placa; el que toca está abierto con su contenido (el número, o la tarjeta de crear /
+repartir / llevar); lo hecho queda en una línea con su resumen y «Cambiar»; lo que viene, apagado con «Después». Y «un foco cuando pasas a
+otro paso y te centre en lo que debes hacer».
+
+**Pieza:** `FilaDePaso` (`components/recepcion-conteo/PlacaDelModelo.tsx`) sobre la lista `.rc-pasos-v` (`vidrio/recibir-mesa.css`). No hay
+pieza decidida para «pasos en vertical dentro de una placa»; se arma con lo de la placa (hilo de fila, `--hilo-fila`), el círculo de paso de
+siempre (28 px, como `.rc-paso`) y el `btn-enlace` de «Cambiar». **Va a `/unificar` como candidata** si otra pantalla necesita lo mismo.
+
+| Estado | Qué se ve | Se anuncia | Cómo se midió |
+|---|---|---|---|
+| abierto | número en tinta con halo de 4 px; su bloque debajo | `aria-current="step"` | Playwright: `data-estado="abierto"` |
+| hecho | ✓ en verde, nombre + resumen («Contaste 5»), «Cambiar» si se puede | texto | idem |
+| falta | número con borde de control, texto en `tenue`, «Después» | texto | `tema:auditar` 0 hallazgos solo en oscuro |
+| llegar a un paso | la luz difuminada de la guía de foco (`data-llamado`, 1,1 s, una vez), solo se desplaza si no se ve; con mouse, el foco va al botón principal del paso | — | Playwright: luz en `rc-paso-crear`, foco en «Crear la prenda» |
+| quieto | la luz no anima (`movimiento.css`), el desplazamiento es inmediato (`prefiereQuieto`) | — | — |
+| disabled / error / loading | no aplica a la fila: los tiene cada control de adentro | — | — |
+
+Letra: nombre 16 px (`text-sm`), resumen 14 (`text-detalle`), número 14. Espacio: fila de 28 px mínimo, 10 px arriba y abajo, 12 entre el
+número y el texto, múltiplos de la escala. Color: solo tokens (`verde`, `tinta`, `crema`, `borde-control`, `secundario`, `tenue`).
+
+---
+
+# Ficha al milímetro — Los pasos del modelo en Recibir ▸ Contar
+
 ## 2026-11-24 (ADR-0699, rama `claude/mejora-recepcion-mercaderia-2c864b`)
 
 **Pieza:** `<PuntosAvance>` (`components/alta-producto/PuntosAvance.tsx`), la de Nuevo producto y de «Crear la prenda» al recibir.

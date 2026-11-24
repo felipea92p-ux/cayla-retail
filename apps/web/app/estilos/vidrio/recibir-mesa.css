@@ -255,6 +255,23 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 
 /* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, en la mesa del contador: «una línea separará al medio el paso 1 y el paso 2;
    de esta manera los botones de abajo ya no quedan fuera de vista»). El paso 1 mide lo que piden el dial y sus botones; el paso 2 toma el resto. */
+/* Los pasos del modelo, uno bajo otro (ADR-0699, forma A que eligió Felipe 2026-11-24): el que toca abierto con su contenido; lo hecho, una línea con
+   su resumen y «Cambiar»; lo que viene, apagado. No se eligen como pestañas: el camino se ve entero y el primero no se salta. */
+.rc-pasos-v { display: grid; border-top: 1px solid var(--hilo-fila); }
+.rc-placa-cuerpo > .rc-pasos-v:first-child { border-top: 0; }
+.rc-paso-v { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 16px; }
+.rc-paso-v + .rc-paso-v { border-top: 1px solid var(--hilo-fila); }
+.rc-paso-num { display: grid; width: 28px; height: 28px; place-items: center; border: 1.5px solid var(--color-borde-control); border-radius: 999px; color: var(--color-secundario); font-size: var(--text-detalle); font-weight: 700; }
+.rc-paso-v[data-estado="hecho"] .rc-paso-num { border-color: var(--color-verde); background: var(--color-verde); color: var(--color-crema); }
+.rc-paso-v[data-estado="abierto"] .rc-paso-num { border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+.rc-paso-v-fila { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-height: 28px; margin: 0; padding-top: 3px; color: var(--color-secundario); font-size: var(--text-detalle); font-variant-numeric: tabular-nums; }
+.rc-paso-v-fila b { color: var(--color-tinta); font-size: var(--text-sm); font-weight: 600; }
+.rc-paso-v[data-estado="falta"] .rc-paso-v-fila, .rc-paso-v[data-estado="falta"] .rc-paso-v-fila b { color: var(--color-tenue); }
+.rc-paso-v-fila .btn-enlace { margin-left: auto; }
+.rc-paso-v-cuerpo { min-width: 0; }
+.rc-paso-v-cuerpo > .rc-bloque { padding: 2px 0 0; border-top: 0; }
+/* El número del paso ya lo dice la lista: el círculo del bloque sobra (sigue en el DOM, la placa lo lee para bajar a las tallas). */
+.rc-paso-v-cuerpo .rc-bloque-titulo > .rc-paso { display: none; }
 .rc-pasos { display: grid; grid-template-columns: max-content minmax(0, 1fr); border-top: 1px solid var(--hilo-fila); }
 .rc-placa-cuerpo > .rc-pasos:first-child { border-top: 0; }
 .rc-pasos > .rc-bloque { border-top: 0; align-content: start; }

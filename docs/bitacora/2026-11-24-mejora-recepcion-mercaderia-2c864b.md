@@ -80,3 +80,14 @@ prueba, así que no se creó ninguna prenda. **Envíos de prueba de la sesión: 
 - Vercel tiene `SUPABASE_SERVICE_ROLE_KEY` en producción (la usan las terminales): el QR funciona al publicar.
 - Las versiones en `supabase_migrations.schema_migrations` quedaron con la hora de aplicación, no con la del archivo (así registra la
   herramienta); no se alinearon.
+
+## 2026-11-24 · Los pasos uno bajo otro, con foco al pasar de paso (ADR-0699, forma A)
+
+- **Qué hice:** los pasos del modelo dejaron de ser una tira arriba: son el cuerpo de la placa, uno bajo otro. Al pasar de paso, la placa lo
+  centra, lo enciende y deja el cursor en su botón.
+- **Por qué así:** Felipe eligió la forma A mirando la maqueta: arriba, como opción, se pasaba por alto.
+- **Qué se rompería sin esto:** la colaboradora contaba y seguía con el siguiente modelo sin ver que a este le faltaba crearse.
+
+**Probado en local** (Playwright sin ventana, ENV-000934 de prueba, anulado): tras «+5», «Cuántas» queda en su línea, «Crear la prenda» se
+abre, la luz se enciende en él y el foco queda en su botón; «Cambiar» vuelve a abrir el número. `tema:auditar`: 0 hallazgos solo en oscuro.
+Pruebas de `lib` 169 066 en verde; huella de la guía aceptada.

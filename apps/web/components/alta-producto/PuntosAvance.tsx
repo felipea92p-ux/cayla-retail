@@ -18,21 +18,12 @@ export type PasoConNombre = PasoDeAvance & {
   detalle: string;
 };
 
-export function PuntosAvance({
-  pasos,
-  onAbrir,
-  etiqueta = "Avance del producto",
-}: {
-  pasos: PasoConNombre[];
-  onAbrir: (numero: number) => void;
-  /** Lo que lee el lector de pantalla del conjunto. En Recibir ▸ Contar, «Pasos de <modelo>» (ADR-0699). */
-  etiqueta?: string;
-}) {
+export function PuntosAvance({ pasos, onAbrir }: { pasos: PasoConNombre[]; onAbrir: (numero: number) => void }) {
   const { puntos, lleno } = puntosDeAvance(pasos);
   return (
     // Nombre largo o corto según el ancho del RIEL (`@container`), no el de la ventana: con el riel de 328 a 436 px (tablet, laptop de
     // 1024 con la ficha a un lado) «Tallas y colores» y «Precio y cantidad» se encimaban. Desde 576 px de riel van los largos.
-    <nav aria-label={etiqueta} data-puntos-avance data-guia="nuevo.avance" className="puntos-avance @container">
+    <nav aria-label="Avance del producto" data-puntos-avance data-guia="nuevo.avance" className="puntos-avance @container">
       <div className="puntos-linea">
         <span aria-hidden className="puntos-pista" />
         <span aria-hidden className="puntos-relleno" style={{ "--lleno": lleno } as CSSProperties}>

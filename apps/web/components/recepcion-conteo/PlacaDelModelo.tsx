@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Ban, Banknote, Camera, Check, Package, QrCode, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
@@ -17,6 +17,7 @@ import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
 import { descripcionDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, contadorDeParada, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import type { ClavePaso, PasoDelModelo } from "@/lib/recepcion-pasos-reglas";
 import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
@@ -58,6 +59,8 @@ export function PlacaDelModelo({
   onCorregirLinea,
   tallas,
   pasos,
+  pasoAbierto = null,
+  onCambiarPaso,
   onFoto,
   onFotoCelular,
   fotoTomada = false,
@@ -111,8 +114,12 @@ export function PlacaDelModelo({
   onCorregirLinea?: () => void;
   /** La tarjeta de tallas y colores: dice cómo va y abre la hoja donde se reparten. */
   tallas: ReactNode;
-  /** Los pasos que le quedan al modelo para salir a la venta (ADR-0699): arriba del cuerpo, siempre a la vista. */
-  pasos?: ReactNode;
+  /** Los pasos del modelo hasta la venta (ADR-0699, forma A que eligió Felipe 2026-11-24): son el cuerpo de la placa, uno bajo otro. `null`: sin pasos (no llegó). */
+  pasos?: readonly PasoDelModelo[] | null;
+  /** El paso que se ve abierto: el que toca, o «cuantas» si se pidió cambiar lo contado. */
+  pasoAbierto?: ClavePaso | null;
+  /** «Cambiar» en un paso hecho (lo contado, las tallas). */
+  onCambiarPaso?: (clave: ClavePaso) => void;
   /** Tomar la foto de un modelo nuevo que todavía no tiene prenda (ADR-0699): sirve para reconocerlo y entra sola al crearla. Sin ella, no se ofrece. */
   onFoto?: (archivo: File) => void;
   /** «Con el celular»: abre el QR para tomar la foto con el celular, sin sesión (ADR-0699, 2c). */
@@ -184,14 +191,14 @@ export function PlacaDelModelo({
   const marcaTexto = p.categoria ? marcaDeLinea(p).nombre : null;
   // El paso 2, la columna de la derecha (Felipe 2026-11-12, mesa del contador: «una línea separará al medio el paso 1 y el paso 2; de esta manera los
   // botones de abajo ya no quedan fuera de vista»). El estado del modelo («Faltan tallas») va aquí, sobre la tarjeta: es de las tallas.
-  const bloqueDeTallas = () =>
+  const bloqueDeTallas = (titulo = "Tallas y colores") =>
     modelo ? (
-      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label="Tallas y colores">
+      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label={titulo}>
         <div className="rc-bloque-titulo">
           <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
             {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
           </span>
-          <h3 className="rc-bloque-nombre">Tallas y colores</h3>
+          <h3 className="rc-bloque-nombre">{titulo}</h3>
           <span className="rc-bloque-estado">
             {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
           </span>
@@ -204,6 +211,117 @@ export function PlacaDelModelo({
         {tallas}
       </section>
     ) : null;
+  // Al pasar a otro paso, la placa lo centra y lo enciende (Felipe 2026-11-24: «un foco cuando pasas a otro paso y te centre en lo que debes
+  // hacer»): la luz difuminada de la guía de foco (`data-llamado`, alta-guia.css), solo se mueve si no se ve, y con mouse el cursor va a su
+  // botón principal. El número del paso «Cuántas» lo abre su propio pedido (`abrirNumero`): aquí no se toca. Al elegir otro modelo la placa
+  // nace de nuevo (su `key`) y no hay paso al que «pasar».
+  const pasoAnterior = useRef(pasoAbierto);
+  useEffect(() => {
+    if (pasoAnterior.current === pasoAbierto) return;
+    pasoAnterior.current = pasoAbierto;
+    const c = cuerpo.current;
+    const fila = c?.querySelector<HTMLElement>('.rc-paso-v[data-estado="abierto"]');
+    if (!c || !fila) return;
+    const behavior = prefiereQuieto() ? "auto" : "smooth";
+    const caja = fila.getBoundingClientRect();
+    if (c.scrollHeight > c.clientHeight + 1) {
+      const marco = c.getBoundingClientRect();
+      if (caja.top < marco.top || caja.bottom > marco.bottom) c.scrollBy({ top: caja.top - marco.top - 8, behavior });
+    } else if (caja.top < 0 || caja.bottom > window.innerHeight) {
+      fila.scrollIntoView({ block: "nearest", behavior });
+    }
+    fila.setAttribute("data-llamado", "");
+    const t = window.setTimeout(() => fila.removeAttribute("data-llamado"), 1200);
+    if (pasoAbierto !== "cuantas" && window.matchMedia("(pointer: fine)").matches) fila.querySelector<HTMLElement>(".btn-primario")?.focus({ preventScroll: true });
+    return () => window.clearTimeout(t);
+  }, [pasoAbierto]);
+  // ADR-0699 (forma A): con pasos, el cuerpo es la lista; sin ellos (no llegó), el contador de siempre.
+  const listaDePasos = pasos && pasos.length > 0 ? pasos : null;
+  // Lo que se puede reabrir desde su línea: lo contado (mientras no haya entrado nada al stock) y las tallas (mientras no estén en el stock).
+  const pasoCambiable = (paso: PasoDelModelo) => paso.estado === "hecho" && !yaEntroTodo && (paso.clave === "cuantas" ? enStock === 0 : paso.clave === "tallas");
+  const bloqueCuantas = (
+        <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
+          <div className="rc-bloque-titulo">
+            <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>
+              {hayConteo ? <Check className="h-4 w-4" /> : 1}
+            </span>
+            <h3 className="rc-bloque-nombre">¿Cuántas llegaron?</h3>
+            {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue» lo dice. */}
+            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : null}</span>
+          </div>
+          <div className="rc-cuenta" data-guia="recepcion.numero">
+            <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
+            <div className="rc-cuenta-lado">
+              {/* De lo más rápido a lo menos común, uno bajo el otro junto al dial (Felipe 2026-11-12, mesa del contador): «ya llegaron todas» primero y en
+                  verde, sumar de a varias y «poner en cero» o «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
+              <div className="rc-atajos">
+                {dijeron != null && dijeron >= minimo && (
+                  <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
+                    <Check aria-hidden className="h-5 w-5" />
+                    Llegaron las {conMiles(dijeron)}
+                  </button>
+                )}
+                <div className="rc-suma" role="group" aria-label="Sumar de a varias">
+                  <button type="button" onClick={() => poner(contadas + atajoChico)}>
+                    +{atajoChico}
+                  </button>
+                  <button type="button" onClick={() => poner(contadas + atajoGrande)}>
+                    +{atajoGrande}
+                  </button>
+                </div>
+                {contadas > 0 ? (
+                  minimo === 0 && (
+                    <button type="button" className="rc-atajo rc-atajo-cero" onClick={() => deUnToque(0)}>
+                      <RotateCcw aria-hidden className="h-4 w-4" />
+                      Poner en cero
+                    </button>
+                  )
+                ) : (
+                  // Sin aviso nadie dijo que venía: lo que no llegó, simplemente no se agrega.
+                  modelo && !sinAviso && (
+                    <button
+                      type="button"
+                      className="rc-atajo rc-atajo-cero"
+                      data-hecho={noLlego ? "" : undefined}
+                      disabled={noLlego}
+                      onClick={() => {
+                        poner(0);
+                        avisar.exito("Anotado: no llegó nada de este modelo");
+                      }}
+                    >
+                      <Ban aria-hidden className="h-4 w-4" />
+                      No llegó nada
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque).
+              Con el número abierto dice cómo dejarlo; cuál se ve lo decide el CSS (`.rc-paso-uno:has(.rc-dial-vivo)`), sin subir el estado del Dial. */}
+          <p className="rc-pista">
+            <span className="rc-pista-reposo">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</span>
+            <span className="rc-pista-escribe">Escribe la cantidad y presiona Enter.</span>
+            <span className="rc-pista-escribe-dedo">Escribe la cantidad y toca fuera.</span>
+          </p>
+          {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
+          {error && (
+            <div className="rc-placa-error">
+              <Aviso
+                tono="error"
+                chico
+                accion={
+                  <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
+                    Reintentar
+                  </button>
+                }
+              >
+                {error}
+              </Aviso>
+            </div>
+          )}
+        </section>
+  );
   return (
     <>
       <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
@@ -296,7 +414,6 @@ export function PlacaDelModelo({
         </div>
       </div>
 
-      {pasos}
       <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
         {/* ADR-0660: llegó «por definir» desde Mis compras. Antes de contarla se dice qué es (la base no la deja contar sin eso). */}
@@ -320,89 +437,21 @@ export function PlacaDelModelo({
 
         {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
         {/* Por definir (ADR-0660): el contador espera a que se diga qué es; contar antes era un número que la base no guarda. */}
-        <div className={`rc-pasos ${porDefinir ? "opacity-50" : ""}`} inert={porDefinir} aria-disabled={porDefinir || undefined}>
-        <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
-          <div className="rc-bloque-titulo">
-            <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>
-              {hayConteo ? <Check className="h-4 w-4" /> : 1}
-            </span>
-            <h3 className="rc-bloque-nombre">¿Cuántas llegaron?</h3>
-            {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue» lo dice. */}
-            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : null}</span>
+        <div className={`${listaDePasos ? "" : "rc-pasos"} ${porDefinir ? "opacity-50" : ""}`} inert={porDefinir} aria-disabled={porDefinir || undefined}>
+        {listaDePasos ? (
+          <div className="rc-pasos-v" data-guia="recepcion.pasos" aria-label={`Pasos de ${nombreDeParada(parada)}`}>
+            {listaDePasos.map((paso) => (
+              <FilaDePaso key={paso.clave} paso={paso} abierto={paso.clave === pasoAbierto} onCambiar={pasoCambiable(paso) ? () => onCambiarPaso?.(paso.clave) : undefined}>
+                {paso.clave === pasoAbierto ? (paso.clave === "cuantas" ? bloqueCuantas : bloqueDeTallas(paso.clave === "crear" ? "Crear la prenda" : paso.clave === "llevar" ? "Llevar al stock" : "Tallas y colores")) : null}
+              </FilaDePaso>
+            ))}
           </div>
-          <div className="rc-cuenta" data-guia="recepcion.numero">
-            <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
-            <div className="rc-cuenta-lado">
-              {/* De lo más rápido a lo menos común, uno bajo el otro junto al dial (Felipe 2026-11-12, mesa del contador): «ya llegaron todas» primero y en
-                  verde, sumar de a varias y «poner en cero» o «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
-              <div className="rc-atajos">
-                {dijeron != null && dijeron >= minimo && (
-                  <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
-                    <Check aria-hidden className="h-5 w-5" />
-                    Llegaron las {conMiles(dijeron)}
-                  </button>
-                )}
-                <div className="rc-suma" role="group" aria-label="Sumar de a varias">
-                  <button type="button" onClick={() => poner(contadas + atajoChico)}>
-                    +{atajoChico}
-                  </button>
-                  <button type="button" onClick={() => poner(contadas + atajoGrande)}>
-                    +{atajoGrande}
-                  </button>
-                </div>
-                {contadas > 0 ? (
-                  minimo === 0 && (
-                    <button type="button" className="rc-atajo rc-atajo-cero" onClick={() => deUnToque(0)}>
-                      <RotateCcw aria-hidden className="h-4 w-4" />
-                      Poner en cero
-                    </button>
-                  )
-                ) : (
-                  // Sin aviso nadie dijo que venía: lo que no llegó, simplemente no se agrega.
-                  modelo && !sinAviso && (
-                    <button
-                      type="button"
-                      className="rc-atajo rc-atajo-cero"
-                      data-hecho={noLlego ? "" : undefined}
-                      disabled={noLlego}
-                      onClick={() => {
-                        poner(0);
-                        avisar.exito("Anotado: no llegó nada de este modelo");
-                      }}
-                    >
-                      <Ban aria-hidden className="h-4 w-4" />
-                      No llegó nada
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque).
-              Con el número abierto dice cómo dejarlo; cuál se ve lo decide el CSS (`.rc-paso-uno:has(.rc-dial-vivo)`), sin subir el estado del Dial. */}
-          <p className="rc-pista">
-            <span className="rc-pista-reposo">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</span>
-            <span className="rc-pista-escribe">Escribe la cantidad y presiona Enter.</span>
-            <span className="rc-pista-escribe-dedo">Escribe la cantidad y toca fuera.</span>
-          </p>
-          {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
-          {error && (
-            <div className="rc-placa-error">
-              <Aviso
-                tono="error"
-                chico
-                accion={
-                  <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
-                    Reintentar
-                  </button>
-                }
-              >
-                {error}
-              </Aviso>
-            </div>
-          )}
-        </section>
-        {bloqueDeTallas()}
+        ) : (
+          <>
+            {bloqueCuantas}
+            {bloqueDeTallas()}
+          </>
+        )}
         </div>
 
         {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
@@ -469,5 +518,30 @@ export function PlacaDelModelo({
         <LoQueAnotoCompras nombre={nombreDeParada(parada)} foto={foto} categoria={p.categoria ?? null} lineas={lineasDeCompra} onCerrar={() => setVerCompra(false)} />
       )}
     </>
+  );
+}
+
+/** Una fila de la lista de pasos (ADR-0699, forma A): abierta muestra su contenido; hecha, su resumen y «Cambiar»; la que falta, «Después». */
+function FilaDePaso({ paso, abierto, onCambiar, children }: { paso: PasoDelModelo; abierto: boolean; onCambiar?: () => void; children: ReactNode }) {
+  const estado = abierto ? "abierto" : paso.estado === "hecho" ? "hecho" : "falta";
+  return (
+    <div className="rc-paso-v" data-estado={estado} data-campo={`rc-paso-${paso.clave}`} aria-current={abierto ? "step" : undefined}>
+      <span className="rc-paso-num" aria-hidden>
+        {estado === "hecho" ? <Check className="h-4 w-4" /> : paso.numero}
+      </span>
+      {abierto ? (
+        <div className="rc-paso-v-cuerpo">{children}</div>
+      ) : (
+        <p className="rc-paso-v-fila">
+          <b>{paso.nombre}</b>
+          <span>{estado === "hecho" ? paso.detalle : "Después"}</span>
+          {onCambiar && (
+            <button type="button" className="btn-cayla btn-enlace" onClick={onCambiar}>
+              Cambiar
+            </button>
+          )}
+        </p>
+      )}
+    </div>
   );
 }

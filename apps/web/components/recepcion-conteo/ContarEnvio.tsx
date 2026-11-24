@@ -121,7 +121,6 @@ import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
-import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
 import { FotoPorQr } from "./FotoPorQr";
 import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
 import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
@@ -850,10 +849,17 @@ export function ContarEnvio({
     const t = tomadas.get(clave);
     return t ? [t.archivo] : [];
   };
-  const abrirPaso = (clave: ClavePaso) => {
-    if (!parada) return;
-    if (clave === "cuantas") setEscribirEn(pedirAbrir(parada.clave));
-    else if (clave === "crear" || clave === "tallas") elegirModo(parada, "ahora");
+  // «Cambiar» lo contado abre otra vez el número de ESE modelo mientras lo contado siga igual: apenas cambia, vuelve a abrirse lo que toca.
+  const [cuantasReabierto, setCuantasReabierto] = useState<{ clave: string; contadas: number } | null>(null);
+  const pasoAbiertoDe = (p: ParadaDelConteo): ClavePaso | null => {
+    if (p.modelo && cuantasReabierto?.clave === p.clave && cuantasReabierto.contadas === p.modelo.contadas) return "cuantas";
+    return pasosDeLaParada?.find((x) => x.estado === "abierto")?.clave ?? null;
+  };
+  const cambiarPaso = (p: ParadaDelConteo, clave: ClavePaso) => {
+    if (clave === "cuantas" && p.modelo) {
+      setCuantasReabierto({ clave: p.clave, contadas: p.modelo.contadas });
+      setEscribirEn(pedirAbrir(p.clave));
+    } else if (clave === "tallas") elegirModo(p, "ahora");
   };
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
@@ -1046,20 +1052,9 @@ export function ContarEnvio({
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) || (tarjeta === "nueva" && !nuevaParaDespues) ? "toca" : "falta"}
               abrirNumero={escribirEn?.clave === parada.clave ? escribirEn.vez : 0}
-              pasos={
-                pasosDeLaParada && (
-                  <div className="rc-placa-pasos" data-guia="recepcion.pasos">
-                    <PuntosAvance
-                      pasos={pasosDeLaParada}
-                      etiqueta={`Pasos de ${nombreDeParada(parada)}`}
-                      onAbrir={(n) => {
-                        const paso = pasosDeLaParada.find((x) => x.numero === n);
-                        if (paso) abrirPaso(paso.clave);
-                      }}
-                    />
-                  </div>
-                )
-              }
+              pasos={pasosDeLaParada}
+              pasoAbierto={pasoAbiertoDe(parada)}
+              onCambiarPaso={(clave) => cambiarPaso(parada, clave)}
               pendiente={faltaContar}
               sinTallasEn={faltanTallasEn}
               onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}

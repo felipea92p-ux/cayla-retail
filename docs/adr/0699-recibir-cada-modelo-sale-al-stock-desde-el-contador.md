@@ -121,3 +121,15 @@ SE ROMPE SI: alguien cambia lo que devuelve `preparar_prenda_al_recibir` (`varia
 
 En la pantalla: «Temporada y etiquetas», plegado como en Nuevo producto, en el paso «Cómo es» de «Crear la prenda» (las mismas piezas,
 `ElegirTemporada` y `ElegirEtiquetas`). La consulta de etiquetas es una sola para Nuevo producto y Recibir (`consultaEtiquetasAlta`).
+
+## Los pasos, como camino y no como opción (2026-11-24, tarde)
+
+Felipe, mirando la maqueta con los pasos como fichas arriba: «si lo pones arriba como una opción puede que ni se den cuenta». Se mostraron dos
+formas guiadas y eligió la **A**: los pasos son el cuerpo de la placa, uno bajo otro. El que toca está abierto, lo hecho queda en una línea
+con su resumen y «Cambiar», y lo que viene, apagado. Se quitó la tira de puntos (`PuntosAvance` volvió a ser solo de Nuevo producto, sin la
+prop `etiqueta`). Y, a su pedido, **al pasar a otro paso la placa lo centra y lo enciende** con la luz de la guía de foco, y con mouse el
+cursor queda en su botón principal.
+
+En la app, los pasos de una prenda nueva son Cuántas → Crear → Tallas → Llevar. La pregunta «¿ya la tenemos?» va al abrir «Crear la prenda»,
+después de contar, y no como paso 1 como en la maqueta: ligar el modelo a una prenda que ya existe con 0 contadas hoy pierde el vínculo (el
+hallazgo 1c del plan, la misma raíz del «No llegó falso»), así que contar primero es lo que no deja datos a medias.

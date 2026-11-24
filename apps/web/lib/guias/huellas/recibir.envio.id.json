@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 333,
+  "total": 334,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -320,6 +320,12 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
+      "button «Llegaron las»",
+      "button «+»",
+      "button «+» #2",
+      "button «Poner en cero»",
+      "button «No llegó nada»",
+      "button «Reintentar»",
       "button «{`Ver lo que anotó Compras de ${nombreDeParada(parada)}»",
       "button «Ver lo que anotó Compras»",
       "input «Foto de la prenda»",
@@ -327,17 +333,12 @@
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
       "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
       "Boton «Decir qué es»",
-      "button «Llegaron las»",
-      "button «+»",
-      "button «+» #2",
-      "button «Poner en cero»",
-      "button «No llegó nada»",
-      "button «Reintentar»",
       "Boton «Llegó dañada»",
       "Boton «Es otra prenda»",
       "button «{`Ir a ${nombreDeParada(pendiente)}»",
       "button «{`Ir a ${nombreDeParada(sinTallasEn)}»",
-      "button «Ver todos»"
+      "button «Ver todos»",
+      "button «Cambiar»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",

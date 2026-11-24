@@ -2028,7 +2028,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros", para: "cerrar" }, { tipo: "escape" }],
       titulo: "Lo que le falta a este modelo",
-      texto: "Arriba van sus pasos hasta la venta: cuántas llegaron, crear la prenda (solo si es nueva), sus tallas y llevarla al stock. El punto que late es el que toca. Toca un paso listo para volver a él.",
+      texto: "Son sus pasos hasta la venta, uno bajo otro: cuántas llegaron, crear la prenda (si es nueva), sus tallas y llevarla al stock. El que toca está abierto; lo hecho queda en una línea con «Cambiar».",
     },
     {
       id: "foto",
