@@ -102,3 +102,19 @@ Pruebas de `lib` 169 066 en verde; huella de la guía aceptada.
   partes (huellas por grupo y solo las líneas nuevas), en solo lectura.
 - **Qué se rompería sin esto:** `datos:comparar` diría que `crear_foto_por_qr` o `preparar_prenda_al_recibir_con_ficha` no existen en
   producción, y alguien podría volver a pegarlas. Hoy: ninguna pantalla llama a una función con parámetros que producción no acepte.
+
+## La foto del modelo: «Cargando foto…», «Quitar fondo» y la × (2026-11-24)
+
+- **Qué hice:** cuando llega la foto del celular, la hoja del QR se cierra en el acto y la miniatura dice «Cargando foto…» hasta que se ve
+  (lo mismo al abrir una foto de la computadora). Bajo los botones de la foto, el interruptor «Quitar fondo»: es la foto de catálogo con IA de
+  Nuevo producto (maniquí invisible, sin fondo); mientras trabaja, la miniatura dice «Quitando el fondo…». Apagarlo vuelve a la foto tal cual,
+  y la × de la esquina quita la foto. Al crear la prenda, la versión sin fondo entra ya hecha y no se vuelve a pagar.
+- **Por qué así:** la IA se paga por pedido. Se pide una vez por foto y se guarda, así que apagar y encender no cobra de nuevo, y «Crear la
+  prenda» no la repite. El interruptor recuerda lo último elegido en el aparato, la misma preferencia que «Catálogo con IA», para no tener dos
+  respuestas distintas a la misma pregunta. Lógica pura en `lib/recepcion-foto-reglas.ts` con su prueba.
+- **Qué se rompería sin esto:** la foto del celular tardaba en verse sin ninguna señal y parecía que no había llegado; y para quitar el
+  fondo había que esperar a «Crear la prenda» sin saber si iba a pasar.
+
+**Probado en local** (Playwright sin ventana, IA simulada, ENV-001839 de prueba, anulado): la franja dijo «Cargando foto…» y luego
+«Quitando el fondo…»; apagar mostró la original sin otro pedido; la × dejó «Tomar foto»; en «Crear la prenda» la foto llegó con su versión
+sin fondo y «Usar mi foto», con 2 pedidos a la IA en total (uno por foto).

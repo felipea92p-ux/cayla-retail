@@ -5,7 +5,9 @@ import { Ban, Banknote, Camera, Check, Package, QrCode, Repeat, RotateCcw, Spark
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
+import { Boton, HiloEnEspera, Interruptor } from "@/components/ui/campos";
+import { BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
+import { TEXTO_DEL_ESTADO, type EstadoDeLaFoto } from "@/lib/recepcion-foto-reglas";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -64,6 +66,9 @@ export function PlacaDelModelo({
   onFoto,
   onFotoCelular,
   fotoTomada = false,
+  estadoFoto = null,
+  sinFondo,
+  onQuitarFoto,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -126,6 +131,12 @@ export function PlacaDelModelo({
   onFotoCelular?: () => void;
   /** Ya se tomó una: el botón dice «Cambiar foto». */
   fotoTomada?: boolean;
+  /** Algo de la foto está en camino (se trae del celular, o se le quita el fondo): la miniatura lo dice en su franja. */
+  estadoFoto?: EstadoDeLaFoto;
+  /** «Quitar fondo» de la foto tomada (la foto de catálogo con IA). Sin él (la cuenta no puede usar la IA, o no hay foto), no se ofrece. */
+  sinFondo?: { activo: boolean; onCambiar: (si: boolean) => void };
+  /** Quitar la foto tomada (todavía no se subió nada: no se pregunta). */
+  onQuitarFoto?: () => void;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -326,14 +337,27 @@ export function PlacaDelModelo({
     <>
       <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
         {/* La foto (o el ícono) se toca y abre lo que anotó Compras: la descripción, el costo y el precio sugerido (Felipe 2026-11-12). */}
-        {p.categoria &&
-          (lineasDeCompra.length > 0 ? (
-            <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
+        {p.categoria && (
+          // La caja de la foto: la miniatura, su franja mientras algo está en camino y la × para quitar la foto tomada (como en «Fotos y colores»).
+          <div className="rc-placa-foto-caja" aria-busy={estadoFoto ? true : undefined}>
+            {lineasDeCompra.length > 0 ? (
+              <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
+                <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+              </button>
+            ) : (
               <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
-            </button>
-          ) : (
-            <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
-          ))}
+            )}
+            {estadoFoto && (
+              <span className="rc-placa-foto-estado" role="status">
+                {TEXTO_DEL_ESTADO[estadoFoto]}
+                <HiloEnEspera />
+              </span>
+            )}
+            {onQuitarFoto && fotoTomada && estadoFoto !== "cargando" && (
+              <BotonQuitarFoto grande etiqueta={`Quitar la foto de ${nombreDeParada(parada)}`} onClick={onQuitarFoto} className="rc-placa-foto-quitar" />
+            )}
+          </div>
+        )}
         <div className="rc-placa-textos">
           <TituloSeccion>{nombreDeParada(parada)}</TituloSeccion>
           {/* De dónde es, en una línea: la categoría, quién la trajo y su marca (antes la marca era una píldora más). */}
@@ -406,6 +430,22 @@ export function PlacaDelModelo({
                 <QrCode aria-hidden className="h-4 w-4" />
                 Con el celular
               </button>
+            )}
+            {sinFondo && (
+              // La misma foto de catálogo con IA de Nuevo producto: maniquí invisible, sin fondo. Apagar vuelve a la original sin pagar otra vez.
+              <div className="rc-placa-sin-fondo" data-guia="recepcion.sin-fondo" title="Con IA: maniquí invisible, sin fondo. Apagado, queda tu foto tal cual.">
+                <Interruptor
+                  activo={sinFondo.activo}
+                  onActivo={sinFondo.onCambiar}
+                  disabled={estadoFoto === "cargando"}
+                  etiqueta={
+                    <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                      <Sparkles aria-hidden className="h-3.5 w-3.5" />
+                      Quitar fondo
+                    </span>
+                  }
+                />
+              </div>
             )}
             {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
             {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}
