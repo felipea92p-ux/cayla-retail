@@ -13,7 +13,7 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/QueTieneLaPrenda.tsx": [
-      "Casilla «{NOMBRE_RASGO[r]}»"
+      "Casilla «{c.nombre}»"
     ],
     "components/mi-plata/AbrirRonda.tsx": [
       "Boton «Abrir mi ronda»"

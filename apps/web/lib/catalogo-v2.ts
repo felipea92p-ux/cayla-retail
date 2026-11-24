@@ -21,7 +21,7 @@ import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 import { leerCostoPrenda } from "@/lib/costo-prenda-reglas";
 import { leerCostoDeLasTallas, resumenCostoPrenda, type CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
-import { RASGOS, type Rasgo } from "./margen-por-rasgos";
+import type { Rasgo } from "./margen-por-rasgos";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -534,7 +534,8 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   if (rasgosPorId && typeof rasgosPorId === "object" && !Array.isArray(rasgosPorId)) {
     for (const [id, lista] of Object.entries(rasgosPorId as Record<string, unknown>)) {
       const p = porProducto.get(id);
-      if (p && Array.isArray(lista)) p.rasgos = lista.filter((r): r is Rasgo => RASGOS.includes(r as Rasgo));
+      // Los códigos de la lista del Admin (la base solo manda casillas prendidas); lo que no es texto se salta.
+      if (p && Array.isArray(lista)) p.rasgos = lista.filter((r): r is Rasgo => typeof r === "string");
     }
   }
   for (const d of descripciones ?? []) {

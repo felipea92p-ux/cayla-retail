@@ -37,7 +37,7 @@
       "button «Ir a»"
     ],
     "components/QueTieneLaPrenda.tsx": [
-      "Casilla «{NOMBRE_RASGO[r]}»"
+      "Casilla «{c.nombre}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",

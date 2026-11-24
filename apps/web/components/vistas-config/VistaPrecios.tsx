@@ -11,6 +11,9 @@ import { Casilla as CasillaDeMarcar } from "@/components/ui/Casilla";
 import { CampoMonto } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { Boton } from "@/components/ui/campos";
+import { LapizEditar } from "@/components/ui/BotonEditar";
+import { CasillaDePrecioModal, type CasillaEnHoja } from "@/components/vistas-config/CasillaDePrecioModal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Casilla } from "@/components/ConfiguracionCasilla";
 import { useLuzDelMouse } from "@/components/vitrinas-sedes/useLuzDelMouse";
@@ -19,13 +22,15 @@ import { firmar } from "@/lib/responsable-reglas";
 import { montoEscrito } from "@/lib/margen-a-la-vista";
 import { soles } from "@/lib/compras-reglas";
 import {
+  DE_DONDE_SALE,
+  leerApagadas,
   leerReglas,
   MARGEN_BASE_RECOMENDADO,
-  NOMBRE_RASGO,
   problemaDeReglas,
-  RASGOS,
+  puntosPorCasilla,
   rebajaQueAguanta,
   sugerirPrecio,
+  type Casilla as CasillaDePrecio,
   type ItemDeLista,
   type ListasDePrecio,
   type Rasgo,
@@ -33,19 +38,12 @@ import {
 } from "@/lib/margen-por-rasgos";
 
 // Configuración ▸ Precios (ADR-0700, Felipe 2026-11-24; maqueta https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx): la base del margen (con
-// la recomendada a la vista), el % que suma cada casilla y las dos listas (tejidos que se notan, marcas que el cliente conoce). Solo un Admin cambia algo; la base lo vuelve
-// a exigir. Las casillas se guardan solas al salir, firmadas con el responsable, como en el resto de Configuración. «Así queda» muestra el
-// efecto con un costo de ejemplo, con la misma cuenta que usará quien fija el precio.
+// la recomendada a la vista), las casillas de «¿Qué tiene esta prenda?» —cuánto suma cada una; desde 20261124201000 el Admin agrega,
+// renombra o apaga una en su hoja (`CasillaDePrecioModal`)— y las dos listas (tejidos que se notan, marcas que el cliente conoce). Solo un
+// Admin cambia algo; la base lo vuelve a exigir. Los números se guardan solos al salir, firmados con el responsable, como en el resto de
+// Configuración. «Así queda» muestra el efecto con un costo de ejemplo, con la misma cuenta que usará quien fija el precio.
 
 const conVar = (x: Record<string, string | number>) => x as CSSProperties;
-
-/** De dónde sale cada casilla, en una línea. */
-const DE_DONDE: Readonly<Record<Rasgo, string>> = {
-  nadie_la_tiene: "La marca quien compra.",
-  en_tendencia: "La marca quien compra.",
-  tela_que_se_nota: "Llega marcada por tu lista de tejidos.",
-  marca_conocida: "Sale sola de tu lista de marcas.",
-};
 
 /** Los que se ven sin abrir la lista: los que más modelos llevan. */
 const A_LA_VISTA = 12;
@@ -54,7 +52,11 @@ const A_LA_VISTA = 12;
 function AsiQueda({ reglas }: { reglas: ReglasDePrecio }) {
   const [costo, setCosto] = useState("30.90");
   const c = montoEscrito(costo);
-  const filas: [string, Rasgo[]][] = [["Sin casillas", []], ...RASGOS.map((r): [string, Rasgo[]] => [`Solo «${NOMBRE_RASGO[r]}»`, [r]]), ["Con las cuatro", [...RASGOS]]];
+  const filas: [string, Rasgo[]][] = [
+    ["Sin casillas", []],
+    ...reglas.casillas.map((c): [string, Rasgo[]] => [`Solo «${c.nombre}»`, [c.codigo]]),
+    ...(reglas.casillas.length > 1 ? [["Con todas", reglas.casillas.map((c) => c.codigo)] as [string, Rasgo[]]] : []),
+  ];
   return (
     <section className="vs-liquido cv-bloque" data-luz data-guia="config.precios-ejemplo" style={conVar({ "--e": 1 })}>
       <TituloSeccion ayuda="Con un costo de ejemplo, el precio que se sugeriría y la rebaja que aguanta sin perder. No guarda nada.">Así queda</TituloSeccion>
@@ -141,11 +143,13 @@ function Lista({
 
 export function VistaPrecios({
   reglas: reglasIniciales,
+  apagadas: apagadasIniciales,
   registradoPor,
   listas: listasIniciales,
   esAdmin,
 }: {
   reglas: ReglasDePrecio;
+  apagadas: CasillaDePrecio[];
   registradoPor: string | null;
   listas: ListasDePrecio | null;
   esAdmin: boolean;
@@ -155,6 +159,9 @@ export function VistaPrecios({
   useLuzDelMouse(raiz);
   const responsable = useResponsable();
   const [reglas, setReglas] = useState(reglasIniciales);
+  const [apagadas, setApagadas] = useState(apagadasIniciales);
+  // La hoja de una casilla: `"nueva"` para agregar una, la casilla para editarla.
+  const [hoja, setHoja] = useState<CasillaEnHoja | "nueva" | null>(null);
   const [listas, setListas] = useState(listasIniciales);
   const [enCurso, setEnCurso] = useState<string | null>(null);
 
@@ -179,7 +186,7 @@ export function VistaPrecios({
     }
     if (!listo()) return false;
     const { data, error } = await firmar(
-      createClient().rpc("guardar_reglas_de_precio" as never, { p_margen_base: nueva.margenBase, p_puntos: nueva.puntos } as never) as never,
+      createClient().rpc("guardar_reglas_de_precio" as never, { p_margen_base: nueva.margenBase, p_puntos: puntosPorCasilla(nueva) } as never) as never,
       responsable.firma(),
     );
     responsable.despues(error as never);
@@ -188,6 +195,7 @@ export function VistaPrecios({
       return false;
     }
     setReglas(leerReglas(data));
+    setApagadas(leerApagadas(data));
     avisar.exito(`${que}: ${tipeado.trim()}.`);
     router.refresh();
     return true;
@@ -212,7 +220,13 @@ export function VistaPrecios({
     avisar.exito(`${item.nombre}: ${valor ? "entra a la lista" : "sale de la lista"}.`);
   };
 
-  const tope = RASGOS.reduce((t, r) => t + reglas.puntos[r], reglas.margenBase);
+  const tope = reglas.casillas.reduce((t, c) => t + c.puntos, reglas.margenBase);
+  const casillaGuardada = (data: unknown, aviso: string) => {
+    setReglas(leerReglas(data));
+    setApagadas(leerApagadas(data));
+    avisar.exito(aviso);
+    router.refresh();
+  };
   return (
     <div className="vs-raiz" ref={raiz}>
       {esAdmin ? (
@@ -257,27 +271,45 @@ export function VistaPrecios({
               )}
               <span className="cv-unidad">%</span>
             </div>
-            {RASGOS.map((rasgo, i) => (
-              <div key={rasgo} className="cv-fila cv-tope" style={conVar({ "--i": i + 1 })}>
+            {reglas.casillas.map((c, i) => (
+              <div key={c.codigo} className="cv-fila cv-tope" data-guia={i === 0 ? "config.precios-casilla" : undefined} style={conVar({ "--i": i + 1 })}>
                 <span className="vs-textos">
-                  <span className="cv-frase">{NOMBRE_RASGO[rasgo]}</span>
-                  <span className="vs-rotulo">{DE_DONDE[rasgo]}</span>
+                  <span className="cv-frase">{c.nombre}</span>
+                  {/* Solo las que no marca quien compra dicen de dónde salen: repetir «La marca quien compra» en cada fila era ruido. */}
+                  {c.origen !== "a_mano" && <span className="vs-rotulo">{DE_DONDE_SALE[c.origen]}</span>}
                 </span>
+                {esAdmin && <LapizEditar que={`«${c.nombre}»`} onClick={() => setHoja({ ...c, activa: true })} />}
                 <span className="cv-unidad">+</span>
                 {esAdmin ? (
                   <Casilla
-                    valor={String(reglas.puntos[rasgo])}
-                    etiqueta={`Cuánto % suma «${NOMBRE_RASGO[rasgo]}»`}
+                    valor={String(c.puntos)}
+                    etiqueta={`Cuánto % suma «${c.nombre}»`}
                     ancho="w-16"
-                    alGuardar={guardar((r, n) => ({ ...r, puntos: { ...r.puntos, [rasgo]: n } }), NOMBRE_RASGO[rasgo])}
+                    alGuardar={guardar((r, n) => ({ ...r, casillas: r.casillas.map((x) => (x.codigo === c.codigo ? { ...x, puntos: n } : x)) }), c.nombre)}
                   />
                 ) : (
-                  <b className="tabular-nums">{reglas.puntos[rasgo]}</b>
+                  <b className="tabular-nums">{c.puntos}</b>
                 )}
                 <span className="cv-unidad">%</span>
               </div>
             ))}
+            {apagadas.map((c, i) => (
+              <div key={c.codigo} className="cv-fila cv-tope" style={conVar({ "--i": reglas.casillas.length + i + 1 })}>
+                <span className="vs-textos">
+                  <span className="cv-frase text-secundario">{c.nombre}</span>
+                  <span className="vs-rotulo">Apagada: no suma.</span>
+                </span>
+                {esAdmin && <LapizEditar que={`«${c.nombre}»`} onClick={() => setHoja({ ...c, activa: false })} />}
+              </div>
+            ))}
           </div>
+          {esAdmin && (
+            <div className="mt-3">
+              <Boton type="button" peso="fantasma" onClick={() => setHoja("nueva")} data-guia="config.precios-agregar">
+                + Agregar casilla
+              </Boton>
+            </div>
+          )}
         </section>
         <AsiQueda reglas={reglas} />
       </div>
@@ -306,6 +338,16 @@ export function VistaPrecios({
         <Aviso tono="error" titulo="No se pudieron leer los tejidos y las marcas">
           Recarga la página; si sigue, avísale al líder.
         </Aviso>
+      )}
+      {hoja && (
+        <CasillaDePrecioModal
+          casilla={hoja === "nueva" ? null : hoja}
+          reglas={reglas}
+          apagadas={apagadas}
+          responsable={responsable}
+          onCerrar={() => setHoja(null)}
+          alGuardar={casillaGuardada}
+        />
       )}
     </div>
   );

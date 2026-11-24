@@ -1,6 +1,6 @@
 "use client";
 
-import { useListasDeRasgos } from "@/components/ReglasDePrecio";
+import { useListasDeRasgos, useReglasDePrecio } from "@/components/ReglasDePrecio";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -183,6 +183,7 @@ const ANTERIOR: Partial<Record<PasoCompra, PasoCompra>> = {
 export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guardadas?: readonly string[] }) {
   const router = useRouter();
   const listasDeRasgos = useListasDeRasgos();
+  const { casillas } = useReglasDePrecio();
   const [id, setId] = useState(() => crypto.randomUUID());
   const [paso, setPaso] = useState<PasoCompra>("proveedor");
   const [q, setQ] = useState("");
@@ -526,7 +527,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
     if (!enCurso || hojaHecha.current === enCurso) return;
     const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, marcasDeLaHoja) : enCurso.habitual;
     // ADR-0700: lo que la prenda tiene viaja con cada línea (la misma cuenta que la hoja: lo marcado y la marca por la lista).
-    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId ?? "")?.admitePrecioCero === true, rasgosDePrenda(h, enCurso, listasDeRasgos)) : [];
+    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId ?? "")?.admitePrecioCero === true, rasgosDePrenda(h, enCurso, listasDeRasgos, casillas)) : [];
     if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
     const clave = enCurso.edita;

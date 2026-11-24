@@ -477,7 +477,7 @@ export function ProductoForm({
   const [eleccionRasgos, setEleccionRasgos] = useState<EleccionDeRasgos>(rasgosGuardados ?? {});
   const listasDeRasgos = useListasDeRasgos();
   const reglasDePrecio = useReglasDePrecio();
-  const rasgos = rasgosEfectivos(eleccionRasgos, {
+  const rasgos = rasgosEfectivos(eleccionRasgos, reglasDePrecio.casillas, {
     tejidoSeNota: !!tejidoId && listasDeRasgos.tejidosQueSeNotan.has(tejidoId),
     marcaConocida: !!marcaId && listasDeRasgos.marcasConocidas.has(marcaId),
   });
@@ -1980,7 +1980,6 @@ export function ProductoForm({
                   eleccion={eleccionRasgos}
                   onEleccion={setEleccionRasgos}
                   rasgos={rasgos}
-                  puntos={reglasDePrecio.puntos}
                   firma={() => stock.responsable.firma()}
                   listo={stock.responsable.listo}
                   motivoSinFirma={stock.responsable.motivo}

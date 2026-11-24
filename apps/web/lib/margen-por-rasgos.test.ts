@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { conRebajaCts, cuentaDelPrecio, IGV, pierdeConElPrecio } from "./cuenta-de-precio";
 import {
+  CASILLAS_DE_FABRICA,
   eleccionDeRasgos,
   eleccionParaGuardar,
+  leerApagadas,
   leerEleccionGuardada,
   leerReglas,
   leerReglasYListas,
@@ -10,8 +12,9 @@ import {
   margenObjetivo,
   MARGEN_TOPE,
   precioConMargen,
+  problemaDeCasilla,
   problemaDeReglas,
-  RASGOS,
+  puntosPorCasilla,
   rebajaQueAguanta,
   REGLAS_DE_FABRICA,
   sugerirPrecio,
@@ -19,19 +22,63 @@ import {
 } from "./margen-por-rasgos";
 
 // ADR-0700. Los casos de la maqueta (https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx): blusa de S/ 30.90 en Trujillo, parecidas a S/ 52.90.
+// Desde 20261124201000 las casillas son una lista que edita el Admin; la de fábrica trae seis, a +3 % cada una.
 
-const conBase = (margenBase: number, puntos = REGLAS_DE_FABRICA.puntos): ReglasDePrecio => ({ margenBase, puntos });
+const conBase = (margenBase: number, casillas = CASILLAS_DE_FABRICA): ReglasDePrecio => ({ margenBase, casillas });
+/** Las de fábrica con otros puntos (las que no se nombran quedan en 3). */
+const conPuntos = (margenBase: number, puntos: Record<string, number>): ReglasDePrecio =>
+  conBase(margenBase, CASILLAS_DE_FABRICA.map((c) => ({ ...c, puntos: puntos[c.codigo] ?? c.puntos })));
+/** Las cuatro de la maqueta: las tres de quien compra y la marca. */
+const CUATRO = ["nadie_la_tiene", "en_tendencia", "tela_que_se_nota", "marca_conocida"];
+const TODAS = CASILLAS_DE_FABRICA.map((c) => c.codigo);
 /** El margen sin redondear sobre el precio sin IGV: la definición. */
 const margenExacto = (costo: number, precio: number) => (precio / IGV - costo) / (precio / IGV);
 
 describe("leerReglas: lo que manda la base, o la regla de fábrica", () => {
-  it("lee la base y los puntos", () => {
-    const r = leerReglas({ margen_base: 33, puntos: { nadie_la_tiene: 4, en_tendencia: 5, tela_que_se_nota: 2, marca_conocida: 0 } });
-    expect(r).toEqual({ margenBase: 33, puntos: { nadie_la_tiene: 4, en_tendencia: 5, tela_que_se_nota: 2, marca_conocida: 0 } });
+  it("lee la base y la lista de casillas, en su orden", () => {
+    const r = leerReglas({
+      margen_base: 33,
+      casillas: [
+        { codigo: "hecha_a_mano", nombre: "Hecha a mano", ayuda: "Crochet o bordado a mano.", puntos: 4, origen: "a_mano", orden: 70 },
+        { codigo: "tela_que_se_nota", nombre: "Tela que se nota", ayuda: null, puntos: 2, origen: "por_tejido", orden: 30 },
+      ],
+    });
+    expect(r).toEqual({
+      margenBase: 33,
+      casillas: [
+        { codigo: "hecha_a_mano", nombre: "Hecha a mano", ayuda: "Crochet o bordado a mano.", puntos: 4, origen: "a_mano" },
+        { codigo: "tela_que_se_nota", nombre: "Tela que se nota", ayuda: null, puntos: 2, origen: "por_tejido" },
+      ],
+    });
   });
-  it("sin respuesta o con un dato roto, toma el de fábrica (37 % y +3)", () => {
+  it("una casilla rota o repetida se salta; una lista vacía es «sin casillas» (el Admin las apagó todas)", () => {
+    const r = leerReglas({
+      margen_base: 37,
+      casillas: [
+        { codigo: "Mal Código", nombre: "x", puntos: 3, origen: "a_mano" },
+        { codigo: "en_tendencia", nombre: "En tendencia", puntos: 11, origen: "a_mano" },
+        { codigo: "nadie_la_tiene", nombre: "Nadie la tiene", puntos: 3, origen: "otro" },
+        { codigo: "detalle_de_diseno", nombre: "Detalle de diseño", puntos: 3, origen: "a_mano" },
+        { codigo: "detalle_de_diseno", nombre: "Otra vez", puntos: 1, origen: "a_mano" },
+      ],
+    });
+    expect(r.casillas.map((c) => c.codigo)).toEqual(["detalle_de_diseno"]);
+    expect(leerReglas({ margen_base: 37, casillas: [] })).toEqual({ margenBase: 37, casillas: [] });
+  });
+  it("con la función de antes (solo `puntos`): las de fábrica que nombra, con sus puntos", () => {
+    const r = leerReglas({ margen_base: 33, puntos: { nadie_la_tiene: 4, en_tendencia: 5, tela_que_se_nota: 2, marca_conocida: 0 } });
+    expect(r.margenBase).toBe(33);
+    expect(r.casillas.map((c) => [c.codigo, c.puntos])).toEqual([["nadie_la_tiene", 4], ["en_tendencia", 5], ["tela_que_se_nota", 2], ["marca_conocida", 0]]);
+  });
+  it("sin respuesta o con un dato roto, toma el de fábrica (37 % y seis casillas de +3)", () => {
     expect(leerReglas(null)).toEqual(REGLAS_DE_FABRICA);
     expect(leerReglas({ margen_base: "36", puntos: { nadie_la_tiene: 2.5 } })).toEqual(REGLAS_DE_FABRICA);
+    expect(REGLAS_DE_FABRICA.casillas).toHaveLength(6);
+  });
+  it("las apagadas se leen aparte; los puntos viajan por código", () => {
+    expect(leerApagadas({ apagadas: [{ codigo: "en_tendencia", nombre: "En tendencia", puntos: 3, origen: "a_mano" }, { codigo: 1 }] }).map((c) => c.codigo)).toEqual(["en_tendencia"]);
+    expect(leerApagadas(null)).toEqual([]);
+    expect(puntosPorCasilla(conPuntos(37, { en_tendencia: 5 }))).toMatchObject({ en_tendencia: 5, nadie_la_tiene: 3 });
   });
 });
 
@@ -40,9 +87,26 @@ describe("problemaDeReglas: los mismos candados que la base", () => {
   it("base fuera de 20–60, puntos fuera de 0–10 y el tope de 75 %", () => {
     expect(problemaDeReglas(conBase(19))).toMatch(/de 20 a 60/);
     expect(problemaDeReglas(conBase(36.5))).toMatch(/de 20 a 60/);
-    expect(problemaDeReglas(conBase(36, { ...REGLAS_DE_FABRICA.puntos, en_tendencia: 11 }))).toBe("«En tendencia» suma de 0 a 10 %.");
-    expect(problemaDeReglas(conBase(60, { nadie_la_tiene: 4, en_tendencia: 4, tela_que_se_nota: 4, marca_conocida: 4 }))).toMatch(/75 %/);
-    expect(problemaDeReglas(conBase(60, { nadie_la_tiene: 4, en_tendencia: 4, tela_que_se_nota: 4, marca_conocida: 3 }))).toBeNull();
+    expect(problemaDeReglas(conPuntos(36, { en_tendencia: 11 }))).toBe("«En tendencia» suma de 0 a 10 %.");
+    expect(problemaDeReglas(conBase(58))).toMatch(/75 %/);
+    expect(problemaDeReglas(conBase(57))).toBeNull();
+  });
+});
+
+describe("problemaDeCasilla: agregar, renombrar o apagar una casilla", () => {
+  const nueva = (nombre: string, puntos = 3, activa = true) => ({ codigo: null, nombre, puntos, activa });
+  it("una casilla nueva bien escrita se puede guardar", () => expect(problemaDeCasilla(REGLAS_DE_FABRICA, nueva("Hecha a mano"))).toBeNull());
+  it("el nombre: de 2 a 40 letras, y sin repetir otra (sin mirar mayúsculas ni espacios)", () => {
+    expect(problemaDeCasilla(REGLAS_DE_FABRICA, nueva(" A "))).toMatch(/de 2 a 40/);
+    expect(problemaDeCasilla(REGLAS_DE_FABRICA, nueva("x".repeat(41)))).toMatch(/de 2 a 40/);
+    expect(problemaDeCasilla(REGLAS_DE_FABRICA, nueva("  en   TENDENCIA "))).toBe("Ya hay una casilla «En tendencia».");
+    expect(problemaDeCasilla(REGLAS_DE_FABRICA, { codigo: "en_tendencia", nombre: "En tendencia", puntos: 4, activa: true })).toBeNull();
+  });
+  it("los puntos de 0 a 10, y con todas no se pasa de 75 % (una apagada no cuenta)", () => {
+    expect(problemaDeCasilla(REGLAS_DE_FABRICA, nueva("Hecha a mano", 11))).toBe("Cada casilla suma de 0 a 10 %.");
+    expect(problemaDeCasilla(conBase(55), nueva("Hecha a mano", 3))).toMatch(/75 %/);
+    expect(problemaDeCasilla(conBase(55), nueva("Hecha a mano", 2))).toBeNull();
+    expect(problemaDeCasilla(conBase(55), nueva("Hecha a mano", 9, false))).toBeNull();
   });
 });
 
@@ -50,10 +114,14 @@ describe("margenObjetivo: la base más lo que la prenda tiene", () => {
   it("cada casilla suma sus puntos una sola vez", () => {
     expect(margenObjetivo(REGLAS_DE_FABRICA, [])).toBe(37);
     expect(margenObjetivo(REGLAS_DE_FABRICA, ["en_tendencia", "en_tendencia"])).toBe(40);
-    expect(margenObjetivo(REGLAS_DE_FABRICA, RASGOS)).toBe(49);
+    expect(margenObjetivo(REGLAS_DE_FABRICA, TODAS)).toBe(55);
+  });
+  it("una casilla que ya no está en la lista (apagada) no suma", () => {
+    expect(margenObjetivo(REGLAS_DE_FABRICA, ["hecha_a_mano"])).toBe(37);
+    expect(margenObjetivo(conBase(37, CASILLAS_DE_FABRICA.filter((c) => c.codigo !== "en_tendencia")), ["en_tendencia", "nadie_la_tiene"])).toBe(40);
   });
   it("nunca pasa del tope", () => {
-    expect(margenObjetivo(conBase(70, { nadie_la_tiene: 10, en_tendencia: 10, tela_que_se_nota: 10, marca_conocida: 10 }), RASGOS)).toBe(MARGEN_TOPE);
+    expect(margenObjetivo(conPuntos(70, Object.fromEntries(TODAS.map((c) => [c, 10]))), TODAS)).toBe(MARGEN_TOPE);
   });
 });
 
@@ -92,15 +160,15 @@ describe("sugerirPrecio: la regla, las parecidas, el techo de afuera y nunca per
     expect(sugerirPrecio({ ...blusa, rasgos: [] })).toMatchObject({ precio: 54.9, regla: 54.9, margen: 33, motivo: "regla", techo: null });
   });
   it("con las tres casillas de quien compra y la marca: 45 %", () => {
-    expect(sugerirPrecio({ ...blusa, rasgos: RASGOS })).toMatchObject({ precio: 66.9, margen: 45, motivo: "regla" });
+    expect(sugerirPrecio({ ...blusa, rasgos: CUATRO })).toMatchObject({ precio: 66.9, margen: 45, motivo: "regla" });
   });
   it("si las parecidas se venden a más, se sugiere ese precio", () => {
     expect(sugerirPrecio({ ...blusa, rasgos: [], parecidas: 59.9 })).toMatchObject({ precio: 59.9, regla: 54.9, motivo: "parecidas" });
     expect(sugerirPrecio({ ...blusa, rasgos: [], parecidas: 52.9 })).toMatchObject({ precio: 54.9, motivo: "regla" });
   });
   it("el precio visto afuera es un techo: queda en el .90 justo debajo", () => {
-    expect(sugerirPrecio({ ...blusa, rasgos: RASGOS, afuera: 60 })).toMatchObject({ precio: 59.9, regla: 66.9, techo: 59.9, motivo: "afuera" });
-    expect(sugerirPrecio({ ...blusa, rasgos: RASGOS, afuera: 59.9 })).toMatchObject({ precio: 58.9, techo: 58.9 });
+    expect(sugerirPrecio({ ...blusa, rasgos: CUATRO, afuera: 60 })).toMatchObject({ precio: 59.9, regla: 66.9, techo: 59.9, motivo: "afuera" });
+    expect(sugerirPrecio({ ...blusa, rasgos: CUATRO, afuera: 59.9 })).toMatchObject({ precio: 58.9, techo: 58.9 });
     expect(sugerirPrecio({ ...blusa, rasgos: [], afuera: 90 })).toMatchObject({ precio: 54.9, techo: 89.9, motivo: "regla" });
   });
   it("pero nunca un precio que pierde", () => {
@@ -145,21 +213,30 @@ describe("rebajaQueAguanta: la rebaja más grande sin perder", () => {
 
 describe("lo que la prenda tiene: lo marcado, la tela por su tejido y la marca por la lista", () => {
   const auto = (tejidoSeNota: boolean, marcaConocida: boolean) => ({ tejidoSeNota, marcaConocida });
+  const efectivos = (e: Record<string, boolean | undefined>, a = auto(false, false)) => rasgosEfectivos(e, CASILLAS_DE_FABRICA, a);
   it("en el orden de la hoja, sin importar el orden en que se marcó", () => {
-    expect(rasgosEfectivos({ en_tendencia: true, nadie_la_tiene: true }, auto(false, true))).toEqual(["nadie_la_tiene", "en_tendencia", "marca_conocida"]);
+    expect(efectivos({ detalle_de_diseno: true, en_tendencia: true, nadie_la_tiene: true }, auto(false, true))).toEqual([
+      "nadie_la_tiene",
+      "en_tendencia",
+      "detalle_de_diseno",
+      "marca_conocida",
+    ]);
   });
   it("la tela llega por el tejido, y la persona puede quitarla o ponerla", () => {
-    expect(rasgosEfectivos({}, auto(true, false))).toEqual(["tela_que_se_nota"]);
-    expect(rasgosEfectivos({ tela_que_se_nota: false }, auto(true, false))).toEqual([]);
-    expect(rasgosEfectivos({ tela_que_se_nota: true }, auto(false, false))).toEqual(["tela_que_se_nota"]);
+    expect(efectivos({}, auto(true, false))).toEqual(["tela_que_se_nota"]);
+    expect(efectivos({ tela_que_se_nota: false }, auto(true, false))).toEqual([]);
+    expect(efectivos({ tela_que_se_nota: true })).toEqual(["tela_que_se_nota"]);
   });
   it("la marca no se marca a mano: solo la lista la pone", () => {
-    expect(rasgosEfectivos({}, auto(false, false))).toEqual([]);
-    expect(rasgosEfectivos({}, auto(false, true))).toEqual(["marca_conocida"]);
+    expect(efectivos({ marca_conocida: true })).toEqual([]);
+    expect(efectivos({}, auto(false, true))).toEqual(["marca_conocida"]);
+  });
+  it("lo marcado de una casilla que ya no está prendida no cuenta", () => {
+    expect(rasgosEfectivos({ en_tendencia: true, hecha_a_mano: true }, CASILLAS_DE_FABRICA.filter((c) => c.codigo !== "en_tendencia"), auto(false, false))).toEqual([]);
   });
   it("de vuelta a lo marcado: corregir una línea no pierde nada", () => {
-    const guardado = rasgosEfectivos({ nadie_la_tiene: true, tela_que_se_nota: true }, auto(false, false));
-    expect(rasgosEfectivos(eleccionDeRasgos(guardado), auto(false, false))).toEqual(guardado);
+    const guardado = efectivos({ nadie_la_tiene: true, tela_que_se_nota: true, acabado_y_confeccion: true });
+    expect(efectivos(eleccionDeRasgos(guardado))).toEqual(guardado);
   });
   it("la regla y las listas como las manda la base; lo roto, vacío", () => {
     expect(leerReglasYListas({ margen_base: 37, marcas_conocidas: ["m1", 3], tejidos_que_se_notan: null })).toMatchObject({
@@ -170,22 +247,25 @@ describe("lo que la prenda tiene: lo marcado, la tela por su tejido y la marca p
   });
 });
 
-describe("lo que se guarda de una prenda en Catálogo (20261124183000)", () => {
-  it("sin tocar nada no hay nada que guardar; la tela sin tocar viaja nula (sigue a su tejido)", () => {
-    expect(eleccionParaGuardar({})).toBeNull();
-    expect(eleccionParaGuardar({ nadie_la_tiene: true })).toEqual({ p_nadie_la_tiene: true, p_en_tendencia: false, p_tela_que_se_nota: null });
-    expect(eleccionParaGuardar({ tela_que_se_nota: false })).toEqual({ p_nadie_la_tiene: false, p_en_tendencia: false, p_tela_que_se_nota: false });
-    // Marcar y desmarcar sí se guarda (todo en no): la persona la tocó.
-    expect(eleccionParaGuardar({ en_tendencia: false })).toEqual({ p_nadie_la_tiene: false, p_en_tendencia: false, p_tela_que_se_nota: null });
+describe("lo que se guarda de una prenda en Catálogo (20261124201000: dos listas)", () => {
+  const guardar = (e: Record<string, boolean | undefined>) => eleccionParaGuardar(e, CASILLAS_DE_FABRICA);
+  it("sin decidir nada no hay nada que guardar; la tela sin tocar no viaja (sigue a su tejido)", () => {
+    expect(guardar({})).toBeNull();
+    expect(guardar({ nadie_la_tiene: undefined })).toBeNull();
+    expect(guardar({ nadie_la_tiene: true })).toEqual({ p_marcados: ["nadie_la_tiene"], p_quitados: [] });
+    expect(guardar({ tela_que_se_nota: false })).toEqual({ p_marcados: [], p_quitados: ["tela_que_se_nota"] });
+    // Desmarcar sí se guarda (vacío): la persona la tocó.
+    expect(guardar({ en_tendencia: false })).toEqual({ p_marcados: [], p_quitados: [] });
   });
-
-  it("lo guardado vuelve como lo marcado, y la vuelta completa no cambia nada", () => {
-    expect(leerEleccionGuardada({ nadie_la_tiene: true, en_tendencia: false, tela_que_se_nota: null })).toEqual({ nadie_la_tiene: true, en_tendencia: false });
-    expect(leerEleccionGuardada({ nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false })).toEqual({ nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false });
+  it("la marca nunca viaja, y lo de una casilla apagada tampoco (la base lo conserva)", () => {
+    expect(guardar({ marca_conocida: true, hecha_a_mano: true, detalle_de_diseno: true })).toEqual({ p_marcados: ["detalle_de_diseno"], p_quitados: [] });
+  });
+  it("lo guardado vuelve como lo decidido, y la vuelta completa no cambia nada", () => {
+    expect(leerEleccionGuardada({ marcados: ["nadie_la_tiene"], quitados: ["tela_que_se_nota"] })).toEqual({ nadie_la_tiene: true, tela_que_se_nota: false });
+    expect(leerEleccionGuardada({ marcados: ["tela_que_se_nota"], quitados: ["tela_que_se_nota"] })).toEqual({ tela_que_se_nota: true });
     expect(leerEleccionGuardada(null)).toEqual({});
     expect(leerEleccionGuardada([1])).toEqual({});
-    const guardado = { p_nadie_la_tiene: true, p_en_tendencia: false, p_tela_que_se_nota: true };
-    expect(eleccionParaGuardar(leerEleccionGuardada({ nadie_la_tiene: true, en_tendencia: false, tela_que_se_nota: true }))).toEqual(guardado);
+    const guardado = { p_marcados: ["nadie_la_tiene", "acabado_y_confeccion"], p_quitados: ["tela_que_se_nota"] };
+    expect(guardar(leerEleccionGuardada({ marcados: ["acabado_y_confeccion", "nadie_la_tiene"], quitados: ["tela_que_se_nota"] }))).toEqual(guardado);
   });
 });
-

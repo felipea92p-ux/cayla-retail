@@ -1,4 +1,4 @@
-import { eleccionDeRasgos, rasgosEfectivos, type EleccionDeRasgos, type ListasDeRasgos, type Rasgo } from "./margen-por-rasgos";
+import { eleccionDeRasgos, rasgosEfectivos, type Casilla, type EleccionDeRasgos, type ListasDeRasgos, type Rasgo } from "./margen-por-rasgos";
 import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 import { MONTO_MAXIMO_PLATA, problemaDeMonto } from "./fondos-reglas";
@@ -411,7 +411,7 @@ export type BorradorPrenda = {
   venta: string;
   /** «A la espera de precio sugerido» (ADR-0660): se anota sin precio de venta, a propósito. Solo en una prenda que no es del catálogo. */
   ventaPorDefinir?: boolean;
-  /** Lo que marcó quien compra (ADR-0700): «Nadie la tiene», «En tendencia», «Tela que se nota». La marca suma sola, por la lista. */
+  /** Lo que marcó quien compra (ADR-0700), casilla por casilla de la lista del Admin. La marca suma sola, por la lista de marcas. */
   rasgos?: EleccionDeRasgos;
   /** «La vieron más cara afuera» (ADR-0700): el precio en otra tienda, escrito. Opcional: techo del sugerido. */
   afuera?: string;
@@ -463,8 +463,13 @@ export function problemaAfuera(afuera: string | undefined): string | null {
  * Lo que la prenda tiene en «Compré ropa» (ADR-0700): lo que marcó quien compra y la marca por la lista del Admin. Aquí no se pregunta el
  * tejido, así que «Tela que se nota» la marca la persona; llega sola por el tejido donde se elige (Recibir, Catálogo).
  */
-export function rasgosDePrenda(h: Pick<Habitual, "marcaId">, b: Pick<BorradorPrenda, "rasgos">, listas: ListasDeRasgos): Rasgo[] {
-  return rasgosEfectivos(b.rasgos ?? {}, { tejidoSeNota: false, marcaConocida: h.marcaId !== null && listas.marcasConocidas.has(h.marcaId) });
+export function rasgosDePrenda(
+  h: Pick<Habitual, "marcaId">,
+  b: Pick<BorradorPrenda, "rasgos">,
+  listas: ListasDeRasgos,
+  casillas: readonly Casilla[],
+): Rasgo[] {
+  return rasgosEfectivos(b.rasgos ?? {}, casillas, { tejidoSeNota: false, marcaConocida: h.marcaId !== null && listas.marcasConocidas.has(h.marcaId) });
 }
 
 /** Los campos de la hoja, en su orden, para la guía de foco. */

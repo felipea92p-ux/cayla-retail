@@ -139,7 +139,7 @@ export function HojaPrenda({
   // ADR-0700: lo que la prenda tiene sube su margen objetivo, y el precio sugerido sale de la misma cuenta que «Te quedan».
   const reglas = useReglasDePrecio();
   const listas = useListasDeRasgos();
-  const rasgos = rasgosDePrenda({ marcaId: n ? n.marcaId : h.marcaId }, b, listas);
+  const rasgos = rasgosDePrenda({ marcaId: n ? n.marcaId : h.marcaId }, b, listas, reglas.casillas);
   const costoLeido = leerPrecio(b.costo);
   const afueraLeido = problemaAfuera(b.afuera) === null && (b.afuera ?? "").trim() !== "" ? leerPrecio(b.afuera ?? "") : null;
   const sugerido = costoLeido != null && costoLeido > 0 ? sugerirPrecio({ costo: costoLeido, reglas, rasgos, afuera: afueraLeido }) : null;
@@ -199,7 +199,7 @@ export function HojaPrenda({
             </div>
           </CampoGuiado>
 
-          <QueTiene rasgos={rasgos} puntos={reglas.puntos} guia={guia} alCambiar={(r, v) => cambiar({ rasgos: { ...(b.rasgos ?? {}), [r]: v } })} />
+          <QueTiene rasgos={rasgos} guia={guia} alCambiar={(r, v) => cambiar({ rasgos: { ...(b.rasgos ?? {}), [r]: v } })} />
 
           <div className="grid grid-cols-2 gap-3">
             <CampoGuiado id="costo" guia={guia} titulo="Costo c/u">
@@ -370,18 +370,16 @@ export function HojaPrenda({
 /** «¿Qué tiene esta prenda?» (ADR-0700) en la hoja de compra: la pieza compartida, guiada como un campo opcional. */
 function QueTiene({
   rasgos,
-  puntos,
   guia,
   alCambiar,
 }: {
   rasgos: readonly Rasgo[];
-  puntos: Readonly<Record<Rasgo, number>>;
   guia: GuiaCampos;
   alCambiar: (rasgo: Rasgo, valor: boolean) => void;
 }) {
   return (
     <CampoGuiado id="que-tiene" guia={guia} titulo="¿Qué tiene esta prenda?" retiene="fila">
-      <QueTieneLaPrenda rasgos={rasgos} puntos={puntos} alCambiar={alCambiar} guia="compra.que-tiene" />
+      <QueTieneLaPrenda rasgos={rasgos} alCambiar={alCambiar} guia="compra.que-tiene" />
     </CampoGuiado>
   );
 }

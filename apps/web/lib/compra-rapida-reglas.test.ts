@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CASILLAS_DE_FABRICA } from "./margen-por-rasgos";
 import {
   camposPapel,
   serieYNumeroParaBase,
@@ -574,16 +575,16 @@ describe("la hoja de la prenda (rediseño)", () => {
   });
   it("lo que la prenda tiene (ADR-0700): lo marcado y la marca por la lista; Compré ropa no pregunta el tejido", () => {
     const listas = { marcasConocidas: new Set(["m1"]), tejidosQueSeNotan: new Set(["t1"]) };
-    expect(rasgosDePrenda({ marcaId: null }, {}, listas)).toEqual([]);
-    expect(rasgosDePrenda({ marcaId: "m1" }, { rasgos: { en_tendencia: true, nadie_la_tiene: true } }, listas)).toEqual(["nadie_la_tiene", "en_tendencia", "marca_conocida"]);
-    expect(rasgosDePrenda({ marcaId: "m2" }, { rasgos: { tela_que_se_nota: true } }, listas)).toEqual(["tela_que_se_nota"]);
+    expect(rasgosDePrenda({ marcaId: null }, {}, listas, CASILLAS_DE_FABRICA)).toEqual([]);
+    expect(rasgosDePrenda({ marcaId: "m1" }, { rasgos: { en_tendencia: true, nadie_la_tiene: true } }, listas, CASILLAS_DE_FABRICA)).toEqual(["nadie_la_tiene", "en_tendencia", "marca_conocida"]);
+    expect(rasgosDePrenda({ marcaId: "m2" }, { rasgos: { tela_que_se_nota: true } }, listas, CASILLAS_DE_FABRICA)).toEqual(["tela_que_se_nota"]);
   });
   it("las casillas y el precio visto viajan con cada línea, van a la base y vuelven al corregir", () => {
     const b = { ...lleno, destinos: ["lim", "aqp"], reparto: { lim: "7", aqp: "5" }, rasgos: { en_tendencia: true }, afuera: "79.90" };
     const lineas = lineasDeBorrador(H, b, true, ["en_tendencia"]);
     expect(lineas.map((l) => [l.rasgos, l.precioVistoAfuera])).toEqual([[["en_tendencia"], 79.9], [["en_tendencia"], 79.9]]);
     expect(lineasParaBase(lineas)[0]).toMatchObject({ rasgos: ["en_tendencia"], precio_visto_afuera: 79.9 });
-    expect(borradorDeLineas(lineas)).toMatchObject({ rasgos: { nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false }, afuera: "79.90" });
+    expect(borradorDeLineas(lineas)).toMatchObject({ rasgos: { en_tendencia: true }, afuera: "79.90" });
     // Sin casillas ni precio visto, la base no recibe esas claves (queda en nulo).
     const sinNada = lineasParaBase(lineasDeBorrador(H, lleno))[0];
     expect(sinNada).not.toHaveProperty("rasgos");

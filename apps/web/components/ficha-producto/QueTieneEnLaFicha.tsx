@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { QueTieneLaPrenda } from "@/components/QueTieneLaPrenda";
+import { useReglasDePrecio } from "@/components/ReglasDePrecio";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
@@ -21,7 +22,6 @@ export function QueTieneEnLaFicha({
   eleccion,
   onEleccion,
   rasgos,
-  puntos,
   firma,
   listo,
   motivoSinFirma,
@@ -30,12 +30,12 @@ export function QueTieneEnLaFicha({
   eleccion: EleccionDeRasgos;
   onEleccion: (e: EleccionDeRasgos) => void;
   rasgos: readonly Rasgo[];
-  puntos: Readonly<Record<Rasgo, number>>;
   firma: () => Firma | null;
   listo: boolean;
   motivoSinFirma?: string | null;
 }) {
   const [guardando, setGuardando] = useState(false);
+  const { casillas } = useReglasDePrecio();
 
   async function cambiar(r: Rasgo, valor: boolean) {
     if (!listo) {
@@ -44,9 +44,9 @@ export function QueTieneEnLaFicha({
     }
     const antes = eleccion;
     const nueva = { ...eleccion, [r]: valor };
-    const params = eleccionParaGuardar(nueva);
+    const params = eleccionParaGuardar(nueva, casillas);
     if (!params) return;
-    // La casilla se ve marcada al instante; mientras guarda, las tres esperan (dos toques seguidos no se cruzan).
+    // La casilla se ve marcada al instante; mientras guarda, todas esperan (dos toques seguidos no se cruzan).
     onEleccion(nueva);
     setGuardando(true);
     const { error } = await firmar(createClient().rpc("guardar_rasgos_de_producto" as never, { p_producto_id: productoId, ...params } as never), firma());
@@ -63,7 +63,7 @@ export function QueTieneEnLaFicha({
     <div>
       <p className="campo-etiqueta">¿Qué tiene esta prenda?</p>
       <div className="mt-2 max-w-xl">
-        <QueTieneLaPrenda rasgos={rasgos} puntos={puntos} alCambiar={(r, v) => void cambiar(r, v)} guia="editar.que-tiene" disabled={guardando} />
+        <QueTieneLaPrenda rasgos={rasgos} alCambiar={(r, v) => void cambiar(r, v)} guia="editar.que-tiene" disabled={guardando} />
       </div>
     </div>
   );

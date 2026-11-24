@@ -590,7 +590,7 @@ export function NuevoProductoForm({
   // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio queda bajo el objetivo (ADR-0700).
   const listasDeRasgos = useListasDeRasgos();
   const reglasDePrecio = useReglasDePrecio();
-  const rasgos = rasgosEfectivos(eleccionRasgos, {
+  const rasgos = rasgosEfectivos(eleccionRasgos, reglasDePrecio.casillas, {
     tejidoSeNota: !!tejidoId && listasDeRasgos.tejidosQueSeNotan.has(tejidoId),
     marcaConocida: !!marcaId && listasDeRasgos.marcasConocidas.has(marcaId),
   });
@@ -837,7 +837,7 @@ export function NuevoProductoForm({
       if (errorProveedor) avisar.aviso("La prenda se creó, pero no se guardó cómo la llama el proveedor.", { detalle: "Agrégalo en Editar producto." });
     }
     // Lo que la prenda tiene (ADR-0700), igual: aparte y después. Si falla, la prenda se mide con la base hasta que se marque en Editar producto.
-    const rasgosParaGuardar = eleccionParaGuardar(eleccionRasgos);
+    const rasgosParaGuardar = eleccionParaGuardar(eleccionRasgos, reglasDePrecio.casillas);
     if (rasgosParaGuardar) {
       const { error: errorRasgos } = await firmar(supabase.rpc("guardar_rasgos_de_producto" as never, { p_producto_id: productoId, ...rasgosParaGuardar } as never), firma);
       if (errorRasgos) avisar.aviso("La prenda se creó, pero no se guardó lo que tiene.", { detalle: "Márcalo en Editar producto." });
@@ -1387,7 +1387,6 @@ export function NuevoProductoForm({
             <div className="mt-2">
               <QueTieneLaPrenda
                 rasgos={rasgos}
-                puntos={reglasDePrecio.puntos}
                 alCambiar={(r, v) => setEleccionRasgos((e) => ({ ...e, [r]: v }))}
                 guia="alta.que-tiene"
                 disabled={cargando}

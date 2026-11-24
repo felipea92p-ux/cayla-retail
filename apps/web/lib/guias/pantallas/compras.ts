@@ -2842,7 +2842,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.que-tiene",
       opcional: true,
       titulo: "¿Qué tiene esta prenda?",
-      texto: "Si nadie la tiene, si está en tendencia o si la tela se nota, márcalo: cada una sube el margen. La marca suma sola si está en la lista. Es opcional.",
+      texto: "Lo que la hace distinta —nadie la tiene, un detalle de diseño, un buen acabado…—: márcalo, cada casilla sube el margen. Su «?» dice cómo reconocerla. La marca suma sola si está en la lista. Es opcional.",
     },
     {
       id: "costo",

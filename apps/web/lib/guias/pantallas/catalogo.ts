@@ -541,7 +541,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.que-tiene",
       opcional: true,
       titulo: "Lo que tiene la prenda",
-      texto: "Nadie la tiene, en tendencia, una tela que se nota: cada casilla le sube el margen objetivo, y con él el ámbar de cada talla. Se guarda al marcarla y no cambia ningún precio. La marca que el cliente conoce se suma sola. En la demo no la tocamos.",
+      texto: "Lo que la hace distinta —nadie la tiene, un detalle de diseño, una tela que se nota…—: cada casilla le sube el margen objetivo, y con él el ámbar de cada talla. Se guarda al marcarla y no cambia ningún precio. La marca que el cliente conoce se suma sola. En la demo no la tocamos.",
     },
     {
       id: "vistas-vuelta",
@@ -1876,7 +1876,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       ancla: "alta.que-tiene",
       opcional: true,
       titulo: "Lo que tiene la prenda",
-      texto: "Nadie la tiene, en tendencia, una tela que se nota: cada casilla le sube el margen objetivo. La tela de la lista se marca sola con el tejido, y la marca que el cliente conoce también. Es opcional: nunca frena el alta.",
+      texto: "Lo que la hace distinta —nadie la tiene, un detalle de diseño, un buen acabado…—: cada casilla le sube el margen objetivo. La tela de la lista se marca sola con el tejido, y la marca que el cliente conoce también. Es opcional: nunca frena el alta.",
     },
     {
       id: "precio-sugerido",

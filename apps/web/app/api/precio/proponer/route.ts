@@ -14,7 +14,7 @@ import {
   type PropuestaLista,
 } from "@/lib/precio-propuesto-ia";
 import { seLlegoAlTopePrecios, textoSinPropuesta, type MotivoSinPropuesta } from "@/lib/precio-propuesto-reglas";
-import { leerReglas, margenObjetivo, RASGOS, REGLAS_DE_FABRICA, type Rasgo } from "@/lib/margen-por-rasgos";
+import { leerReglas, margenObjetivo, REGLAS_DE_FABRICA, type Rasgo } from "@/lib/margen-por-rasgos";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,7 +44,8 @@ const Cuerpo = z.object({
   descripcion: z.string().trim().max(300).nullish(),
   costo: z.number().positive().max(5000).nullish(),
   // ADR-0700: lo que la prenda tiene en efecto, como lo ve la pantalla (alta y recepción). Sin la clave, el de la prenda guardada (o ninguno).
-  rasgos: z.array(z.enum(RASGOS)).max(RASGOS.length).nullish(),
+  // Los códigos de la lista del Admin; uno que ya no está prendido no suma (`margenObjetivo` solo mira las casillas de la regla).
+  rasgos: z.array(z.string().regex(/^[a-z][a-z0-9_]{1,39}$/)).max(20).nullish(),
 });
 
 // Freno de mano contra un bucle (no es el tope del mes, ese lo cuenta la base).
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
   if (!d.rasgos && d.productoId) {
     const { data: r, error: rasgosError } = await supabase.rpc("fn_rasgos_de_producto" as never, { p_producto_id: d.productoId } as never);
     if (rasgosError) console.error(`[precio] no se pudo leer lo que tiene la prenda: ${rasgosError.code ?? "sin código"}`);
-    rasgos = Array.isArray(r) ? (r as unknown[]).filter((x): x is Rasgo => RASGOS.includes(x as Rasgo)) : [];
+    rasgos = Array.isArray(r) ? (r as unknown[]).filter((x): x is Rasgo => typeof x === "string") : [];
   }
   const objetivo = margenObjetivo(reglasError ? REGLAS_DE_FABRICA : leerReglas(reglasData), rasgos);
   // En el alta y al recibir manda el costo escrito (el de esta compra); en una revisión, el de la prenda.

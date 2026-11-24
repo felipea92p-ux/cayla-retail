@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 124,
+  "total": 132,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -69,6 +69,13 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vistas-config/CasillaDePrecioModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoTexto «{guia.etiqueta(\"ayuda\", \"Cómo reconocerla · opcional\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vistas-config/NuevaVigenciaModal.tsx": [
       "ComboResponsable «{responsable}»",
@@ -153,7 +160,10 @@
       "ComboResponsable «{responsable}»",
       "button «config.precios-recomendado»",
       "Casilla «Margen base, en %»",
-      "Casilla «{`Cuánto % suma «${NOMBRE_RASGO[rasgo]}»"
+      "LapizEditar «{`«${c.nombre}»",
+      "Casilla «{`Cuánto % suma «${c.nombre}»",
+      "LapizEditar «{`«${c.nombre}» #2",
+      "Boton «config.precios-agregar»"
     ],
     "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
       "input «{`${NOMBRE_CAMPO[campo]}»",

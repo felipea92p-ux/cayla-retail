@@ -176,5 +176,13 @@ async function SeccionPrecios({ esAdmin }: { esAdmin: boolean }) {
   const [reglas, listas] = await Promise.all([getReglasDePrecio(), getListasDePrecio()]);
   if (!reglas.datos) return <FallaDeSeccion falla={reglas.falla ?? "sin reglas"} />;
   if (listas.falla) console.error(`Configuración: ${listas.falla}`);
-  return <VistaPrecios reglas={reglas.datos.reglas} registradoPor={reglas.datos.registradoPor} listas={listas.datos} esAdmin={esAdmin} />;
+  return (
+    <VistaPrecios
+      reglas={reglas.datos.reglas}
+      apagadas={reglas.datos.apagadas}
+      registradoPor={reglas.datos.registradoPor}
+      listas={listas.datos}
+      esAdmin={esAdmin}
+    />
+  );
 }

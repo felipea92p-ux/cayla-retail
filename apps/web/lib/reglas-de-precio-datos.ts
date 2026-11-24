@@ -1,11 +1,21 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerListas, leerReglas, leerReglasYListas, REGLAS_DE_FABRICA, type ListasDePrecio, type ReglasDePrecio, type ReglasYListas } from "@/lib/margen-por-rasgos";
+import {
+  leerApagadas,
+  leerListas,
+  leerReglas,
+  leerReglasYListas,
+  REGLAS_DE_FABRICA,
+  type Casilla,
+  type ListasDePrecio,
+  type ReglasDePrecio,
+  type ReglasYListas,
+} from "@/lib/margen-por-rasgos";
 
 // Las lecturas de las reglas del precio sugerido (ADR-0700) para Configuración ▸ Precios. La cuenta vive en `lib/margen-por-rasgos.ts`.
 
 /** La regla vigente y quién la puso. Si la lectura falla, la pantalla lo dice: no muestra la de fábrica como si fuera la guardada. */
-export type ReglasLeidas = { reglas: ReglasDePrecio; registradoPor: string | null; registradoEn: string | null };
+export type ReglasLeidas = { reglas: ReglasDePrecio; apagadas: Casilla[]; registradoPor: string | null; registradoEn: string | null };
 
 export async function getReglasDePrecio(): Promise<{ datos: ReglasLeidas | null; falla: string | null }> {
   const supabase = await createClient();
@@ -15,6 +25,7 @@ export async function getReglasDePrecio(): Promise<{ datos: ReglasLeidas | null;
   return {
     datos: {
       reglas: leerReglas(data),
+      apagadas: leerApagadas(data),
       registradoPor: typeof d.registrado_por === "string" ? d.registrado_por : null,
       registradoEn: typeof d.registrado_en === "string" ? d.registrado_en : null,
     },
