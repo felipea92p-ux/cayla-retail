@@ -3,7 +3,8 @@
 --
 -- EL PROBLEMA PRIMERO. El ERP sugiere el precio de venta con una sola vara para toda prenda (el piso que aguanta una rebaja de 35 %,
 -- ADR-0668): un polo liso que el cliente compara con otras tiendas y una blusa que nadie más tiene salen igual. Felipe decidió una base de
--- margen (30–36 % en estudio; arranca en 36 %) y cuatro casillas que la suben, +3 puntos cada una: «Nadie la tiene», «En tendencia»,
+-- margen (30–36 % en estudio; arranca en 37 %, el recomendado: Trujillo paga su tienda desde 36.9 % con los gastos de octubre) y cuatro
+-- casillas que la suben, +3 % cada una (puntos de margen: 37 % pasa a 40 %; en pantalla se dicen «%»): «Nadie la tiene», «En tendencia»,
 -- «Tela que se nota» y «Marca que el cliente conoce». Las dos últimas no se marcan prenda por prenda: salen de dos listas que el Admin
 -- elige una vez (los tejidos que se notan, las marcas que el cliente conoce). El margen es sobre el precio SIN IGV, la cuenta de «Te quedan».
 --
@@ -11,7 +12,7 @@
 --   1. `retail.reglas_de_precio`: una fila cada vez que el Admin cambia la base o los puntos; solo se agregan filas y la vigente es la
 --      última. Así, al calibrar los puntos con las ventas (en 3 a 6 meses), se sabe qué regla regía cuando se fijó cada precio. Candados:
 --      base de 20 a 60 %, cada casilla de 0 a 10 puntos, y la base con todas las casillas no pasa de 75 % (un margen de 75 % ya pide un
---      precio de casi × 4.7 el costo: más arriba es un error de tecleo). Arranca con la fila de fábrica: 36 % y +3 cada una.
+--      precio de casi × 4.7 el costo: más arriba es un error de tecleo). Arranca con la fila de fábrica: 37 % y +3 cada una.
 --      La web lleva los mismos números en `lib/margen-por-rasgos.ts` (`problemaDeReglas`), para avisar antes de guardar.
 --   2. `tejidos.se_nota` y `marcas.conocida` (falso por defecto): las dos listas.
 --   3. Lectura: `fn_reglas_de_precio()` (la vigente; la lee toda cuenta con acceso, porque quien fija un precio la necesita) y
@@ -59,9 +60,9 @@ comment on column retail.reglas_de_precio.margen_base is
 alter table retail.reglas_de_precio enable row level security;
 revoke all on retail.reglas_de_precio from public, anon, authenticated;
 
--- La fila de fábrica (las decisiones del 2026-11-24), solo si no hay ninguna.
+-- La fila de fábrica (las decisiones del 2026-11-24: la base recomendada, 37 %, y +3 % cada casilla), solo si no hay ninguna.
 insert into retail.reglas_de_precio (margen_base, puntos_nadie_la_tiene, puntos_en_tendencia, puntos_tela_que_se_nota, puntos_marca_conocida)
-select 36, 3, 3, 3, 3
+select 37, 3, 3, 3, 3
 where not exists (select 1 from retail.reglas_de_precio);
 
 -- ---------- 2. Las dos listas ----------
@@ -87,7 +88,7 @@ begin
   end if;
   select * into r from retail.reglas_de_precio order by id desc limit 1;
   if r.id is null then
-    return jsonb_build_object('margen_base', 36,
+    return jsonb_build_object('margen_base', 37,
       'puntos', jsonb_build_object('nadie_la_tiene', 3, 'en_tendencia', 3, 'tela_que_se_nota', 3, 'marca_conocida', 3),
       'registrado_en', null, 'registrado_por', null);
   end if;
@@ -145,7 +146,7 @@ begin
   if p_puntos is null or jsonb_typeof(p_puntos) <> 'object'
      or exists (select 1 from unnest(array['nadie_la_tiene', 'en_tendencia', 'tela_que_se_nota', 'marca_conocida']) k
                  where jsonb_typeof(p_puntos -> k) is distinct from 'number' or (p_puntos ->> k) !~ '^\d+$') then
-    raise exception 'Faltan los puntos de alguna casilla.' using errcode = 'P0001';
+    raise exception 'Falta el %% de alguna casilla.' using errcode = 'P0001';
   end if;
   v_nadie := (p_puntos ->> 'nadie_la_tiene')::integer;
   v_tendencia := (p_puntos ->> 'en_tendencia')::integer;
@@ -155,7 +156,7 @@ begin
     raise exception 'El margen base va de 20 a 60 %%.' using errcode = 'P0001';
   end if;
   if greatest(v_nadie, v_tendencia, v_tela, v_marca) > 10 then
-    raise exception 'Cada casilla suma de 0 a 10 puntos.' using errcode = 'P0001';
+    raise exception 'Cada casilla suma de 0 a 10 %%.' using errcode = 'P0001';
   end if;
   if p_margen_base + v_nadie + v_tendencia + v_tela + v_marca > 75 then
     raise exception 'La base con todas las casillas no puede pasar de 75 %%.' using errcode = 'P0001';

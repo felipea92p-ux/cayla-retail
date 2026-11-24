@@ -1250,7 +1250,14 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-precios" }],
       titulo: "El margen de cada prenda",
-      texto: "Con esto se sugiere el precio de venta de lo que se compra a proveedor. Toda prenda pide la base, y cada casilla que tiene suma sus puntos. El margen es lo que te queda del precio sin IGV. Solo un Admin lo cambia; en la demo no escribimos.",
+      texto: "Con esto se sugiere el precio de venta de lo que se compra a proveedor. Toda prenda pide la base, y cada casilla que tiene le suma su %. El margen es lo que te queda del precio sin IGV. Solo un Admin lo cambia; en la demo no escribimos.",
+    },
+    {
+      id: "precios-recomendado",
+      ancla: "config.precios-recomendado",
+      opcional: true,
+      titulo: "La base recomendada",
+      texto: "La que sale del análisis de gastos: desde ahí Trujillo, la tienda que más gasta, paga su propia tienda. Si tu base es otra, «Usar» la pone de un toque; en la demo no lo tocamos.",
     },
     {
       id: "precios-ejemplo",

@@ -82,7 +82,7 @@ describe("revisarPrecioDeLaIA: la IA propone, la regla manda", () => {
       expect(r?.margen).toBe(margenALaVista(costo, r?.precio, 36)?.pct);
     }
   });
-  it("lo que propone nunca deja la línea de al lado en ámbar (con la base de fábrica, 36 %: ADR-0700)", () => {
+  it("lo que propone nunca deja la línea de al lado en ámbar (con un objetivo de 36 %: ADR-0700)", () => {
     for (const costo of [12.5, 25, 36, 44, 80, 150]) {
       const r = revisarPrecioDeLaIA(1, costo);
       expect(r).not.toBeNull();

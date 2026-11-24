@@ -24,7 +24,7 @@ describe("leerReglas: lo que manda la base, o la regla de fábrica", () => {
     const r = leerReglas({ margen_base: 33, puntos: { nadie_la_tiene: 4, en_tendencia: 5, tela_que_se_nota: 2, marca_conocida: 0 } });
     expect(r).toEqual({ margenBase: 33, puntos: { nadie_la_tiene: 4, en_tendencia: 5, tela_que_se_nota: 2, marca_conocida: 0 } });
   });
-  it("sin respuesta o con un dato roto, toma el de fábrica (36 % y +3)", () => {
+  it("sin respuesta o con un dato roto, toma el de fábrica (37 % y +3)", () => {
     expect(leerReglas(null)).toEqual(REGLAS_DE_FABRICA);
     expect(leerReglas({ margen_base: "36", puntos: { nadie_la_tiene: 2.5 } })).toEqual(REGLAS_DE_FABRICA);
   });
@@ -35,7 +35,7 @@ describe("problemaDeReglas: los mismos candados que la base", () => {
   it("base fuera de 20–60, puntos fuera de 0–10 y el tope de 75 %", () => {
     expect(problemaDeReglas(conBase(19))).toMatch(/de 20 a 60/);
     expect(problemaDeReglas(conBase(36.5))).toMatch(/de 20 a 60/);
-    expect(problemaDeReglas(conBase(36, { ...REGLAS_DE_FABRICA.puntos, en_tendencia: 11 }))).toMatch(/En tendencia/);
+    expect(problemaDeReglas(conBase(36, { ...REGLAS_DE_FABRICA.puntos, en_tendencia: 11 }))).toBe("«En tendencia» suma de 0 a 10 %.");
     expect(problemaDeReglas(conBase(60, { nadie_la_tiene: 4, en_tendencia: 4, tela_que_se_nota: 4, marca_conocida: 4 }))).toMatch(/75 %/);
     expect(problemaDeReglas(conBase(60, { nadie_la_tiene: 4, en_tendencia: 4, tela_que_se_nota: 4, marca_conocida: 3 }))).toBeNull();
   });
@@ -43,9 +43,9 @@ describe("problemaDeReglas: los mismos candados que la base", () => {
 
 describe("margenObjetivo: la base más lo que la prenda tiene", () => {
   it("cada casilla suma sus puntos una sola vez", () => {
-    expect(margenObjetivo(REGLAS_DE_FABRICA, [])).toBe(36);
-    expect(margenObjetivo(REGLAS_DE_FABRICA, ["en_tendencia", "en_tendencia"])).toBe(39);
-    expect(margenObjetivo(REGLAS_DE_FABRICA, RASGOS)).toBe(48);
+    expect(margenObjetivo(REGLAS_DE_FABRICA, [])).toBe(37);
+    expect(margenObjetivo(REGLAS_DE_FABRICA, ["en_tendencia", "en_tendencia"])).toBe(40);
+    expect(margenObjetivo(REGLAS_DE_FABRICA, RASGOS)).toBe(49);
   });
   it("nunca pasa del tope", () => {
     expect(margenObjetivo(conBase(70, { nadie_la_tiene: 10, en_tendencia: 10, tela_que_se_nota: 10, marca_conocida: 10 }), RASGOS)).toBe(MARGEN_TOPE);

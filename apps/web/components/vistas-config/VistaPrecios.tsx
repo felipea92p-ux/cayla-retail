@@ -20,6 +20,7 @@ import { montoEscrito } from "@/lib/margen-a-la-vista";
 import { soles } from "@/lib/compras-reglas";
 import {
   leerReglas,
+  MARGEN_BASE_RECOMENDADO,
   NOMBRE_RASGO,
   problemaDeReglas,
   RASGOS,
@@ -31,8 +32,8 @@ import {
   type ReglasDePrecio,
 } from "@/lib/margen-por-rasgos";
 
-// Configuración ▸ Precios (ADR-0700, Felipe 2026-11-24; maqueta https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx): la base del margen, los
-// puntos de cada casilla y las dos listas (tejidos que se notan, marcas que el cliente conoce). Solo un Admin cambia algo; la base lo vuelve
+// Configuración ▸ Precios (ADR-0700, Felipe 2026-11-24; maqueta https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx): la base del margen (con
+// la recomendada a la vista), el % que suma cada casilla y las dos listas (tejidos que se notan, marcas que el cliente conoce). Solo un Admin cambia algo; la base lo vuelve
 // a exigir. Las casillas se guardan solas al salir, firmadas con el responsable, como en el resto de Configuración. «Así queda» muestra el
 // efecto con un costo de ejemplo, con la misma cuenta que usará quien fija el precio.
 
@@ -227,7 +228,7 @@ export function VistaPrecios({
         <section className="vs-liquido cv-bloque" data-luz data-guia="config.precios-regla" style={conVar({ "--e": 0 })}>
           <TituloSeccion
             dato={`${reglas.margenBase} % a ${tope} %`}
-            ayuda={`El margen es lo que te queda del precio sin IGV, la misma cuenta de «Te quedan». Toda prenda pide la base; cada casilla que tiene suma sus puntos.${registradoPor ? ` Lo puso ${registradoPor}.` : ""}`}
+            ayuda={`El margen es lo que te queda del precio sin IGV, la misma cuenta de «Te quedan». Toda prenda pide la base; cada casilla que tiene le suma su %. Recomiendo una base de ${MARGEN_BASE_RECOMENDADO} %: con los gastos de octubre, Trujillo paga su propia tienda desde 37 %, y Arequipa, tienda y oficina, desde 36 %.${registradoPor ? ` Lo puso ${registradoPor}.` : ""}`}
           >
             El margen de cada prenda
           </TituloSeccion>
@@ -235,7 +236,19 @@ export function VistaPrecios({
             <div className="cv-fila cv-tope">
               <span className="vs-textos">
                 <span className="cv-frase">Margen base</span>
-                <span className="vs-rotulo">Toda prenda, sobre el precio sin IGV.</span>
+                <span className="vs-rotulo">
+                  Recomendado: {MARGEN_BASE_RECOMENDADO} %.{" "}
+                  {esAdmin && reglas.margenBase !== MARGEN_BASE_RECOMENDADO && (
+                    <button
+                      type="button"
+                      className="btn-cayla btn-enlace"
+                      data-guia="config.precios-recomendado"
+                      onClick={() => void guardar((r, n) => ({ ...r, margenBase: n }), "Margen base")(String(MARGEN_BASE_RECOMENDADO))}
+                    >
+                      Usar {MARGEN_BASE_RECOMENDADO} %
+                    </button>
+                  )}
+                </span>
               </span>
               {esAdmin ? (
                 <Casilla valor={String(reglas.margenBase)} etiqueta="Margen base, en %" ancho="w-16" alGuardar={guardar((r, n) => ({ ...r, margenBase: n }), "Margen base")} />
@@ -254,14 +267,14 @@ export function VistaPrecios({
                 {esAdmin ? (
                   <Casilla
                     valor={String(reglas.puntos[rasgo])}
-                    etiqueta={`Puntos de «${NOMBRE_RASGO[rasgo]}»`}
+                    etiqueta={`Cuánto % suma «${NOMBRE_RASGO[rasgo]}»`}
                     ancho="w-16"
                     alGuardar={guardar((r, n) => ({ ...r, puntos: { ...r.puntos, [rasgo]: n } }), NOMBRE_RASGO[rasgo])}
                   />
                 ) : (
                   <b className="tabular-nums">{reglas.puntos[rasgo]}</b>
                 )}
-                <span className="cv-unidad">puntos</span>
+                <span className="cv-unidad">%</span>
               </div>
             ))}
           </div>

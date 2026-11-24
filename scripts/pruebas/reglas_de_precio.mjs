@@ -3,7 +3,7 @@
  * Prueba de las reglas del precio sugerido (`20261124170000_reglas_de_precio_por_rasgos.sql`, ADR-0700, actividad 1 de 6).
  *
  * QUÉ CUBRE
- *   · la regla vigente es la última fila, y sin cambios se lee la de fábrica (36 % y +3 cada casilla);
+ *   · la regla vigente es la última fila, y sin cambios se lee la de fábrica (37 % y +3 % cada casilla);
  *   · un Admin la cambia: se agrega UNA fila firmada con su nombre, queda su línea en el historial de Configuración (con antes y después)
  *     y Actividad la cuenta; guardar lo mismo otra vez no agrega nada;
  *   · lo que la base rechaza, con el mismo texto que la pantalla: base fuera de 20–60, una casilla que falta o no es entera, más de 10
@@ -62,7 +62,7 @@ $f$;
 grant execute on function pg_temp.intento(text) to authenticated, anon;
 `;
 // La regla de fábrica como la última fila: así cada escenario arranca igual aunque alguien la haya cambiado a mano en el local.
-const FABRICA = `${dueno}insert into retail.reglas_de_precio (margen_base, puntos_nadie_la_tiene, puntos_en_tendencia, puntos_tela_que_se_nota, puntos_marca_conocida) values (36, 3, 3, 3, 3);\n`;
+const FABRICA = `${dueno}insert into retail.reglas_de_precio (margen_base, puntos_nadie_la_tiene, puntos_en_tendencia, puntos_tela_que_se_nota, puntos_marca_conocida) values (37, 3, 3, 3, 3);\n`;
 const LEER = `select (r ->> 'margen_base') || '|' || (r -> 'puntos' ->> 'nadie_la_tiene') || (r -> 'puntos' ->> 'en_tendencia') || (r -> 'puntos' ->> 'tela_que_se_nota') || (r -> 'puntos' ->> 'marca_conocida') from retail.fn_reglas_de_precio() r;`;
 const PUNTOS = (a, b, c, d) => `'{"nadie_la_tiene": ${a}, "en_tendencia": ${b}, "tela_que_se_nota": ${c}, "marca_conocida": ${d}}'::jsonb`;
 
@@ -97,12 +97,12 @@ select (retail.guardar_reglas_de_precio(33, ${PUNTOS(4, 5, 2, 0)}) ->> 'margen_b
 ${dueno}
 select count(*) from retail.reglas_de_precio where registrado_en >= now();`);
   const [antes, devuelto, despues, filas, firma, historial, actividad, otraVez, filasDespues] = lineas(r);
-  esperar("sin cambios se lee la de fábrica: 36 % y +3 cada casilla", r.ok && antes === "36|3333", r);
+  esperar("sin cambios se lee la de fábrica: 37 % y +3 % cada casilla", r.ok && antes === "37|3333", r);
   esperar("un Admin guarda 33 % con 4, 5, 2 y 0 puntos, y la función devuelve la nueva", r.ok && devuelto === "33", r);
   esperar("la vigente pasa a ser la nueva", r.ok && despues === "33|4520", r);
   esperar("se agregó una fila (la de fábrica y la nueva)", r.ok && filas === "2", r);
   esperar("firmada por quien la cambió", r.ok && firma === "33|true", r);
-  esperar("el historial de Configuración guarda antes y después", r.ok && historial === "36|33|5", r);
+  esperar("el historial de Configuración guarda antes y después", r.ok && historial === "37|33|5", r);
   esperar("Actividad la cuenta", r.ok && actividad === "1", r);
   esperar("guardar lo mismo otra vez devuelve la vigente", r.ok && otraVez === "33", r);
   esperar("y no agrega otra fila", r.ok && filasDespues === "2", r);
@@ -124,10 +124,10 @@ ${g(60, PUNTOS(4, 4, 4, 3))}`);
   const [b19, b61, falta, mitad, negativo, once, sobreTope, enTope] = lineas(r);
   esperar("base 19 %: «va de 20 a 60 %»", r.ok && b19 === "P0001|El margen base va de 20 a 60 %.", r);
   esperar("base 61 %: lo mismo", r.ok && b61 === "P0001|El margen base va de 20 a 60 %.", r);
-  esperar("una casilla que falta no vale 0 en silencio", r.ok && falta === "P0001|Faltan los puntos de alguna casilla.", r);
-  esperar("ni medio punto", r.ok && mitad === "P0001|Faltan los puntos de alguna casilla.", r);
-  esperar("ni un punto negativo", r.ok && negativo === "P0001|Faltan los puntos de alguna casilla.", r);
-  esperar("más de 10 puntos: «de 0 a 10»", r.ok && once === "P0001|Cada casilla suma de 0 a 10 puntos.", r);
+  esperar("una casilla que falta no vale 0 en silencio", r.ok && falta === "P0001|Falta el % de alguna casilla.", r);
+  esperar("ni medio punto", r.ok && mitad === "P0001|Falta el % de alguna casilla.", r);
+  esperar("ni un punto negativo", r.ok && negativo === "P0001|Falta el % de alguna casilla.", r);
+  esperar("más de 10 %: «de 0 a 10 %»", r.ok && once === "P0001|Cada casilla suma de 0 a 10 %.", r);
   esperar("60 % con 16 puntos pasa de 75 %", r.ok && sobreTope === "P0001|La base con todas las casillas no puede pasar de 75 %.", r);
   esperar("60 % con 15 puntos, justo 75 %, sí se guarda", r.ok && enTope === "SIN_ERROR", r);
 }
@@ -163,20 +163,24 @@ ${LEER}
 ${intentos}`);
   const [perfil, leeLider, listasLider, g1, t1, m1, leeMicaela, g2, t2, m2] = lineas(r);
   esperar("(preparación) la cuenta es Líder y no Admin", r.ok && perfil === "true|false", r);
-  esperar("el Líder lee la regla", r.ok && leeLider === "36|3333", r);
+  esperar("el Líder lee la regla", r.ok && leeLider === "37|3333", r);
   esperar("y las listas (tiene Configuración)", r.ok && listasLider === "array", r);
   esperar("pero no cambia la regla", r.ok && g1 === "42501|Solo un Admin cambia las reglas del precio.", r);
   esperar("ni los tejidos", r.ok && t1 === "42501|Solo un Admin cambia la lista de tejidos que se notan.", r);
   esperar("ni las marcas", r.ok && m1 === "42501|Solo un Admin cambia la lista de marcas que el cliente conoce.", r);
-  esperar("una integrante lee la regla (la necesita para fijar un precio)", r.ok && leeMicaela === "36|3333", r);
+  esperar("una integrante lee la regla (la necesita para fijar un precio)", r.ok && leeMicaela === "37|3333", r);
   esperar("y no cambia nada", r.ok && [g2, t2, m2].every((x) => x?.startsWith("42501|Solo un Admin")), r);
 }
 
 // 5. Las listas: entran, salen, se ven, dejan su línea una vez; lo que ya no existe lo dice.
 {
-  const r = correr(`${sesion(FELIPE)}
+  // Arranca con los dos fuera de la lista, aunque alguien los haya marcado a mano en el local.
+  const r = correr(`${dueno}
 select set_config('prueba.tejido', (select id::text from retail.tejidos where activo and estado = 'aprobado' order by nombre limit 1), true);
 select set_config('prueba.marca', (select id::text from retail.marcas where activo and char_length(nombre) <= 80 order by nombre limit 1), true);
+update retail.tejidos set se_nota = false where id = current_setting('prueba.tejido')::uuid;
+update retail.marcas set conocida = false where id = current_setting('prueba.marca')::uuid;
+${sesion(FELIPE)}
 select retail.marcar_tejido_que_se_nota(current_setting('prueba.tejido')::uuid, true);
 select retail.marcar_tejido_que_se_nota(current_setting('prueba.tejido')::uuid, true);
 select retail.marcar_marca_conocida(current_setting('prueba.marca')::uuid, true);

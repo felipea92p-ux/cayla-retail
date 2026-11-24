@@ -27,12 +27,22 @@ export const NOMBRE_RASGO: Readonly<Record<Rasgo, string>> = {
   marca_conocida: "Marca que el cliente conoce",
 };
 
-/** La base y los puntos de cada casilla, en puntos de margen enteros (36 = 36 % del precio sin IGV). */
+/**
+ * La base y lo que suma cada casilla, en puntos de margen enteros (36 = 36 % del precio sin IGV; +3 lleva 36 % a 39 %). En pantalla se dicen
+ * «%» (Felipe 2026-11-24: «que en vez de puntos sean porcentajes»): suman al margen, no al precio.
+ */
 export type ReglasDePrecio = { margenBase: number; puntos: Readonly<Record<Rasgo, number>> };
 
-/** Las decisiones del 2026-11-24: base 36 % (arriba del 30–36 % en estudio) y +3 cada casilla. La base de datos arranca igual. */
+/**
+ * El margen base que recomienda el análisis del 2026-11-24 (ADR-0700): 37 %. Con los gastos y la planilla de octubre de 2026, Trujillo —la
+ * tienda que más gasta— paga su propia tienda desde un precio de × 1.87 el costo, que es 36.9 % de margen; Arequipa paga tienda y oficina
+ * desde 36.2 %. Es un número con fecha: si los gastos cambian, se rehace el análisis (nadie lo recalcula solo).
+ */
+export const MARGEN_BASE_RECOMENDADO = 37;
+
+/** Las decisiones del 2026-11-24: la base recomendada y +3 % cada casilla. La base de datos arranca igual. */
 export const REGLAS_DE_FABRICA: ReglasDePrecio = {
-  margenBase: 36,
+  margenBase: MARGEN_BASE_RECOMENDADO,
   puntos: { nadie_la_tiene: 3, en_tendencia: 3, tela_que_se_nota: 3, marca_conocida: 3 },
 };
 
@@ -76,7 +86,7 @@ export function problemaDeReglas(r: ReglasDePrecio): string | null {
   }
   for (const rasgo of RASGOS) {
     const n = r.puntos[rasgo];
-    if (!Number.isInteger(n) || n < 0 || n > PUNTOS_MAX) return `«${NOMBRE_RASGO[rasgo]}» suma de 0 a ${PUNTOS_MAX} puntos.`;
+    if (!Number.isInteger(n) || n < 0 || n > PUNTOS_MAX) return `«${NOMBRE_RASGO[rasgo]}» suma de 0 a ${PUNTOS_MAX} %.`;
   }
   // La suma sin el tope de `margenObjetivo`: aquí el tope es justo lo que se revisa.
   if (RASGOS.reduce((t, rasgo) => t + r.puntos[rasgo], r.margenBase) > MARGEN_TOPE) return `La base con todas las casillas no puede pasar de ${MARGEN_TOPE} %.`;
