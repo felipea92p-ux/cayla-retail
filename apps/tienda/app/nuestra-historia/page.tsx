@@ -11,7 +11,8 @@ import "../estilos/ayuda.css";
 import "../estilos/empresa.css";
 
 export const metadata: Metadata = {
-  title: "Nuestra historia · CAYLA",
+  alternates: { canonical: "/nuestra-historia" },
+  title: "Nuestra historia",
   description: `CAYLA nació en Trujillo con ${INVERSION_INICIAL}. Hoy está en Trujillo, Arequipa y Lima, con su propio Taller.`,
 };
 

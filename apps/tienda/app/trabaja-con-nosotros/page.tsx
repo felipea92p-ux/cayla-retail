@@ -24,7 +24,8 @@ import "../estilos/ayuda.css";
 import "../estilos/empresa.css";
 
 export const metadata: Metadata = {
-  title: "Trabaja con nosotros · CAYLA",
+  alternates: { canonical: "/trabaja-con-nosotros" },
+  title: "Trabaja con nosotros",
   description: "Únete al equipo CAYLA en Trujillo, Arequipa o Lima: tiendas, Taller, almacén y oficina. Entras sin experiencia y creces por mérito.",
 };
 
