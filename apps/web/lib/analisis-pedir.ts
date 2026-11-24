@@ -532,25 +532,25 @@ export function queHayQuePedir<T extends ModeloAnalisis>(
 /** El día en que se acaba al ritmo de hoy: «7 dic.» (hoy más los días que alcanza, enteros). */
 export const fechaEnQueSeAcaba = (hoy: string, dias: number): string => fechaCorta(sumarDias(hoy, Math.max(1, Math.round(dias))));
 
-/** «Vendes 39 por semana»: el mismo ritmo con el que se cuentan los días (cada talla en su ventana), por 7. */
-export function textoVendesPorSemana(porDia: number): string {
+/** «VENDES» 39 /sem.: el mismo ritmo con el que se cuentan los días (cada talla en su ventana), por 7; «menos de 1» si no llega a uno. */
+export function vendesPorSemana(porDia: number): { valor: string; agregado: string } {
   const n = Math.round(porDia * 7);
-  return n >= 1 ? `Vendes ${n} por semana` : "Vendes menos de 1 por semana";
+  return n >= 1 ? { valor: String(n), agregado: "/sem." } : { valor: "Menos de 1", agregado: "/sem." };
 }
 
-/** «Vendiste 12» y «en 7 días» (o «en 8 semanas» si no se sabe en cuántos días): dos líneas bajo «Se agotó el…». */
-export function textoVendiste(a: Pick<AgotadoModelo<unknown>, "vendidas" | "dias">): [string, string] {
-  return [`Vendiste ${a.vendidas}`, a.dias !== null ? `en ${a.dias} ${plural(a.dias, "día", "días")}` : `en ${SEMANAS_AGOTADOS} semanas`];
+/** «VENDISTE» 12 en 7 días (o «en 8 semanas» si no se sabe en cuántos días). */
+export function vendiste(a: Pick<AgotadoModelo<unknown>, "vendidas" | "dias">): { valor: string; agregado: string } {
+  return { valor: String(a.vendidas), agregado: a.dias !== null ? `en ${a.dias} ${plural(a.dias, "día", "días")}` : `en ${SEMANAS_AGOTADOS} semanas` };
 }
 
 /**
- * El pie de la tarjeta, una línea o nada: lo que viene en camino («Llegan 12 el 6 dic.»), y si nada viene, otra tienda que tiene el
+ * La etiqueta bajo «qué tiene», una o ninguna: lo que viene en camino («Llegan 12 el 6 dic.»), y si nada viene, otra tienda que tiene el
  * modelo («Lima tiene 17»: todas sus tallas y colores; cuáles, en la ficha).
  */
-export function pieDePedir(m: ModeloAnalisis, hoy: string, ciudadDe: (sedeId: string) => string | undefined): string | null {
+export function marcaDePedir(m: ModeloAnalisis, hoy: string, ciudadDe: (sedeId: string) => string | undefined): { texto: string; tipo: "viene" | "otra" } | null {
   const viene = textoViene(m, hoy);
-  if (viene) return viene;
+  if (viene) return { texto: viene, tipo: "viene" };
   const otra = otraSedeQueLaTiene(m.otras);
   const ciudad = otra ? ciudadDe(otra.sedeId) : undefined;
-  return otra && ciudad ? `${ciudad} tiene ${otra.stock}` : null;
+  return otra && ciudad ? { texto: `${ciudad} tiene ${otra.stock}`, tipo: "otra" } : null;
 }

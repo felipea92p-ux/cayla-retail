@@ -12,9 +12,9 @@ import {
   modelosAgotados,
   queHayQuePedir,
   fechaEnQueSeAcaba,
-  textoVendesPorSemana,
-  textoVendiste,
-  pieDePedir,
+  vendesPorSemana,
+  vendiste,
+  marcaDePedir,
   parteDeArriba,
   primerasQuePedir,
   categoriaDe,
@@ -500,9 +500,9 @@ describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el
   it("el ritmo por día viaja con el alcance: es el que da «Vendes N por semana»", () => {
     // Polo Prueba: 6 + 6 vendidas en 30 días cada talla = 0,4 por día.
     expect(alcanceDelModelo(de("Polo Prueba"), sin, 30).porDia).toBeCloseTo(0.4);
-    expect(textoVendesPorSemana(0.4)).toBe("Vendes 3 por semana");
-    expect(textoVendesPorSemana(5.49)).toBe("Vendes 38 por semana");
-    expect(textoVendesPorSemana(0.05)).toBe("Vendes menos de 1 por semana");
+    expect(vendesPorSemana(0.4)).toEqual({ valor: "3", agregado: "/sem." });
+    expect(vendesPorSemana(5.49)).toEqual({ valor: "38", agregado: "/sem." });
+    expect(vendesPorSemana(0.05)).toEqual({ valor: "Menos de 1", agregado: "/sem." });
   });
 
   it("el día en que se acaba: hoy más los días que alcanza (al menos 1)", () => {
@@ -585,17 +585,17 @@ describe("Ya se agotaron (Felipe 2026-11-24: lo que se vendió entero no se va d
     expect(primerasQuePedir([], "10")).toEqual([]);
   });
 
-  it("«Vendiste 12» «en 7 días»; sin saber los días, «en 8 semanas»", () => {
-    expect(textoVendiste({ vendidas: 12, dias: 7 })).toEqual(["Vendiste 12", "en 7 días"]);
-    expect(textoVendiste({ vendidas: 1, dias: 1 })).toEqual(["Vendiste 1", "en 1 día"]);
-    expect(textoVendiste({ vendidas: 2, dias: null })).toEqual(["Vendiste 2", "en 8 semanas"]);
+  it("VENDISTE 12 «en 7 días»; sin saber los días, «en 8 semanas»", () => {
+    expect(vendiste({ vendidas: 12, dias: 7 })).toEqual({ valor: "12", agregado: "en 7 días" });
+    expect(vendiste({ vendidas: 1, dias: 1 })).toEqual({ valor: "1", agregado: "en 1 día" });
+    expect(vendiste({ vendidas: 2, dias: null })).toEqual({ valor: "2", agregado: "en 8 semanas" });
   });
 
-  it("el pie: lo que viene en camino; si nada viene, otra tienda que lo tiene; si no, nada", () => {
+  it("la etiqueta: lo que viene en camino; si nada viene, otra tienda que lo tiene; si no, nada", () => {
     const ciudad = (id: string) => (id === "lim" ? "Lima" : undefined);
-    expect(pieDePedir(de("Top Prueba"), hoy, ciudad)).toBe("Lima tiene 2");
-    expect(pieDePedir(de("Camisa Prueba"), hoy, ciudad)).toBeNull();
+    expect(marcaDePedir(de("Top Prueba"), hoy, ciudad)).toEqual({ texto: "Lima tiene 2", tipo: "otra" });
+    expect(marcaDePedir(de("Camisa Prueba"), hoy, ciudad)).toBeNull();
     const conLlegada = { ...de("Top Prueba"), llega: [{ de: "compra" as const, cantidad: 12, fecha: "2026-12-06" }] };
-    expect(pieDePedir(conLlegada, hoy, ciudad)).toBe("Llegan 12 el 6 dic.");
+    expect(marcaDePedir(conLlegada, hoy, ciudad)).toEqual({ texto: "Llegan 12 el 6 dic.", tipo: "viene" });
   });
 });
