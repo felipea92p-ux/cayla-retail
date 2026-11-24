@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, Clock, Package, Palette, Ruler, SearchX, Shirt, Tag, type LucideIcon } from "lucide-react";
+import { ArrowUpDown, Clock, Eye, Package, Palette, Ruler, SearchX, Shirt, Tag, type LucideIcon } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -40,6 +40,7 @@ export function BarraFiltros({
   onFiltros,
   visibles,
   orden,
+  mostrar,
 }: {
   /** Todos los modelos de la tienda: de aquí salen las opciones de cada filtro. */
   modelos: readonly ModeloAnalisis[];
@@ -49,6 +50,8 @@ export function BarraFiltros({
   visibles: number;
   /** Cómo se ordena la pestaña que se ve (la primera opción es la de siempre); sin esto, la pestaña no ofrece ordenar. */
   orden?: { valor: string; opciones: readonly OpcionOrden[]; onValor: (v: string) => void };
+  /** «Mostrar» (solo «Qué pedir»): cuántas tarjetas de cada parte, con la misma pieza que «Ordenar por». */
+  mostrar?: { valor: string; opciones: readonly OpcionOrden[]; onValor: (v: string) => void };
 }) {
   const [hoja, setHoja] = useState(false);
   const n = cuantosPuestos(filtros);
@@ -129,18 +132,36 @@ export function BarraFiltros({
           </>
         )}
       </p>
-      {/* Un solo «Ordenar por», fuera del panel, como Productos: ordenar no quita modelos, solo los acomoda. */}
-      {orden && (
-        <div className="min-w-0 rounded-lg vd-hundido p-0.5">
-          <DesplegablePildora
-            encoger
-            icono={ArrowUpDown}
-            etiqueta="Ordenar por"
-            valor={orden.valor}
-            valorPorDefecto={orden.opciones[0]?.valor}
-            onValor={orden.onValor}
-            opciones={orden.opciones.map((o) => ({ valor: o.valor, texto: o.texto }))}
-          />
+      {/* Un solo «Ordenar por», fuera del panel, como Productos: ordenar no quita modelos, solo los acomoda. En «Qué pedir», a su lado,
+          «Mostrar»: cuántas tarjetas de cada parte (Felipe 2026-11-24). */}
+      {(orden || mostrar) && (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {mostrar && (
+            <div className="min-w-0 rounded-lg vd-hundido p-0.5">
+              <DesplegablePildora
+                encoger
+                icono={Eye}
+                etiqueta="Mostrar"
+                valor={mostrar.valor}
+                valorPorDefecto={mostrar.opciones[0]?.valor}
+                onValor={mostrar.onValor}
+                opciones={mostrar.opciones.map((o) => ({ valor: o.valor, texto: o.texto }))}
+              />
+            </div>
+          )}
+          {orden && (
+            <div className="min-w-0 rounded-lg vd-hundido p-0.5">
+              <DesplegablePildora
+                encoger
+                icono={ArrowUpDown}
+                etiqueta="Ordenar por"
+                valor={orden.valor}
+                valorPorDefecto={orden.opciones[0]?.valor}
+                onValor={orden.onValor}
+                opciones={orden.opciones.map((o) => ({ valor: o.valor, texto: o.texto }))}
+              />
+            </div>
+          )}
         </div>
       )}
       </div>

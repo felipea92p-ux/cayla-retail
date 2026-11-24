@@ -171,7 +171,7 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.pedir-agotados",
       opcional: true,
       titulo: "Ya se agotaron",
-      texto: "Lo que ya no tiene ni una prenda aquí: cuándo se agotó y cuántas vendiste en cuántos días. Si se vendió todo rápido, la prueba funcionó. Se ven las 10 que más se venden; «Ver más» muestra el resto.",
+      texto: "Lo que ya no tiene ni una prenda aquí: cuándo se agotó y cuántas vendiste en cuántos días. Si se vendió todo rápido, la prueba funcionó. Se ven 10; «Mostrar», junto a «Ordenar por», cambia cuántas.",
     },
     {
       id: "pedir-tarjetas",

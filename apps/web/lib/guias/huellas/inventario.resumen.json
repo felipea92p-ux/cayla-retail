@@ -30,6 +30,7 @@
       "BotonLimpiar «Limpiar todo»",
       "BotonFiltros «→() => setHoja(true)»",
       "FiltroPuesto «{`Quitar filtro ${p.texto}»",
+      "DesplegablePildora «Mostrar»",
       "DesplegablePildora «Ordenar por»",
       "button «Limpiar»",
       "button «Ver»",
@@ -52,8 +53,7 @@
     ],
     "components/analisis/PestanaPedir.tsx": [
       "BotonVer «Plan de campaña»",
-      "BotonVerMas «Ver lo que más rinde»",
-      "BotonVerMas «{`Ver ${resto.length}»"
+      "BotonVerMas «Ver lo que más rinde»"
     ],
     "components/analisis/PestanaPiso.tsx": [
       "BotonVer «Bajar todos»",

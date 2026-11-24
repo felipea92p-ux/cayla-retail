@@ -508,8 +508,11 @@ export function modelosAgotados<T extends ModeloAnalisis>(modelos: readonly T[],
  */
 export const parteDeArriba = (orden: string): "agotados" | "seAcaban" => (orden === "pocos" ? "seAcaban" : "agotados");
 
-/** Cuántas tarjetas se ven de cada parte antes de «Ver N más» (Felipe 2026-11-24: «por defecto el top 10»). */
-export const PRIMEROS_QUE_PEDIR = 10;
+/** Las primeras de una parte según «Mostrar» (`MOSTRAR_PEDIR`): «10», «20», «50» o «todas» (o algo que no es un número: todas). */
+export function primerasQuePedir<T>(lista: readonly T[], mostrar: string): T[] {
+  const n = Number(mostrar);
+  return Number.isInteger(n) && n > 0 ? lista.slice(0, n) : [...lista];
+}
 
 /** Las dos partes de «Qué pedir» y los modelos de las dos juntos, para contarlos (la pestaña y su tarjeta en «Hoy»). */
 export function queHayQuePedir<T extends ModeloAnalisis>(

@@ -1,7 +1,7 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
@@ -9,7 +9,7 @@ import { ChipEstado, COLOR_ESTADO, ICONO_ESTADO, nombreLargo, TilePrenda, type E
 import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { BotonVer } from "@/components/ui/BotonDescargar";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { BotonVerMas } from "@/components/ui/VerMas";
 import { Vacio } from "@/components/ui/Vacio";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { queTiene } from "@/lib/analisis-modelo";
@@ -28,7 +28,7 @@ import {
   notaTiposSinRegistrar,
   parteDeArriba,
   pieDePedir,
-  PRIMEROS_QUE_PEDIR,
+  primerasQuePedir,
   queHayQuePedir,
   RINDE_POCO,
   solesRinde,
@@ -56,7 +56,7 @@ import { estadoSinNada } from "@/lib/analisis-hoy";
 const tonoDias = (d: number | null): Estado => ((d ?? 0) <= 7 ? "urg" : "ate");
 
 export function PestanaPedir() {
-  const { datos, acceso, prendas, filtros, orden, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
+  const { datos, acceso, prendas, filtros, orden, mostrarPedir, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
   const [rinde, setRinde] = useState(false);
   const hastaNavidad = diasANavidad(datos.hoy);
   const { agotados, seAcaban } = useMemo(
@@ -123,10 +123,12 @@ export function PestanaPedir() {
     );
   });
   const parteAgotados =
-    tarjetasAgotados.length > 0 ? <ParteQuePedir key="agotados" titulo="Ya se agotaron" guia="analisis.pedir-agotados" tarjetas={tarjetasAgotados} /> : null;
+    tarjetasAgotados.length > 0 ? (
+      <ParteQuePedir key="agotados" titulo="Ya se agotaron" guia="analisis.pedir-agotados" tarjetas={tarjetasAgotados} mostrar={mostrarPedir} />
+    ) : null;
   const parteSeAcaban =
     tarjetasSeAcaban.length > 0 ? (
-      <ParteQuePedir key="seAcaban" titulo="Se acaban antes de Navidad" guia="analisis.pedir-tarjetas" tarjetas={tarjetasSeAcaban} />
+      <ParteQuePedir key="seAcaban" titulo="Se acaban antes de Navidad" guia="analisis.pedir-tarjetas" tarjetas={tarjetasSeAcaban} mostrar={mostrarPedir} />
     ) : null;
 
   if (prendas.length === 0)
@@ -159,7 +161,7 @@ export function PestanaPedir() {
       {unTipo && <BloqueTipo categoria={unTipo} />}
 
       {/* Las dos partes; arriba, la que responde el orden elegido (Felipe 2026-11-24): «no hay stock» → lo agotado, «quedan pocos» →
-          lo que se acaba antes de Navidad, con lo que se acaba en 2 semanas primero. Cada una muestra sus 10 primeras y «Ver N más». */}
+          lo que se acaba antes de Navidad, con lo que se acaba en 2 semanas primero. Cada una muestra las que diga «Mostrar» (10 de entrada). */}
       {(parteDeArriba(orden.pedir) === "agotados" ? [parteAgotados, parteSeAcaban] : [parteSeAcaban, parteAgotados])}
 
       <div className="entra flex flex-col gap-4" style={{ ["--i" as string]: 11 }}>
@@ -171,29 +173,16 @@ export function PestanaPedir() {
 }
 
 /**
- * Una parte de «Qué pedir»: su título con cuántos son, las primeras 10 tarjetas y, si hay más, «Ver N más» con el resto (Felipe 2026-11-24:
- * «por defecto el top 10», y que se pueda ver más). El resto baja en su lugar con la pieza única de «Ver más» (ADR-0358).
+ * Una parte de «Qué pedir»: su título con cuántos son en total y las tarjetas que diga «Mostrar» de la barra (10 de entrada; Felipe
+ * 2026-11-24: «por defecto el top 10», y que se pueda cambiar la cantidad).
  */
-function ParteQuePedir({ titulo, guia, tarjetas }: { titulo: string; guia: string; tarjetas: ReactNode[] }) {
-  const [todas, setTodas] = useState(false);
-  const id = useId();
-  const resto = tarjetas.slice(PRIMEROS_QUE_PEDIR);
+function ParteQuePedir({ titulo, guia, tarjetas, mostrar }: { titulo: string; guia: string; tarjetas: ReactNode[]; mostrar: string }) {
   return (
     <section className="flex flex-col gap-3" aria-label={titulo}>
       <div className="entra" style={{ ["--i" as string]: 4 }}>
         <TituloGrupo cuenta={tarjetas.length}>{titulo}</TituloGrupo>
       </div>
-      <Tarjetas guia={guia}>{tarjetas.slice(0, PRIMEROS_QUE_PEDIR)}</Tarjetas>
-      {resto.length > 0 && (
-        <>
-          <FilasDeMas abierto={todas} id={id}>
-            <div className="pt-1">
-              <Tarjetas>{resto}</Tarjetas>
-            </div>
-          </FilasDeMas>
-          <BotonVerMas abierto={todas} onCambiar={setTodas} texto={`Ver ${resto.length} más`} forma="enlace" controla={id} className="self-start" />
-        </>
-      )}
+      <Tarjetas guia={guia}>{primerasQuePedir(tarjetas, mostrar)}</Tarjetas>
     </section>
   );
 }
