@@ -28,10 +28,12 @@
 --   · `fn_tickets_compartidos(sede)`: los que esperan, SIN el contenido (la caja pregunta cada pocos segundos: liviano).
 --   · `tomar_ticket_compartido(id)`: lo abre y devuelve el contenido. Todo o nada.
 --   · `descartar_ticket_compartido(id)`: lo marca descartado.
+--   · `marcar_ticket_compartido_cobrado(id, venta)` (actividad 5): anota con qué venta se cobró. Con eso el tiempo real de cada cobro
+--     queda medido sin cronómetro: `enviado_en` (se armó en el piso) → `tomado_en` (la caja lo abrió) → `ventas.created_at` (se cobró).
 -- Permisos: quien ve Vender en esa sede (`fn_ve_modulo('vender')` y `fn_puede_operar_ubicacion`). Firma con `fn_actor_persona_id(true)`.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Una sola parte, a cualquier hora: una tabla NUEVA (sin políticas: no toma las tablas de auth ni storage,
--- ADR-0195) y funciones nuevas. No altera ninguna tabla en uso. Idempotente. Para volver atrás: `drop function` de las cuatro y
+-- ADR-0195) y funciones nuevas. No altera ninguna tabla en uso. Idempotente. Para volver atrás: `drop function` de las cinco y
 -- `drop table retail.tickets_compartidos` (la web vieja no las usa).
 -- ============================================================================
 
@@ -68,6 +70,9 @@ create table if not exists retail.tickets_compartidos (
   tomado_en timestamptz,
   descartado_por uuid references public.personas (id),
   descartado_en timestamptz,
+  -- La venta con que se cobró (actividad 5). Solo un ticket tomado se cobra, y una sola vez.
+  venta_id uuid references retail.ventas (id),
+  constraint tickets_compartidos_cobrado_si_tomado check (venta_id is null or estado = 'tomado'),
   constraint tickets_compartidos_estado_coherente check (
     (estado = 'esperando' and tomado_por is null and tomado_en is null and descartado_por is null and descartado_en is null)
     or (estado = 'tomado' and tomado_por is not null and tomado_en is not null and descartado_por is null and descartado_en is null)
@@ -93,13 +98,18 @@ begin
   if tg_op in ('DELETE', 'TRUNCATE') then
     raise exception 'Un ticket compartido no se borra: se descarta.' using hint = 'ticket_inmutable';
   end if;
+  -- La única escritura sobre un ticket ya tomado: anotar, una vez, con qué venta se cobró. Nada más cambia.
+  if old.estado = 'tomado' and old.venta_id is null and new.venta_id is not null
+     and (to_jsonb(new) - 'venta_id') = (to_jsonb(old) - 'venta_id') then
+    return new;
+  end if;
   if old.estado <> 'esperando' then
     raise exception 'Este ticket ya se cerró (%): no cambia más.', old.estado using hint = 'ticket_inmutable';
   end if;
   if new.estado = 'esperando'
      or new.id <> old.id or new.ubicacion_id <> old.ubicacion_id or new.nombre <> old.nombre or new.contenido <> old.contenido
      or new.prendas <> old.prendas or new.total <> old.total
-     or new.enviado_por <> old.enviado_por or new.enviado_en <> old.enviado_en then
+     or new.enviado_por <> old.enviado_por or new.enviado_en <> old.enviado_en or new.venta_id is not null then
     raise exception 'De un ticket compartido solo cambia si se tomó o se descartó.' using hint = 'ticket_inmutable';
   end if;
   return new;
@@ -360,7 +370,43 @@ comment on function retail.descartar_ticket_compartido(uuid) is
   'ADR-0701: marca descartado un ticket que espera en la caja. Nunca lo borra; descartar dos veces no falla.';
 
 -- ----------------------------------------------------------------------------
--- 8. Quién llama a qué.
+-- 8. Anotar con qué venta se cobró (actividad 5): la medida del cobro.
+-- ----------------------------------------------------------------------------
+create or replace function retail.marcar_ticket_compartido_cobrado(p_id uuid, p_venta_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_fila retail.tickets_compartidos;
+begin
+  for v_fila in select * from tickets_compartidos where id = p_id loop
+    perform fn_exigir_tickets_de_sede(v_fila.ubicacion_id);
+    if v_fila.estado <> 'tomado' then
+      raise exception 'Solo se anota la venta de un ticket que se abrió en la caja.' using errcode = '22023', hint = 'ticket_no_tomado';
+    end if;
+    if v_fila.venta_id = p_venta_id then
+      return fn_ticket_compartido_fila(v_fila);
+    end if;
+    if v_fila.venta_id is not null then
+      raise exception 'Este ticket ya se cobró con otra venta.' using errcode = '22023', hint = 'ticket_ya_cobrado';
+    end if;
+    if not exists (select 1 from ventas v where v.id = p_venta_id and v.ubicacion_id = v_fila.ubicacion_id) then
+      raise exception 'Esa venta no es de esta tienda.' using errcode = '22023', hint = 'ticket_venta_ajena';
+    end if;
+    update tickets_compartidos set venta_id = p_venta_id where id = p_id and venta_id is null returning * into v_fila;
+    return fn_ticket_compartido_fila(v_fila);
+  end loop;
+  raise exception 'Ese ticket no existe.' using errcode = 'P0002', hint = 'ticket_no_existe';
+end;
+$fn$;
+
+comment on function retail.marcar_ticket_compartido_cobrado(uuid, uuid) is
+  'ADR-0701 (actividad 5): anota con qué venta de la misma tienda se cobró un ticket del piso que se abrió en la caja. Una vez; la misma venta otra vez no falla.';
+
+-- ----------------------------------------------------------------------------
+-- 9. Quién llama a qué.
 -- ----------------------------------------------------------------------------
 revoke all on function retail.fn_ticket_compartido_transicion() from public, anon, authenticated;
 revoke all on function retail.fn_exigir_tickets_de_sede(uuid) from public, anon, authenticated;
@@ -369,7 +415,9 @@ revoke all on function retail.enviar_ticket_a_caja(uuid, uuid, text, jsonb) from
 revoke all on function retail.fn_tickets_compartidos(uuid) from public, anon;
 revoke all on function retail.tomar_ticket_compartido(uuid) from public, anon;
 revoke all on function retail.descartar_ticket_compartido(uuid) from public, anon;
+revoke all on function retail.marcar_ticket_compartido_cobrado(uuid, uuid) from public, anon;
 grant execute on function retail.enviar_ticket_a_caja(uuid, uuid, text, jsonb) to authenticated;
 grant execute on function retail.fn_tickets_compartidos(uuid) to authenticated;
 grant execute on function retail.tomar_ticket_compartido(uuid) to authenticated;
 grant execute on function retail.descartar_ticket_compartido(uuid) to authenticated;
+grant execute on function retail.marcar_ticket_compartido_cobrado(uuid, uuid) to authenticated;

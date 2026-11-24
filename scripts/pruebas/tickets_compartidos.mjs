@@ -21,6 +21,8 @@
  *   T8 historia: ni editar, ni borrar, ni vaciar, ni volver a «esperando», ni insertar un estado imposible.
  *   T9 tope: 20 esperando en una caja; el 21 se rechaza.
  *   T10 carrera REAL (con COMMIT): dos equipos abren el mismo ticket a la vez → uno se lo lleva y el otro recibe ticket_ya_tomado.
+ *   T11 la medida (actividad 5): un ticket tomado anota con qué venta de SU tienda se cobró, una vez; la misma otra vez no falla; uno
+ *       que espera, una venta de otra tienda o una segunda venta se rechazan; a mano solo se puede escribir esa columna, y solo en un tomado.
  *
  * CÓMO. Como `barrido_piso.mjs`: cada caso en su transacción con ROLLBACK, sesión simulada con `request.jwt.claim.sub` y el encabezado
  * de PostgREST en `request.headers`. Solo T10 confirma (en una sede de prueba propia, «ZZ Tickets carrera»): un ROLLBACK no ve un bloqueo.
@@ -146,17 +148,17 @@ caso(
   "T1 · una sola versión de cada puerta, con la firma del contrato",
   `select string_agg(proname || '(' || pg_get_function_identity_arguments(oid) || ')', ';' order by proname)
      from pg_proc where pronamespace = 'retail'::regnamespace
-      and proname in ('enviar_ticket_a_caja', 'fn_tickets_compartidos', 'tomar_ticket_compartido', 'descartar_ticket_compartido');`,
-  "descartar_ticket_compartido(p_id uuid);enviar_ticket_a_caja(p_id uuid, p_ubicacion_id uuid, p_nombre text, p_contenido jsonb);fn_tickets_compartidos(p_ubicacion_id uuid);tomar_ticket_compartido(p_id uuid)"
+      and proname in ('enviar_ticket_a_caja', 'fn_tickets_compartidos', 'tomar_ticket_compartido', 'descartar_ticket_compartido', 'marcar_ticket_compartido_cobrado');`,
+  "descartar_ticket_compartido(p_id uuid);enviar_ticket_a_caja(p_id uuid, p_ubicacion_id uuid, p_nombre text, p_contenido jsonb);fn_tickets_compartidos(p_ubicacion_id uuid);marcar_ticket_compartido_cobrado(p_id uuid, p_venta_id uuid);tomar_ticket_compartido(p_id uuid)"
 );
 caso(
   "T1 · las cuatro puertas: anon no, authenticated sí, security definer con el search_path de la casa; los ayudantes: nadie de afuera",
   `select string_agg(p.proname || '=' || concat_ws(',', has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'),
                     p.prosecdef, coalesce(p.proconfig::text like '%search_path=retail, public, extensions%', false)), ';' order by p.proname)
      from pg_proc p where p.pronamespace = 'retail'::regnamespace
-      and p.proname in ('enviar_ticket_a_caja', 'fn_tickets_compartidos', 'tomar_ticket_compartido', 'descartar_ticket_compartido',
+      and p.proname in ('enviar_ticket_a_caja', 'fn_tickets_compartidos', 'tomar_ticket_compartido', 'descartar_ticket_compartido', 'marcar_ticket_compartido_cobrado',
                         'fn_exigir_tickets_de_sede', 'fn_ticket_compartido_fila', 'fn_ticket_compartido_transicion');`,
-  "descartar_ticket_compartido=f,t,t,t;enviar_ticket_a_caja=f,t,t,t;fn_exigir_tickets_de_sede=f,f,t,t;fn_ticket_compartido_fila=f,f,t,t;fn_ticket_compartido_transicion=f,f,f,t;fn_tickets_compartidos=f,t,t,t;tomar_ticket_compartido=f,t,t,t"
+  "descartar_ticket_compartido=f,t,t,t;enviar_ticket_a_caja=f,t,t,t;fn_exigir_tickets_de_sede=f,f,t,t;fn_ticket_compartido_fila=f,f,t,t;fn_ticket_compartido_transicion=f,f,f,t;fn_tickets_compartidos=f,t,t,t;marcar_ticket_compartido_cobrado=f,t,t,t;tomar_ticket_compartido=f,t,t,t"
 );
 caso(
   "T1 · la tabla: RLS encendido, CERO políticas y sin privilegios para authenticated (solo la tocan las funciones)",
@@ -372,6 +374,44 @@ select (retail.fn_tickets_compartidos(:'sede') -> 0 ->> 'id') as primero \\gset
 select ${tomar(":'primero'")} ->> 'ok';
 select ${enviar(":'t1'")} ->> 'ok';`,
   (l) => l.at(-4) === "20" && error(l.at(-3), "ticket_tope") && l.at(-2) === "true" && l.at(-1) === "true"
+);
+
+// ===========================================================================
+// T11 · La medida: con qué venta se cobró
+// ===========================================================================
+
+const marcar = (id, venta) => `pg_temp.r(format('select retail.marcar_ticket_compartido_cobrado(%L, %L)', ${id}, ${venta}))`;
+const VENTAS = `${COMO_POSTGRES}insert into retail.ventas (ubicacion_id, es_prueba) values (:'sede', true) returning id as venta \\gset
+insert into retail.ventas (ubicacion_id, es_prueba) values (:'sede', true) returning id as venta2 \\gset
+insert into retail.ventas (ubicacion_id, es_prueba) values (:'tru', true) returning id as ajena \\gset
+`;
+
+caso(
+  "T11 · un ticket tomado anota su venta una vez (la misma otra vez no falla); la caja puede medir enviado → tomado → cobrado",
+  `${MANDADO}${VENTAS}${sesion(FELIPE)}${COMO_API}select ${tomar(":'t1'")} ->> 'ok';
+select ${marcar(":'t1'", ":'venta'")} ->> 'ok';
+select ${marcar(":'t1'", ":'venta'")} ->> 'ok';
+${COMO_POSTGRES}select concat_ws(',', t.venta_id = :'venta', t.tomado_en >= t.enviado_en, v.id is not null)
+  from retail.tickets_compartidos t left join retail.ventas v on v.id = t.venta_id where t.id = :'t1';`,
+  (l) => l.slice(-4, -1).join(",") === "true,true,true" && l.at(-1) === "t,t,t"
+);
+caso(
+  "T11 · se rechaza: el que espera (ticket_no_tomado), una venta de otra tienda (ticket_venta_ajena), una segunda venta (ticket_ya_cobrado)",
+  `${MANDADO}${VENTAS}${sesion(FELIPE)}${COMO_API}select ${marcar(":'t1'", ":'venta'")};
+select ${tomar(":'t1'")} ->> 'ok';
+select ${marcar(":'t1'", ":'ajena'")};
+select ${marcar(":'t1'", ":'venta'")} ->> 'ok';
+select ${marcar(":'t1'", ":'venta2'")};`,
+  (l) => error(l.at(-5), "ticket_no_tomado") && error(l.at(-3), "ticket_venta_ajena") && l.at(-2) === "true" && error(l.at(-1), "ticket_ya_cobrado")
+);
+caso(
+  "T11 · a mano: en un tomado solo entra la venta (una vez y sin tocar nada más); en uno que espera, ni eso",
+  `${MANDADO}${VENTAS}${COMO_POSTGRES}select pg_temp.intento(format('update retail.tickets_compartidos set venta_id = %L where id = %L', :'venta', :'t1')) ->> 'ok';
+${sesion(FELIPE)}${COMO_API}select ${tomar(":'t1'")} ->> 'ok';
+${COMO_POSTGRES}select pg_temp.intento(format('update retail.tickets_compartidos set venta_id = %L, nombre = ''Otro'' where id = %L', :'venta', :'t1')) ->> 'ok';
+select pg_temp.intento(format('update retail.tickets_compartidos set venta_id = %L where id = %L', :'venta', :'t1')) ->> 'ok';
+select pg_temp.intento(format('update retail.tickets_compartidos set venta_id = %L where id = %L', :'venta2', :'t1')) ->> 'ok';`,
+  (l) => l.slice(-5).join(",") === "false,true,false,true,false"
 );
 
 // ===========================================================================

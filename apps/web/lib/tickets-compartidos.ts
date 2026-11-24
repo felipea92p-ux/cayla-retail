@@ -44,6 +44,12 @@ export async function tomarTicketCompartido(supabase: Supabase, firma: Firma | F
   return abierto ? { dato: abierto, error: null } : { dato: null, error: sinRespuesta };
 }
 
+/** Anota con qué venta se cobró un ticket que vino del piso (ADR-0701, actividad 5): la medida del cobro. */
+export async function marcarTicketCompartidoCobrado(supabase: Supabase, id: string, ventaId: string): Promise<Resultado<true>> {
+  const { error } = await supabase.rpc("marcar_ticket_compartido_cobrado" as never, { p_id: id, p_venta_id: ventaId } as never);
+  return error ? { dato: null, error } : { dato: true, error: null };
+}
+
 /** Descarta un ticket que nadie va a cobrar (queda escrito; nunca se borra). Descartar dos veces no falla. */
 export async function descartarTicketCompartido(supabase: Supabase, firma: Firma | FirmaOmitida | null, id: string): Promise<Resultado<true>> {
   const { error } = await firmar(supabase.rpc("descartar_ticket_compartido" as never, { p_id: id } as never), firma);
