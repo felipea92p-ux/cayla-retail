@@ -102,7 +102,7 @@ insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', 
 -- Una prenda del catálogo que ya tiene lo suyo (Catálogo le dijo que no a todo).
 insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Blusa Catálogo Rasgos', :'marca', :'prov') returning id as prod_p \\gset
 insert into retail.variantes (producto_id, talla_id, color_codigo, precio, costo) values (:'prod_p', :'t_s', :'c1', 79.90, 25);
-insert into retail.producto_rasgos (producto_id, nadie_la_tiene, en_tendencia, tela_que_se_nota) values (:'prod_p', false, false, false);
+insert into retail.producto_rasgos (producto_id, marcados, quitados) values (:'prod_p', '{}', '{tela_que_se_nota}');
 -- La orden: l1 con casillas y precio visto, l2 sin nada, l3 con casillas para la prenda del catálogo.
 insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por) values (:'prov', :'tru', :'felipe_p') returning id as o1 \\gset
 insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, descripcion, cantidad, precio_unitario, rasgos, precio_visto_afuera)
@@ -168,12 +168,12 @@ select coalesce((x -> 'rasgos')::text, '-') || '|' || coalesce(x ->> 'precio_vis
 select pg_temp.e(:'prep'::jsonb);
 reset role;
 select (:'prep'::jsonb ->> 'producto_id') as nueva \\gset
-select nadie_la_tiene || '|' || en_tendencia || '|' || coalesce(tela_que_se_nota::text, 'por el tejido') from retail.producto_rasgos where producto_id = :'nueva';
+select coalesce(nullif(array_to_string(marcados, ','), ''), '-') || '|' || coalesce(nullif(array_to_string(quitados, ','), ''), '-') from retail.producto_rasgos where producto_id = :'nueva';
 ${como(MICAELA)}
 select array_to_string(retail.fn_rasgos_de_producto(:'nueva'), ',');`);
   const [prep, fila, efecto] = lineas(r);
   esperar("la prenda nueva se crea", r.ok && prep === "OK", r);
-  esperar("y guarda lo que marcó quien compró, con la tela por su tejido", r.ok && fila === "true|true|por el tejido", r);
+  esperar("y guarda lo que marcó quien compró, con la tela por su tejido (nada quitado)", r.ok && fila === "en_tendencia,nadie_la_tiene|-", r);
   esperar("en efecto: las dos casillas, la tela por el tejido y la marca por la lista", r.ok && efecto === "nadie_la_tiene,en_tendencia,tela_que_se_nota,marca_conocida", r);
 }
 
@@ -196,10 +196,10 @@ select array_to_string(retail.fn_rasgos_de_producto(:'nueva'), ',');`);
 {
   const r = correr(`select pg_temp.e(pg_temp.prepara(:'envio', :'di_l3', null, null, :'prod_p', null, ${MATRIZ(["t_m", "c1"])}, null, null, null, null, false, gen_random_uuid(), null));
 reset role;
-select nadie_la_tiene || '|' || en_tendencia || '|' || coalesce(tela_que_se_nota::text, 'por el tejido') from retail.producto_rasgos where producto_id = :'prod_p';`);
+select coalesce(nullif(array_to_string(marcados, ','), ''), '-') || '|' || coalesce(nullif(array_to_string(quitados, ','), ''), '-') from retail.producto_rasgos where producto_id = :'prod_p';`);
   const [prep, fila] = lineas(r);
   esperar("la prenda del catálogo suma su talla", r.ok && prep === "OK", r);
-  esperar("y conserva lo que le dijo Catálogo", r.ok && fila === "false|false|false", r);
+  esperar("y conserva lo que le dijo Catálogo", r.ok && fila === "-|tela_que_se_nota", r);
 }
 
 // 5. Nadie toca la tabla directo; anon no pregunta lo que tiene una prenda.

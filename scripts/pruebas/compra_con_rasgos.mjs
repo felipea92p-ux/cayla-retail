@@ -9,7 +9,7 @@
  *   · una prenda «a la espera de precio» (ADR-0660) guarda sus casillas igual;
  *   · lo que no se entiende frena TODA la compra y no deja nada: un código que no existe, una lista que no es lista, un precio visto
  *     negativo, de texto o sobre S/ 5 000;
- *   · los candados de la tabla valen aunque alguien escriba directo;
+ *   · los candados de la tabla valen aunque alguien escriba directo (un código que no está en la lista de casillas, una lista vacía);
  *   · `fn_reglas_de_precio` trae las listas de marcas y tejidos (ids).
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK; la sesión es la de Felipe (líder) simulada con `request.jwt.claim.sub` y el rol
@@ -166,7 +166,7 @@ select pg_temp.intento(format('update retail.orden_compra_items set rasgos = %L 
 select pg_temp.intento(format('update retail.orden_compra_items set rasgos = %L where id = %L', '{}', :'item'));
 select pg_temp.intento(format('update retail.orden_compra_items set precio_visto_afuera = 0 where id = %L', :'item'));`);
   const [, codigo, vacia, cero] = lineas(r);
-  esperar("candado: solo los cuatro códigos", r.ok && codigo?.startsWith("23514|") && codigo.includes("orden_compra_items_rasgos"), r);
+  esperar("candado: solo códigos de la lista de casillas", r.ok && codigo === "23514|La casilla «barata» no está en la lista.", r);
   esperar("candado: una lista vacía no (es nulo)", r.ok && vacia?.startsWith("23514|"), r);
   esperar("candado: el precio visto es mayor que cero", r.ok && cero?.startsWith("23514|") && cero.includes("orden_compra_items_visto_afuera"), r);
 }
