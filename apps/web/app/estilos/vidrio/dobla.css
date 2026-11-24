@@ -5,8 +5,8 @@
    en vez de solo desenfocarlo. El filtro lo arma `components/ui/useVidrioQueDobla.ts` (un filtro SVG por pieza, con su mapa calculado
    en `lib/vidrio-dobla.ts`) y lo deja en la variable `--dobla` de la pieza, junto con el atributo `data-dobla-activa`.
 
-   Es una MEJORA: estas reglas solo valen con ese atributo, que solo se pone donde el navegador acepta un filtro SVG dentro de
-   `backdrop-filter` (hoy Chrome y Edge). En Safari, en Firefox, en modo liviano, con «menos transparencia» y con «más contraste», la
+   Es una MEJORA: estas reglas solo valen con ese atributo, que solo se pone donde el navegador DIBUJA un filtro SVG dentro de
+   `backdrop-filter` (hoy Chrome y Edge; se pregunta por el motor, porque Safari dice aceptarlo y no lo dibuja: `navegadorDibujaDobla`). En Safari, en Firefox, en modo liviano, con «menos transparencia» y con «más contraste», la
    pieza no lleva el atributo y se ve con su vidrio de siempre. Por eso aquí no hay `@supports` ni respaldo: el respaldo es no entrar.
 
    Fuera de capa, como el resto de `vidrio/`: le gana a la pieza por especificidad (suma un atributo), no por orden.

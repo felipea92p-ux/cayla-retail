@@ -11,7 +11,9 @@ import {
   cuerpoDelFiltro,
   mapasDelCanto,
   medidasDelCanto,
+  navegadorDibujaDobla,
   type LadosDelCanto,
+  type NavegadorQueSeDescribe,
   type RellenoDelVidrio,
 } from "@/lib/vidrio-dobla";
 
@@ -21,8 +23,8 @@ import {
 // SVG con su id y se le deja a la pieza la variable `--dobla` y el atributo `data-dobla-activa`. El CSS (`estilos/vidrio/dobla.css`) solo
 // cambia el aspecto de la pieza con ese atributo: sin él, la pieza se ve con su vidrio de siempre.
 //
-// No dobla (y no hace nada) donde no se puede o no se debe: un navegador que no acepta un filtro SVG en `backdrop-filter` (Safari,
-// Firefox), el modo liviano, y quien pidió menos transparencia o más contraste en su aparato.
+// No dobla (y no hace nada) donde no se puede o no se debe: un navegador que no DIBUJA un filtro SVG en `backdrop-filter` (Safari,
+// Firefox: Safari dice aceptarlo y no lo dibuja, por eso se pregunta por el motor), el modo liviano, y quien pidió menos transparencia o más contraste en su aparato.
 
 export type OpcionesDeDoblar = {
   /** Por dónde dobla. Una cápsula o una hoja, `todos` (de fábrica); una barra pegada a un borde, por su lado libre. */
@@ -57,7 +59,8 @@ let soltarAvisos: (() => void) | null = null;
 let siguiente = 0;
 
 function puedeDoblar(solo?: string): boolean {
-  if (typeof CSS === "undefined" || !CSS.supports("backdrop-filter", "url(#x)")) return false;
+  // Por el motor y no por `CSS.supports`: Safari acepta la frase y no la dibuja (navegadorDibujaDobla, lib/vidrio-dobla.ts).
+  if (typeof navigator === "undefined" || !navegadorDibujaDobla(navigator as NavegadorQueSeDescribe)) return false;
   if (solo && !window.matchMedia(solo).matches) return false;
   return livianoDelDocumento() !== "si" && !window.matchMedia(PIDE_MACIZO).matches;
 }
