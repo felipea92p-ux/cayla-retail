@@ -162,6 +162,10 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
+import { descartarTicketCompartido, enviarTicketACaja, marcarTicketCompartidoCobrado, tomarTicketCompartido } from "@/lib/tickets-compartidos";
+import { abrirSeRepite, mensajeDeTicketCompartido, nombreDelTicketDelPiso, ticketDelPisoParaLaEspera, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { useTicketsDelPiso } from "@/lib/useTicketsDelPiso";
+import { DesdeElPisoModal } from "@/components/punto-de-venta/DesdeElPiso";
 import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
@@ -330,6 +334,8 @@ export type TicketEnEspera = {
   /** Lo del cobro que viaja con el ticket (2026-10-25): quién atendió, comprobante, documento, pagos y cupón. Un ticket guardado
    *  antes no lo trae y vuelve con el cobro vacío; se lee con `cobroDeTicketGuardado`, nunca directo. */
   cobro?: CobroDelTicket;
+  /** El ticket compartido de donde vino (ADR-0701): viaja con él para que, al cobrarlo, la base anote la venta (la medida del cobro). */
+  delPiso?: string;
 };
 
 /** Un medio con el que pagó la clienta (ver `lib/vender-reglas.ts`); compartido con el
@@ -426,6 +432,8 @@ type Props = {
    *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
    *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
   redondeoEfectivoDisponible?: boolean;
+  /** Los tickets compartidos ya están en la base (ADR-0701): el ticket armado en el piso se manda a la caja de la sede. */
+  ticketsCompartidos?: boolean;
   /** «Pedir y apartar para este cliente» desde «Dónde más hay» (ADR-0328 act. 17): las otras tiendas a las que se les puede
    *  pedir. `null`: la opción no aparece (no es una tienda, o la sede apagó «Pedir a otra sede» en sus opciones de Apartados). */
   pedirAOtraSede?: { tiendas: TiendaParaPedir[] } | null;
@@ -455,7 +463,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -537,6 +545,36 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El ticket que espera y se va a descartar, con lo que dice la hoja de confirmación (se guarda aparte: al descartarlo sale de
   // la espera y la hoja no puede leerlo de ahí mientras se cierra).
   const [porDescartar, setPorDescartar] = useState<{ id: string; nombre: string; prendas: number; total: number } | null>(null);
+  // «Mandar a la caja» (ADR-0701). El id se elige una vez por ticket: si la red corta la respuesta y se vuelve a tocar, la base reconoce el
+  // mismo ticket y no lo duplica. Cambiar el ticket después de un intento fallido pide un id nuevo (es otro ticket).
+  const [mandandoACaja, setMandandoACaja] = useState(false);
+  const idParaCaja = useRef<string | null>(null);
+  useEffect(() => {
+    idParaCaja.current = null;
+  }, [carrito]);
+  // Lo que el piso mandó a la caja (ADR-0701): la lista se pregunta cada 5 s con la caja abierta. «Abrir» lo pasa a este equipo.
+  const piso = useTicketsDelPiso(ubicacionId, ticketsCompartidos && !bloqueado);
+  const [abriendoDelPiso, setAbriendoDelPiso] = useState<string | null>(null);
+  // El candado de «Abrir» (/chaos g4): el estado de arriba llega un render tarde, y un doble o triple toque alcanzaba a mandar tres
+  // pedidos; el segundo volvía con «ya lo abrió» a la misma persona. La ref se lee al instante.
+  const abriendoAhora = useRef<string | null>(null);
+  // La apertura de cada ticket que se está abriendo (/chaos g2): se repite la misma hasta que la base responda algo definitivo.
+  const aperturas = useRef(new Map<string, string>());
+  // Los que se tocaron «Abrir» y la red no confirmó: la base pudo haberlos abierto (ya no «esperan»), así que la lista no los trae. Se
+  // siguen mostrando aquí hasta que un nuevo «Abrir» con la misma apertura los traiga, o la base diga algo definitivo.
+  const [porConfirmar, setPorConfirmar] = useState<TicketCompartido[]>([]);
+  const ticketsDelPiso = useMemo(
+    () => [...porConfirmar, ...piso.tickets.filter((t) => !porConfirmar.some((p) => p.id === t.id))],
+    [porConfirmar, piso.tickets],
+  );
+  const olvidarApertura = (id: string) => {
+    aperturas.current.delete(id);
+    setPorConfirmar((ps) => (ps.some((p) => p.id === id) ? ps.filter((p) => p.id !== id) : ps));
+  };
+  const [hojaDelPiso, setHojaDelPiso] = useState(false);
+  const [descartarDelPiso, setDescartarDelPiso] = useState<TicketCompartido | null>(null);
+  // De qué ticket del piso viene el ticket de la caja (o `null`): al cobrarlo se anota la venta en la base (actividad 5).
+  const [delPisoId, setDelPisoId] = useState<string | null>(null);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -756,7 +794,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || hojaDelPiso || descartarDelPiso !== null || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1414,6 +1452,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (!guardar(claveEspera, lista)) avisar.aviso("No se pudo guardar la espera en este navegador: el ticket sigue acá, pero no sobrevivirá a una recarga.");
   }
   function limpiarTicket() {
+    setDelPisoId(null);
     setCarrito([]);
         setDuenoDeLinea({});
     quitarClienta();
@@ -1465,7 +1504,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
     capturarFlip();
     // Sin nombre se guarda con el automático («Cliente 2»): una pestaña sin nombre no se distingue de las otras.
-    const dejado = ticketParaEspera({ carrito, nota, nombre: nombre || nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString());
+    const dejado = { ...ticketParaEspera({ carrito, nota, nombre: nombre || nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString()), delPiso: delPisoId ?? undefined };
     // El ticket se queda en su lugar de la fila y la caja abre uno vacío al final.
     const nueva = abrirNuevoTicket(enEspera, posActivo, dejado);
     persistirEspera(nueva.espera);
@@ -1476,9 +1515,32 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setNombreTicket(siguienteNombreDeCliente(nueva.espera.map((t) => t.nombre)));
     buscador.current?.focus();
   }
+  /** «Mandar a la caja» (ADR-0701, las tres estaciones del cobro): la asesora arma el ticket en el piso y lo manda a la caja de su sede, que
+   *  lo abre y lo cobra. Si no llega (sin red, la base lo rechaza), el ticket se queda aquí tal cual: nunca se pierde por mandarlo. */
+  async function mandarACaja() {
+    if (carrito.length === 0 || mandandoACaja) return;
+    const id = (idParaCaja.current ??= crypto.randomUUID());
+    const nombre = nombreActivo;
+    const contenido = ticketParaEspera({ carrito, nota, nombre, clienta, cobro: cobroParaEspera() }, id, new Date().toISOString());
+    setMandandoACaja(true);
+    const r = await enviarTicketACaja(createClient(), responsable.firma(), { id, ubicacionId, nombre, contenido });
+    setMandandoACaja(false);
+    if (r.error) {
+      const m = mensajeDeTicketCompartido(r.error, "mandar");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      return;
+    }
+    idParaCaja.current = null;
+    setHojaTicket(false);
+    limpiarTicket();
+    avisar.exito(`${r.dato.nombre} está en la caja`, { detalle: "La caja lo abre y lo cobra. Acompaña a tu cliente." });
+    // Si este mismo equipo es la caja, la lista «Del piso» lo muestra ya, sin esperar la próxima pregunta.
+    void piso.refrescar();
+    buscador.current?.focus();
+  }
   /** Cerrar la caja: con tickets que tienen prendas (los que esperan y el de la caja) primero se dice cuáles se pierden; sin ellos, directo. */
   function abrirCierreDeCaja() {
-    if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
+    if (pestanas.some((p) => p.prendas > 0) || ticketsDelPiso.length > 0) setCierreConTickets(true);
     else setModalCaja("cerrar");
   }
   /** El basurero de «En espera»: pide confirmación, porque se pierden sus prendas. */
@@ -1494,14 +1556,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (sin.espera.length === 0) setMomento("armar");
   }
   function retomar(id: string) {
-    const ticket = enEspera.find((t) => t.id === id);
+    retomarDe(enEspera, id);
+  }
+  function retomarDe(lista: TicketEnEspera[], id: string) {
+    const ticket = lista.find((t) => t.id === id);
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian de lugar: el actual se queda donde estaba la pestaña retomada y nadie más se mueve.
     const actual: TicketEnEspera | null =
       carrito.length > 0
-        ? ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())
+        ? { ...ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString()), delPiso: delPisoId ?? undefined }
         : null;
-    const paso = pasarAlTicket(enEspera, posActivo, actual, id);
+    const paso = pasarAlTicket(lista, posActivo, actual, id);
     if (!paso) return;
     persistirEspera(paso.espera);
     setPosActivo(paso.posActivo);
@@ -1521,6 +1586,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
+    setDelPisoId(ticket.delPiso ?? null);
     // El nombre viaja con el ticket: si se lo vuelve a dejar en espera, la hoja lo propone y la tira lo sigue
     // llamando igual.
     setNombreTicket(ticket.nombre ?? "");
@@ -1564,6 +1630,54 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
   }
 
+  /** Descartar un ticket del piso que nadie va a cobrar (ADR-0701): queda escrito en la base, nunca se borra. */
+  async function tirarDelPiso(t: TicketCompartido) {
+    const r = await descartarTicketCompartido(createClient(), responsable.firma(), t.id);
+    if (r.error) {
+      if (r.error.hint?.startsWith("ticket_")) olvidarApertura(t.id);
+      const m = mensajeDeTicketCompartido(r.error, "descartar");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      void piso.refrescar();
+      return;
+    }
+    olvidarApertura(t.id);
+    piso.quitar(t.id);
+  }
+  /** «Abrir» un ticket del piso (ADR-0701): pasa a este equipo y entra a la caja como cualquier ticket que esperaba, por la misma puerta
+   *  (`retomar`, que pone los precios al día). Si otra caja lo abrió primero, se dice quién y la lista se pone al día. */
+  async function abrirDelPiso(t: TicketCompartido) {
+    if (abriendoAhora.current) return;
+    if (!cabeOtroTicket(enEspera.length)) {
+      avisarTopeDeTickets();
+      return;
+    }
+    abriendoAhora.current = t.id;
+    setAbriendoDelPiso(t.id);
+    const apertura = aperturas.current.get(t.id) ?? crypto.randomUUID();
+    aperturas.current.set(t.id, apertura);
+    const r = await tomarTicketCompartido(createClient(), responsable.firma(), t.id, apertura);
+    abriendoAhora.current = null;
+    setAbriendoDelPiso(null);
+    if (r.error) {
+      if (abrirSeRepite(r.error)) setPorConfirmar((ps) => (ps.some((p) => p.id === t.id) ? ps : [t, ...ps]));
+      else olvidarApertura(t.id);
+      const m = mensajeDeTicketCompartido(r.error, "abrir");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      void piso.refrescar();
+      return;
+    }
+    olvidarApertura(t.id);
+    piso.quitar(t.id);
+    const leido = ticketDelPisoParaLaEspera(r.dato);
+    if (!leido) {
+      avisar.error("El ticket llegó sin prendas", { detalle: "Pídele a la asesora que lo vuelva a armar." });
+      return;
+    }
+    const ticket: TicketEnEspera = { ...leido, carrito: leido.carrito as ItemCarrito[], clienta: clientaDeTicketGuardado(leido.clienta), cobro: leido.cobro as CobroDelTicket | undefined, delPiso: t.id };
+    setHojaDelPiso(false);
+    setHojaTicket(false);
+    retomarDe([...enEspera, ticket], ticket.id);
+  }
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -2093,6 +2207,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       const { error: errorMarcar } = await supabase.rpc("marcar_proforma_cobrada", { p_proforma_id: proformaActiva.id, p_venta_id: ventaId });
       if (errorMarcar) avisar.aviso(`La venta quedó bien, pero ${proformaActiva.numero} sigue «vigente»`, { detalle: traducirError(errorMarcar, "marcar la proforma como cobrada") });
     }
+    if (ventaId && delPisoId) {
+      // La medida del cobro (ADR-0701, actividad 5): la venta queda unida al ticket que se armó en el piso. Si falla, la venta está bien
+      // y solo se pierde esa medida: no se avisa a la caja por algo que no la afecta.
+      void marcarTicketCompartidoCobrado(supabase, delPisoId, ventaId);
+    }
     if (ventaId) {
       // D-60: se declara sola a SUNAT, y de paso se reintenta lo que quedó en la cola de esta sede.
       enviarVentaASunat(ventaId);
@@ -2279,6 +2398,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onNota={setNota}
             enEspera={enEspera}
             onDejarEnEspera={pedirDejarEnEspera}
+            onMandarACaja={ticketsCompartidos ? mandarACaja : undefined}
+            mandandoACaja={mandandoACaja}
+            delPiso={{ tickets: ticketsDelPiso, ahora: piso.leidoEn, abriendo: abriendoDelPiso, onVerTodos: () => setHojaDelPiso(true) }}
+            onAbrirDelPiso={abrirDelPiso}
+            onDescartarDelPiso={setDescartarDelPiso}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
             onDescartarEspera={pedirDescartar}
@@ -2585,6 +2709,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
 
+      {hojaDelPiso && (
+        <DesdeElPisoModal
+          tickets={ticketsDelPiso}
+          ahora={piso.leidoEn}
+          abriendo={abriendoDelPiso}
+          onAbrir={abrirDelPiso}
+          onDescartar={setDescartarDelPiso}
+          onClose={() => setHojaDelPiso(false)}
+        />
+      )}
+
+      {descartarDelPiso && (
+        <DescartarTicketModal
+          nombre={nombreDelTicketDelPiso(descartarDelPiso)}
+          prendas={descartarDelPiso.prendas}
+          total={descartarDelPiso.total}
+          onDescartar={() => void tirarDelPiso(descartarDelPiso)}
+          onClose={() => setDescartarDelPiso(null)}
+        />
+      )}
+
       {porDescartar && (
         <DescartarTicketModal
           nombre={porDescartar.nombre}
@@ -2598,6 +2743,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {cierreConTickets && (
         <TicketsSinCobrarModal
           tickets={pestanas.filter((p) => p.prendas > 0)}
+          delPiso={ticketsDelPiso.map((t) => ({ id: t.id, nombre: nombreDelTicketDelPiso(t), prendas: t.prendas, total: t.total }))}
           onSeguir={() => setModalCaja("cerrar")}
           onClose={() => setCierreConTickets(false)}
         />

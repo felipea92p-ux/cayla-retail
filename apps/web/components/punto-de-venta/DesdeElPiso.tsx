@@ -1,0 +1,100 @@
+"use client";
+
+import { Trash2 } from "lucide-react";
+import { Boton } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { nombreDelTicketDelPiso, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { haceCuanto } from "@/lib/vender-hoy-reglas";
+import { money } from "@/lib/money";
+
+/**
+ * Los tickets que el piso mandó a la caja (ADR-0701, las tres estaciones del cobro). Cada fila dice de quién es el cliente (la asesora
+ * que lo mandó), cuánto lleva y hace cuánto espera; «Abrir» lo pasa a este equipo como un ticket más, con los precios del día.
+ * La misma lista va dentro del ticket vacío (donde mira la caja entre un cliente y otro) y en una hoja, con el ticket ocupado.
+ */
+export function ListaDesdeElPiso({
+  tickets,
+  ahora,
+  abriendo,
+  onAbrir,
+  onDescartar,
+}: {
+  tickets: readonly TicketCompartido[];
+  ahora: number;
+  /** El id que se está abriendo: su botón espera y los demás no se tocan hasta que termine. */
+  abriendo: string | null;
+  onAbrir: (t: TicketCompartido) => void;
+  /** El basurero: el cliente se fue y nadie lo va a cobrar. Pide confirmación antes (no se deshace). */
+  onDescartar?: (t: TicketCompartido) => void;
+}) {
+  return (
+    <ul className="divide-y divide-sand" data-guia="vender.desde-el-piso">
+      {tickets.map((t) => (
+        <li key={t.id} className="flex items-center gap-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-tinta">
+              {nombreDelTicketDelPiso(t)}
+            </p>
+            <p className="text-sm text-tenue">
+              {t.prendas} {t.prendas === 1 ? "prenda" : "prendas"} · {haceCuanto(t.enviadoEn, ahora)}
+            </p>
+          </div>
+          <span className="shrink-0 text-sm font-semibold tabular-nums">{money(t.total)}</span>
+          <Boton
+            type="button"
+            peso="fantasma"
+            className="shrink-0"
+            disabled={abriendo !== null && abriendo !== t.id}
+            cargando={abriendo === t.id}
+            textoCargando="Abriendo…"
+            onClick={() => onAbrir(t)}
+          >
+            Abrir
+          </Boton>
+          {/* El mismo basurero rojo de «En espera» (Felipe 2026-10-26): tira el ticket que ya no se va a cobrar. */}
+          {onDescartar && (
+            <button
+              type="button"
+              onClick={() => onDescartar(t)}
+              disabled={abriendo !== null}
+              aria-label={`Descartar el ticket de ${nombreDelTicketDelPiso(t)}`}
+              title="Descartar este ticket"
+              className="area-dedo grid h-9 w-9 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** El bloque dentro del ticket vacío: lo primero que ve la caja cuando termina con un cliente. */
+export function DesdeElPisoEnElTicket(props: Parameters<typeof ListaDesdeElPiso>[0]) {
+  if (props.tickets.length === 0) return null;
+  return (
+    <section className="anim-sube border-b border-sand px-5 py-3" aria-label="Tickets que esperan en la caja">
+      <TituloGrupo nivel={3} cuenta={props.tickets.length}>
+        Del piso
+      </TituloGrupo>
+      <ListaDesdeElPiso {...props} />
+    </section>
+  );
+}
+
+/** La hoja «Del piso», con el ticket ocupado: se abre desde el chip de la cabecera. */
+export function DesdeElPisoModal({ onClose, ...props }: Parameters<typeof ListaDesdeElPiso>[0] & { onClose: () => void }) {
+  return (
+    <Modal titulo="Del piso" subtitulo="Tickets que las asesoras mandaron a la caja" variante="hoja" onClose={onClose}>
+      {() =>
+        props.tickets.length === 0 ? (
+          <p className="text-sm text-secundario">Ya no queda ninguno esperando.</p>
+        ) : (
+          <ListaDesdeElPiso {...props} />
+        )
+      }
+    </Modal>
+  );
+}
