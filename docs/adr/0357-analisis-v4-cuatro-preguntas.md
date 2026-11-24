@@ -499,6 +499,13 @@ llevan datos reales):
    top 10?»; eligió esta píldora antes que dejar también «Ver N más», para no tener dos controles que hacen lo mismo). Es la misma pieza que «Ordenar
    por» (`<DesplegablePildora>`), solo en «Qué pedir» (`MOSTRAR_PEDIR` en `lib/analisis-orden.ts`, `primerasQuePedir`); el título de cada parte
    sigue diciendo cuántas son en total. Reemplaza al «Ver N más» de la misma tarde.
+7. **La tarjeta, con cada cifra en su rótulo** (Felipe: «¿es la distribución más profesional?»; eligió la cara «A» de
+   `docs/maquetas/analisis-pedir-sin-comprar-2026-11/tarjeta.html` mirando las tres con datos de TRU). Arriba la prenda y, como etiqueta, lo que
+   viene en camino o la otra tienda que la tiene («Lima tiene 2»); abajo, una fila de cifras con su nombre chico encima y siempre en el mismo
+   lugar: en lo agotado, VENDISTE «12 en 8 días» y SE AGOTÓ «23 oct.»; en lo que se acaba, TIENES «72», VENDES «39 /sem.» y SE ACABA «7 dic.». La
+   fecha lleva el color de su urgencia; nada de «·» entre datos. Se fueron el número grande en serif y las líneas sueltas. `<TarjetaPrenda cifras
+   marca>` (las otras pestañas siguen con su número); la etiqueta es `<Chip versalitas={false}>` con su ícono (camión o tienda), nunca roja: en
+   una grilla de 10 pasaría el tope de rojos por pantalla.
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su
