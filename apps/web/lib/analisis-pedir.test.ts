@@ -15,6 +15,8 @@ import {
   textoVendesPorSemana,
   textoVendiste,
   pieDePedir,
+  parteDeArriba,
+  primerasQuePedir,
   categoriaDe,
   diasANavidad,
   textoRitmo,
@@ -565,6 +567,22 @@ describe("Ya se agotaron (Felipe 2026-11-24: lo que se vendió entero no se va d
     expect(agotados.map((a) => a.modelo.nombre)).toEqual(["Top Prueba", "Camisa Prueba", "Falda Sin Fecha"]);
     expect(seAcaban.map((a) => a.modelo.nombre)).toEqual(["Short Prueba"]);
     expect(todos.map((m) => m.nombre)).toEqual(["Top Prueba", "Camisa Prueba", "Falda Sin Fecha", "Short Prueba"]);
+  });
+
+  it("arriba va la parte que responde el orden: «quedan pocos» → lo que se acaba; «no hay stock» y los demás → lo agotado", () => {
+    expect(parteDeArriba("pocos")).toBe("seAcaban");
+    expect(parteDeArriba("agotado")).toBe("agotados");
+    expect(parteDeArriba("acaba")).toBe("agotados");
+    expect(parteDeArriba("nombre")).toBe("agotados");
+  });
+
+  it("«Mostrar»: las primeras 10, 20 o 50 de cada parte, o todas", () => {
+    const doce = Array.from({ length: 12 }, (_, i) => i + 1);
+    expect(primerasQuePedir(doce, "10")).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(primerasQuePedir(doce, "20")).toHaveLength(12);
+    expect(primerasQuePedir(doce, "todas")).toHaveLength(12);
+    expect(primerasQuePedir(doce, "")).toHaveLength(12);
+    expect(primerasQuePedir([], "10")).toEqual([]);
   });
 
   it("«Vendiste 12» «en 7 días»; sin saber los días, «en 8 semanas»", () => {

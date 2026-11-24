@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { gruposPorProveedor, leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
 import {
   argsPrepararPrenda,
+  rpcDePrepararPrenda,
   argsRecibirDespacho,
   atipicosPorLinea,
   borradorDePrenda,
@@ -853,6 +854,14 @@ describe("la hoja «Es nueva»", () => {
     const b = { ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" };
     expect(argsPrepararPrenda({ ...b, tejidoId: "tj", patronId: "pt" }, CTX_NUEVA, base)).toMatchObject({ p_tejido_id: "tj", p_patron_id: "pt" });
     expect(argsPrepararPrenda(b, { ...CTX_NUEVA, exigeTejidoPatron: true }, base)).toMatchObject({ p_tejido_id: null, p_patron_id: null });
+    // ADR-0699: temporada y etiquetas viajan solo al crear y solo si se eligieron; con ellas, la función con ficha.
+    const conFicha = argsPrepararPrenda({ ...b, temporada: " VER ", etiquetaIds: ["e1", "e1", "e2"] }, CTX_NUEVA, base);
+    expect(conFicha).toMatchObject({ p_temporada: "VER", p_etiqueta_ids: ["e1", "e2"] });
+    expect(rpcDePrepararPrenda(conFicha)).toBe("preparar_prenda_al_recibir_con_ficha");
+    const sinFicha = argsPrepararPrenda({ ...b, temporada: "", etiquetaIds: [] }, CTX_NUEVA, base);
+    expect(sinFicha).not.toHaveProperty("p_temporada");
+    expect(sinFicha).not.toHaveProperty("p_etiqueta_ids");
+    expect(rpcDePrepararPrenda(sinFicha)).toBe("preparar_prenda_al_recibir");
   });
 
   it("va por los pasos de Nuevo producto: cómo es, tallas y colores, precio", () => {

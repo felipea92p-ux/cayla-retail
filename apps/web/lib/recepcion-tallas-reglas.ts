@@ -44,15 +44,28 @@ export const tocaRepartir = (e: EstadoDeLaTarjeta): boolean => e === "repartir" 
 
 /**
  * Un solo botón negro a la vez en Contar (ADR-0645, cambio 2 de /formidable; Felipe 2026-11-11). Quién lo lleva:
- *  - `tarjeta`: al modelo en foco le toca algo en sus tallas (repartir, o llevar al stock lo ya repartido): manda el botón de su tarjeta;
+ *  - `tarjeta`: al modelo en foco le toca algo en sus tallas (crear la prenda nueva, repartir, o llevar al stock lo ya repartido; ADR-0699): manda el botón de su tarjeta;
  *  - `cerrar`: no queda nada por contar y a ese modelo no le toca nada: manda «Revisar y cerrar»;
  *  - `siguiente`: el modelo ya tiene su número y queda envío por contar: manda «Listo, siguiente»;
  *  - `ninguno`: todavía no se contó; el protagonista es «Llegaron las N», que no es negro.
  * Antes, con todo contado, «Revisar y cerrar» era negro junto al de la tarjeta, uno en cada mitad.
  */
 export type BotonPrincipal = "tarjeta" | "cerrar" | "siguiente" | "ninguno";
-export function botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado }: { tarjeta: EstadoDeLaTarjeta | null; hayParaLlevar: boolean; hayConteo: boolean; todoContado: boolean }): BotonPrincipal {
-  if (tarjeta && (tocaRepartir(tarjeta) || (tarjeta === "lista" && hayParaLlevar))) return "tarjeta";
+export function botonPrincipal({
+  tarjeta,
+  hayParaLlevar,
+  hayConteo,
+  todoContado,
+  nuevaParaDespues = false,
+}: {
+  tarjeta: EstadoDeLaTarjeta | null;
+  hayParaLlevar: boolean;
+  hayConteo: boolean;
+  todoContado: boolean;
+  /** Una prenda nueva que se dejó para después a propósito: crearla deja de ser lo que toca (ADR-0699). */
+  nuevaParaDespues?: boolean;
+}): BotonPrincipal {
+  if (tarjeta && (tocaRepartir(tarjeta) || (tarjeta === "lista" && hayParaLlevar) || (tarjeta === "nueva" && !nuevaParaDespues))) return "tarjeta";
   if (todoContado) return "cerrar";
   return hayConteo ? "siguiente" : "ninguno";
 }

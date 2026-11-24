@@ -107,6 +107,9 @@ export const AVIARIO = [
       // ADR-0669 («Poner un %», 20261116182000): qué campañas son un cajón de % de una tienda. Se maneja desde Campañas y ofertas, como las
       // ofertas de arriba. Asignada en el refresco del volcado del 2026-11-17.
       "rebaja_cajones",
+      // ADR-0682: las tallas y los colores sueltos que elige una oferta (20261118232000). Se manejan desde la misma hoja de la oferta. Asignada en
+      // el refresco del volcado del 2026-11-24.
+      "campana_regla_variantes",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -119,6 +122,9 @@ export const AVIARIO = [
     tablas: [
       // La talla o el color que nació al recibir (con `despacho_recibidos`). Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
       "variantes_nacidas_al_recibir",
+      // ADR-0699: la foto de un modelo que llega desde el celular por QR mientras se cuenta un envío, y sus archivos. Son de la recepción, como
+      // `variantes_nacidas_al_recibir`. Asignadas en el refresco del volcado del 2026-11-24.
+      "fotos_por_qr", "fotos_por_qr_archivos",
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
       // Asignada en el refresco del volcado del 2026-10-29.
@@ -166,6 +172,9 @@ export const AVIARIO = [
       "cuadres_piso", "cuadre_piso_items",
       // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
       "capacidad_piso",
+      // ADR-0690: el barrido del piso (lo que se leyó en cada pasada, lo que no cuadró y cómo se resolvió). Es del piso, como el cuadre. Asignadas en
+      // el refresco del volcado del 2026-11-24.
+      "barridos_piso", "barrido_piso_lecturas", "barrido_piso_hallazgos", "barrido_piso_resueltos",
       // Plan del piso (20261006110000): la foto diaria de cuánto espacio ocupa cada categoría en el piso de cada sede. Es del piso, como su
       // capacidad. Asignada en el refresco del volcado del 2026-10-11.
       "espacio_piso",
@@ -243,6 +252,9 @@ export const AVIARIO = [
       // La huella de cada envío con token de Ventas y Caja (ADR-0398): un mismo token con otro contenido se rechaza. La escriben las
       // funciones que guardan en el mostrador y `fn_resolver_intento`. Asignada en el refresco del volcado del 2026-10-13.
       "intentos_con_token",
+      // ADR-0679: el libro de reclamaciones de la tienda (la hoja del cliente y sus intentos) y los feriados con que se cuenta su plazo de
+      // respuesta. Es del cliente que compra, como los pedidos web. Asignadas en el refresco del volcado del 2026-11-24.
+      "hojas_reclamacion", "hojas_reclamacion_intentos", "feriados_nacionales",
       // ADR-0408 (tienda online): la venta y el cliente que entran por otra puerta. Los pedidos web con sus líneas y sus pagos (Ventas ▸
       // Pedidos web); la cuenta web de cada cliente, con el correo que confirma, sus cambios de correo, sus intentos de clave y sus
       // visitas; sus favoritos, sus «Avísame cuando llegue» y sus recomendaciones (Clientes ▸ Recomendaciones); y los plazos de los
@@ -431,6 +443,9 @@ export const AVIARIO = [
       // ADR-0560: qué parte de cada categoría de gasto de una sede donde opera CLAURE es de CLAURE (alquiler 50 %, limpieza 100 %…). Es lo que se hace con un gasto, como
       // `categorias_gasto`: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-29.
       "gasto_reparto_claure",
+      // Lo mismo que `gasto_reparto_claure`, para todas las empresas aliadas: está en producción y su migración aún no está en main. Asignada en el
+      // refresco del volcado del 2026-11-24; Finanzas (Felipe) confirma la asignación.
+      "gasto_reparto_aliadas",
       // La cuenta donde se le paga a cada persona de la planilla y las salidas de planilla que se registran (`guardar_cuenta_planilla`, `registrar_salidas_planilla`). Están en
       // producción (sus migraciones aún no están en main) y las asignó el refresco del volcado del 2026-10-29, junto a `planilla_por_sede`. Finanzas (Felipe) confirma la asignación.
       "planilla_cuentas", "planilla_salidas",

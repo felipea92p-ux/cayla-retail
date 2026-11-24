@@ -8,6 +8,9 @@
 //   · `/club/privacidad` y `/club/terminos`: los textos que aceptó quien se unió por el cartel.
 // Y las dos del aviso de «sin conexión con la base» (ADR-0450): `/sin-base`, la pantalla donde se espera cuando la base no
 // responde, y `/api/salud`, la pregunta «¿responde la base?» que esa pantalla y el vigía de GitHub repiten. No muestran ningún dato.
+// Y las dos de la foto por QR de Recibir (ADR-0699, Felipe 2026-11-24 eligió «sin sesión»): `/foto/<permiso>`, la página que abre el
+// celular al escanear, y `/api/foto-qr/<permiso>`, donde sube la foto. El permiso son 32 caracteres al azar que vencen a los 10 minutos y
+// suben 3 fotos como mucho; la base solo guarda su huella. Lo de adentro lo decide la ruta con la llave de servicio, nunca `anon`.
 // `/login` y `/auth` NO van aquí: esas sí miran la sesión (quien ya entró no vuelve al login).
 //
 // Por qué tan estrecha: toda ruta que pasa sin sesión es una puerta abierta a internet. Pasa `/club/` seguido de UN uuid o de
@@ -19,8 +22,10 @@ const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 const PAGINAS_DEL_CLUB = new RegExp(`^/club/(?:${UUID}|privacidad|terminos)/?$`);
 // Exactas, sin subrutas ni `?`: el pathname nunca los trae.
 const RUTAS_DE_LA_BASE_CAIDA = new Set(["/sin-base", "/api/salud"]);
+// Exactas: un permiso con su forma (`FORMA_DEL_PERMISO` de `foto-por-qr-reglas.ts`), sin subrutas.
+const FOTO_POR_QR = /^\/(?:foto|api\/foto-qr)\/[A-Za-z0-9_-]{32}\/?$/;
 
 /** ¿Esta ruta se sirve sin sesión y sin pasar por ninguna otra barrera de `proxy.ts`? */
 export function esRutaPublica(pathname: string): boolean {
-  return PAGINAS_DEL_CLUB.test(pathname) || RUTAS_DE_LA_BASE_CAIDA.has(pathname);
+  return PAGINAS_DEL_CLUB.test(pathname) || RUTAS_DE_LA_BASE_CAIDA.has(pathname) || FOTO_POR_QR.test(pathname);
 }

@@ -258,8 +258,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "cajon-prenda",
       ancla: "existencias.cajon-prenda",
       opcional: true,
-      titulo: "Lo de la prenda, a un toque",
-      texto: "Etiquetas imprime las de precio de este color; Rótulo, el letrero del anaquel del modelo; Historial, sus movimientos en esta sede; y Catálogo, su ficha completa. En la demo no los abrimos.",
+      titulo: "Más: lo de la prenda",
+      texto: "En «Más» están Etiquetas (las de precio de este color), Rótulo (el letrero del anaquel del modelo), Historial (sus movimientos en esta sede) y Catálogo (su ficha completa). En la demo no los abrimos.",
     },
     {
       id: "cajon-tallas",
@@ -281,7 +281,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.cajon-donde",
       opcional: true,
       titulo: "Dónde está",
-      texto: "El veredicto de esta talla (todo bien, cuelga una, se acabó…) y sus cuatro números: en piso, en almacén, apartadas y dañadas. Toca «En piso» o «En almacén» y pasas a «Todas» con ese filtro puesto. Debajo, cuántas vienen en camino y qué tienen las otras sedes.",
+      texto: "La frase grande dice dónde están; debajo, su estado (todo bien, falta colgar, se acabó…) y, si el sistema sugiere algo, su botón. Luego los cuatro números: en piso, en almacén, apartadas y dañadas; «En piso» y «En almacén» te llevan a «Todas» con ese filtro. Al final, lo que viene en camino y lo de otras sedes.",
     },
     {
       id: "cajon-ajustar",
@@ -308,8 +308,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "cajon-acciones",
       ancla: "existencias.cajon-acciones",
       opcional: true,
-      titulo: "Lo que puedes hacer con ella",
-      texto: "Solo lo que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada. La que más se necesita va primero y pintada. Cada una se confirma antes de mover el stock; en la demo no se toca.",
+      titulo: "También puedes",
+      texto: "Lo demás que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada, primero lo que más necesita. La que el sistema sugiere ya está arriba, como botón. Cada una se confirma antes de mover el stock; en la demo no se toca.",
     },
     {
       id: "cajon-arreglada",
@@ -319,18 +319,11 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si esta talla tiene una prenda dañada, aquí la devuelves a la venta cuando vuelve arreglada: abre su «Se arregló» con un toque. Y si te equivocaste al reportarla, en la lista de dañadas está «Me equivoqué de prenda». En la demo no se toca.",
     },
     {
-      id: "cajon-no-ahora",
-      ancla: "existencias.cajon-no-ahora",
-      opcional: true,
-      titulo: "Lo que hoy no se puede",
-      texto: "Lo que no se puede hacer ahora con esta talla, con su porqué, en una sola línea: nada guardado para colgar, ninguna tienda que la tenga, nada colgado para subir.",
-    },
-    {
       id: "cajon-ritmo",
       ancla: "existencias.cajon-ritmo",
       opcional: true,
       titulo: "A qué ritmo sale",
-      texto: "Cuántas se vendieron de este color en los últimos días, y cuántas de esta talla. Te ayuda a decidir si conviene colgar más o pedirla.",
+      texto: "El «?» junto al estado dice cuántas se vendieron de este color en los últimos días, y cuántas de esta talla. Te ayuda a decidir si conviene colgar más o pedirla.",
     },
     {
       id: "cajon-todas",
@@ -338,14 +331,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.cajon-todas" }],
       titulo: "Todas las tallas y colores",
-      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «En piso» o «En almacén» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
+      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba, con la percha, lo colgado; abajo, con la caja, lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «En piso» o «En almacén» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
     },
     {
       id: "cajon-colgar-varias",
       ancla: "existencias.cajon-colgar-varias",
       opcional: true,
       titulo: "Colgar varias de una vez",
-      texto: "Abre una tabla con todas las tallas y colores del modelo para elegir cuántas bajas de cada una. Recién al confirmar se mueve el stock; en la demo no lo tocamos.",
+      texto: "Junto a la suma del modelo: abre una tabla con todas las tallas y colores para elegir cuántas bajas de cada una. Va oscuro cuando algo falta colgar. Recién al confirmar se mueve el stock; en la demo no lo tocamos.",
     },
     {
       id: "pie",
@@ -2022,6 +2015,31 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría; la marca, solo si la tiene, y si no está en la lista, «+ Marca nueva». La compra se queda con eso.",
     },
     {
+      id: "pasos",
+      ancla: "recepcion.pasos",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", para: "cerrar" }, { tipo: "escape" }],
+      titulo: "Lo que le falta a este modelo",
+      texto: "Son sus pasos hasta la venta, uno bajo otro: cuántas llegaron, crear la prenda (si es nueva), sus tallas y llevarla al stock. El que toca está abierto; lo hecho queda en una línea con «Cambiar».",
+    },
+    {
+      id: "foto",
+      ancla: "recepcion.foto",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      titulo: "La foto de una prenda nueva",
+      texto: "«Tomar foto» le pone cara al modelo en la lista, para no confundirlo con otro. Al crear la prenda, la foto ya está puesta y de ella sale su color.",
+    },
+    {
+      id: "foto-celular",
+      ancla: "recepcion.foto-celular",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      titulo: "La foto con el celular",
+      texto: "«Con el celular» muestra un QR: escanéalo, toma la foto y llega sola a este modelo. Vale 10 minutos y hasta 3 fotos, sin entrar al ERP.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
@@ -2045,7 +2063,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Tallas y colores, en su tarjeta",
-      texto: "Lo que ya está en tu catálogo pide repartir sus tallas y colores ahora: así entra al stock y se vende. Lo nuevo queda para después, o lo creas aquí. La tarjeta dice cómo va y su botón abre la hoja donde se reparten. «Dejar para después» también vale.",
+      texto: "Lo que ya está en tu catálogo pide repartir sus tallas y colores: así entra al stock y se vende. Lo nuevo pide crearlo aquí mismo, para venderlo hoy; si no hay tiempo, «Dejar para después». La tarjeta dice cómo va y su botón abre la hoja."
     },
     {
       // La tabla vive en su hoja (ADR-0645): el piloto la abre con el botón de la tarjeta. Cada casilla se guarda sola, así que la demo la explica sin tocarla.
@@ -2241,7 +2259,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.ya-la-tengo",
       opcional: true,
       titulo: "Una prenda que ya tienes",
-      texto: "Reconócela por la foto: al escribir quedan solo las que coinciden por nombre, código, marca o color. Toca la que llegó para elegirla y confirma; «Ver ficha» la muestra en grande si dudas. Si se anotó en otra categoría o marca, en «Para después» la corriges arriba. Si no está, la creas como nueva.",
+      texto: "Compara tu foto con las de su categoría y marca; «Ver el catálogo» abre el resto en otra pestaña. Escribe para filtrar por nombre, código o color. Toca la que llegó y confirma; «Ver ficha» la muestra en grande. Si no está, créala como nueva.",
     },
     {
       id: "matriz",
