@@ -19,7 +19,7 @@ Rama `claude/existencias-modal-liviano` (ADR-0391 act. 2026-11-24). Banco Supaba
 | **Leyes** | **8,0** | |
 | **Oficio** | **8** | Medido (medir-oficio, solo la hoja): 0 poco contraste, 0 rojos, 1 primaria; bordes a 1–2 px (uno arreglado: «En camino»); el «?» de `<Ayuda>` de 14 px. |
 
-## Los 3 cambios propuestos (esperan el OK de Felipe; no se aplicaron)
+## Los 3 cambios (Felipe los aprobó el 2026-11-24; aplicados el mismo día)
 
 1. **Las teclas, solo para quien usa teclado** (ley 8). Hoy cada acción lleva su tecla en una cajita (4, 1, 2, 3, 7, 6) y la ciega las leyó como
    cantidades («¿Reportar dañada 7 si hay 0?»). Antes → después: la tecla se ve al pasar el mouse o con el foco del teclado, no siempre.
@@ -28,6 +28,10 @@ Rama `claude/existencias-modal-liviano` (ADR-0391 act. 2026-11-24). Banco Supaba
    prenda. Antes → después: la celda que falta colgar dice «falta» bajo su número (como ya hace con el filtro «En piso»). Se verifica: ciega.
 3. **Otras sedes y En camino, sin dudas** (ley 4). «Taller 14» no dice si es de esta talla; «En camino 0» no dice hacia dónde. Antes → después:
    «Viene en camino» y «En otras sedes (esta talla)». Se verifica: ciega.
+
+**Aplicados y medidos de nuevo** (banco propio, 1440 y 375): las teclas no se ven sin el mouse y aparece solo la de la fila bajo el cursor; la celda
+que falta dice «falta» (las celdas de «Todas» pasan de 52 a 64 px para que quepa, 0 cortadas); los rótulos dicen «Viene en camino» y «En otras
+sedes (esta talla)». La guía de Inventario se recorre entera (37 y 35 pasos). La ciega no se repitió.
 
 Lo que sobra (ley 8): «color \ talla» en la esquina del cuadro de escritorio (en el celular ya dice «Color»).
 Lo que Felipe no pidió y importa más: probarlo con una colaboradora real; la ciega es un sustituto.

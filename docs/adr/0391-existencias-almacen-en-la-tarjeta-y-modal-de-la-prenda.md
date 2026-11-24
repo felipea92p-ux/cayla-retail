@@ -152,3 +152,7 @@ después de cuatro rondas (seis casos, cinco anchos, la vista «Todas», el celu
 
 Verificado en el navegador con datos inventados (página temporal, sin base) a 1440, 1024 y 375 px, en claro y en oscuro. Falta: recorrer la
 guía con `guias:recorrer` y `/chaos` con una base al día (no hubo base local en esta sesión), y verlo con una cuenta real.
+
+**Después de `/formidable` (2026-11-24, aprobado por Felipe):** las teclas de cada acción se ven solo con el mouse encima o con el foco del teclado (a la
+vista se leían como cantidades); en «Todas», la celda que falta colgar dice «falta» además del ámbar (se confundía con una prenda Beige) y las
+celdas pasan a 64 px; los rótulos dicen «Viene en camino» y «En otras sedes (esta talla)».

@@ -56,7 +56,7 @@ import { fondoDelPunto } from "@/lib/color-combinado";
 /** La banda que abre la planilla (Felipe eligió «1 · Banda bajo los números» en la ronda 2). */
 export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conResto: boolean; onAjustar: () => void }) {
   return (
-    <button type="button" data-guia="existencias.cajon-ajustar" aria-keyshortcuts="6" onClick={onAjustar} className="banda-ajustar">
+    <button type="button" data-guia="existencias.cajon-ajustar" aria-keyshortcuts="6" onClick={onAjustar} className="banda-ajustar group">
       <span aria-hidden className="banda-ajustar-icono">
         <PencilLine className="h-5 w-5" />
       </span>
@@ -74,7 +74,8 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
       {/* Claro: el botón oscuro del modal es solo el de la acción que el sistema sugiere (maqueta 2026-11-24). */}
       <span className="btn-cayla btn-secundario mov-boton banda-ajustar-boton">
         Ajustar stock
-        <kbd className="hidden rounded border border-sand px-1.5 text-xs text-secundario sm:inline">6</kbd>
+        {/* La tecla, solo con el mouse encima o con el foco del teclado (/formidable 2026-11-24). */}
+        <kbd className="invisible hidden rounded border border-sand px-1.5 text-xs text-secundario group-hover:visible group-focus-visible:visible sm:inline">6</kbd>
       </span>
     </button>
   );

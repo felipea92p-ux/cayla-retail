@@ -708,11 +708,11 @@ export function PanelTalla({
 
   /** La celda de totales de «Todas» (ADR-0391): en hueso, sin borde, no se toca; sigue a la capa (una cifra) o apila las dos. */
   const totalCelda = (pisoN: number, almacenN: number) => {
-    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-sm font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{almacenN}</div>;
+    if (!separa) return <div className="grid h-16 place-items-center rounded-[9px] vd-hundido text-sm font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "piso") return <div className="grid h-16 place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "almacen") return <div className="grid h-16 place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{almacenN}</div>;
     return (
-      <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] vd-hundido tabular-nums text-tinta">
+      <div className="grid h-16 grid-rows-2 overflow-hidden rounded-[9px] vd-hundido tabular-nums text-tinta">
         <span className="flex items-center justify-center gap-1 text-sm font-semibold">
           <IconoPercha aria-hidden className="h-3 w-3 text-taupe" />
           {pisoN}
@@ -1040,14 +1040,16 @@ export function PanelTalla({
                               )}
                             </p>
                             {sugerida && (
-                              <Boton peso="primario" aria-keyshortcuts={String(sugerida.tecla)} onClick={() => alAccionar(sugerida.clave)} className="mt-3 max-sm:w-full">
+                              <Boton peso="primario" aria-keyshortcuts={String(sugerida.tecla)} onClick={() => alAccionar(sugerida.clave)} className="group mt-3 max-sm:w-full">
                                 <span className="inline-flex items-center gap-2">
                                   {(() => {
                                     const Ico = ICONO[sugerida.clave];
                                     return <Ico aria-hidden className="h-4 w-4" />;
                                   })()}
                                   {sugerida.texto}
-                                  <kbd className="hidden rounded border border-current px-1.5 text-xs opacity-70 sm:inline">{sugerida.tecla}</kbd>
+                                  {/* La tecla se ve solo con el mouse encima o con el foco del teclado (/formidable 2026-11-24: a la vista, se leía como una cantidad). Su
+                                    lugar queda guardado: aparecer no corre nada. */}
+                                  <kbd className="invisible hidden rounded border border-current px-1.5 text-xs opacity-70 group-hover:visible group-focus-visible:visible sm:inline">{sugerida.tecla}</kbd>
                                 </span>
                               </Boton>
                             )}
@@ -1058,14 +1060,15 @@ export function PanelTalla({
                             {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
                             {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", Bandage, "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
                           </div>
-                          {/* En camino y otras sedes: cada dato con su rótulo arriba y su valor abajo; en el celular, en una línea. */}
+                          {/* En camino y otras sedes: cada dato con su rótulo arriba y su valor abajo; en el celular, en una línea. Los rótulos dicen hacia dónde y de
+                              qué talla (/formidable 2026-11-24: «En camino» no decía si llega o sale, ni «Taller 14» si era de esta talla). */}
                           <div className="flex flex-wrap items-start gap-x-8 gap-y-2 max-sm:items-center max-sm:gap-x-5">
                             <p className="grid gap-1 max-sm:flex max-sm:items-center max-sm:gap-2">
-                              <span className="label-cayla text-xs text-secundario">En camino</span>
+                              <span className="label-cayla text-xs text-secundario">Viene en camino</span>
                               <b className="text-sm font-semibold tabular-nums text-tinta">{Math.max(0, fila.enTransito ?? 0)}</b>
                             </p>
                             <div className="grid gap-1 max-sm:flex max-sm:items-center max-sm:gap-2">
-                              <span className="label-cayla text-xs text-secundario">Otras sedes</span>
+                              <span className="label-cayla text-xs text-secundario">En otras sedes (esta talla)</span>
                               {otrasSedes.length ? (
                                 <span className="flex flex-wrap gap-1.5">
                                   {otrasSedes.map((o) => (
@@ -1138,7 +1141,7 @@ export function PanelTalla({
                                       type="button"
                                       aria-keyshortcuts={String(a.tecla)}
                                       onClick={() => alAccionar(a.clave)}
-                                      className="vd-pasa flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors"
+                                      className="vd-pasa group flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors"
                                     >
                                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg vd-lente text-tinta">
                                         <Ico aria-hidden className="h-4 w-4" />
@@ -1149,7 +1152,7 @@ export function PanelTalla({
                                         {/* Secundario y no tenue: sobre el vidrio, el tenue a 14 px daba 4,26:1 (bajo AA; /milimetro 2026-11-24). */}
                                         <small className="ml-2 text-detalle text-secundario max-sm:ml-0 max-sm:block">{a.sub}</small>
                                       </span>
-                                      <kbd className="hidden rounded border border-sand px-1.5 text-xs text-secundario sm:inline">{a.tecla}</kbd>
+                                      <kbd className="invisible hidden rounded border border-sand px-1.5 text-xs text-secundario group-hover:visible group-focus-visible:visible sm:inline">{a.tecla}</kbd>
                                       <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-secundario" />
                                     </button>
                                   </li>
@@ -1282,7 +1285,7 @@ export function PanelTalla({
                                   <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
                                     <th scope="row" className={`rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta max-sm:pl-1 max-sm:pr-0.5 max-sm:text-xs ${colorAbierto ? "vd-marca" : ""}`}>
                                       {/* El nombre baja a una segunda línea en vez de cortarse: «Azul m…» no decía qué color era (Felipe
-                                          2026-11-17). La fila mide 52 px, así que dos líneas caben sin agrandarla. */}
+                                          2026-11-17). La fila mide 64 px (con «falta» bajo el número, /formidable 2026-11-24), así que dos líneas caben. */}
                                       <span className="flex items-center gap-1.5">
                                         <span /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)] max-sm:hidden" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
                                         <span className="line-clamp-2 leading-tight [overflow-wrap:anywhere]" title={c.color ?? "Sin color"}>
@@ -1330,7 +1333,7 @@ export function PanelTalla({
                                             </span>
                                           )}
                                           {celda.estado === "agotada" ? (
-                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-16 w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
                                               {/* ADR-0640: si lo único que queda de la talla está dañado, la celda lo dice: «Se acabó» escondía dónde estaba. */}
                                               {(f.danado ?? 0) > 0 ? (
                                                 <span className="inline-flex items-center gap-1">
@@ -1342,7 +1345,7 @@ export function PanelTalla({
                                               )}
                                             </button>
                                           ) : (
-                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-16 w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
                                               {verPiso && (
                                                 <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-lg" : "text-sm"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "text-tinta [&_svg]:text-verde" : "text-tenue"}`}>
                                                   <span className="inline-flex items-center gap-1">
@@ -1351,6 +1354,8 @@ export function PanelTalla({
                                                   </span>
                                                   {/* Dentro de la capa del piso, la que falta colgar dice cuántas hay atrás: el filtro subraya el problema, no lo esconde. */}
                                                   {grande && capa === "piso" && celda.estado === "falta" && <small className="text-sm font-semibold leading-none">falta, +{celda.almacen} atrás</small>}
+                                                  {/* Sin filtro, la palabra además del ámbar (/formidable 2026-11-24): solo el color se confundía con el de una prenda Beige. */}
+                                                  {!grande && celda.estado === "falta" && <small className="text-xs font-semibold leading-none">falta</small>}
                                                 </span>
                                               )}
                                               {verAlmacen && (
