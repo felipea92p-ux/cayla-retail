@@ -814,7 +814,9 @@ export function PanelTalla({
                   // En un paso, el color y la talla no se cambian: el chip dice sobre cuál se está trabajando.
                   <span className="inline-flex w-fit items-center gap-2 rounded-full vd-gota-chica px-3 py-1.5 text-sm text-taupe">
                     <i /* beige-fijo: muestra de la prenda sin color: el beige es el dato */ aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(prenda.colorHex, prenda.colorTonos) ?? "var(--color-hueso)" }} />
-                    {prenda.color ?? "Sin color"} · Talla {fila.talla ?? "Única"}
+                    {prenda.color ?? "Sin color"}
+                    {/* Sin «·» (Felipe 2026-11-24): la talla en su etiqueta. */}
+                    <Chip versalitas={false}>Talla {fila.talla ?? "Única"}</Chip>
                   </span>
                 ) : (
                   <>
@@ -1057,13 +1059,13 @@ export function PanelTalla({
                             {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", Bandage, "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
                           </div>
                           {/* En camino y otras sedes: cada dato con su rótulo arriba y su valor abajo; en el celular, en una línea. */}
-                          <div className="flex flex-wrap items-start gap-x-8 gap-y-2 px-0.5 max-sm:items-center max-sm:gap-x-5">
+                          <div className="flex flex-wrap items-start gap-x-8 gap-y-2 max-sm:items-center max-sm:gap-x-5">
                             <p className="grid gap-1 max-sm:flex max-sm:items-center max-sm:gap-2">
-                              <span className="label-cayla text-xs text-tenue">En camino</span>
+                              <span className="label-cayla text-xs text-secundario">En camino</span>
                               <b className="text-sm font-semibold tabular-nums text-tinta">{Math.max(0, fila.enTransito ?? 0)}</b>
                             </p>
                             <div className="grid gap-1 max-sm:flex max-sm:items-center max-sm:gap-2">
-                              <span className="label-cayla text-xs text-tenue">Otras sedes</span>
+                              <span className="label-cayla text-xs text-secundario">Otras sedes</span>
                               {otrasSedes.length ? (
                                 <span className="flex flex-wrap gap-1.5">
                                   {otrasSedes.map((o) => (
@@ -1144,7 +1146,8 @@ export function PanelTalla({
                                       {/* El nombre y, a su lado, lo que hay: una línea (se parte sola si no cabe). */}
                                       <span className="min-w-0 flex-1">
                                         <b className="text-sm font-semibold text-tinta">{a.texto}</b>
-                                        <small className="ml-2 text-detalle text-tenue max-sm:ml-0 max-sm:block">{a.sub}</small>
+                                        {/* Secundario y no tenue: sobre el vidrio, el tenue a 14 px daba 4,26:1 (bajo AA; /milimetro 2026-11-24). */}
+                                        <small className="ml-2 text-detalle text-secundario max-sm:ml-0 max-sm:block">{a.sub}</small>
                                       </span>
                                       <kbd className="hidden rounded border border-sand px-1.5 text-xs text-secundario sm:inline">{a.tecla}</kbd>
                                       <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-secundario" />
@@ -1207,7 +1210,7 @@ export function PanelTalla({
                               {capa === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5 text-verde" /> : <Archive aria-hidden className="h-3.5 w-3.5 text-pizarra" />}
                               <span>
                                 Solo lo que está <b className="font-semibold">{capa === "piso" ? "en el piso" : "en el almacén"}</b>
-                                {capa === "piso" ? " · en ámbar, lo que falta colgar" : ""}
+                                {capa === "piso" ? ". En ámbar, lo que falta colgar" : ""}
                               </span>
                               <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-xs leading-tight">
                                 Ver piso y almacén
@@ -1347,7 +1350,7 @@ export function PanelTalla({
                                                     {celda.piso}
                                                   </span>
                                                   {/* Dentro de la capa del piso, la que falta colgar dice cuántas hay atrás: el filtro subraya el problema, no lo esconde. */}
-                                                  {grande && capa === "piso" && celda.estado === "falta" && <small className="text-sm font-semibold leading-none">falta · +{celda.almacen} atrás</small>}
+                                                  {grande && capa === "piso" && celda.estado === "falta" && <small className="text-sm font-semibold leading-none">falta, +{celda.almacen} atrás</small>}
                                                 </span>
                                               )}
                                               {verAlmacen && (
