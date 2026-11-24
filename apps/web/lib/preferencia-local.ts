@@ -21,15 +21,35 @@ export function valorValido<T extends string>(guardado: string | null | undefine
   return (validos as readonly string[]).includes(guardado ?? "") ? (guardado as T) : deFabrica;
 }
 
-export function preferenciaLocal<T extends string>(clave: string, validos: readonly T[], deFabrica: T): PreferenciaLocal<T> {
+/**
+ * `deFabricaDelEquipo`: cuando el valor de fábrica depende del aparato (un celular no tiene impresora; una computadora, sí). Se pregunta en el
+ * navegador solo si no hay nada guardado, así que lo que la persona eligió a mano siempre gana; el servidor, que no sabe qué aparato es,
+ * sigue con `deFabrica`. Si la pregunta falla o devuelve algo fuera de la lista, también `deFabrica`.
+ */
+export function preferenciaLocal<T extends string>(
+  clave: string,
+  validos: readonly T[],
+  deFabrica: T,
+  deFabricaDelEquipo?: () => T,
+): PreferenciaLocal<T> {
   const oyentes = new Set<() => void>();
-  const leer = (): T => {
-    if (typeof window === "undefined") return deFabrica;
+  const deFabricaAqui = (): T => {
+    if (!deFabricaDelEquipo) return deFabrica;
     try {
-      return valorValido(window.localStorage.getItem(clave), validos, deFabrica);
+      return valorValido(deFabricaDelEquipo(), validos, deFabrica);
     } catch {
       return deFabrica;
     }
+  };
+  const leer = (): T => {
+    if (typeof window === "undefined") return deFabrica;
+    let guardado: string | null = null;
+    try {
+      guardado = window.localStorage.getItem(clave);
+    } catch {
+      // Sin almacenamiento (ventana privada, bloqueado): vale el de fábrica de este aparato.
+    }
+    return (validos as readonly string[]).includes(guardado ?? "") ? (guardado as T) : deFabricaAqui();
   };
   return {
     leer,

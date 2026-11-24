@@ -1,6 +1,6 @@
 # ADR-0670 — Imprimir sin cuadro: una ventana de Chrome por impresora, y la estación de la caja que imprime lo del piso
 
-- **Fecha:** 2026-11-16 · **Estado:** construido en la rama `claude/estacion-de-impresion` (seis actividades de `/construir`, una por
+- **Fecha:** 2026-11-16 (act. 2026-11-24: interruptores encendidos de fábrica) · **Estado:** construido en la rama `claude/estacion-de-impresion` (seis actividades de `/construir`, una por
   commit). La migración `20261116204000_cola_de_impresion.sql` está en producción desde el 2026-11-16 (con el sí de Felipe).
 - **Pidió:** Felipe, 2026-11-16: «cuando la venta es por efectivo que solo se haga clic en confirmar pago y ya te imprime la boleta» y
   «que al momento de mandar a imprimir cualquier cosa se imprima directamente sin abrir ningún cuadro de diálogo»; y, de su idea de
@@ -96,3 +96,41 @@ SE ROMPE SI:
 3. **La Mac tiene un ayudante viejo (v2):** la boleta sigue saliendo por el cuadro, como antes; se vuelve a pegar la línea.
 4. **Una regla de impresión de la boleta deja de estar en `@media print` de un `.css` propio:** la medida no la ve y la boleta se partiría
    en dos hojas. Hoy todas viven en `globals.css`.
+
+## Actualización 2026-11-24: los dos interruptores vienen encendidos donde les toca
+
+Pedido de la cuenta del equipo, el 2026-11-24: «Cuando se hace boleta o comprobante desde celular no se imprime en la caja, debe estar
+marcado por defecto e imprimir de manera automática». En ocho días no salió ni una boleta del piso (0 filas en `retail.impresiones`,
+bitácora `2026-11-24-mobile-sales-flow-31a365`). Para que salga hacen falta los dos interruptores: el del celular («Imprimir en la caja»)
+y el de la caja («Imprimir lo que se vende en el piso»). Los dos nacían apagados y vivían al pie de «Venta registrada», donde nadie los
+encendió.
+
+1. **«Imprimir en la caja» viene encendido en el aparato sin mouse** (`(pointer: coarse) and (hover: none)`: celular y tablet) y apagado
+   en la computadora, que imprime donde cobra (`lib/imprimir-al-cobrar.ts`, `enLaCajaDeFabrica`). Para eso, `preferenciaLocal` acepta un
+   valor de fábrica que depende del aparato (`deFabricaDelEquipo`). Se pregunta solo si el equipo no tiene nada guardado, así que lo
+   elegido a mano gana. El servidor, que no sabe qué aparato es, sigue en «no».
+2. **«Imprimir lo que se vende en el piso» viene encendido** (`lib/estacion-de-impresion.ts`). En los demás equipos ese «si» no hace nada:
+   la estación solo trabaja donde se imprime sin cuadro (`estacionActiva`: la ventana «CAYLA Caja» o la Mac con la ticketera en su
+   ayudante). «Avisar con voz» sigue encendida. «Imprimir solo al cobrar» sigue apagado: no se pidió, y donde no hay `--kiosk-printing`
+   abriría el cuadro en cada venta.
+3. **En el celular, «Venta registrada» ya no ofrece «Imprimir y nueva venta»**: con «Imprimir en la caja» encendido, la hoja pide la
+   boleta apenas se abre y muestra «Mandando a la caja» → «En la cola de la caja» → «Impresa en la caja». Su botón principal pasa a ser
+   «Nueva venta» y debajo queda «Imprimir aquí». Esa hoja ya existía: lo único que cambia es que llega sola.
+
+DESCARTÉ:
+- **Encender «Imprimir en la caja» en todo equipo:** la Mac de la caja sabe que es la caja preguntándole a su ayudante, y la respuesta
+  llega después de abrir la pantalla. Su primera venta podía irse a la cola en vez de imprimirse ahí. Una PC sin `?ventana=caja` se
+  mandaría sus propias boletas, y una Mac de oficina las dejaría en una cola que nadie toma.
+- **Decidir por el ancho de la pantalla (menos de 640 px):** una ventana angosta de la computadora mandaría la boleta a la caja. Una tablet,
+  que tampoco tiene impresora, se quedaría afuera.
+- **Pasarlo a la cuenta, en la base:** la decisión es del aparato y no de la persona (la misma colaboradora cobra en la Mac y en su
+  celular), y no vale una columna nueva.
+- **Encenderlo encima de lo que alguien apagó:** quien lo apagó tuvo un motivo, por ejemplo una impresora en el piso.
+
+SE ROMPE SI:
+1. **Una tablet que sí imprime (AirPrint) donde nadie tocó el interruptor:** su boleta va a la cola de la caja. Se apaga una vez en esa tablet.
+2. **La caja de la sede no tiene la estación activa:** puede ser una Mac sin el ayudante v3 con la ticketera, una PC sin `?ventana=caja`, o
+   una estación que alguien apagó. El celular dice «En la cola de la caja» y la boleta no sale. La pedida espera hasta 12 h y sale sola al
+   encender la estación. Mientras tanto quedan «Imprimir aquí» y la reimpresión desde Historial.
+3. **La caja tiene elegida otra sede:** la estación toma solo la cola de su sede activa, así que lo del piso de otra sede no sale ahí. Ya
+   pasaba antes de este cambio.
