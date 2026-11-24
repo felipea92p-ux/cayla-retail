@@ -1,4 +1,4 @@
-## 🏷️ Margen objetivo por lo que la prenda tiene (2026-11-24, ADR-0700) — seis migraciones SOLO EN LOCAL; rama `claude/margen-ganancia-atributos-2fe4df`
+## 🏷️ Margen objetivo por lo que la prenda tiene (2026-11-24, ADR-0700) — seis migraciones EN PRODUCCIÓN desde el 2026-11-24; PR #2004
 
 - [x] **Actividad 1 — Configuración ▸ Precios** (`20261124170000`): `retail.reglas_de_precio` (filas que se agregan, con candados), `tejidos.se_nota`,
   `marcas.conocida`, sus funciones (solo Admin) y la pestaña; base recomendada 37 % con «Usar 37 %». `pruebas:reglas-de-precio` (38).
@@ -11,9 +11,13 @@
 - [x] **Actividad 5 — Catálogo** (`20261124183000`): casillas en Nuevo y Editar producto (pieza única `QueTieneLaPrenda`), la matriz de
   Costos con la cuenta única, la IA con piso en el objetivo. `pruebas:rasgos-en-catalogo`.
 - [x] **La lista de Productos** (`20261124190000`): misma cuenta y mismo objetivo que la ficha (`fn_rasgos_de_productos`).
-- [ ] **Producción (con el OK de Felipe, una por una y en este orden):** `20261124170000` → `174000` → `180000` → `181000` → `183000` →
-  `190000`. Cada una es de una sola parte y se puede volver a pegar; las que parchan funciones vivas se detienen solas si el texto de
-  producción cambió (md5 comparados el 2026-11-24). Después de pegarlas, `pnpm datos:generar:produccion` para el diccionario.
+- [x] **Producción (OK de Felipe, 2026-11-24):** `20261124170000` → `174000` → `180000` → `181000` → `183000` → `190000`, aplicadas con
+  `apply_migration` en `cayla-dynamic` después de un ensayo de las seis juntas que se deshizo solo («ENSAYO_OK»). Verificadas: las 14
+  funciones con el mismo md5 que el local (sin líneas de comentario en los dos lados: la herramienta las quita al enviar), sus permisos
+  (`authenticated` sí, `anon` no), los dos parches a funciones vivas, la regla 37 % y +3 y las dos tablas con RLS. La `180000` se reescribió
+  para viajar bien (su ancla de comentario va con `||`). Las listas de tejidos y marcas están vacías: las marca un Admin.
+- [ ] **Diccionario:** sin refrescar (`pnpm datos:refrescar`): la foto de producción es del 2026-11-17 y el refresco trae también lo de
+  otras ramas.
   **Antes de fusionar** (fusionar = publicar): `pnpm datos:comparar` marca 10 llamadas de esta rama a funciones que la foto de producción
   no tiene. Si la web llegara antes que la base, nada se cae (Configuración ▸ Precios dice que no pudo leer, la lista y las fichas miden con
   la base, Editar producto no dibuja las casillas, la IA usa la regla de fábrica), pero las casillas que se marquen en «Compré ropa» y en
