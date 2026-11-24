@@ -38,7 +38,9 @@ escribió la lista de formatos.
 - **Qué se rompería sin esto:** la foto se toma con la cámara de la computadora o se pasa a mano del celular, y en el almacén eso no pasa.
 
 **Probado en local** (Playwright sin ventana: una computadora con sesión y un «celular» sin cookies): el QR aparece y trae un permiso de 32
-caracteres; un permiso inventado no pasa; un texto con nombre `.jpg` se rechaza («Eso no es una foto»); recoger sin sesión da 401. **Sin
-probar la subida completa:** el entorno local no tiene `SUPABASE_SERVICE_ROLE_KEY`, y la ruta respondió como debe sin ella («No se pudo
-subir la foto»). Los envíos de prueba ENV-000717, 718 y 719 quedaron anulados. **Migración `20261124161000` solo en local**: producción
+caracteres; un permiso inventado no pasa; un texto con nombre `.jpg` se rechaza («Eso no es una foto»); recoger sin sesión da 401. Sin
+`SUPABASE_SERVICE_ROLE_KEY` la ruta respondió como debe («No se pudo subir la foto»). **Con la llave (Felipe la agregó al `.env.local`
+desde el contenedor de Studio), la subida completa:** el celular dice «Listo: ya está en la computadora · Puedes subir 2 de 3», la hoja del
+QR se cierra sola, la foto queda en la lista y en la placa, entra a «Fotos y colores» al crear la prenda, y el almacén queda vacío (la foto
+se borra al recogerla). Los envíos de prueba ENV-000717 a 720 quedaron anulados; no se creó ninguna prenda. **Migración `20261124161000` solo en local**: producción
 espera el OK de Felipe.

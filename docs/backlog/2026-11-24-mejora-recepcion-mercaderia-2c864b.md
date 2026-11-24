@@ -28,8 +28,8 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
   terminar con «Se abrió por error»): «Tomar foto» → la foto en la lista y en la placa, «Cambiar foto»; «Crear la prenda» → «Fotos y
   colores» ya trae la foto y lee su color (Terracota). No se creó ninguna prenda.
 - [x] **2c · La foto con el celular por QR, sin sesión (Felipe eligió B).** Construida; migración `20261124161000` SOLO en local.
-- [ ] **2d · Falta para cerrar la 2c:** `SUPABASE_SERVICE_ROLE_KEY` en el `.env.local` (la de `supabase status`) para probar la subida
-  completa; OK de Felipe para pegar la migración en producción; confirmar que Vercel tiene la llave (ya la usan terminales y crons);
+- [x] **2d · Subida completa probada en local** (con `SUPABASE_SERVICE_ROLE_KEY` del contenedor de Studio en el `.env.local`).
+- [ ] **2e · Falta para producción:** OK de Felipe para pegar la migración en producción; confirmar que Vercel tiene la llave (ya la usan terminales y crons);
   una limpieza de fotos nunca recogidas.
 - [ ] **Igual a la maqueta, con las piezas del ERP (Felipe 2026-11-24).** Lo que falta para que se vea como la maqueta: la cabecera de
   categoría delgada (5a), la lista con la foto de cada modelo más grande, la galería «¿ya la tenemos?» (3) y el aviso de Admin como chapa
