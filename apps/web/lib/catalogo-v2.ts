@@ -21,6 +21,7 @@ import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 import { leerCostoPrenda } from "@/lib/costo-prenda-reglas";
 import { leerCostoDeLasTallas, resumenCostoPrenda, type CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
+import { RASGOS, type Rasgo } from "./margen-por-rasgos";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -368,6 +369,9 @@ export type ProductoListado = {
    *  descripción, para la vista rápida. `null` = sin registrar, o no se pudo leer. */
   tejido: string | null;
   patron: string | null;
+  /** Lo que la prenda tiene en efecto (ADR-0700), para medir su margen contra su objetivo. No viene de la RPC: lo pega `listarProductos`
+   *  con una consulta aparte. Ausente = nada, o no se pudo leer (entonces se mide con la base). */
+  rasgos?: Rasgo[];
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
@@ -508,7 +512,8 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   // La descripción, el tejido y el patrón de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no
   // los trae y no vale una migración en producción por textos que solo se leen. Una consulta de ≤ 20 filas, a la vez que la de
   // las fotos. Si falla, la vista rápida se abre igual, sin esos datos. De paso, la empresa: la insignia «CLAURE» de Lima (ADR-0505).
-  const [{ data: generales }, { data: descripciones }] = await Promise.all([
+  // Lo que tiene cada prenda de la página (ADR-0700, 20261124190000): una consulta de ≤ 20, a la vez. Si falla, la lista mide con la base.
+  const [{ data: generales }, { data: descripciones }, { data: rasgosPorId }] = await Promise.all([
     sinFoto.length > 0
       ? supabase
           .from("producto_fotos")
@@ -522,7 +527,16 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
           .select("id, descripcion, empresa_id, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
           .in("id", [...porProducto.keys()])
       : Promise.resolve({ data: null }),
+    porProducto.size > 0
+      ? (supabase.rpc("fn_rasgos_de_productos" as never, { p_ids: [...porProducto.keys()] } as never) as unknown as PromiseLike<{ data: unknown }>)
+      : Promise.resolve({ data: null }),
   ]);
+  if (rasgosPorId && typeof rasgosPorId === "object" && !Array.isArray(rasgosPorId)) {
+    for (const [id, lista] of Object.entries(rasgosPorId as Record<string, unknown>)) {
+      const p = porProducto.get(id);
+      if (p && Array.isArray(lista)) p.rasgos = lista.filter((r): r is Rasgo => RASGOS.includes(r as Rasgo));
+    }
+  }
   for (const d of descripciones ?? []) {
     const p = porProducto.get(d.id);
     if (!p) continue;

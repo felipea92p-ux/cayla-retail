@@ -122,8 +122,13 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 - **La IA:** su piso ya no es ×2.27 (`pisoDelPrecio`, borrado): es el menor .90 que llega al objetivo de la prenda, nunca bajo costo + 30 %.
   La ruta recibe lo que la prenda tiene (o lo lee de la base en una revisión), se lo dice a la IA (`margen_objetivo`, `precio_minimo`) y
   la pantalla dice «Es el mínimo para tu objetivo de N %».
-- **Queda aparte:** la lista de Productos (`ProductosTabla.tsx`, `lib/productos-vista.ts`) todavía calcula su margen con la resta con IGV
-  adentro; y la hoja de Recibir no manda las casillas a la propuesta hasta que se haga su parte web (después del PR #2001).
+- **La lista de Productos** (mismo día): medía con la resta con IGV adentro (`margenPorcentaje`, borrado) y un ámbar fijo en 45 %
+  (`UMBRAL_MARGEN_BAJO`, «provisional» desde 2026-09-28, borrado): la misma prenda decía un % en la lista y otro al abrirla. Ahora
+  `margenDe` usa la cuenta única (`margenALaVista`) contra el objetivo de cada prenda; una talla que pierde se ve en rojo profundo. Lo que
+  tiene cada prenda de la página llega en una sola consulta más (`fn_rasgos_de_productos(uuid[])`, `20261124190000`, ≤ 20 por página,
+  hasta 200), como la de las descripciones; si falla, la lista mide con la base. `fn_rasgos_de_producto` pasó a ser esa misma consulta.
+  Una prueba cruza la lista con la ficha talla por talla. Producción («40/60 % sobre costo», `semaforoMargen`) sigue aparte a propósito.
+- **Queda aparte:** la hoja de Recibir no manda las casillas a la propuesta hasta que se haga su parte web (después del PR #2001).
 
 ## Lo que falta
 

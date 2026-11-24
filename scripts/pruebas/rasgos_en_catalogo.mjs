@@ -152,5 +152,22 @@ select count(*) from retail.producto_rasgos where producto_id = current_setting(
   esperar("y nada quedó escrito", r.ok && filasGuardadas === "0", r);
 }
 
+// 6. Varias prendas a la vez (20261124190000): la lista de Productos pide las de su página en una sola consulta.
+{
+  const r = correr(`${COMO(FELIPE)}
+select pg_temp.guardar(current_setting('t.p_lino')::uuid, true, false, false);
+select (v ->> current_setting('t.p_lino')) || '|' || (v ->> current_setting('t.p_poli')) || '|' || (select count(*) from jsonb_object_keys(v))
+  from (select retail.fn_rasgos_de_productos(array[current_setting('t.p_lino')::uuid, current_setting('t.p_poli')::uuid, gen_random_uuid()]) as v) x;
+select array_to_string(retail.fn_rasgos_de_producto(current_setting('t.p_poli')::uuid), ',');
+select retail.fn_rasgos_de_productos(array[]::uuid[])::text;`);
+  const [, varias, una, vacia] = filas(r);
+  esperar("una sola consulta trae lo de cada prenda; la que no existe no viene", r.ok && varias === '["nadie_la_tiene"]|["marca_conocida"]|2', r);
+  esperar("la de una prenda es la misma consulta", r.ok && una === "marca_conocida", r);
+  esperar("sin prendas, un objeto vacío", r.ok && vacia === "{}", r);
+  const muchas = correr(`${COMO(FELIPE)}
+select retail.fn_rasgos_de_productos(array(select gen_random_uuid() from generate_series(1, 201)));`);
+  esperar("más de 200 a la vez se frenan", !muchas.ok && /rasgos_muchas_prendas/.test(muchas.mensaje), muchas);
+}
+
 console.log(`\n${casos - fallos} de ${casos} casos bien.`);
 process.exit(fallos ? 1 : 0);
