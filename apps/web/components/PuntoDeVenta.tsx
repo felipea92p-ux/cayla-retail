@@ -162,8 +162,10 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
-import { enviarTicketACaja } from "@/lib/tickets-compartidos";
-import { mensajeDeTicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { enviarTicketACaja, tomarTicketCompartido } from "@/lib/tickets-compartidos";
+import { mensajeDeTicketCompartido, ticketDelPisoParaLaEspera, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { useTicketsDelPiso } from "@/lib/useTicketsDelPiso";
+import { DesdeElPisoModal } from "@/components/punto-de-venta/DesdeElPiso";
 import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
@@ -548,6 +550,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   useEffect(() => {
     idParaCaja.current = null;
   }, [carrito]);
+  // Lo que el piso mandó a la caja (ADR-0701): la lista se pregunta cada 5 s con la caja abierta. «Abrir» lo pasa a este equipo.
+  const piso = useTicketsDelPiso(ubicacionId, ticketsCompartidos && !bloqueado);
+  const [abriendoDelPiso, setAbriendoDelPiso] = useState<string | null>(null);
+  const [hojaDelPiso, setHojaDelPiso] = useState(false);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -767,7 +773,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || hojaDelPiso || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1526,14 +1532,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (sin.espera.length === 0) setMomento("armar");
   }
   function retomar(id: string) {
-    const ticket = enEspera.find((t) => t.id === id);
+    retomarDe(enEspera, id);
+  }
+  function retomarDe(lista: TicketEnEspera[], id: string) {
+    const ticket = lista.find((t) => t.id === id);
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian de lugar: el actual se queda donde estaba la pestaña retomada y nadie más se mueve.
     const actual: TicketEnEspera | null =
       carrito.length > 0
         ? ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())
         : null;
-    const paso = pasarAlTicket(enEspera, posActivo, actual, id);
+    const paso = pasarAlTicket(lista, posActivo, actual, id);
     if (!paso) return;
     persistirEspera(paso.espera);
     setPosActivo(paso.posActivo);
@@ -1596,6 +1605,34 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
   }
 
+  /** «Abrir» un ticket del piso (ADR-0701): pasa a este equipo y entra a la caja como cualquier ticket que esperaba, por la misma puerta
+   *  (`retomar`, que pone los precios al día). Si otra caja lo abrió primero, se dice quién y la lista se pone al día. */
+  async function abrirDelPiso(t: TicketCompartido) {
+    if (abriendoDelPiso) return;
+    if (!cabeOtroTicket(enEspera.length)) {
+      avisarTopeDeTickets();
+      return;
+    }
+    setAbriendoDelPiso(t.id);
+    const r = await tomarTicketCompartido(createClient(), responsable.firma(), t.id);
+    setAbriendoDelPiso(null);
+    if (r.error) {
+      const m = mensajeDeTicketCompartido(r.error, "abrir");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      void piso.refrescar();
+      return;
+    }
+    piso.quitar(t.id);
+    const leido = ticketDelPisoParaLaEspera(r.dato);
+    if (!leido) {
+      avisar.error("El ticket llegó sin prendas", { detalle: "Pídele a la asesora que lo vuelva a armar." });
+      return;
+    }
+    const ticket: TicketEnEspera = { ...leido, carrito: leido.carrito as ItemCarrito[], clienta: clientaDeTicketGuardado(leido.clienta), cobro: leido.cobro as CobroDelTicket | undefined };
+    setHojaDelPiso(false);
+    setHojaTicket(false);
+    retomarDe([...enEspera, ticket], ticket.id);
+  }
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -2313,6 +2350,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onDejarEnEspera={pedirDejarEnEspera}
             onMandarACaja={ticketsCompartidos ? mandarACaja : undefined}
             mandandoACaja={mandandoACaja}
+            delPiso={{ tickets: piso.tickets, ahora: piso.leidoEn, abriendo: abriendoDelPiso, onVerTodos: () => setHojaDelPiso(true) }}
+            onAbrirDelPiso={abrirDelPiso}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
             onDescartarEspera={pedirDescartar}
@@ -2618,6 +2657,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
 
+
+      {hojaDelPiso && (
+        <DesdeElPisoModal
+          tickets={piso.tickets}
+          ahora={piso.leidoEn}
+          abriendo={abriendoDelPiso}
+          onAbrir={abrirDelPiso}
+          onClose={() => setHojaDelPiso(false)}
+        />
+      )}
 
       {porDescartar && (
         <DescartarTicketModal

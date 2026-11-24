@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leerTicketCompartido, mensajeDeTicketCompartido } from "./tickets-compartidos-reglas";
+import { leerTicketAbierto, leerTicketCompartido, leerTicketsCompartidos, mensajeDeTicketCompartido, nombreDelTicketDelPiso, ticketDelPisoParaLaEspera } from "./tickets-compartidos-reglas";
 
 const FILA = { id: "t1", nombre: "Cliente 2", prendas: 3, total: "199.80", estado: "esperando", enviado_por: "Ana Pérez", enviado_en: "2026-11-24T17:00:00Z" };
 
@@ -33,5 +33,43 @@ describe("mensajeDeTicketCompartido", () => {
     expect(mensajeDeTicketCompartido(red, "mandar").titulo).toBe("No se pudo mandar a la caja");
     expect(mensajeDeTicketCompartido(red, "mandar").detalle).toContain("sigue aquí");
     expect(mensajeDeTicketCompartido({ message: "boom", hint: "otra_cosa" }, "mandar").titulo).not.toContain("boom");
+  });
+});
+
+describe("del piso a la caja", () => {
+  const abierto = {
+    id: "t1",
+    nombre: "Cliente 1",
+    prendas: 1,
+    total: 79.9,
+    enviadoPor: "Ana Pérez Rojas",
+    enviadoEn: "2026-11-24T17:00:00Z",
+    contenido: { carrito: [{ varianteId: "v1", cantidad: 1, precioUnitario: 79.9, descuentoUnitario: 0 }], nota: "talla M", cobro: { comprobante: "boleta" } },
+  };
+  it("leerTicketAbierto exige el contenido; la lista descarta las filas rotas", () => {
+    expect(leerTicketAbierto({ ...FILA })).toBeNull();
+    expect(leerTicketAbierto({ ...FILA, contenido: { carrito: [] } })?.id).toBe("t1");
+    expect(leerTicketsCompartidos([FILA, { id: "" }, null])).toHaveLength(1);
+    expect(leerTicketsCompartidos("no es lista")).toEqual([]);
+  });
+  it("en la caja se llama con el primer nombre de la asesora, sin pasar de 30 letras", () => {
+    expect(nombreDelTicketDelPiso({ enviadoPor: "Ana Pérez Rojas", nombre: "Cliente 1" })).toBe("Ana · Cliente 1");
+    expect(nombreDelTicketDelPiso({ enviadoPor: "  ", nombre: "Cliente 1" })).toBe("Cliente 1");
+    expect(nombreDelTicketDelPiso({ enviadoPor: "Ana", nombre: "Una clienta con un nombre larguísimo" }).length).toBe(30);
+  });
+  it("pasa a la espera con su id, su hora de envío, sus prendas, su nota y lo del cobro", () => {
+    expect(ticketDelPisoParaLaEspera(abierto)).toEqual({
+      id: "t1",
+      creadoEn: "2026-11-24T17:00:00Z",
+      carrito: abierto.contenido.carrito,
+      nota: "talla M",
+      nombre: "Ana · Cliente 1",
+      clienta: null,
+      cobro: { comprobante: "boleta" },
+    });
+  });
+  it("un contenido sin prendas no se abre como ticket", () => {
+    expect(ticketDelPisoParaLaEspera({ ...abierto, contenido: { carrito: [] } })).toBeNull();
+    expect(ticketDelPisoParaLaEspera({ ...abierto, contenido: { nota: "x" } })).toBeNull();
   });
 });

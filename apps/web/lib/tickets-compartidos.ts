@@ -1,7 +1,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
-import { leerTicketCompartido, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { leerTicketAbierto, leerTicketCompartido, leerTicketsCompartidos, type TicketCompartido, type TicketCompartidoAbierto } from "@/lib/tickets-compartidos-reglas";
 
 /**
  * Las llamadas de los tickets compartidos (ADR-0701). Cada una devuelve `{ dato }` o `{ error }` sin lanzar: la caja nunca se cae por un
@@ -26,4 +26,20 @@ export async function enviarTicketACaja(
   if (error) return { dato: null, error };
   const fila = leerTicketCompartido(data);
   return fila ? { dato: fila, error: null } : { dato: null, error: sinRespuesta };
+}
+
+/** Los tickets que esperan en la caja de la sede. */
+export async function listarTicketsCompartidos(supabase: Supabase, ubicacionId: string, senal?: AbortSignal): Promise<Resultado<TicketCompartido[]>> {
+  let consulta = supabase.rpc("fn_tickets_compartidos" as never, { p_ubicacion_id: ubicacionId } as never);
+  if (senal) consulta = consulta.abortSignal(senal);
+  const { data, error } = await consulta;
+  return error ? { dato: null, error } : { dato: leerTicketsCompartidos(data), error: null };
+}
+
+/** Abre un ticket que espera en la caja: pasa a este equipo y vuelve con su contenido. De dos que lo abren a la vez, solo uno. */
+export async function tomarTicketCompartido(supabase: Supabase, firma: Firma | FirmaOmitida | null, id: string): Promise<Resultado<TicketCompartidoAbierto>> {
+  const { data, error } = await firmar(supabase.rpc("tomar_ticket_compartido" as never, { p_id: id } as never), firma);
+  if (error) return { dato: null, error };
+  const abierto = leerTicketAbierto(data);
+  return abierto ? { dato: abierto, error: null } : { dato: null, error: sinRespuesta };
 }

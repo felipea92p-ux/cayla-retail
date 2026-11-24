@@ -69,3 +69,55 @@ export function mensajeDeTicketCompartido(error: ErrorDeLaBase, accion: "mandar"
   if (accion === "abrir") return { titulo: "No se pudo abrir el ticket", detalle: "Sigue esperando en la caja. Vuelve a intentarlo." };
   return { titulo: "No se pudo descartar el ticket", detalle: "Sigue esperando en la caja." };
 }
+
+/** Lo que devuelve la base al abrir un ticket: la fila y el ticket entero, tal como lo guardó el celular. */
+export type TicketCompartidoAbierto = TicketCompartido & { contenido: unknown };
+
+/** Lo que la base devolvió al abrir un ticket, o `null` si no trae su contenido. */
+export function leerTicketAbierto(v: unknown): TicketCompartidoAbierto | null {
+  const fila = leerTicketCompartido(v);
+  const contenido = v && typeof v === "object" ? (v as Record<string, unknown>).contenido : undefined;
+  return fila && contenido && typeof contenido === "object" ? { ...fila, contenido } : null;
+}
+
+/** La lista de la base, sin las filas rotas. */
+export function leerTicketsCompartidos(v: unknown): TicketCompartido[] {
+  return Array.isArray(v) ? v.map(leerTicketCompartido).filter((t): t is TicketCompartido => t !== null) : [];
+}
+
+/** Hasta dónde llega el nombre de una pestaña (`NOMBRE_ESPERA_MAX` de `vender-hoy-reglas.ts`). */
+const NOMBRE_MAX = 30;
+
+/** Cómo se llama en la caja el ticket que llegó del piso: «Ana · Cliente 1». En la caja hay varios «Cliente 1» (uno por celular); el
+ *  nombre de la asesora es lo que la cajera reconoce, porque la asesora llega con su cliente. */
+export function nombreDelTicketDelPiso(t: Pick<TicketCompartido, "enviadoPor" | "nombre">): string {
+  const primero = t.enviadoPor.trim().split(/\s+/)[0] ?? "";
+  return (primero ? `${primero} · ${t.nombre}` : t.nombre).slice(0, NOMBRE_MAX);
+}
+
+/**
+ * El ticket abierto, como uno más de los tickets de este equipo (la misma forma que «Dejar en espera» guarda en el navegador). Desde ahí lo
+ * retoma `retomar()` de Vender, que pone los precios al día y lee al cliente y lo del cobro con tolerancia. `null` si el contenido no trae
+ * prendas: no se abre un ticket vacío.
+ */
+export function ticketDelPisoParaLaEspera(t: TicketCompartidoAbierto): {
+  id: string;
+  creadoEn: string;
+  carrito: unknown[];
+  nota: string;
+  nombre: string;
+  clienta: unknown;
+  cobro: unknown;
+} | null {
+  const c = t.contenido as Record<string, unknown>;
+  if (!Array.isArray(c.carrito) || c.carrito.length === 0) return null;
+  return {
+    id: t.id,
+    creadoEn: t.enviadoEn,
+    carrito: c.carrito,
+    nota: typeof c.nota === "string" ? c.nota : "",
+    nombre: nombreDelTicketDelPiso(t),
+    clienta: c.clienta ?? null,
+    cobro: c.cobro,
+  };
+}

@@ -212,6 +212,22 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "En la terminal de la tienda, antes de cobrar eliges quién está atendiendo: la venta queda a su nombre. Solo salen las personas que marcaron su entrada hoy en esta tienda.",
     },
     {
+      id: "desde-el-piso",
+      ancla: "vender.desde-el-piso",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Del piso",
+      texto: "Los tickets que las asesoras armaron en el piso y mandaron a la caja, con quién lo mandó y hace cuánto espera. «Abrir» lo trae a este ticket con los precios de hoy: lo cobras sin volver a escanear. Si otra caja lo abrió primero, te dice quién.",
+    },
+    {
+      id: "del-piso-chip",
+      ancla: "vender.del-piso-chip",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Lo que espera del piso",
+      texto: "Con un ticket a medio armar, este botón dice cuántos esperan del piso y abre la lista. Al abrir uno, el que tenías queda en espera.",
+    },
+    {
       id: "mandar-a-caja",
       ancla: "vender.mandar-a-caja",
       opcional: true,

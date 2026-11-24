@@ -24,6 +24,8 @@ import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { DesdeElPisoEnElTicket } from "@/components/punto-de-venta/DesdeElPiso";
+import type { TicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
@@ -111,6 +113,10 @@ type Props = {
    *  base todavía no tiene los tickets compartidos) el botón no se dibuja. */
   onMandarACaja?: () => void;
   mandandoACaja?: boolean;
+  /** Lo que el piso mandó a la caja (ADR-0701): con el ticket vacío, la lista va adentro; ocupado, un chip la abre en una hoja. */
+  delPiso?: { tickets: readonly TicketCompartido[]; ahora: number; abriendo: string | null; onVerTodos: () => void };
+  /** «Abrir» uno de los tickets del piso (aparte de `delPiso`: dentro del objeto, el lint del compilador de React lee mal todo el componente). */
+  onAbrirDelPiso?: (t: TicketCompartido) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -201,6 +207,8 @@ export function PuntoDeVentaTicket({
   onDescartarEspera,
   onMandarACaja,
   mandandoACaja = false,
+  delPiso,
+  onAbrirDelPiso,
   total,
   prendas,
   vale = null,
@@ -356,6 +364,24 @@ export function PuntoDeVentaTicket({
                 En espera · {enEspera.length}
               </button>
             )}
+            {/* Lo que espera del piso (ADR-0701), con el ticket ocupado: el chip abre la hoja «Del piso». Con el ticket vacío la lista ya
+                está adentro y el chip sobra. */}
+            {delPiso && delPiso.tickets.length > 0 && carrito.length > 0 && (
+              <button
+                type="button"
+                onClick={delPiso.onVerTodos}
+                disabled={bloqueado}
+                data-guia="vender.del-piso-chip"
+                aria-label={`Del piso: ${delPiso.tickets.length} ${delPiso.tickets.length === 1 ? "ticket esperando" : "tickets esperando"}`}
+                title="Del piso"
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
+              >
+                <Send className={ICONO_CHICO} aria-hidden />
+                {/* En la cabecera de 420 px, con «En espera · N» al lado, «Del piso» no cabe: queda el ícono con el número. */}
+                <span className={conChipEspera ? "hidden @min-[30rem]:inline" : undefined}>Del piso · </span>
+                {delPiso.tickets.length}
+              </button>
+            )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -487,6 +513,7 @@ export function PuntoDeVentaTicket({
           ) : !carrito.length ? (
             <>
               {arriba}
+              {delPiso && onAbrirDelPiso && <DesdeElPisoEnElTicket tickets={delPiso.tickets} ahora={delPiso.ahora} abriendo={delPiso.abriendo} onAbrir={onAbrirDelPiso} />}
               <div className="anim-sube flex min-h-48 flex-col items-center justify-center px-8 text-center">
                 <p className="font-medium text-tinta">El ticket está vacío</p>
                 <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
