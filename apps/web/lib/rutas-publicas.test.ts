@@ -20,6 +20,27 @@ describe("rutas públicas: solo la dirección de los carteles del club, la polí
     expect(esRutaPublica("/club/terminos/")).toBe(true);
   });
 
+  it("la foto por QR de Recibir pasa solo con un permiso de 32 caracteres, sin subrutas (ADR-0699)", () => {
+    const permiso = "aB3_x-9ZqLmN0pQrStUvWxYz12345678";
+    expect(esRutaPublica(`/foto/${permiso}`)).toBe(true);
+    expect(esRutaPublica(`/api/foto-qr/${permiso}`)).toBe(true);
+    for (const ruta of [
+      "/foto",
+      "/foto/",
+      `/foto/${permiso}x`,
+      `/foto/${permiso.slice(1)}`,
+      `/foto/${permiso}/otra`,
+      `/fotos/${permiso}`,
+      `/api/foto-qr/${permiso}/otra`,
+      "/api/foto-qr/recoger",
+      `/api/recibir/foto-qr/${permiso}`,
+      `/x/foto/${permiso}`,
+      "/foto/aB3.x-9ZqLmN0pQrStUvWxYz12345678",
+    ]) {
+      expect(esRutaPublica(ruta), ruta).toBe(false);
+    }
+  });
+
   it("el aviso de «sin conexión con la base» y su pregunta «¿responde?» pasan (ADR-0450), exactos y sin subrutas", () => {
     expect(esRutaPublica("/sin-base")).toBe(true);
     expect(esRutaPublica("/api/salud")).toBe(true);

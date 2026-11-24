@@ -3,6 +3,7 @@
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDestinoFlotante } from "@/components/ui/useAnclaje";
 
 export type ItemMenu = {
   clave: string;
@@ -102,6 +103,9 @@ export function MenuAcciones({
   // Abierto con el teclado (Enter o espacio): la gota arranca en la primera opción. Con el mouse no: una lista de una sola opción
   // peligrosa nacía ya teñida de rojo, como si alguien la hubiera elegido.
   const conTeclado = useRef(false);
+  // Dentro de una hoja, la lista cuelga de su capa de listas (como los combos, ADR-0211): en `document.body` quedaba fuera de la hoja, el foco
+  // seguía atrapado en ella y el Escape que debía cerrar solo el menú cerraba la hoja entera (/chaos del modal de Existencias, 2026-11-24).
+  const destino = useDestinoFlotante(boton, abierto);
 
   const cerrar = useCallback((devolverFoco: boolean) => {
     setAbierto(false);
@@ -238,7 +242,7 @@ export function MenuAcciones({
               </button>
             ))}
           </div>,
-          document.body
+          destino ?? document.body
         )}
     </>
   );

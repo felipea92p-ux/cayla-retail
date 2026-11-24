@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { getNombresPorCategoria } from "@/lib/alta-producto-datos";
-import { getImagenesMuestra } from "@/lib/catalogo-v2";
+import { consultaEtiquetasAlta, etiquetasAltaDe, getNombresPorCategoria } from "@/lib/alta-producto-datos";
+import { getImagenesMuestra, getTemporadasCatalogo } from "@/lib/catalogo-v2";
+import { hoyLima } from "@/lib/fechas-lima";
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { leerComprasPagadas, type CompraPagada } from "@/lib/compras-pagadas-reglas";
@@ -99,12 +100,15 @@ export async function getEnviosAMedias(ubicacionId: string): Promise<EnvioAMedia
 async function getVocabularioParaRecibir(): Promise<VocabularioParaRecibir | null> {
   try {
     const supabase = await createClient();
-    const [tallas, tejidos, patrones, imagenes, nombresPorCategoria] = await Promise.all([
+    const [tallas, tejidos, patrones, imagenes, nombresPorCategoria, temporadas, etiquetas] = await Promise.all([
       supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
       supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       getImagenesMuestra(),
       getNombresPorCategoria(),
+      // ADR-0699: temporada y etiquetas al crear la prenda. Si no se pueden leer, la hoja no las ofrece y el resto sigue.
+      getTemporadasCatalogo(),
+      consultaEtiquetasAlta(supabase),
     ]);
     const error = tallas.error ?? tejidos.error ?? patrones.error;
     if (error) throw new Error(error.message);
@@ -114,6 +118,8 @@ async function getVocabularioParaRecibir(): Promise<VocabularioParaRecibir | nul
       patrones: (patrones.data ?? []).map((t) => ({ id: t.id, texto: t.nombre })),
       imagenes,
       nombresPorCategoria,
+      temporadas,
+      etiquetas: etiquetas.error ? [] : etiquetasAltaDe(etiquetas.data ?? [], hoyLima()),
     };
   } catch (e) {
     unstable_rethrow(e);
