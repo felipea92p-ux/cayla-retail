@@ -20,9 +20,10 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
     { valor: "dias", texto: "Más días en la tienda" },
     { valor: "nombre", texto: "Por nombre" },
   ],
+  // Felipe 2026-11-24: dos órdenes separados, cada uno con su pregunta. «No hay stock» pone arriba «Ya se agotaron»; «quedan pocos» pone
+  // arriba «Se acaban antes de Navidad», con lo que se acaba en 2 semanas o menos primero (`modelosQueNoLlegan`, `parteDeArriba`).
   pedir: [
-    { valor: "vende", texto: "Lo que más se vende" },
-    // Felipe 2026-11-24: «lo que más se vende pero quedan pocos»; «pocos» es lo que se acaba en 2 semanas o menos (`modelosQueNoLlegan`).
+    { valor: "agotado", texto: "Lo que más se vende y no hay stock" },
     { valor: "pocos", texto: "Lo que más se vende y quedan pocos" },
     { valor: "acaba", texto: "Lo que se acaba antes" },
     { valor: "nombre", texto: "Por nombre" },

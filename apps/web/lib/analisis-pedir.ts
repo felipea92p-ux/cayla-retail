@@ -502,6 +502,15 @@ export function modelosAgotados<T extends ModeloAnalisis>(modelos: readonly T[],
   return agotados.sort((a, b) => b.vendidas - a.vendidas || reciente(a, b) || porNombre(a, b));
 }
 
+/**
+ * Qué parte va arriba en «Qué pedir»: con «Lo que más se vende y quedan pocos», «Se acaban antes de Navidad»; con cualquier otro orden,
+ * «Ya se agotaron» (Felipe 2026-11-24: cada orden responde su pregunta primero).
+ */
+export const parteDeArriba = (orden: string): "agotados" | "seAcaban" => (orden === "pocos" ? "seAcaban" : "agotados");
+
+/** Cuántas tarjetas se ven de cada parte antes de «Ver N más» (Felipe 2026-11-24: «por defecto el top 10»). */
+export const PRIMEROS_QUE_PEDIR = 10;
+
 /** Las dos partes de «Qué pedir» y los modelos de las dos juntos, para contarlos (la pestaña y su tarjeta en «Hoy»). */
 export function queHayQuePedir<T extends ModeloAnalisis>(
   modelos: readonly T[],
