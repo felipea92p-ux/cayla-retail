@@ -74,8 +74,10 @@ export function TarjetaPrenda({
   miniatura,
   nombre,
   que,
+  antes,
   numero,
   unidad,
+  lineas,
   est,
   detalle,
   acciones,
@@ -87,8 +89,12 @@ export function TarjetaPrenda({
   nombre: string;
   /** Color y tallas («Rubí · S a L»), o lo que vendió y tiene un tipo. */
   que: string;
+  /** Lo que va antes del número, con la letra de la unidad: «Hasta el» 7 dic., «Se agotó el» 23 oct. */
+  antes?: string;
   numero: string;
   unidad?: string;
+  /** Líneas cortas bajo el número, cada una en su renglón: «Tienes 72», «Vendes 39 por semana». */
+  lineas?: readonly string[];
   est: Estado;
   detalle?: string;
   acciones?: ReactNode;
@@ -125,9 +131,15 @@ export function TarjetaPrenda({
         </p>
         <p className="texto-detalle m-0">{que}</p>
         <p className="an-tarj-num">
+          {antes && <span>{antes}</span>}
           <b>{numero}</b>
           {unidad && <span>{unidad}</span>}
         </p>
+        {lineas?.map((l, k) => (
+          <p key={l} className={`texto-detalle m-0 ${k === 0 ? "mt-2" : ""}`}>
+            {l}
+          </p>
+        ))}
       </div>
       {(detalle || acciones) && (
         <div className="an-tarj-pie">

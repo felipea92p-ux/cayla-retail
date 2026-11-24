@@ -8,6 +8,13 @@ import {
   alcanceDelModelo,
   diasEnteros,
   modelosQueNoLlegan,
+  agotadoDelModelo,
+  modelosAgotados,
+  queHayQuePedir,
+  fechaEnQueSeAcaba,
+  textoVendesPorSemana,
+  textoVendiste,
+  pieDePedir,
   categoriaDe,
   diasANavidad,
   textoRitmo,
@@ -459,17 +466,32 @@ describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el
     expect(alcanceDelModelo(de("Falda Prueba"), { ...sin, talla: ["M"] }, 30)).toMatchObject({ vendidas: 0, dias: null });
   });
 
-  it("piden los que se venden y no llegan a Navidad; los que llegan o no se venden, no", () => {
+  it("piden los que se venden, todavía tienen algo y no llegan a Navidad; los que llegan, no se venden o ya no tienen nada, no", () => {
     const piden = modelosQueNoLlegan(modelos, sin, 30, 34, "vende").map((a) => a.modelo.nombre);
-    expect(piden).toEqual(["Polo Prueba", "Body Agotado"]);
+    // «Body Agotado» no tiene nada: va arriba, en «Ya se agotaron» (Felipe 2026-11-24).
+    expect(piden).toEqual(["Polo Prueba"]);
     expect(modelosQueNoLlegan(modelos, sin, 30, 120, "vende").map((a) => a.modelo.nombre)).toContain("Falda Prueba");
   });
 
   it("el orden: lo que más se vende (de siempre), lo que se acaba antes o por nombre", () => {
     const nombres = (orden: string) => modelosQueNoLlegan(modelos, sin, 30, 120, orden).map((a) => a.modelo.nombre);
-    expect(nombres("vende")).toEqual(["Polo Prueba", "Falda Prueba", "Body Agotado"]);
-    expect(nombres("acaba")).toEqual(["Body Agotado", "Polo Prueba", "Falda Prueba"]);
-    expect(nombres("nombre")).toEqual(["Body Agotado", "Falda Prueba", "Polo Prueba"]);
+    expect(nombres("vende")).toEqual(["Polo Prueba", "Falda Prueba"]);
+    expect(nombres("acaba")).toEqual(["Polo Prueba", "Falda Prueba"]);
+    expect(nombres("nombre")).toEqual(["Falda Prueba", "Polo Prueba"]);
+  });
+
+  it("el ritmo por día viaja con el alcance: es el que da «Vendes N por semana»", () => {
+    // Polo Prueba: 6 + 6 vendidas en 30 días cada talla = 0,4 por día.
+    expect(alcanceDelModelo(de("Polo Prueba"), sin, 30).porDia).toBeCloseTo(0.4);
+    expect(textoVendesPorSemana(0.4)).toBe("Vendes 3 por semana");
+    expect(textoVendesPorSemana(5.49)).toBe("Vendes 38 por semana");
+    expect(textoVendesPorSemana(0.05)).toBe("Vendes menos de 1 por semana");
+  });
+
+  it("el día en que se acaba: hoy más los días que alcanza (al menos 1)", () => {
+    expect(fechaEnQueSeAcaba("2026-11-24", 13.1)).toBe("7 dic.");
+    expect(fechaEnQueSeAcaba("2026-11-24", 0.3)).toBe("25 nov.");
+    expect(fechaEnQueSeAcaba("2026-12-30", 3)).toBe("2 ene.");
   });
 
   it("los días de la tarjeta, enteros: «Ya no hay» es solo el 0", () => {
@@ -477,5 +499,70 @@ describe("Qué pedir por modelo (Felipe 2026-11-21: las tarjetas son modelos; el
     expect(diasEnteros(0)).toBe(0);
     expect(diasEnteros(0.4)).toBe(1);
     expect(diasEnteros(15.6)).toBe(16);
+  });
+});
+
+describe("Ya se agotaron (Felipe 2026-11-24: lo que se vendió entero no se va de «Qué pedir»)", () => {
+  // Hoy 2026-11-24: las 8 semanas empiezan el 2026-09-30. Modelos inventados.
+  const hoy = "2026-11-24";
+  const sin = { talla: [] as string[], color: [] as string[] };
+  const tallas = [
+    // Se trajo poco para probar y se vendió todo en una semana, hace más de 30 días: antes se iba de la lista.
+    prenda({ productoId: "a1", nombre: "Camisa Prueba", talla: "S", vendidas30: 0, semanas: [0, 0, 5, 0, 0, 0, 0, 0], salioAlPiso: "2026-10-17", ultimaVenta: "2026-10-22" }),
+    prenda({ productoId: "a1", nombre: "Camisa Prueba", talla: "M", vendidas30: 0, semanas: [0, 0, 7, 0, 0, 0, 0, 0], salioAlPiso: "2026-10-18", ultimaVenta: "2026-10-23" }),
+    // Agotado hace poco; se colgó antes de las 8 semanas: cuenta desde el 30 de setiembre.
+    prenda({ productoId: "a2", nombre: "Top Prueba", talla: "S", vendidas30: 14, semanas: [2, 2, 2, 3, 3, 4, 4, 3], salioAlPiso: "2026-08-01", ultimaVenta: "2026-11-20", otras: [{ sedeId: "lim", stock: 2, vendidas30: 1 }] }),
+    // Le queda una talla: no está agotado.
+    prenda({ productoId: "a3", nombre: "Short Prueba", talla: "S", vendidas30: 3, semanas: [0, 0, 0, 0, 0, 1, 1, 1], piso: 0, ultimaVenta: "2026-11-10" }),
+    prenda({ productoId: "a3", nombre: "Short Prueba", talla: "M", vendidas30: 1, semanas: [0, 0, 0, 0, 0, 0, 0, 1], almacen: 2, ultimaVenta: "2026-11-12" }),
+    // Sin nada y sin ventas en 8 semanas: no es «se agotó», es algo que no se vende.
+    prenda({ productoId: "a4", nombre: "Body Quieto", talla: "S", vendidas30: 0, ultimaVenta: "2026-06-01" }),
+    // La base sin la última venta: se agotó, pero no se sabe cuándo.
+    prenda({ productoId: "a5", nombre: "Falda Sin Fecha", talla: "S", vendidas30: 2, semanas: [0, 0, 0, 0, 0, 0, 1, 1], salioAlPiso: "2026-11-01" }),
+  ];
+  const modelos = armarModelos(tallas, hoy);
+  const de = (nombre: string) => modelos.find((m) => m.nombre === nombre)!;
+
+  it("sin nada aquí y con ventas en 8 semanas: cuándo se agotó y cuántas en cuántos días", () => {
+    expect(agotadoDelModelo(de("Camisa Prueba"), sin, hoy)).toMatchObject({ vendidas: 12, agoto: "2026-10-23", dias: 7 });
+    expect(agotadoDelModelo(de("Top Prueba"), sin, hoy)).toMatchObject({ vendidas: 23, agoto: "2026-11-20", dias: 52 });
+    expect(agotadoDelModelo(de("Falda Sin Fecha"), sin, hoy)).toMatchObject({ vendidas: 2, agoto: null, dias: null });
+  });
+
+  it("lo que todavía tiene algo, o no se vendió en 8 semanas, no es un agotado", () => {
+    expect(agotadoDelModelo(de("Short Prueba"), sin, hoy)).toBeNull();
+    expect(agotadoDelModelo(de("Body Quieto"), sin, hoy)).toBeNull();
+  });
+
+  it("con una talla en los filtros, solo esa talla: la S del short se agotó aunque quede la M", () => {
+    expect(agotadoDelModelo(de("Short Prueba"), { ...sin, talla: ["S"] }, hoy)).toMatchObject({ vendidas: 3, agoto: "2026-11-10" });
+  });
+
+  it("el orden: lo que más se vendió, lo que lleva más tiempo agotado o por nombre", () => {
+    const nombres = (orden: string) => modelosAgotados(modelos, sin, hoy, orden).map((a) => a.modelo.nombre);
+    expect(nombres("vende")).toEqual(["Top Prueba", "Camisa Prueba", "Falda Sin Fecha"]);
+    expect(nombres("acaba")).toEqual(["Falda Sin Fecha", "Camisa Prueba", "Top Prueba"]);
+    expect(nombres("nombre")).toEqual(["Camisa Prueba", "Falda Sin Fecha", "Top Prueba"]);
+  });
+
+  it("las dos partes juntas cuentan una vez cada modelo: los agotados arriba, los que se acaban abajo", () => {
+    const { agotados, seAcaban, todos } = queHayQuePedir(modelos, sin, 30, hoy, "vende");
+    expect(agotados.map((a) => a.modelo.nombre)).toEqual(["Top Prueba", "Camisa Prueba", "Falda Sin Fecha"]);
+    expect(seAcaban.map((a) => a.modelo.nombre)).toEqual(["Short Prueba"]);
+    expect(todos.map((m) => m.nombre)).toEqual(["Top Prueba", "Camisa Prueba", "Falda Sin Fecha", "Short Prueba"]);
+  });
+
+  it("«Vendiste 12» «en 7 días»; sin saber los días, «en 8 semanas»", () => {
+    expect(textoVendiste({ vendidas: 12, dias: 7 })).toEqual(["Vendiste 12", "en 7 días"]);
+    expect(textoVendiste({ vendidas: 1, dias: 1 })).toEqual(["Vendiste 1", "en 1 día"]);
+    expect(textoVendiste({ vendidas: 2, dias: null })).toEqual(["Vendiste 2", "en 8 semanas"]);
+  });
+
+  it("el pie: lo que viene en camino; si nada viene, otra tienda que lo tiene; si no, nada", () => {
+    const ciudad = (id: string) => (id === "lim" ? "Lima" : undefined);
+    expect(pieDePedir(de("Top Prueba"), hoy, ciudad)).toBe("Lima tiene 2");
+    expect(pieDePedir(de("Camisa Prueba"), hoy, ciudad)).toBeNull();
+    const conLlegada = { ...de("Top Prueba"), llega: [{ de: "compra" as const, cantidad: 12, fecha: "2026-12-06" }] };
+    expect(pieDePedir(conLlegada, hoy, ciudad)).toBe("Llegan 12 el 6 dic.");
   });
 });

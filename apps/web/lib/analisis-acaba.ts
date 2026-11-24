@@ -2,7 +2,7 @@
 // quedan (o «Ya no hay»), lo que falta, lo que viene en camino y quién más la tiene, en una línea. Quién se acaba, cuántos días le quedan
 // y qué viene en camino lo deciden las reglas de `analisis-reglas.ts`: aquí no nace ninguna regla de negocio, solo cómo se dice.
 
-import type { OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
+import type { OrigenPrenda, PrendaAnalisis } from "./analisis-tipos";
 import type { ModeloAnalisis } from "./analisis-modelo";
 import { DIAS_SE_ACABA, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, ordenSeAcaba, otraSedeQueLaTiene, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
@@ -27,9 +27,6 @@ export function textoProveedor(origen: OrigenPrenda | null): string | null {
   if (origen === "terceros") return "Proveedor terceros";
   return null;
 }
-
-/** El botón de texto bajo «Comprar»: «o pedir a Arequipa». */
-export const textoPedirA = (sede: Pick<SedeAnalisis, "ciudad">): string => `o pedir a ${sede.ciudad}`;
 
 /**
  * La frase de la respuesta: «cómpralos ya: se acaban en 2 semanas o menos» (el tope de `DIAS_SE_ACABA`). Empieza por cuándo toca: la
