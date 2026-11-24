@@ -1,7 +1,7 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
@@ -26,7 +26,9 @@ import {
   fraseAlcance,
   notaRindeVacio,
   notaTiposSinRegistrar,
+  parteDeArriba,
   pieDePedir,
+  primerasQuePedir,
   queHayQuePedir,
   RINDE_POCO,
   solesRinde,
@@ -54,7 +56,7 @@ import { estadoSinNada } from "@/lib/analisis-hoy";
 const tonoDias = (d: number | null): Estado => ((d ?? 0) <= 7 ? "urg" : "ate");
 
 export function PestanaPedir() {
-  const { datos, acceso, prendas, filtros, orden, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
+  const { datos, acceso, prendas, filtros, orden, mostrarPedir, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
   const [rinde, setRinde] = useState(false);
   const hastaNavidad = diasANavidad(datos.hoy);
   const { agotados, seAcaban } = useMemo(
@@ -73,6 +75,61 @@ export function PestanaPedir() {
   ]
     .filter(Boolean)
     .join(" ");
+
+  // Lo agotado: cuándo se agotó y cuántas se vendieron en cuántos días.
+  const tarjetasAgotados = agotados.map((a, k) => {
+    const m = a.modelo;
+    const lineas = textoVendiste(a);
+    const pie = pieDePedir(m, datos.hoy, ciudadDe);
+    const cuando = a.agoto ? fechaCorta(a.agoto) : null;
+    return (
+      <TarjetaPrenda
+        key={m.varianteId}
+        i={5 + k}
+        miniatura={<TilePrenda prenda={m} tamano={72} />}
+        nombre={m.nombre}
+        que={queTiene(m)}
+        antes={cuando ? "Se agotó el" : undefined}
+        numero={cuando ?? "Ya no hay"}
+        lineas={lineas}
+        est="urg"
+        detalle={pie ?? undefined}
+        etiqueta={`${nombreLargo(m)}: ${cuando ? `se agotó el ${cuando}` : "ya no hay"}. ${lineas.join(" ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
+        onAbrir={() => abrirFicha(m.varianteId)}
+      />
+    );
+  });
+  // Lo que todavía tiene algo y no llega a Navidad: hasta cuándo alcanza, cuánto tienes y cuánto vendes por semana.
+  const tarjetasSeAcaban = seAcaban.map(({ modelo: m, dias, tiene, porDia }, k) => {
+    const d = diasEnteros(dias) ?? 1;
+    const hasta = fechaEnQueSeAcaba(datos.hoy, d);
+    const lineas = [`Tienes ${tiene}`, textoVendesPorSemana(porDia)];
+    const pie = pieDePedir(m, datos.hoy, ciudadDe);
+    return (
+      <TarjetaPrenda
+        key={m.varianteId}
+        i={5 + k}
+        miniatura={<TilePrenda prenda={m} tamano={72} />}
+        nombre={m.nombre}
+        que={queTiene(m)}
+        antes="Hasta el"
+        numero={hasta}
+        lineas={lineas}
+        est={tonoDias(d)}
+        detalle={pie ?? undefined}
+        etiqueta={`${nombreLargo(m)}: te alcanza hasta el ${hasta}. ${lineas.join(". ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
+        onAbrir={() => abrirFicha(m.varianteId)}
+      />
+    );
+  });
+  const parteAgotados =
+    tarjetasAgotados.length > 0 ? (
+      <ParteQuePedir key="agotados" titulo="Ya se agotaron" guia="analisis.pedir-agotados" tarjetas={tarjetasAgotados} mostrar={mostrarPedir} />
+    ) : null;
+  const parteSeAcaban =
+    tarjetasSeAcaban.length > 0 ? (
+      <ParteQuePedir key="seAcaban" titulo="Se acaban antes de Navidad" guia="analisis.pedir-tarjetas" tarjetas={tarjetasSeAcaban} mostrar={mostrarPedir} />
+    ) : null;
 
   if (prendas.length === 0)
     return (
@@ -103,77 +160,30 @@ export function PestanaPedir() {
 
       {unTipo && <BloqueTipo categoria={unTipo} />}
 
-      {/* Arriba, lo que ya se agotó: lo más seguro de pedir (Felipe 2026-11-24). */}
-      {agotados.length > 0 && (
-        <section className="flex flex-col gap-3" aria-label="Ya se agotaron">
-          <div className="entra" style={{ ["--i" as string]: 4 }}>
-            <TituloGrupo cuenta={agotados.length}>Ya se agotaron</TituloGrupo>
-          </div>
-          <Tarjetas guia="analisis.pedir-agotados">
-            {agotados.map((a, k) => {
-              const m = a.modelo;
-              const lineas = textoVendiste(a);
-              const pie = pieDePedir(m, datos.hoy, ciudadDe);
-              const cuando = a.agoto ? fechaCorta(a.agoto) : null;
-              return (
-                <TarjetaPrenda
-                  key={m.varianteId}
-                  i={5 + k}
-                  miniatura={<TilePrenda prenda={m} tamano={72} />}
-                  nombre={m.nombre}
-                  que={queTiene(m)}
-                  antes={cuando ? "Se agotó el" : undefined}
-                  numero={cuando ?? "Ya no hay"}
-                  lineas={lineas}
-                  est="urg"
-                  detalle={pie ?? undefined}
-                  etiqueta={`${nombreLargo(m)}: ${cuando ? `se agotó el ${cuando}` : "ya no hay"}. ${lineas.join(" ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
-                  onAbrir={() => abrirFicha(m.varianteId)}
-                />
-              );
-            })}
-          </Tarjetas>
-        </section>
-      )}
-
-      {/* Abajo, lo que todavía tiene algo y no llega a Navidad: hasta cuándo alcanza, cuánto tienes y cuánto vendes por semana. */}
-      {seAcaban.length > 0 && (
-        <section className="flex flex-col gap-3" aria-label="Se acaban antes de Navidad">
-          <div className="entra" style={{ ["--i" as string]: 4 }}>
-            <TituloGrupo cuenta={seAcaban.length}>Se acaban antes de Navidad</TituloGrupo>
-          </div>
-          <Tarjetas guia="analisis.pedir-tarjetas">
-            {seAcaban.map(({ modelo: m, dias, tiene, porDia }, k) => {
-              const d = diasEnteros(dias) ?? 1;
-              const hasta = fechaEnQueSeAcaba(datos.hoy, d);
-              const lineas = [`Tienes ${tiene}`, textoVendesPorSemana(porDia)];
-              const pie = pieDePedir(m, datos.hoy, ciudadDe);
-              return (
-                <TarjetaPrenda
-                  key={m.varianteId}
-                  i={5 + k}
-                  miniatura={<TilePrenda prenda={m} tamano={72} />}
-                  nombre={m.nombre}
-                  que={queTiene(m)}
-                  antes="Hasta el"
-                  numero={hasta}
-                  lineas={lineas}
-                  est={tonoDias(d)}
-                  detalle={pie ?? undefined}
-                  etiqueta={`${nombreLargo(m)}: te alcanza hasta el ${hasta}. ${lineas.join(". ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
-                  onAbrir={() => abrirFicha(m.varianteId)}
-                />
-              );
-            })}
-          </Tarjetas>
-        </section>
-      )}
+      {/* Las dos partes; arriba, la que responde el orden elegido (Felipe 2026-11-24): «no hay stock» → lo agotado, «quedan pocos» →
+          lo que se acaba antes de Navidad, con lo que se acaba en 2 semanas primero. Cada una muestra las que diga «Mostrar» (10 de entrada). */}
+      {(parteDeArriba(orden.pedir) === "agotados" ? [parteAgotados, parteSeAcaban] : [parteSeAcaban, parteAgotados])}
 
       <div className="entra flex flex-col gap-4" style={{ ["--i" as string]: 11 }}>
         <BotonVerMas abierto={rinde} onCambiar={setRinde} texto="Ver lo que más rinde" forma="enlace" />
         {rinde && <BloqueRinde />}
       </div>
     </>
+  );
+}
+
+/**
+ * Una parte de «Qué pedir»: su título con cuántos son en total y las tarjetas que diga «Mostrar» de la barra (10 de entrada; Felipe
+ * 2026-11-24: «por defecto el top 10», y que se pueda cambiar la cantidad).
+ */
+function ParteQuePedir({ titulo, guia, tarjetas, mostrar }: { titulo: string; guia: string; tarjetas: ReactNode[]; mostrar: string }) {
+  return (
+    <section className="flex flex-col gap-3" aria-label={titulo}>
+      <div className="entra" style={{ ["--i" as string]: 4 }}>
+        <TituloGrupo cuenta={tarjetas.length}>{titulo}</TituloGrupo>
+      </div>
+      <Tarjetas guia={guia}>{primerasQuePedir(tarjetas, mostrar)}</Tarjetas>
+    </section>
   );
 }
 

@@ -490,8 +490,15 @@ llevan datos reales):
 4. **«Ordenar por» suma «Lo que más se vende y quedan pocos»** (Felipe, la misma tarde: «debería existir otro que diga lo que más se vende pero
    quedan pocos»). «Quedan pocos» es lo que se acaba en **2 semanas o menos** (`DIAS_SE_ACABA`, el mismo plazo de «Se acaba»; elegido entre
    «menos unidades primero» y renombrar «Lo que se acaba antes»): primero esos, de lo más vendido a lo menos, y después el resto igual. En TRU:
-   Polo Básico Cayla, Chaleco Cecia, Falda Larga Mesh, Short Lino y Capa Encaje, y luego Polo Basico Manga Corta, Patalón Nuki… En «Ya se
-   agotaron» ordena como «Lo que más se vende» (de un agotado no queda nada).
+   Polo Básico Cayla, Chaleco Cecia, Falda Larga Mesh, Short Lino y Capa Encaje, y luego Polo Basico Manga Corta, Patalón Nuki…
+5. **Dos órdenes separados, cada uno con su pregunta primero, y las 10 primeras** (Felipe, esa misma tarde: «lo que más se vende» ponía arriba los
+   agotados aunque un modelo con mucho stock vendiera más; eligió dos órdenes separados antes que uno mezclado). «Ordenar por» de «Qué pedir»:
+   **«Lo que más se vende y no hay stock»** (el de siempre: arriba «Ya se agotaron») y **«Lo que más se vende y quedan pocos»** (arriba «Se acaban
+   antes de Navidad», con lo que se acaba en 2 semanas primero); siguen «Lo que se acaba antes» y «Por nombre» (`parteDeArriba`).
+6. **«Mostrar», junto a «Ordenar por», elige cuántas tarjetas de cada parte se ven: 10 de entrada, 20, 50 o Todas** (Felipe: «¿dónde se ajusta el
+   top 10?»; eligió esta píldora antes que dejar también «Ver N más», para no tener dos controles que hacen lo mismo). Es la misma pieza que «Ordenar
+   por» (`<DesplegablePildora>`), solo en «Qué pedir» (`MOSTRAR_PEDIR` en `lib/analisis-orden.ts`, `primerasQuePedir`); el título de cada parte
+   sigue diciendo cuántas son en total. Reemplaza al «Ver N más» de la misma tarde.
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su
