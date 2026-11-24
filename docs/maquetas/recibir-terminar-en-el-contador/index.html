@@ -219,6 +219,28 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
 
 .pie-placa { border-top: 1px solid var(--sand); padding-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--secundario); }
 
+/* Forma A: los pasos son el cuerpo de la placa, uno bajo otro. Lo hecho queda en una línea con su resumen; lo que toca, abierto; lo que viene, apagado. */
+.pasos-v { display: grid; gap: 0; }
+.paso-v { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 12px 0; }
+.paso-v + .paso-v { border-top: 1px solid var(--sand); }
+.paso-num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1.5px solid var(--borde-control); color: var(--secundario); background: var(--papel); }
+.paso-v.hecho .paso-num { background: var(--verde); border-color: var(--verde); color: var(--crema); }
+.paso-v.abierto .paso-num { background: var(--tinta); border-color: var(--tinta); color: var(--crema); box-shadow: 0 0 0 5px var(--rojo-suave); }
+.paso-v.falta { color: var(--tenue); }
+.paso-fila { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 32px; padding-top: 5px; }
+.paso-fila b { font-size: 16px; color: var(--tinta); }
+.paso-v.falta .paso-fila b { color: var(--tenue); font-weight: 600; }
+.paso-fila .resumen { font-size: 14px; color: var(--secundario); display: inline-flex; align-items: center; gap: 8px; }
+.paso-fila .resumen img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+.paso-fila .cambiar { margin-left: auto; font-size: 14px; }
+.paso-v .bloque { border-top: 0; padding-top: 2px; }
+/* Forma B: un paso a la vez, grande, sin fichas arriba. */
+.uno-cab { display: grid; gap: 8px; }
+.uno-cab .ceja-paso { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--secundario); font-weight: 600; }
+.uno-cab .riel { height: 6px; }
+.uno-antes { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--secundario); }
+.uno-antes span { display: inline-flex; gap: 6px; align-items: center; }
+.uno-antes img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
 .recorte { max-height: 340px; overflow: hidden; position: relative; }
 .recorte::after { content: "El paso 2 (tallas y colores) sigue abajo, fuera de la vista"; position: absolute; inset: auto 0 0; padding: 40px 0 10px; text-align: center; font-size: 13px; color: var(--ambar); background: linear-gradient(transparent, var(--papel) 60%); }
 
@@ -248,6 +270,10 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
     <div class="alternar" role="group" aria-label="Qué ver">
       <button type="button" id="btn-hoy" aria-pressed="false">Hoy</button>
       <button type="button" id="btn-cambio" aria-pressed="true">Con el cambio</button>
+    </div>
+    <div class="alternar" role="group" aria-label="Cómo se ven los pasos" id="formas">
+      <button type="button" data-forma="lista" aria-pressed="true">A · Pasos en la placa</button>
+      <button type="button" data-forma="uno" aria-pressed="false">B · Uno a la vez</button>
     </div>
     <p id="explica-modo"></p>
     <button type="button" class="reiniciar" id="reiniciar">Empezar de nuevo</button>
@@ -290,7 +316,7 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
       <li><span class="pin">4</span><div><b>La ficha de Nuevo producto, ya llena</b>Nombre, tejido, patrón, temporada, etiquetas y precio, como en Nuevo producto. Lo que anotó Compras ya viene puesto, y hay un precio propuesto.</div></li>
       <li><span class="pin">5</span><div><b>«Igual que la anterior»</b>El segundo modelo nuevo del envío copia tejido, patrón, temporada y etiquetas del primero en un toque.</div></li>
       <li><span class="pin">6</span><div><b>Los colores salen de la foto</b>Como en Nuevo producto: la foto dice el color, y se agrega otro si llegó en varios.</div></li>
-      <li><span class="pin">7</span><div><b>Los pasos siempre a la vista</b>Se ve en qué paso va el modelo y qué sigue. Una reposición se salta la ficha sola.</div></li>
+      <li><span class="pin">7</span><div><b>Los pasos son el camino, no una opción</b>No van como fichas arriba, que se pasan por alto: el que toca está abierto y no se salta, y lo hecho queda resumido con «Cambiar». A: todos en la placa; B: uno a la vez. Una reposición se salta la ficha sola.</div></li>
       <li><span class="pin">8</span><div><b>La foto también desde el celular</b>Un QR abre la cámara del celular, y la foto llega a esta pantalla. La computadora sigue contando.</div></li>
       <li><span class="pin">9</span><div><b>«Para después» es la excepción, y se ve</b>Queda en ámbar en la lista y en la barra. Si pasa de 7 días, le aparece al encargado de sede. El aviso de Admin pasa a una chapa en el pie.</div></li>
     </ol>
@@ -360,8 +386,9 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
       const emma = modelos.find((m) => m.id === "emma");
       emma.contado = 12; emma.reparto = { Negro: { S: 3, M: 4, L: 2 }, "Verde oliva": { S: 1, M: 1, L: 1 } }; emma.enStock = true;
     }
-    return { modo, modelos, actual: "lucrecia", ultimaFicha: null, filtro: "", cerradas: new Set(), visto: null };
+    return { modo, modelos, actual: "lucrecia", ultimaFicha: null, filtro: "", cerradas: new Set(), visto: null, forma: S_FORMA };
   };
+  let S_FORMA = "lista";
   let S = estadoInicial();
 
   const $ = (id) => document.getElementById(id);
@@ -581,6 +608,45 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
     }).join("")}</ol>`;
   }
 
+  // Lo que dice un paso ya hecho, en una línea.
+  function resumenPaso(m, k) {
+    if (k === 1) return m.decision === "existente" ? `${m.foto ? `<img src="${m.foto}" alt="">` : ""}${m.nuevo ? `Es ${esc(m.nombre)}, ya estaba` : "Reposición"}` : `${m.foto ? `<img src="${m.foto}" alt="">` : ""}Prenda nueva`;
+    if (k === 2) return `${m.contado} de ${m.dijeron}`;
+    if (k === 3) return [m.ficha.tejido, m.ficha.patron, m.ficha.temporada].filter(Boolean).map(esc).join(" · ") || "Creada";
+    if (k === 4) return m.colores.map((c) => `${esc(c)} ${TALLAS.filter((t) => m.reparto[c]?.[t]).map((t) => `${t}${m.reparto[c][t]}`).join(" ")}`).join(" · ");
+    return "A la venta";
+  }
+  const CUERPOS = [null, bloqueQueEs, (x) => bloqueContar(x, false), bloqueFicha, bloqueTallas, bloqueLlevar];
+  const saltaFicha = (m) => m.creado && (m.decision === "existente" || !m.nuevo);
+
+  // Forma A: los pasos son el cuerpo. No se elige uno: el que toca está abierto y los demás dicen cómo van.
+  function pasosEnLaPlaca(m) {
+    const toca = pasoQueToca(m);
+    return `<div class="pasos-v">${NOMBRES_PASO.map((n, i) => {
+      const k = i + 1;
+      if (k === 3 && saltaFicha(m)) return `<div class="paso-v hecho"><span class="paso-num">✓</span><div class="paso-fila"><b>${n}</b><span class="resumen">Ya está en el catálogo</span></div></div>`;
+      const hecho = toca === 6 || k < toca;
+      if (k === m.paso && toca !== 6) return `<div class="paso-v abierto"><span class="paso-num">${k}</span><div>${CUERPOS[k](m)}</div></div>`;
+      if (hecho) return `<div class="paso-v hecho"><span class="paso-num">✓</span><div class="paso-fila"><b>${n}</b><span class="resumen">${resumenPaso(m, k)}</span>${toca !== 6 && k !== 5 ? `<button type="button" class="enlace cambiar" data-paso="${k}">Cambiar</button>` : ""}</div></div>`;
+      return `<div class="paso-v falta"><span class="paso-num">${k}</span><div class="paso-fila"><b>${n}</b><span class="resumen">Después</span></div></div>`;
+    }).join("")}</div>${toca === 6 ? bloqueHecho(m) : ""}`;
+  }
+
+  // Forma B: un paso a la vez, grande. Arriba solo dice en cuál va; lo hecho queda en una línea con «Cambiar».
+  function unPasoALaVez(m) {
+    const toca = pasoQueToca(m);
+    if (toca === 6) return bloqueHecho(m);
+    const k = m.paso;
+    const total = saltaFicha(m) ? 4 : 5;
+    const orden = NOMBRES_PASO.map((n, i) => i + 1).filter((x) => !(x === 3 && saltaFicha(m)));
+    const enOrden = orden.indexOf(k) + 1;
+    const antes = orden.filter((x) => x < toca && x !== k);
+    return `<div class="uno-cab"><span class="ceja-paso">Paso ${enOrden} de ${total} · ${NOMBRES_PASO[k - 1]}</span>
+        <div class="riel"><i class="r-stock" style="width:${((enOrden - 1) / total) * 100}%"></i></div>
+        ${antes.length ? `<div class="uno-antes">${antes.map((x) => `<span>✓ ${NOMBRES_PASO[x - 1]}: ${resumenPaso(m, x)} <button type="button" class="enlace" data-paso="${x}">Cambiar</button></span>`).join("")}</div>` : ""}
+      </div>${CUERPOS[k](m)}`;
+  }
+
   function pintarPlaca() {
     const m = modeloActual();
     if (S.modo === "hoy") {
@@ -591,10 +657,10 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
     }
     const toca = pasoQueToca(m);
     if (toca === 6) m.paso = 6;
-    const cuerpo = toca === 6 ? bloqueHecho(m) : [null, bloqueQueEs, (x) => bloqueContar(x, false), bloqueFicha, bloqueTallas, bloqueLlevar][m.paso](m);
+    const cuerpo = S.forma === "uno" ? unPasoALaVez(m) : pasosEnLaPlaca(m);
     const pie = m.contado !== null && toca < 6 ? `<button type="button" class="enlace" data-acc="despues">Terminar este modelo después</button><span class="pin">9</span>` : "";
     const sig = S.modelos.find((x) => x.contado === null && x.id !== m.id);
-    $("placa").innerHTML = cabeceraPlaca(m) + `<div style="display:flex;align-items:center">${pasosDelModelo(m)}<span class="pin">7</span></div>` + cuerpo
+    $("placa").innerHTML = cabeceraPlaca(m) + cuerpo
       + `<div class="pie-placa"><span>${sig ? `Falta empezar: <button type="button" class="enlace" data-ir="${sig.id}">${esc(sig.nombre)}</button>` : "Todo contado"}</span><span>${pie}</span></div>`;
   }
 
@@ -606,6 +672,8 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
       ? "Así funciona hoy: se cuenta, se cierra, y lo que falta crear o repartir queda en «Por terminar» para otra visita."
       : "Con el cambio: cada modelo sale al stock desde aquí. Prueba con la Falda Lucrecia: foto, ¿nueva o ya la tenemos?, cuenta, ficha, tallas y lleva.";
     $("aviso-admin").hidden = S.modo === "cambio";
+    $("formas").hidden = S.modo === "hoy";
+    document.querySelectorAll("#formas button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.forma === S.forma));
     $("sello").innerHTML = S.modo === "cambio" ? 'Admin · queda a tu nombre <span title="Compraste esto tú: lo puedes recibir porque eres Admin. Al cerrar queda anotado que lo recibió quien hizo la compra.">ⓘ</span>' : "Admin · queda a tu nombre";
     $("cambios").hidden = S.modo === "hoy";
     if (S.visto !== S.actual) { S.cerradas.delete(modeloActual().cat); S.visto = S.actual; }
@@ -740,6 +808,9 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
     abrirHoja(html);
   });
 
+  document.querySelectorAll("#formas button").forEach((b) => b.addEventListener("click", () => {
+    S_FORMA = b.dataset.forma; S.forma = S_FORMA; pintar();
+  }));
   $("btn-hoy").addEventListener("click", () => { S = estadoInicial("hoy"); pintar(); });
   $("btn-cambio").addEventListener("click", () => { S = estadoInicial("cambio"); pintar(); });
   $("reiniciar").addEventListener("click", () => { S = estadoInicial(S.modo); $("buscar").value = ""; pintar(); });
