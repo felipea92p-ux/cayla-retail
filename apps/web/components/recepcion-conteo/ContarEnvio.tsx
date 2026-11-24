@@ -1,7 +1,7 @@
 "use client";
 
 import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Aviso } from "@/components/ui/Aviso";
@@ -69,6 +69,8 @@ import {
   categoriasDelFiltro,
   categoriasEnOrden,
   cifrasDelResumen,
+  nombreDeParada,
+  tipoDeParada,
   claveDeCategoria,
   claveDeNombre,
   sePuedeQuitarCategoria,
@@ -119,6 +121,9 @@ import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
+import { FotoPorQr } from "./FotoPorQr";
+import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
+import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { AvanceDelEnvio } from "./AvanceDelEnvio";
@@ -294,6 +299,32 @@ export function ContarEnvio({
   const pedidosDeAbrir = useRef(0);
   const pedirAbrir = (clave: string) => ({ clave, vez: ++pedidosDeAbrir.current });
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
+  // La foto que se toma al contar un modelo nuevo, antes de que tenga prenda (ADR-0699): sirve para reconocerlo en la lista y entra sola a
+  // «Fotos y colores» al crearla. Vive en el navegador mientras la pantalla esté abierta: recargar la pierde (se vuelve a tomar).
+  const [tomadas, setTomadas] = useState<ReadonlyMap<string, { archivo: File; vista: string }>>(() => new Map());
+  const tomadasVivas = useRef(tomadas);
+  useEffect(() => {
+    tomadasVivas.current = tomadas;
+  }, [tomadas]);
+  useEffect(() => () => tomadasVivas.current.forEach((t) => URL.revokeObjectURL(t.vista)), []);
+  // «Con el celular» (ADR-0699, 2c): el modelo cuyo QR está a la vista.
+  const [fotoQr, setFotoQr] = useState<{ clave: string; nombre: string } | null>(null);
+  const vistasTomadas = useMemo(() => new Map([...tomadas].map(([clave, t]) => [clave, t.vista] as const)), [tomadas]);
+  async function tomarFoto(clave: string, archivo: File) {
+    const r = await abrirFotoElegida(archivo);
+    if ("falla" in r) {
+      avisar.error("No se pudo abrir la foto", { detalle: r.texto });
+      return;
+    }
+    const vista = URL.createObjectURL(r.archivo);
+    setTomadas((m) => {
+      const n = new Map(m);
+      const antes = n.get(clave);
+      if (antes) URL.revokeObjectURL(antes.vista);
+      n.set(clave, { archivo: r.archivo, vista });
+      return n;
+    });
+  }
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
   const mesa = useAltoDeLaMesa();
@@ -533,6 +564,14 @@ export function ContarEnvio({
     }
     const sep = prendaSeparada(p);
     setModos((ms) => ({ ...ms, [p.clave]: modo }));
+    // Una prenda nueva dejada para después (ADR-0699): entra al almacén contada y queda en «Por terminar»; se dice, y se deshace de un toque.
+    if (modo === "despues" && !m.productoId) {
+      avisar.exito("Queda para después", {
+        detalle: `${m.nombre} entra al almacén contada. Se vende cuando la crees.`,
+        accion: { texto: "Deshacer", onClick: () => setModos((ms) => ({ ...ms, [p.clave]: "ahora" })) },
+      });
+      return;
+    }
     if (modo === "ahora") setHoja({ tipo: "repartir", parada: p.clave });
     if (modo === "despues" && sep?.variantes) {
       const antes = sep.variantes;
@@ -791,7 +830,37 @@ export function ContarEnvio({
   };
   const tarjeta = parada?.modelo ? estadoDeLaTarjeta({ contadas: parada.modelo.contadas, enStock: parada.modelo.enStock, enCatalogo: !!parada.modelo.productoId, modo: modoDe(parada), repartidas }) : null;
   // Un solo botón negro a la vez (cambio 2 de /formidable): el de la tarjeta si al modelo le toca algo, «Revisar y cerrar» con todo contado, o «Listo, siguiente».
-  const principal = botonPrincipal({ tarjeta, hayParaLlevar: !!paraLlevar, hayConteo: parada?.modelo ? parada.modelo.contado : true, todoContado });
+  const nuevaParaDespues = !!parada && modos[parada.clave] === "despues";
+  const principal = botonPrincipal({ tarjeta, hayParaLlevar: !!paraLlevar, hayConteo: parada?.modelo ? parada.modelo.contado : true, todoContado, nuevaParaDespues });
+  // Los pasos que le quedan a este modelo para salir a la venta, arriba de la placa (ADR-0699).
+  const pasosDeLaParada =
+    parada?.modelo && tarjeta
+      ? pasosDelModelo({
+          hayConteo: parada.modelo.contado,
+          contadas: parada.modelo.contadas,
+          enStock: parada.modelo.enStock,
+          esNuevo: tipoDeParada(parada) === "nuevo",
+          enCatalogo: !!parada.modelo.productoId,
+          tarjeta,
+          repartidas,
+        })
+      : null;
+  const fotosDeLaParada = (clave: string): File[] => {
+    const t = tomadas.get(clave);
+    return t ? [t.archivo] : [];
+  };
+  // «Cambiar» lo contado abre otra vez el número de ESE modelo mientras lo contado siga igual: apenas cambia, vuelve a abrirse lo que toca.
+  const [cuantasReabierto, setCuantasReabierto] = useState<{ clave: string; contadas: number } | null>(null);
+  const pasoAbiertoDe = (p: ParadaDelConteo): ClavePaso | null => {
+    if (p.modelo && cuantasReabierto?.clave === p.clave && cuantasReabierto.contadas === p.modelo.contadas) return "cuantas";
+    return pasosDeLaParada?.find((x) => x.estado === "abierto")?.clave ?? null;
+  };
+  const cambiarPaso = (p: ParadaDelConteo, clave: ClavePaso) => {
+    if (clave === "cuantas" && p.modelo) {
+      setCuantasReabierto({ clave: p.clave, contadas: p.modelo.contadas });
+      setEscribirEn(pedirAbrir(p.clave));
+    } else if (clave === "tallas") elegirModo(p, "ahora");
+  };
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
   const nRecibidos = detalle.recibidos?.length ?? 0;
@@ -844,6 +913,7 @@ export function ContarEnvio({
       modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
       orden={orden}
       fotos={fotos}
+      tomadas={vistasTomadas}
       faltanTallas={conFaltanTallas}
       onFiltro={cambiarFiltro}
       onOrden={setOrden}
@@ -908,6 +978,8 @@ export function ContarEnvio({
               Lo que cuentas se guarda solo. Cada categoría guarda quién la contó: varias personas pueden contar a la vez, y firma quien cierra.{" "}
               {notaAlCerrar(cifras.estados["por-contar"] - cifras.agregadosEnCero, cifras.agregadosEnCero)} Al cerrar: {textoResumenDelCierre(resumenDelCierre(visibles))}
               {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
+              {/* ADR-0699 (Felipe 2026-11-24): mientras se cuenta, el aviso de Admin ya no ocupa una franja: vive aquí, detrás del «?» de su chapa. */}
+              {detalle.comproQuienMira && " Compraste esto tú: lo puedes recibir porque eres Admin, y quien revise las compras verá que lo recibió quien compró."}
             </>
           }
           // En escritorio «Revisar y cerrar» va en el pie del contador (Felipe 2026-11-12); aquí solo en la hoja del celular o si no hay contador a la vista.
@@ -963,7 +1035,12 @@ export function ContarEnvio({
               key={parada.clave}
               parada={parada}
               sinAviso={sinAviso}
-              foto={parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null}
+              foto={(parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null) ?? tomadas.get(parada.clave)?.vista ?? null}
+              onFoto={parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? (archivo) => void tomarFoto(parada.clave, archivo) : undefined}
+              fotoTomada={tomadas.has(parada.clave)}
+              onFotoCelular={
+                parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? () => setFotoQr({ clave: parada.clave, nombre: nombreDeParada(parada) }) : undefined
+              }
               faltanTallas={conFaltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
               error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? errorHoja}
@@ -973,8 +1050,11 @@ export function ContarEnvio({
               }}
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
-              pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
+              pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) || (tarjeta === "nueva" && !nuevaParaDespues) ? "toca" : "falta"}
               abrirNumero={escribirEn?.clave === parada.clave ? escribirEn.vez : 0}
+              pasos={pasosDeLaParada}
+              pasoAbierto={pasoAbiertoDe(parada)}
+              onCambiarPaso={(clave) => cambiarPaso(parada, clave)}
               pendiente={faltaContar}
               sinTallasEn={faltanTallasEn}
               onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}
@@ -1046,6 +1126,7 @@ export function ContarEnvio({
                     onAbrir={() => elegirModo(parada, "ahora")}
                     onModo={(m) => elegirModo(parada, m)}
                     despues={botonLlevar("tarjeta")}
+                    nuevaParaDespues={nuevaParaDespues}
                   />
                 ) : null
               }
@@ -1210,6 +1291,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "existe" && grupoDeHoja?.principal.categoria && (
         <YaExisteLaPrenda
+          foto={tomadas.get(hoja.parada)?.vista ?? null}
           categoria={grupoDeHoja.principal.categoria}
           marca={marcaDeLinea(grupoDeHoja.principal)}
           nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
@@ -1227,6 +1309,17 @@ export function ContarEnvio({
         />
       )}
 
+      {fotoQr && (
+        <FotoPorQr
+          despachoId={detalle.id}
+          paradaClave={fotoQr.clave}
+          nombre={fotoQr.nombre}
+          firma={() => responsable.firma()}
+          onFoto={(archivo) => void tomarFoto(fotoQr.clave, archivo)}
+          onCerrar={() => setFotoQr(null)}
+        />
+      )}
+
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrendaBajoDemanda
           // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
@@ -1236,6 +1329,7 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          fotosIniciales={fotosDeLaParada(hoja.parada)}
           anterior={creadas.anteriorDe(grupoDeHoja.principal.categoria.id)}
           onRecordar={creadas.recordar}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
@@ -1254,6 +1348,7 @@ export function ContarEnvio({
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrendaBajoDemanda
           destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas, enTabla: hoja.enTabla }}
+          fotosIniciales={hoja.modo === "nueva" ? fotosDeLaParada(hoja.parada) : undefined}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}

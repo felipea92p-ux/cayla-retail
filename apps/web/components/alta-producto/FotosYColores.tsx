@@ -161,6 +161,8 @@ export function FotosYColores({
   catalogo,
   enCurso,
   yaTiene,
+  archivosIniciales,
+  onArchivosIniciales,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -188,6 +190,10 @@ export function FotosYColores({
   /** Al sumar a una prenda que YA existe (Recibir): los colores que ya tiene. Su tarjeta lo dice y no pide foto; la × solo la quita de lo
    *  que llegó (no le borra nada a la prenda). */
   yaTiene?: ReadonlySet<string>;
+  /** Fotos tomadas antes de abrir la hoja (Recibir ▸ Contar, ADR-0699): entran como si se acabaran de elegir, una sola vez. */
+  archivosIniciales?: readonly File[];
+  /** Ya entraron: quien las pasó deja de pasarlas, para que volver a este paso no las sume dos veces. */
+  onArchivosIniciales?: () => void;
 }) {
   const { pendientes, setPendientes, encolar, asentada, marcarAsentada, abrirVista, soltarVista } = enCurso;
   const [porQue, setPorQue] = useState<string | null>(null);
@@ -354,6 +360,17 @@ export function FotosYColores({
     const aviso = avisoDeFotosMalas(malas.flat());
     if (aviso) avisar.error(aviso.titulo, { detalle: aviso.detalle });
   }
+
+  // La foto que se tomó al contar entra sola al abrir la hoja: se lee su color como cualquier otra (ADR-0699).
+  const inicialesUsadas = useRef(false);
+  useEffect(() => {
+    if (inicialesUsadas.current || !archivosIniciales?.length) return;
+    inicialesUsadas.current = true;
+    agregar([...archivosIniciales]);
+    onArchivosIniciales?.();
+    // Solo al montar: `agregar` cambia en cada render y la foto entra una vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function soltar(e: DragEvent) {
     e.preventDefault();

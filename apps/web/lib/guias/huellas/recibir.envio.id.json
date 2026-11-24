@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 322,
+  "total": 334,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -32,6 +32,13 @@
       "Boton «Para una prenda de dos o más colores: hueso con azul»",
       "Boton «Cancelar»",
       "button «{c.nombre}»"
+    ],
+    "components/alta-producto/ElegirEtiquetas.tsx": [
+      "Boton «{enLinea ? undefined : \"Crear una insignia necesita internet\"}»",
+      "Boton «+ Crear «»",
+      "CampoTexto «Nombre de la insignia»",
+      "Boton «{firma.motivo ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/ElegirMuestra.tsx": [
       "CampoTexto «{`Buscar ${t.singular}»"
@@ -233,6 +240,10 @@
       "Boton «Cancelar»",
       "Boton «Cerrar y firmar»"
     ],
+    "components/recepcion-conteo/FotoPorQr.tsx": [
+      "Boton «Otro código»",
+      "Boton «Reintentar»"
+    ],
     "components/recepcion-conteo/HacerAhora.tsx": [
       "Boton «Cancelar»",
       "Boton «Guardar»"
@@ -309,22 +320,25 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
-      "button «{`Ver lo que anotó Compras de ${nombreDeParada(parada)}»",
-      "button «Ver lo que anotó Compras»",
-      "LapizEditar «{`el nombre de ${modelo.nombre}»",
-      "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
-      "Boton «Decir qué es»",
       "button «Llegaron las»",
       "button «+»",
       "button «+» #2",
       "button «Poner en cero»",
       "button «No llegó nada»",
       "button «Reintentar»",
+      "button «{`Ver lo que anotó Compras de ${nombreDeParada(parada)}»",
+      "button «Ver lo que anotó Compras»",
+      "input «Foto de la prenda»",
+      "button «recepcion.foto-celular»",
+      "LapizEditar «{`el nombre de ${modelo.nombre}»",
+      "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
+      "Boton «Decir qué es»",
       "Boton «Llegó dañada»",
       "Boton «Es otra prenda»",
       "button «{`Ir a ${nombreDeParada(pendiente)}»",
       "button «{`Ir a ${nombreDeParada(sinTallasEn)}»",
-      "button «Ver todos»"
+      "button «Ver todos»",
+      "button «Cambiar»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -387,6 +401,7 @@
     ],
     "components/recepcion-conteo/TarjetaDeTallas.tsx": [
       "button «Dejar para después»",
+      "Boton «Crear la prenda»",
       "Boton «Crearla ahora»",
       "Boton «recepcion.abrir-tallas»",
       "button «recepcion.abrir-tallas»",
@@ -412,6 +427,7 @@
     ],
     "components/recepcion-envio/ElegirPrendaExistente.tsx": [
       "button «Ver ficha»",
+      "a «Ver el catálogo»",
       "button «→() => onElegir(p)»"
     ],
     "components/recepcion-envio/EmpezarARecibir.tsx": [

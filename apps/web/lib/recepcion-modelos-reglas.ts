@@ -687,6 +687,8 @@ export type CifrasDelResumen = {
   /** `null` en un envío sin aviso: no hay con qué comparar. */
   dijeron: number | null;
   contadas: number;
+  /** De lo contado, lo que ya está en el stock: a la venta (ADR-0699). El envío se termina cuando esto alcanza a lo contado, no al contar. */
+  enStock: number;
   /** De lo ya contado: lo que falta contar no es todavía un faltante. */
   diferencia: number;
   /** Cuánto lleva del total, de 0 a 100 o más. `null` sin lo que dijeron. */
@@ -717,6 +719,7 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAho
     agregadosEnCero: paradas.filter((p) => p.modelo && !p.modelo.anotada && p.modelo.contadas === 0).length,
     dijeron,
     contadas,
+    enStock: paradas.reduce((a, p) => a + (p.modelo?.enStock ?? 0), 0),
     diferencia: grupos.reduce((a, g) => a + diferenciaDelGrupo(g, paradas.filter((p) => p.grupo.clave === g.clave)), 0),
     avance: dijeron == null ? null : dijeron > 0 ? (contadas / dijeron) * 100 : contadas > 0 ? 100 : 0,
     estados,
