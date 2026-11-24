@@ -16,11 +16,30 @@ const VALORES = ["si", "no"] as const;
 export const imprimirAlCobrar = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-al-cobrar", VALORES, "no");
 
 /**
- * «Imprimir en la caja» (Felipe, 2026-11-16): el celular o la tablet del piso no tiene impresora; al cobrar, la boleta se pide a
- * la cola de la caja de la sede (`retail.impresiones`) y la imprime la ventana «CAYLA Caja». Del equipo y apagado de fábrica:
- * cuando el piso tenga su impresora inalámbrica, se apaga en ese equipo y vuelve a imprimir donde se cobra.
+ * El aparato que se maneja con el dedo y sin mouse: un celular o una tablet. Ninguno tiene la ticketera conectada (ADR-0670). La Mac y la
+ * PC de la caja tienen mouse, así que no entran, aunque su pantalla sea táctil.
  */
-export const imprimirEnLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-en-la-caja", VALORES, "no");
+export const MQ_SIN_IMPRESORA = "(pointer: coarse) and (hover: none)";
+
+/**
+ * Cómo arranca «Imprimir en la caja» en un aparato donde nadie lo tocó todavía (Felipe, 2026-11-24): encendido en el celular y la tablet, y
+ * apagado en la computadora, que imprime donde cobra.
+ */
+export function enLaCajaDeFabrica(sinMouse: boolean): (typeof VALORES)[number] {
+  return sinMouse ? "si" : "no";
+}
+
+/**
+ * «Imprimir en la caja» (Felipe, 2026-11-16): el celular o la tablet del piso no tiene impresora; al cobrar, la boleta se pide a
+ * la cola de la caja de la sede (`retail.impresiones`) y la imprime la caja (la estación, `lib/estacion-de-impresion.ts`). Es del equipo.
+ * **Desde el 2026-11-24 viene encendido en el celular y la tablet** (Felipe: «debe estar marcado por defecto e imprimir de manera
+ * automática»): apagado de fábrica, nadie lo encendió y en ocho días no salió ni una boleta del piso (0 filas en `retail.impresiones`).
+ * Lo que alguien eligió a mano se respeta: cuando el piso tenga su impresora inalámbrica, se apaga en ese equipo y vuelve a imprimir
+ * donde se cobra. En el servidor (que no sabe qué aparato es) sigue en «no».
+ */
+export const imprimirEnLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-en-la-caja", VALORES, "no", () =>
+  enLaCajaDeFabrica(window.matchMedia?.(MQ_SIN_IMPRESORA).matches === true),
+);
 
 /** Lo que hace la hoja «Venta registrada» apenas se abre. */
 export type AlRegistrar =
