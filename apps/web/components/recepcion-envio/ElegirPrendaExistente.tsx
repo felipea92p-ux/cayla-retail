@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, SearchX } from "lucide-react";
+import { Check, ExternalLink, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
@@ -35,6 +35,8 @@ export function ElegirPrendaExistente({
   onElegir,
   onVerFicha,
   onEsNueva,
+  galeriaSiNoHay = false,
+  catalogoHref,
 }: {
   categoria: CategoriaDeLinea;
   /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
@@ -57,8 +59,15 @@ export function ElegirPrendaExistente({
   /** Abre la ficha de la elegida. Sin él, no se ofrece. */
   onVerFicha?: () => void;
   onEsNueva: () => void;
+  /** Si lo que se escribió al abrir no coincide con nada, se ve la galería entera de la categoría y marca (ADR-0699, Felipe 2026-11-24:
+   *  «galería primero»): el nombre que anotó Compras casi nunca es el del catálogo, y lo que sirve es mirar las fotos. Una sola vez. */
+  galeriaSiNoHay?: boolean;
+  /** El catálogo con la misma categoría y marca, para abrirlo en otra pestaña. Sin él, no se ofrece. */
+  catalogoHref?: string;
 }) {
   const [busqueda, setBusqueda] = useState(busquedaInicial);
+  // Escribió algo: desde ahí manda lo que escribe, y la galería entera ya no reemplaza a su búsqueda.
+  const [tocado, setTocado] = useState(false);
   const [prendas, setPrendas] = useState<PrendaRecepcion[] | null>(null);
   // Arranca buscando: al abrirse ya pide las prendas de la categoría y marca.
   const [buscando, setBuscando] = useState(true);
@@ -80,6 +89,7 @@ export function ElegirPrendaExistente({
   }, [categoria.id, claveProveedores]);
 
   function escribir(texto: string) {
+    setTocado(true);
     setBusqueda(texto);
     setBuscando(true);
   }
@@ -101,10 +111,17 @@ export function ElegirPrendaExistente({
     return () => window.clearTimeout(t);
   }, [categoria.id, marca.id, busqueda, todasLasMarcas]);
 
-  const galeria = useMemo(
+  const filtrada = useMemo(
     () => (prendas ? galeriaDePrendas(prendas, { busqueda, marcasDelEnvio, recibidas, referencia }) : null),
     [prendas, busqueda, marcasDelEnvio, recibidas, referencia],
   );
+  // Lo escrito al abrir no coincide con ninguna, pero la categoría sí tiene prendas: se ven todas (ADR-0699, «galería primero»).
+  const noEstaba = galeriaSiNoHay && !tocado && !buscando && busqueda.trim() !== "" && filtrada !== null && filtrada.length === 0 && (prendas?.length ?? 0) > 0 ? busqueda.trim() : null;
+  const todas = useMemo(
+    () => (noEstaba && prendas ? galeriaDePrendas(prendas, { busqueda: "", marcasDelEnvio, recibidas, referencia }) : null),
+    [noEstaba, prendas, marcasDelEnvio, recibidas, referencia],
+  );
+  const galeria = todas ?? filtrada;
   const elegida = elegidaId ? galeria?.find((p) => p.productoId === elegidaId) ?? prendas?.find((p) => p.productoId === elegidaId) ?? null : null;
 
   // `fn_parecidas_para_recibir` trae hasta 200; `fn_prendas_para_recibir`, hasta MAX_PRENDAS_PARA_RECIBIR.
@@ -159,7 +176,18 @@ export function ElegirPrendaExistente({
               </button>
             </>
           ) : (
-            "Toca la que llegó."
+            <span className="min-w-0">
+              {noEstaba ? `No hay «${noEstaba}». ¿Es alguna de estas?` : "Toca la que llegó."}
+              {catalogoHref && (
+                <>
+                  {" "}
+                  <a className="btn-enlace inline-flex items-center gap-1" href={catalogoHref} target="_blank" rel="noopener noreferrer">
+                    Ver el catálogo
+                    <ExternalLink aria-hidden className="h-3.5 w-3.5" />
+                  </a>
+                </>
+              )}
+            </span>
           )}
         </p>
       )}

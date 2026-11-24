@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
-import { Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
+import { Ban, Banknote, Camera, Check, Package, QrCode, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -17,6 +17,7 @@ import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
 import { descripcionDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, contadorDeParada, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import type { ClavePaso, PasoDelModelo } from "@/lib/recepcion-pasos-reglas";
 import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
@@ -57,6 +58,12 @@ export function PlacaDelModelo({
   onEditarNombre,
   onCorregirLinea,
   tallas,
+  pasos,
+  pasoAbierto = null,
+  onCambiarPaso,
+  onFoto,
+  onFotoCelular,
+  fotoTomada = false,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -107,6 +114,18 @@ export function PlacaDelModelo({
   onCorregirLinea?: () => void;
   /** La tarjeta de tallas y colores: dice cómo va y abre la hoja donde se reparten. */
   tallas: ReactNode;
+  /** Los pasos del modelo hasta la venta (ADR-0699, forma A que eligió Felipe 2026-11-24): son el cuerpo de la placa, uno bajo otro. `null`: sin pasos (no llegó). */
+  pasos?: readonly PasoDelModelo[] | null;
+  /** El paso que se ve abierto: el que toca, o «cuantas» si se pidió cambiar lo contado. */
+  pasoAbierto?: ClavePaso | null;
+  /** «Cambiar» en un paso hecho (lo contado, las tallas). */
+  onCambiarPaso?: (clave: ClavePaso) => void;
+  /** Tomar la foto de un modelo nuevo que todavía no tiene prenda (ADR-0699): sirve para reconocerlo y entra sola al crearla. Sin ella, no se ofrece. */
+  onFoto?: (archivo: File) => void;
+  /** «Con el celular»: abre el QR para tomar la foto con el celular, sin sesión (ADR-0699, 2c). */
+  onFotoCelular?: () => void;
+  /** Ya se tomó una: el botón dice «Cambiar foto». */
+  fotoTomada?: boolean;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -172,14 +191,14 @@ export function PlacaDelModelo({
   const marcaTexto = p.categoria ? marcaDeLinea(p).nombre : null;
   // El paso 2, la columna de la derecha (Felipe 2026-11-12, mesa del contador: «una línea separará al medio el paso 1 y el paso 2; de esta manera los
   // botones de abajo ya no quedan fuera de vista»). El estado del modelo («Faltan tallas») va aquí, sobre la tarjeta: es de las tallas.
-  const bloqueDeTallas = () =>
+  const bloqueDeTallas = (titulo = "Tallas y colores") =>
     modelo ? (
-      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label="Tallas y colores">
+      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label={titulo}>
         <div className="rc-bloque-titulo">
           <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
             {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
           </span>
-          <h3 className="rc-bloque-nombre">Tallas y colores</h3>
+          <h3 className="rc-bloque-nombre">{titulo}</h3>
           <span className="rc-bloque-estado">
             {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
           </span>
@@ -192,97 +211,35 @@ export function PlacaDelModelo({
         {tallas}
       </section>
     ) : null;
-  return (
-    <>
-      <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
-        {/* La foto (o el ícono) se toca y abre lo que anotó Compras: la descripción, el costo y el precio sugerido (Felipe 2026-11-12). */}
-        {p.categoria &&
-          (lineasDeCompra.length > 0 ? (
-            <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
-              <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
-            </button>
-          ) : (
-            <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
-          ))}
-        <div className="rc-placa-textos">
-          <TituloSeccion>{nombreDeParada(parada)}</TituloSeccion>
-          {/* De dónde es, en una línea: la categoría, quién la trajo y su marca (antes la marca era una píldora más). */}
-          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, marcaTexto, descripcion].filter(Boolean).join(" · ")}</p>
-          {modelo?.nota && <p>{modelo.nota}</p>}
-          <div className="rc-chips">
-            {/* La píldora dice solo el estado: nueva o re stock, y si no venía en la guía. Las cifras van aparte, en palabras. */}
-            {tipo === "nuevo" && (
-              <Chip tono="pizarra" versalitas={false}>
-                <Sparkles aria-hidden className="h-3 w-3" />
-                {modelo?.productoId || modelo?.enStock ? "Nuevo · ya creado" : "Nuevo · por crear"}
-              </Chip>
-            )}
-            {tipo === "restock" && (
-              <Chip tono="neutro" versalitas={false}>
-                <Package aria-hidden className="h-3 w-3" />
-                Re stock
-              </Chip>
-            )}
-            {!p.linea && !sinAviso && <Chip tono="ambar">No estaba en la guía</Chip>}
-          </div>
-          {(costo || precioSugerido != null) && (
-            <p className="rc-placa-cifras">
-              {costo && (
-                <span title="Lo que cuesta cada prenda, según la compra">
-                  <Banknote aria-hidden className="h-4 w-4" />
-                  Costo <b>{textoDeCosto(costo)}</b>
-                </span>
-              )}
-              {precioSugerido != null && (
-                <span title="El precio de venta que propuso quien compró">
-                  <Tag aria-hidden className="h-4 w-4" />
-                  Venta sugerida <b>S/&nbsp;{precioSugerido.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                </span>
-              )}
-              {lineasDeCompra.length > 0 && (
-                <button type="button" className="btn-cayla btn-enlace" onClick={() => setVerCompra(true)}>
-                  Ver lo que anotó Compras
-                </button>
-              )}
-            </p>
-          )}
-        </div>
-        <div className="rc-placa-derecha">
-          <p className="rc-guardado" aria-live="polite">
-            {llevaCuenta}
-          </p>
-          <div className="rc-placa-acciones">
-            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
-            {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}
-            {onCorregirLinea && <LapizEditar que={`la categoría y la marca de ${modelo?.nombre ?? "este modelo"}`} onClick={onCorregirLinea} />}
-          </div>
-        </div>
-      </div>
-
-      <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
-        {identificar}
-        {/* ADR-0660: llegó «por definir» desde Mis compras. Antes de contarla se dice qué es (la base no la deja contar sin eso). */}
-        {porDefinir && (
-          <Aviso
-            tono="atencion"
-            titulo="Primero di qué es"
-            chico
-            guia="recepcion.por-definir"
-            accion={
-              onCorregirLinea ? (
-                <Boton type="button" peso="fantasma" onClick={onCorregirLinea}>
-                  Decir qué es
-                </Boton>
-              ) : undefined
-            }
-          >
-            Esta prenda llegó por definir: elige su categoría y después cuéntala.
-          </Aviso>
-        )}
-
-        {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
-        {/* Por definir (ADR-0660): el contador espera a que se diga qué es; contar antes era un número que la base no guarda. */}
-        <div className={`rc-pasos ${porDefinir ? "opacity-50" : ""}`} inert={porDefinir} aria-disabled={porDefinir || undefined}>
+  // Al pasar a otro paso, la placa lo centra y lo enciende (Felipe 2026-11-24: «un foco cuando pasas a otro paso y te centre en lo que debes
+  // hacer»): la luz difuminada de la guía de foco (`data-llamado`, alta-guia.css), solo se mueve si no se ve, y con mouse el cursor va a su
+  // botón principal. El número del paso «Cuántas» lo abre su propio pedido (`abrirNumero`): aquí no se toca. Al elegir otro modelo la placa
+  // nace de nuevo (su `key`) y no hay paso al que «pasar».
+  const pasoAnterior = useRef(pasoAbierto);
+  useEffect(() => {
+    if (pasoAnterior.current === pasoAbierto) return;
+    pasoAnterior.current = pasoAbierto;
+    const c = cuerpo.current;
+    const fila = c?.querySelector<HTMLElement>('.rc-paso-v[data-estado="abierto"]');
+    if (!c || !fila) return;
+    const behavior = prefiereQuieto() ? "auto" : "smooth";
+    const caja = fila.getBoundingClientRect();
+    if (c.scrollHeight > c.clientHeight + 1) {
+      const marco = c.getBoundingClientRect();
+      if (caja.top < marco.top || caja.bottom > marco.bottom) c.scrollBy({ top: caja.top - marco.top - 8, behavior });
+    } else if (caja.top < 0 || caja.bottom > window.innerHeight) {
+      fila.scrollIntoView({ block: "nearest", behavior });
+    }
+    fila.setAttribute("data-llamado", "");
+    const t = window.setTimeout(() => fila.removeAttribute("data-llamado"), 1200);
+    if (pasoAbierto !== "cuantas" && window.matchMedia("(pointer: fine)").matches) fila.querySelector<HTMLElement>(".btn-primario")?.focus({ preventScroll: true });
+    return () => window.clearTimeout(t);
+  }, [pasoAbierto]);
+  // ADR-0699 (forma A): con pasos, el cuerpo es la lista; sin ellos (no llegó), el contador de siempre.
+  const listaDePasos = pasos && pasos.length > 0 ? pasos : null;
+  // Lo que se puede reabrir desde su línea: lo contado (mientras no haya entrado nada al stock) y las tallas (mientras no estén en el stock).
+  const pasoCambiable = (paso: PasoDelModelo) => paso.estado === "hecho" && !yaEntroTodo && (paso.clave === "cuantas" ? enStock === 0 : paso.clave === "tallas");
+  const bloqueCuantas = (
         <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
           <div className="rc-bloque-titulo">
             <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>
@@ -364,7 +321,137 @@ export function PlacaDelModelo({
             </div>
           )}
         </section>
-        {bloqueDeTallas()}
+  );
+  return (
+    <>
+      <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
+        {/* La foto (o el ícono) se toca y abre lo que anotó Compras: la descripción, el costo y el precio sugerido (Felipe 2026-11-12). */}
+        {p.categoria &&
+          (lineasDeCompra.length > 0 ? (
+            <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
+              <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+            </button>
+          ) : (
+            <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+          ))}
+        <div className="rc-placa-textos">
+          <TituloSeccion>{nombreDeParada(parada)}</TituloSeccion>
+          {/* De dónde es, en una línea: la categoría, quién la trajo y su marca (antes la marca era una píldora más). */}
+          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, marcaTexto, descripcion].filter(Boolean).join(" · ")}</p>
+          {modelo?.nota && <p>{modelo.nota}</p>}
+          <div className="rc-chips">
+            {/* La píldora dice solo el estado: nueva o re stock, y si no venía en la guía. Las cifras van aparte, en palabras. */}
+            {tipo === "nuevo" && (
+              <Chip tono="pizarra" versalitas={false}>
+                <Sparkles aria-hidden className="h-3 w-3" />
+                {modelo?.productoId || modelo?.enStock ? "Nuevo · ya creado" : "Nuevo · por crear"}
+              </Chip>
+            )}
+            {tipo === "restock" && (
+              <Chip tono="neutro" versalitas={false}>
+                <Package aria-hidden className="h-3 w-3" />
+                Re stock
+              </Chip>
+            )}
+            {!p.linea && !sinAviso && <Chip tono="ambar">No estaba en la guía</Chip>}
+          </div>
+          {(costo || precioSugerido != null) && (
+            <p className="rc-placa-cifras">
+              {costo && (
+                <span title="Lo que cuesta cada prenda, según la compra">
+                  <Banknote aria-hidden className="h-4 w-4" />
+                  Costo <b>{textoDeCosto(costo)}</b>
+                </span>
+              )}
+              {precioSugerido != null && (
+                <span title="El precio de venta que propuso quien compró">
+                  <Tag aria-hidden className="h-4 w-4" />
+                  Venta sugerida <b>S/&nbsp;{precioSugerido.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                </span>
+              )}
+              {lineasDeCompra.length > 0 && (
+                <button type="button" className="btn-cayla btn-enlace" onClick={() => setVerCompra(true)}>
+                  Ver lo que anotó Compras
+                </button>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="rc-placa-derecha">
+          <p className="rc-guardado" aria-live="polite">
+            {llevaCuenta}
+          </p>
+          <div className="rc-placa-acciones">
+            {onFoto && (
+              // La cámara del celular se abre directo (`capture`); en la computadora, el selector de archivos. Mismo archivo que «Fotos y colores».
+              <label className="btn-cayla btn-secundario btn-chico mov-boton cursor-pointer" data-guia="recepcion.foto">
+                <Camera aria-hidden className="h-4 w-4" />
+                {fotoTomada ? "Cambiar foto" : "Tomar foto"}
+                <input
+                  type="file"
+                  aria-label="Foto de la prenda"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0];
+                    e.target.value = "";
+                    if (archivo) onFoto(archivo);
+                  }}
+                />
+              </label>
+            )}
+            {onFotoCelular && (
+              <button type="button" className="btn-cayla btn-secundario btn-chico mov-boton" onClick={onFotoCelular} data-guia="recepcion.foto-celular" title="Tomar la foto con el celular">
+                <QrCode aria-hidden className="h-4 w-4" />
+                Con el celular
+              </button>
+            )}
+            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
+            {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}
+            {onCorregirLinea && <LapizEditar que={`la categoría y la marca de ${modelo?.nombre ?? "este modelo"}`} onClick={onCorregirLinea} />}
+          </div>
+        </div>
+      </div>
+
+      <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
+        {identificar}
+        {/* ADR-0660: llegó «por definir» desde Mis compras. Antes de contarla se dice qué es (la base no la deja contar sin eso). */}
+        {porDefinir && (
+          <Aviso
+            tono="atencion"
+            titulo="Primero di qué es"
+            chico
+            guia="recepcion.por-definir"
+            accion={
+              onCorregirLinea ? (
+                <Boton type="button" peso="fantasma" onClick={onCorregirLinea}>
+                  Decir qué es
+                </Boton>
+              ) : undefined
+            }
+          >
+            Esta prenda llegó por definir: elige su categoría y después cuéntala.
+          </Aviso>
+        )}
+
+        {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
+        {/* Por definir (ADR-0660): el contador espera a que se diga qué es; contar antes era un número que la base no guarda. */}
+        <div className={`${listaDePasos ? "" : "rc-pasos"} ${porDefinir ? "opacity-50" : ""}`} inert={porDefinir} aria-disabled={porDefinir || undefined}>
+        {listaDePasos ? (
+          <div className="rc-pasos-v" data-guia="recepcion.pasos" aria-label={`Pasos de ${nombreDeParada(parada)}`}>
+            {listaDePasos.map((paso) => (
+              <FilaDePaso key={paso.clave} paso={paso} abierto={paso.clave === pasoAbierto} onCambiar={pasoCambiable(paso) ? () => onCambiarPaso?.(paso.clave) : undefined}>
+                {paso.clave === pasoAbierto ? (paso.clave === "cuantas" ? bloqueCuantas : bloqueDeTallas(paso.clave === "crear" ? "Crear la prenda" : paso.clave === "llevar" ? "Llevar al stock" : "Tallas y colores")) : null}
+              </FilaDePaso>
+            ))}
+          </div>
+        ) : (
+          <>
+            {bloqueCuantas}
+            {bloqueDeTallas()}
+          </>
+        )}
         </div>
 
         {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
@@ -431,5 +518,30 @@ export function PlacaDelModelo({
         <LoQueAnotoCompras nombre={nombreDeParada(parada)} foto={foto} categoria={p.categoria ?? null} lineas={lineasDeCompra} onCerrar={() => setVerCompra(false)} />
       )}
     </>
+  );
+}
+
+/** Una fila de la lista de pasos (ADR-0699, forma A): abierta muestra su contenido; hecha, su resumen y «Cambiar»; la que falta, «Después». */
+function FilaDePaso({ paso, abierto, onCambiar, children }: { paso: PasoDelModelo; abierto: boolean; onCambiar?: () => void; children: ReactNode }) {
+  const estado = abierto ? "abierto" : paso.estado === "hecho" ? "hecho" : "falta";
+  return (
+    <div className="rc-paso-v" data-estado={estado} data-campo={`rc-paso-${paso.clave}`} aria-current={abierto ? "step" : undefined}>
+      <span className="rc-paso-num" aria-hidden>
+        {estado === "hecho" ? <Check className="h-4 w-4" /> : paso.numero}
+      </span>
+      {abierto ? (
+        <div className="rc-paso-v-cuerpo">{children}</div>
+      ) : (
+        <p className="rc-paso-v-fila">
+          <b>{paso.nombre}</b>
+          <span>{estado === "hecho" ? paso.detalle : "Después"}</span>
+          {onCambiar && (
+            <button type="button" className="btn-cayla btn-enlace" onClick={onCambiar}>
+              Cambiar
+            </button>
+          )}
+        </p>
+      )}
+    </div>
   );
 }
