@@ -1,7 +1,7 @@
 # ADR-0700 — El margen del precio sugerido sube por lo que la prenda tiene
 
-- **Fecha:** 2026-11-24 · **Estado:** en construcción, solo en local. Actividades 1 a 3 de 6 construidas (reglas y Configuración ▸ Precios; el
-  ámbar contra el objetivo en Nuevo producto y Recibir; las casillas en «Compré ropa»); nada en producción.
+- **Fecha:** 2026-11-24 · **Estado:** construido en local (actividades 1 a 6, con la base de Recibir pero no su pantalla); nada en
+  producción. Seis migraciones esperan el OK de Felipe (`20261124170000` → `20261124190000`, en ese orden y antes de fusionar).
 - **Pidió:** Felipe, 2026-11-24: «margen 30 a 36 %; producto nuevo, tendencia, referencia y que aumente +3 %… casillas donde marquemos si es
   un producto nuevo, si tiene algo que lo diferencia, si es en tendencia». Solo para el precio de venta; el Taller va aparte.
 - **Maqueta e investigación:** https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx (privada; trae cifras agregadas de producción, por eso
@@ -132,5 +132,8 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 
 ## Lo que falta
 
-Actividades 2 a 6: el ámbar contra el objetivo, las casillas en «Compré ropa», Recibir, Nuevo y Editar producto, y el cierre (diccionario,
-bitácora, backlog). Producción espera el OK de Felipe.
+- **Producción:** las seis migraciones, con el OK de Felipe, una por una y antes de fusionar (si la web llega antes, las casillas de «Compré
+  ropa» y Nuevo producto no se guardan); después, `pnpm datos:generar:produccion` para el diccionario.
+- **La pantalla de Recibir** (la web de la actividad 4), cuando se fusione el PR #2001 (ADR-0699 toca la misma hoja).
+- **Calibrar los +3 %** con las ventas de 3 a 6 meses de casillas guardadas: hoy son una hipótesis.
+- El detalle, en `docs/backlog/2026-11-24-margen-ganancia-atributos-2fe4df.md`.
