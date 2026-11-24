@@ -24,7 +24,8 @@
 -- llamada aparte después de registrar: una compra podría quedar sin casillas si la segunda no llega; (c) agregar las columnas dentro del
 -- `insert`: rompería el ancla de 20261113211000 en las pruebas que la vuelven a pegar.
 -- SE ROMPE SI: una orden se reescribe desde «Editar orden» del escritorio (`fn_orden_compra_escribir_lineas` borra y escribe las líneas sin
--- estas columnas): la compra pierde sus casillas. «Corregir la compra» (`corregir_compra_rapida`) no la toca: solo cambia campos o mueve la línea.
+-- estas columnas): la compra pierde sus casillas. Lo cierra 20261124181000. «Corregir la compra» (`corregir_compra_rapida`) no la toca: solo
+-- cambia campos o mueve la línea.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (solo con el OK de Felipe). Después de 20261124170000. Una parte: dos columnas con candado en una tabla que se usa
 -- (sin políticas en esta parte), funciones nuevas y un reemplazo anclado que se detiene si el texto vivo cambió (producción y el repo tienen la

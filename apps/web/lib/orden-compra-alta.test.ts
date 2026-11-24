@@ -339,4 +339,29 @@ describe("editar: la orden guardada vuelve al formulario y viaja con su versión
       { categoria_id: "cat", marca_id: "marca", cantidad: "2", precio_unitario: "10.00", descuento: "2.50" },
     ]);
   });
+
+  it("lo que una línea trae de «Compré ropa» vuelve tal cual al guardar, aunque se edite la línea (20261124181000)", () => {
+    const deCompra = {
+      ...DETALLE,
+      lineas: [
+        { ...DETALLE.lineas[0], deLaCompra: { precioVentaSugerido: 57.9, sugeridoMotivos: null, productoId: null, precioPorDefinir: false, rasgos: ["nadie_la_tiene"], precioVistoAfuera: 79.9 } },
+        { ...DETALLE.lineas[1], deLaCompra: { precioVentaSugerido: null, sugeridoMotivos: null, productoId: "prenda-1", precioPorDefinir: false, rasgos: null, precioVistoAfuera: null } },
+        { ...DETALLE.lineas[2], deLaCompra: { precioVentaSugerido: null, sugeridoMotivos: null, productoId: null, precioPorDefinir: true, rasgos: ["tela_que_se_nota"], precioVistoAfuera: null } },
+      ],
+    };
+    const b = borradorDeDetalle(deCompra);
+    // Quien edita cambia la cantidad de la primera: lo de «Compré ropa» sigue con su línea.
+    const editada = { ...b, lineas: b.lineas.map((l) => (l.clave === "l1" ? { ...l, cantidad: "35" } : l)) };
+    expect(argsEditarOrden("oc-1", 3, editada).p_lineas).toEqual([
+      { categoria_id: "cat", marca_id: "marca", descripcion: "Cuello alto", cantidad: "35", precio_unitario: "42.00", precio_venta_sugerido: "57.90", rasgos: ["nadie_la_tiene"], precio_visto_afuera: "79.90" },
+      { categoria_id: "cat", marca_id: "marca", cantidad: "12", precio_unitario: "25.50", descuento_pct: "5", producto_id: "prenda-1" },
+      { categoria_id: "cat", marca_id: "marca", cantidad: "2", precio_unitario: "10.00", descuento: "2.50", precio_por_definir: true, rasgos: ["tela_que_se_nota"] },
+    ]);
+  });
+
+  it("una línea nueva, agregada al editar, no trae nada de «Compré ropa»", () => {
+    const b = borradorDeDetalle(DETALLE);
+    const conNueva = { ...b, lineas: [...b.lineas, { ...lineaVacia("l4", "marca"), categoriaId: "cat", cantidad: "1", precio: "20" }] };
+    expect(argsEditarOrden("oc-1", 3, conNueva).p_lineas[3]).toEqual({ categoria_id: "cat", marca_id: "marca", cantidad: "1", precio_unitario: "20.00" });
+  });
 });

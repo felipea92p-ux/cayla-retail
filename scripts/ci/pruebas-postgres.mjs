@@ -98,6 +98,7 @@ export const PRUEBAS = [
   // se queda con las de su línea (la tela, por su tejido; la marca, por la lista); una línea sin casillas no deja fila; lo de Catálogo no
   // se pisa al recibir otra vez; la tabla no se toca directo. ROLLBACK.
   "pruebas:recibir-con-rasgos",
+  "pruebas:editar-orden-conserva",
 
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.

@@ -209,6 +209,21 @@ describe("leerDetalleOrden", () => {
     expect(d?.lineas).toHaveLength(2);
     expect(d?.lineas[1]).toMatchObject({ descripcion: "Manga larga", descuento: 40, descuentoPct: 10, subtotal: 360 });
   });
+  it("una línea de «Compré ropa» trae lo suyo para devolverlo al editar; una del escritorio no trae nada", () => {
+    const linea = {
+      posicion: 1, categoria_id: "c1", categoria: "Polos", marca_id: "m1", marca: "Kero", descripcion: null, cantidad: 3, precio_unitario: "30.90",
+      descuento: 0, descuento_pct: null, subtotal: "92.70", precio_venta_sugerido: "57.90", sugerido_motivos: null, producto_id: null,
+      precio_por_definir: false, rasgos: ["nadie_la_tiene", "en_tendencia"], precio_visto_afuera: "79.90",
+    };
+    const d = leerDetalleOrden({ ...DETALLE, lineas: [linea, { ...linea, posicion: 2, precio_venta_sugerido: null, rasgos: null, precio_visto_afuera: null, precio_por_definir: true }] });
+    expect(d?.lineas[0].deLaCompra).toEqual({
+      precioVentaSugerido: 57.9, sugeridoMotivos: null, productoId: null, precioPorDefinir: false, rasgos: ["nadie_la_tiene", "en_tendencia"], precioVistoAfuera: 79.9,
+    });
+    expect(d?.lineas[1].deLaCompra).toMatchObject({ precioVentaSugerido: null, precioPorDefinir: true, rasgos: null });
+    // Una base vieja (sin estos campos) o una línea del escritorio: nada que devolver.
+    expect(leerDetalleOrden(DETALLE)?.lineas.map((l) => l.deLaCompra)).toEqual([undefined, undefined]);
+    expect(leerDetalleOrden({ ...DETALLE, lineas: [{ ...linea, precio_venta_sugerido: null, rasgos: [], precio_visto_afuera: null }] })?.lineas[0].deLaCompra).toBeUndefined();
+  });
   it("por repartir llega sin destino; sin orden (null, una lista, sin número) no hay detalle", () => {
     expect(leerDetalleOrden({ ...DETALLE, destino: null })?.destino).toBeNull();
     expect(leerDetalleOrden(null)).toBeNull();

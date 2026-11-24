@@ -77,8 +77,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
   «Sugerido S/ …» que se escribe de un toque, «¿La vieron más cara afuera?» y la línea «Te quedan» de la cuenta única. Se fue «Por cada una
   ganas» (`gananciaPorPrenda`): era la resta simple con IGV que ADR-0668 descartó (S/ 30.90 → S/ 54.90 decía «ganas S/ 24.00»; quedan S/ 15.63).
 - Aquí no se pregunta el tejido: «Tela que se nota» la marca quien compra; llega sola por el tejido donde se elige (actividad 4).
-- **Queda abierto:** «Editar orden» del escritorio reescribe las líneas sin estas columnas (`fn_orden_compra_escribir_lineas`): una compra
-  editada ahí pierde sus casillas. «Corregir la compra» no.
+- «Editar orden» del escritorio reescribía las líneas sin estas columnas: lo cierra la sección siguiente.
 
 ## Qué se construyó (actividad 4, la base)
 
@@ -90,6 +89,22 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
   lectura de la línea, `envio_sin_aviso` bajaba a 40/44 porque vuelve a pegar 20261107191000). Prueba: `pnpm pruebas:recibir-con-rasgos` (14).
 - **La pantalla de Recibir espera:** la hoja donde se le pone precio a un modelo nuevo (`recepcion-envio/HojaPrenda.tsx`) y sus reglas las
   está cambiando el PR #2001 (ADR-0699). Se hace sobre main cuando ese PR se fusione, para no chocar.
+
+## «Editar orden» no pierde lo de cada línea (2026-11-24, junto a la actividad 4)
+
+- **El hueco:** «Editar orden» borra las líneas y las vuelve a escribir con lo que manda la pantalla. El escritorio nunca leyó el sugerido ni
+  sus motivos, y la base nunca escribió la prenda del catálogo, «a la espera de precio», las casillas ni el precio visto afuera: corregir una
+  cantidad de una orden de «Compré ropa» (sin comprobante ni envío, que es cuando se ofrece «Editar») le borraba todo eso. En producción
+  ninguna de las 42 órdenes con sugerido estaba en esa ventana (2026-11-24): no llegó a pasar.
+- `20261124181000_editar_orden_conserva_lo_de_la_linea.sql` (solo en local): `fn_orden_compra_detalle` trae `producto_id`,
+  `precio_por_definir`, `rasgos` y `precio_visto_afuera` por línea, y `fn_orden_compra_escribir_lineas` los escribe en el mismo `insert`,
+  revisados: la prenda solo si sigue siendo de la misma categoría y marca; «a la espera» solo sin sugerido ni prenda; casillas y precio visto
+  con los lectores de «Compré ropa». Van al principio de las listas del `insert` (20261022080000 ancla el final) y no en un `update` aparte
+  (el candado `por_definir_no_vuelve` de 20261113211000 no deja que una línea pase de «con precio» a «a la espera»).
+- La web (`lib/ordenes-compra-reglas.ts`, `lib/orden-compra-alta.ts`): cada línea del detalle guarda `deLaCompra` y el editor lo devuelve
+  tal cual al guardar; una línea nueva no lo tiene. Guardar sin cambiar nada sigue sin subir la versión (la huella no cambió).
+- Pruebas: `pnpm pruebas:editar-orden-conserva` (23; con la función de antes fallan 7) y la S4 de `orden_compra_sugerido` mide ahora su
+  propio parche, no la palabra `precio_venta_sugerido`.
 
 ## Lo que falta
 
