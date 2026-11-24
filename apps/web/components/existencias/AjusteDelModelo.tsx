@@ -61,15 +61,20 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
         <PencilLine className="h-5 w-5" />
       </span>
       <span className="min-w-0">
-        <b className="block text-detalle font-semibold text-tinta">¿No es lo que ves en la tienda?</b>
-        <small className="block text-xs text-taupe">
+        {/* En el celular, una línea (Felipe 2026-11-24, maqueta del modal liviano): la pregunta corta y el botón a su lado. */}
+        <b className="block text-detalle font-semibold text-tinta">
+          <span className="max-sm:hidden">¿No es lo que ves en la tienda?</span>
+          <span className="sm:hidden">¿No es lo que ves?</span>
+        </b>
+        <small className="block text-xs text-secundario max-sm:hidden">
           Corrige {que}
           {conResto ? " y, si quieres, el resto del modelo de una vez" : ""}.
         </small>
       </span>
-      <span className="btn-cayla btn-primario mov-boton banda-ajustar-boton">
+      {/* Claro: el botón oscuro del modal es solo el de la acción que el sistema sugiere (maqueta 2026-11-24). */}
+      <span className="btn-cayla btn-secundario mov-boton banda-ajustar-boton">
         Ajustar stock
-        <kbd className="hidden rounded border border-crema/40 px-1.5 text-xs text-crema/80 sm:inline">6</kbd>
+        <kbd className="hidden rounded border border-sand px-1.5 text-xs text-secundario sm:inline">6</kbd>
       </span>
     </button>
   );

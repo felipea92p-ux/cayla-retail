@@ -73,7 +73,7 @@ const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 /** «LIM tiene 2 · AQP tiene 1»: lo que dice «Pedir a otra sede» debajo de su nombre. */
 function quienTiene(origenes: readonly { nombre: string; cantidad: number }[]): string | null {
   const con = origenes.filter((o) => o.cantidad > 0);
-  return con.length ? con.map((o) => `${nombreCorto(o.nombre)} tiene ${o.cantidad}`).join(" · ") : null;
+  return con.length ? con.map((o) => `${nombreCorto(o.nombre)} tiene ${o.cantidad}`).join(", ") : null;
 }
 const nombreCorto = (n: string) => n.replace(/^tienda\s+/i, "").trim();
 
@@ -98,7 +98,7 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
     filas.push({ clave: "enviar", texto: "Enviar a otra sede", ok: hay > 0, sub: hay > 0 ? `${unidades(hay)} ${separa ? "en almacén" : "aquí"}` : separa ? "Nada en almacén" : "Nada aquí", sugerida: false });
   }
   if (p.puedeApartar) {
-    filas.push({ clave: "apartar", texto: "Apartar", ok: !sinStock, sub: sinStock ? "Sin stock aquí: pídela" : "Con adelanto · en Vender", sugerida: false });
+    filas.push({ clave: "apartar", texto: "Apartar", ok: !sinStock, sub: sinStock ? "Sin stock aquí: pídela" : "Con adelanto, en Vender", sugerida: false });
   }
   if (p.puedePedir) {
     filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna tienda tiene", sugerida: pidePedir && !!p.puedePedir }); // al Taller no se le pide por aquí
@@ -407,4 +407,47 @@ export function lineaDeLoQueFalta(
   if (aqui === 0 && otros.length === 0) return null;
   if (aqui === 0) return `${falta.titulo}: en ${unirNombres(otros)}`;
   return `${falta.titulo}: ${plural(aqui, "talla", "tallas")}${otros.length ? ` · también en ${unirNombres(otros)}` : ""}`;
+}
+
+/* ====================================================================
+   La frase grande del modal (Felipe 2026-11-24, maqueta `docs/maquetas/existencias-modal-liviano-2026-11/`): dónde están las unidades
+   libres, con sus números, en palabras de tienda. Debajo va lo que queda aparte (apartadas, dañadas). Sirve a «Esta talla» (una talla) y
+   a «Todas» (las sumas del modelo). El estado («Piso en pausa», «Falta colgar»…) lo sigue diciendo `insigniaDeTalla`.
+   ==================================================================== */
+export type CuentaDeLugar = { piso: number; almacen: number; disponible: number; apartado?: number; danado?: number };
+
+export function resumenDeLugar(c: CuentaDeLugar, separa: boolean): { titulo: string; bajada: string | null } {
+  const piso = Math.max(0, c.piso);
+  const alm = Math.max(0, c.almacen);
+  const aparte = [
+    (c.apartado ?? 0) > 0 ? plural(c.apartado ?? 0, "apartada", "apartadas") : null,
+    (c.danado ?? 0) > 0 ? plural(c.danado ?? 0, "dañada", "dañadas") : null,
+  ].filter((x): x is string => x !== null);
+  const notaAparte = aparte.length ? `Aparte, ${aparte.join(" y ")}.` : null;
+  const juntar = (...partes: (string | null)[]) => partes.filter(Boolean).join(" ") || null;
+  if (!separa) {
+    const d = Math.max(0, c.disponible);
+    return { titulo: d === 0 ? "No queda ninguna libre" : d === 1 ? "Queda 1 en esta sede" : `${d} en esta sede`, bajada: notaAparte };
+  }
+  if (piso === 0 && alm === 0) return { titulo: "No queda ninguna libre", bajada: notaAparte };
+  if (piso === 0) return { titulo: alm === 1 ? "1 está en el almacén" : `Las ${alm} están en el almacén`, bajada: juntar("Ninguna en el piso.", notaAparte) };
+  if (alm === 0) return { titulo: piso === 1 ? "Queda 1, en el piso" : `Las ${piso} están en el piso`, bajada: juntar("Nada en el almacén.", notaAparte) };
+  return { titulo: `${piso} en el piso y ${alm} en el almacén`, bajada: notaAparte };
+}
+
+/** El porqué del estado bajo la frase grande, sin repetir los números que la frase ya dice (maqueta 2026-11-24): «Falta colgar: cuelga 1»
+ *  (no «Cuelga 1: no hay en el piso y hay 4 en almacén»), «Queda poco: Lima tiene 3», «Se acabó: Lima tiene 2». Las demás frases ya son
+ *  cortas y van como vienen. `null` si no hay nada que agregar. */
+export function fraseDelEstado(insignia: { tono: TonoInsignia; texto: string; frase: string }): string | null {
+  const f = insignia.frase.trim();
+  // «Todo bien» trae los números de la talla («3 en piso · 2 en almacén»): ya están en la frase grande.
+  if (!f || insignia.tono === "verde") return null;
+  const dos = f.indexOf(":");
+  if (dos < 0) return f;
+  const antes = f.slice(0, dos).trim();
+  const despues = f.slice(dos + 1).trim();
+  // «Cuelga 1: …»: lo que hay que hacer va antes de los dos puntos; los números de después ya están en la frase grande.
+  if (insignia.tono === "ambar") return antes.charAt(0).toLocaleLowerCase("es") + antes.slice(1);
+  // «No hay aquí: Lima tiene 2» / «Queda 1 aquí: Lima tiene 3»: lo de aquí ya lo dice la frase grande; queda quién la tiene.
+  return despues || antes;
 }

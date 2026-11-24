@@ -120,3 +120,35 @@ Catálogo.
   `subir_para_enviar` ni `reportar_danada`. Son las mismas funciones que ya llamaba el cajón; conviene repetir `/chaos` con una base al día.
 - El aviso «piso sin cuadrar» no se pudo ver en local (`fn_piso_plan_lectura` no existe ahí): verificado por tipos y pruebas, no en el navegador.
 - Las fechas «llegó el… / última venta» en el modal, y la prueba con colaboradoras reales (`/formidable`, pasada 2), quedan pendientes.
+
+## Actualización 2026-11-24: el modal liviano (Felipe, maqueta `docs/maquetas/existencias-modal-liviano-2026-11/`)
+
+Felipe, mirando el modal de los Aretes Grandes: «¿no está muy cargado?». Lo medido: «nada en el piso» se decía seis veces, «9 en almacén»
+tres, y las acciones vivían en cuatro lugares (la fila de cuatro botones, la banda de Ajustar, «Qué hago» y «No ahora»). Aprobó la maqueta
+después de cuatro rondas (seis casos, cinco anchos, la vista «Todas», el celular). Lo que cambia, sin quitar ninguna función:
+
+1. **La bajada del título sin «·»:** marca y categoría como etiquetas (`<Chip versalitas={false}>`), el precio solo. Felipe: «hay que evitar
+   usar esto como separador». A la derecha, **«Más»** (`<MenuAcciones texto="Más">`) con Etiquetas, Rótulo, Historial y Catálogo, que
+   antes eran una fila de cuatro botones. Etiquetas sigue sin navegar si no hay nada que imprimir (`avisoSinStock`).
+2. **La frase grande** (`resumenDeLugar`, `lib/existencias-panel-talla.ts`): dónde están las libres, con sus números («Las 9 están en el
+   almacén»), y lo apartado o dañado en la bajada. Debajo, el estado de `insigniaDeTalla` en una línea con su punto, con un porqué que no
+   repite los números (`fraseDelEstado`: «Falta colgar: cuelga 1», «Se acabó: Lima tiene 2»; «Todo bien» va solo). **El botón oscuro es la
+   acción que el sistema sugiere** (colgar, pedir) y solo aparece cuando sugiere algo; con el piso en pausa no hay botón. Felipe vio la
+   alternativa de quitar la frase porque repite las casillas y eligió dejarla.
+3. **Las cuatro casillas siempre**, también apartadas y dañadas en 0: «un 0 también informa». En una sola fila, también en el celular
+   (cambia lo del 2026-11-17, que las ponía de a dos con la cifra a 28 px: Felipe eligió la fila mirando la hoja entera).
+4. **En camino y otras sedes:** cada dato con su rótulo arriba y su valor abajo, y cada sede en su etiqueta («Lima 3», «Arequipa 1»).
+5. **La banda de Ajustar stock se queda donde está** (ADR-0494: nadie la encontraba como fila), con el botón **claro**: el oscuro es solo
+   el de la sugerida. En el celular, una línea: «¿No es lo que ves?» y su botón.
+6. **«Qué hago» pasa a «También puedes»**, sin la sugerida (ya está arriba) y **sin «No ahora»**: la frase y las casillas dicen por qué no
+   se puede. El orden sigue siendo el de la talla (pedido del 2026-10-06), con las teclas de siempre. Cada acción, en una línea.
+7. **Cómo se vende** (el ritmo del color) pasa detrás del «?» del estado, y sale la línea «Sin colgar, según el sistema» (el ámbar de cada
+   talla ya lo dice). Con una sola talla no hay fila de tallas: la talla va en una etiqueta junto al color.
+8. **«Todas»:** la frase con la suma del modelo y «Colgar varias tallas y colores» arriba (oscuro si algo falta colgar, claro si no; antes
+   estaba al pie de la tabla). Sin chips de estado ni «3 colores · 5 tallas»: la tabla ya lo dice. Felipe: «¿es necesaria esa información?
+   En “todas” pueden verlo». La leyenda usa los íconos de la celda (percha para el piso, caja para el almacén) en vez de cuadritos de color,
+   y las celdas van sin fondo de color: el ámbar queda solo para lo que falta colgar.
+9. **Celular:** la foto se achica a 64 px junto al color y las tallas, «Esta talla / Todas» va primero y las teclas no se dibujan.
+
+Verificado en el navegador con datos inventados (página temporal, sin base) a 1440, 1024 y 375 px, en claro y en oscuro. Falta: recorrer la
+guía con `guias:recorrer` y `/chaos` con una base al día (no hubo base local en esta sesión), y verlo con una cuenta real.

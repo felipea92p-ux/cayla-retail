@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, insigniaDelModelo, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
+import { accionesDeTalla, insigniaDelModelo, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, resumenDeLugar, fraseDelEstado, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
 import { mejorOrigen } from "./existencias-flujos";
 import { esObjetivo } from "./existencias-mision";
 import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
@@ -36,7 +36,7 @@ describe("acciones del panel de una talla", () => {
     const a = Object.fromEntries(accionesDeTalla(talla({ pisoDisponible: 0, almacenDisponible: 1, disponible: 1 }), TODO, true).map((x) => [x.clave, x]));
     expect(a.colgar).toMatchObject({ ok: true, sub: "1 unidad en almacén" });
     expect(a.subir).toMatchObject({ ok: false, sub: "Nada en piso" });
-    expect(a.apartar).toMatchObject({ ok: true, sub: "Con adelanto · en Vender" });
+    expect(a.apartar).toMatchObject({ ok: true, sub: "Con adelanto, en Vender" });
     expect(a.pedir).toMatchObject({ ok: true, sub: "Lima tiene 2" });
   });
   it("sin permiso no se dibuja; sin separar piso y almacén tampoco hay colgar ni subir", () => {
@@ -267,5 +267,46 @@ describe("el chip de «Todas» (el modelo entero) sigue la regla de la tarjeta, 
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 4, almacen: 9 })).toBe("4 tallas sin colgar");
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 9 })).toBe("Elige cuántas de cada una");
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 0 })).toBe("Nada guardado para colgar");
+  });
+});
+
+describe("la frase grande del modal dice dónde están, con sus números (maqueta 2026-11-24)", () => {
+  it("todo en el almacén, todo en el piso, repartido o nada", () => {
+    expect(resumenDeLugar({ piso: 0, almacen: 9, disponible: 9 }, true)).toEqual({ titulo: "Las 9 están en el almacén", bajada: "Ninguna en el piso." });
+    expect(resumenDeLugar({ piso: 0, almacen: 1, disponible: 1 }, true).titulo).toBe("1 está en el almacén");
+    expect(resumenDeLugar({ piso: 1, almacen: 0, disponible: 1 }, true)).toEqual({ titulo: "Queda 1, en el piso", bajada: "Nada en el almacén." });
+    expect(resumenDeLugar({ piso: 4, almacen: 0, disponible: 4 }, true).titulo).toBe("Las 4 están en el piso");
+    expect(resumenDeLugar({ piso: 2, almacen: 5, disponible: 7 }, true)).toEqual({ titulo: "2 en el piso y 5 en el almacén", bajada: null });
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 0, apartado: 1 }, true)).toEqual({ titulo: "No queda ninguna libre", bajada: "Aparte, 1 apartada." });
+  });
+  it("lo apartado y lo dañado van aparte, en la bajada", () => {
+    expect(resumenDeLugar({ piso: 3, almacen: 2, disponible: 5, danado: 2 }, true).bajada).toBe("Aparte, 2 dañadas.");
+    expect(resumenDeLugar({ piso: 0, almacen: 4, disponible: 4, apartado: 1, danado: 1 }, true).bajada).toBe("Ninguna en el piso. Aparte, 1 apartada y 1 dañada.");
+  });
+  it("donde la sede no separa piso y almacén, habla de la sede", () => {
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 6 }, false).titulo).toBe("6 en esta sede");
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 1 }, false).titulo).toBe("Queda 1 en esta sede");
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 0 }, false).titulo).toBe("No queda ninguna libre");
+  });
+  it("nunca usa «·» para separar (Felipe 2026-11-24)", () => {
+    for (const c of [{ piso: 0, almacen: 4, disponible: 4, apartado: 2, danado: 1 }, { piso: 3, almacen: 2, disponible: 5, danado: 2 }]) {
+      const r = resumenDeLugar(c, true);
+      expect(`${r.titulo} ${r.bajada ?? ""}`).not.toContain("·");
+    }
+  });
+});
+
+describe("el porqué del estado no repite los números de la frase grande (maqueta 2026-11-24)", () => {
+  it("falta colgar: lo que hay que hacer", () => {
+    expect(fraseDelEstado({ tono: "ambar", texto: "Falta colgar", frase: "Cuelga 1: no hay en el piso y hay 4 en almacén" })).toBe("cuelga 1");
+  });
+  it("queda poco o se acabó: quién la tiene", () => {
+    expect(fraseDelEstado({ tono: "pizarra", texto: "Queda poco", frase: "Queda 1 aquí: Lima tiene 3" })).toBe("Lima tiene 3");
+    expect(fraseDelEstado({ tono: "rojo", texto: "Se acabó", frase: "No hay aquí: Lima tiene 2" })).toBe("Lima tiene 2");
+  });
+  it("las frases cortas van como vienen, y sin frase no agrega nada", () => {
+    expect(fraseDelEstado({ tono: "pizarra", texto: "Piso en pausa", frase: "Revisa lo colgado antes de colgar más" })).toBe("Revisa lo colgado antes de colgar más");
+    expect(fraseDelEstado({ tono: "verde", texto: "Todo bien", frase: "" })).toBeNull();
+    expect(fraseDelEstado({ tono: "verde", texto: "Todo bien", frase: "3 en piso · 2 en almacén · aparte, 2 dañadas" })).toBeNull();
   });
 });
