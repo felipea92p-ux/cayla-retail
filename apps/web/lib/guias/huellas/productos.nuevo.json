@@ -20,8 +20,8 @@
       "button «{responsable.motivo ?? undefined}»",
       "CampoTexto «Cómo lo llama el proveedor»",
       "CampoTexto «Detalle»",
-      "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
+      "CampoMonto «Precio de venta»",
       "button «Elegir proveedor»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
     ],

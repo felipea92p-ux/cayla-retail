@@ -25,6 +25,7 @@ export function TarjetaDeTallas({
   onAbrir,
   onModo,
   despues,
+  nuevaParaDespues = false,
 }: {
   estado: EstadoDeLaTarjeta;
   /** Lo que hay que repartir: lo contado menos lo que ya entró al stock. */
@@ -39,6 +40,8 @@ export function TarjetaDeTallas({
   onModo: (m: ModoDeTallas) => void;
   /** «Llevar al stock ahora»: con todo repartido es el botón principal de la tarjeta; a medias, acompaña a «Seguir repartiendo». */
   despues?: ReactNode;
+  /** Una prenda nueva que quien recibe dejó para después con «Dejar para después» (ADR-0699). Sin eso, crearla es lo que toca. */
+  nuevaParaDespues?: boolean;
 }) {
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
   const colorDe = (nombre: string | null) => (nombre ? (colores.find((c) => sinTildes(c.nombre) === sinTildes(nombre)) ?? null) : null);
@@ -86,6 +89,30 @@ export function TarjetaDeTallas({
         <div className="rc-tarjeta-textos">
           <b>Todavía no</b>
           <span>Primero cuenta cuántas llegaron.</span>
+        </div>
+      </div>
+    );
+  }
+  // Una prenda nueva se crea en el contador y sale a la venta hoy (ADR-0699, Felipe 2026-11-24: «no tengan luego que ir a otro apartado»). Hasta ese día
+  // quedaba para después sin que nadie lo eligiera (ADR-0645) y se terminaba en «Por terminar». Dejarla para después sigue a un toque, y se ve.
+  if (estado === "nueva" && !nuevaParaDespues) {
+    return (
+      <div className="rc-tarjeta" data-tono="ahora" data-guia="recepcion.que-hacer">
+        <span className="rc-tarjeta-ic" aria-hidden>
+          <Sparkles className="h-5 w-5" />
+        </span>
+        <div className="rc-tarjeta-textos">
+          <b>Es una prenda nueva: créala</b>
+          <span>Con la prenda creada, repartes sus tallas y la llevas al stock. Así se vende hoy.</span>
+        </div>
+        <div className="rc-tarjeta-acciones">
+          <Boton type="button" peso="primario" onClick={() => onModo("ahora")}>
+            <span className="inline-flex items-center gap-2">
+              Crear la prenda
+              {flecha}
+            </span>
+          </Boton>
+          {dejar}
         </div>
       </div>
     );
