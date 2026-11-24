@@ -69,6 +69,8 @@ import {
   categoriasDelFiltro,
   categoriasEnOrden,
   cifrasDelResumen,
+  nombreDeParada,
+  tipoDeParada,
   claveDeCategoria,
   claveDeNombre,
   sePuedeQuitarCategoria,
@@ -119,6 +121,8 @@ import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
+import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
+import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { AvanceDelEnvio } from "./AvanceDelEnvio";
@@ -533,6 +537,14 @@ export function ContarEnvio({
     }
     const sep = prendaSeparada(p);
     setModos((ms) => ({ ...ms, [p.clave]: modo }));
+    // Una prenda nueva dejada para después (ADR-0699): entra al almacén contada y queda en «Por terminar»; se dice, y se deshace de un toque.
+    if (modo === "despues" && !m.productoId) {
+      avisar.exito("Queda para después", {
+        detalle: `${m.nombre} entra al almacén contada. Se vende cuando la crees.`,
+        accion: { texto: "Deshacer", onClick: () => setModos((ms) => ({ ...ms, [p.clave]: "ahora" })) },
+      });
+      return;
+    }
     if (modo === "ahora") setHoja({ tipo: "repartir", parada: p.clave });
     if (modo === "despues" && sep?.variantes) {
       const antes = sep.variantes;
@@ -791,7 +803,26 @@ export function ContarEnvio({
   };
   const tarjeta = parada?.modelo ? estadoDeLaTarjeta({ contadas: parada.modelo.contadas, enStock: parada.modelo.enStock, enCatalogo: !!parada.modelo.productoId, modo: modoDe(parada), repartidas }) : null;
   // Un solo botón negro a la vez (cambio 2 de /formidable): el de la tarjeta si al modelo le toca algo, «Revisar y cerrar» con todo contado, o «Listo, siguiente».
-  const principal = botonPrincipal({ tarjeta, hayParaLlevar: !!paraLlevar, hayConteo: parada?.modelo ? parada.modelo.contado : true, todoContado });
+  const nuevaParaDespues = !!parada && modos[parada.clave] === "despues";
+  const principal = botonPrincipal({ tarjeta, hayParaLlevar: !!paraLlevar, hayConteo: parada?.modelo ? parada.modelo.contado : true, todoContado, nuevaParaDespues });
+  // Los pasos que le quedan a este modelo para salir a la venta, arriba de la placa (ADR-0699).
+  const pasosDeLaParada =
+    parada?.modelo && tarjeta
+      ? pasosDelModelo({
+          hayConteo: parada.modelo.contado,
+          contadas: parada.modelo.contadas,
+          enStock: parada.modelo.enStock,
+          esNuevo: tipoDeParada(parada) === "nuevo",
+          enCatalogo: !!parada.modelo.productoId,
+          tarjeta,
+          repartidas,
+        })
+      : null;
+  const abrirPaso = (clave: ClavePaso) => {
+    if (!parada) return;
+    if (clave === "cuantas") setEscribirEn(pedirAbrir(parada.clave));
+    else if (clave === "crear" || clave === "tallas") elegirModo(parada, "ahora");
+  };
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
   const nRecibidos = detalle.recibidos?.length ?? 0;
@@ -973,8 +1004,22 @@ export function ContarEnvio({
               }}
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
-              pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
+              pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) || (tarjeta === "nueva" && !nuevaParaDespues) ? "toca" : "falta"}
               abrirNumero={escribirEn?.clave === parada.clave ? escribirEn.vez : 0}
+              pasos={
+                pasosDeLaParada && (
+                  <div className="rc-placa-pasos" data-guia="recepcion.pasos">
+                    <PuntosAvance
+                      pasos={pasosDeLaParada}
+                      etiqueta={`Pasos de ${nombreDeParada(parada)}`}
+                      onAbrir={(n) => {
+                        const paso = pasosDeLaParada.find((x) => x.numero === n);
+                        if (paso) abrirPaso(paso.clave);
+                      }}
+                    />
+                  </div>
+                )
+              }
               pendiente={faltaContar}
               sinTallasEn={faltanTallasEn}
               onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}
@@ -1046,6 +1091,7 @@ export function ContarEnvio({
                     onAbrir={() => elegirModo(parada, "ahora")}
                     onModo={(m) => elegirModo(parada, m)}
                     despues={botonLlevar("tarjeta")}
+                    nuevaParaDespues={nuevaParaDespues}
                   />
                 ) : null
               }

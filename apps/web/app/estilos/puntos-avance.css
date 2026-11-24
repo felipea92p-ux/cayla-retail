@@ -31,6 +31,28 @@
   background: transparent;
 }
 
+/* Arriba de la placa del contador, en Recibir (ADR-0699): los pasos que le quedan al modelo. La placa reparte su alto con el número, así que
+   el punto es más chico (28 px: con su tilde sigue sobre los 24 px de WCAG 2.5.8) y la línea más baja. Sin fondo ni pegarse: no corre. */
+.rc-placa-pasos {
+  flex: none;
+  padding: 10px 16px 0;
+}
+.rc-placa-pasos .puntos-avance {
+  --marca: 28px;
+  position: static;
+  padding-block: 0;
+  background: transparent;
+}
+.rc-placa-pasos .puntos-linea {
+  height: 4rem;
+}
+/* Con la tira arriba, los números de los bloques («1 · ¿Cuántas llegaron?», «2 · Tallas y colores») sobran y no coinciden (Tallas es el paso 3 de
+   una prenda nueva): un solo marcador para lo mismo, como en Nuevo producto (ADR-0260). El círculo sigue en el DOM: la placa lo lee para saber si
+   toca bajar a las tallas (`bajarALasTallas`). */
+.rc-placa-pasos ~ .rc-placa-cuerpo .rc-bloque-titulo > .rc-paso {
+  display: none;
+}
+
 /* La línea va del centro del primer punto al del último: la mitad del cuadro de cada punto (`--marca`). */
 .puntos-linea {
   position: relative;

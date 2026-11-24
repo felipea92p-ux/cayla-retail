@@ -2022,6 +2022,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría; la marca, solo si la tiene, y si no está en la lista, «+ Marca nueva». La compra se queda con eso.",
     },
     {
+      id: "pasos",
+      ancla: "recepcion.pasos",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", para: "cerrar" }, { tipo: "escape" }],
+      titulo: "Lo que le falta a este modelo",
+      texto: "Arriba van sus pasos hasta la venta: cuántas llegaron, crear la prenda (solo si es nueva), sus tallas y llevarla al stock. El punto que late es el que toca. Toca un paso listo para volver a él.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
@@ -2045,7 +2054,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Tallas y colores, en su tarjeta",
-      texto: "Lo que ya está en tu catálogo pide repartir sus tallas y colores ahora: así entra al stock y se vende. Lo nuevo queda para después, o lo creas aquí. La tarjeta dice cómo va y su botón abre la hoja donde se reparten. «Dejar para después» también vale.",
+      texto: "Lo que ya está en tu catálogo pide repartir sus tallas y colores: así entra al stock y se vende. Lo nuevo pide crearlo aquí mismo, para venderlo hoy; si no hay tiempo, «Dejar para después». La tarjeta dice cómo va y su botón abre la hoja."
     },
     {
       // La tabla vive en su hoja (ADR-0645): el piloto la abre con el botón de la tarjeta. Cada casilla se guarda sola, así que la demo la explica sin tocarla.

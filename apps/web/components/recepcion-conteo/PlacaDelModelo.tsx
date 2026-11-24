@@ -57,6 +57,7 @@ export function PlacaDelModelo({
   onEditarNombre,
   onCorregirLinea,
   tallas,
+  pasos,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -107,6 +108,8 @@ export function PlacaDelModelo({
   onCorregirLinea?: () => void;
   /** La tarjeta de tallas y colores: dice cómo va y abre la hoja donde se reparten. */
   tallas: ReactNode;
+  /** Los pasos que le quedan al modelo para salir a la venta (ADR-0699): arriba del cuerpo, siempre a la vista. */
+  pasos?: ReactNode;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -259,6 +262,7 @@ export function PlacaDelModelo({
         </div>
       </div>
 
+      {pasos}
       <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
         {/* ADR-0660: llegó «por definir» desde Mis compras. Antes de contarla se dice qué es (la base no la deja contar sin eso). */}
