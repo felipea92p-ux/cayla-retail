@@ -73,7 +73,7 @@ const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 /** «LIM tiene 2 · AQP tiene 1»: lo que dice «Pedir a otra sede» debajo de su nombre. */
 function quienTiene(origenes: readonly { nombre: string; cantidad: number }[]): string | null {
   const con = origenes.filter((o) => o.cantidad > 0);
-  return con.length ? con.map((o) => `${nombreCorto(o.nombre)} tiene ${o.cantidad}`).join(" · ") : null;
+  return con.length ? con.map((o) => `${nombreCorto(o.nombre)} tiene ${o.cantidad}`).join(", ") : null;
 }
 const nombreCorto = (n: string) => n.replace(/^tienda\s+/i, "").trim();
 
@@ -98,7 +98,7 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
     filas.push({ clave: "enviar", texto: "Enviar a otra sede", ok: hay > 0, sub: hay > 0 ? `${unidades(hay)} ${separa ? "en almacén" : "aquí"}` : separa ? "Nada en almacén" : "Nada aquí", sugerida: false });
   }
   if (p.puedeApartar) {
-    filas.push({ clave: "apartar", texto: "Apartar", ok: !sinStock, sub: sinStock ? "Sin stock aquí: pídela" : "Con adelanto · en Vender", sugerida: false });
+    filas.push({ clave: "apartar", texto: "Apartar", ok: !sinStock, sub: sinStock ? "Sin stock aquí: pídela" : "Con adelanto, en Vender", sugerida: false });
   }
   if (p.puedePedir) {
     filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna tienda tiene", sugerida: pidePedir && !!p.puedePedir }); // al Taller no se le pide por aquí
@@ -115,12 +115,6 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
  *  almacén) · …» con su motivo, en vez de seis filas con tres apagadas. `noAhora` conserva el orden y el `sub` ya dice el porqué. */
 export function separarAcciones(acciones: readonly AccionTalla[]): { posibles: AccionTalla[]; noAhora: AccionTalla[] } {
   return { posibles: acciones.filter((a) => a.ok), noAhora: acciones.filter((a) => !a.ok) };
-}
-
-/** «No ahora: Colgar (nada en almacén) · Pedir (ninguna tienda tiene).» El nombre corto es la primera palabra del texto. */
-export function lineaNoAhora(noAhora: readonly AccionTalla[]): string | null {
-  if (noAhora.length === 0) return null;
-  return `No ahora: ${noAhora.map((a) => `${a.texto.split(" ")[0]} (${a.sub.charAt(0).toLocaleLowerCase("es")}${a.sub.slice(1)})`).join(" · ")}.`;
 }
 
 /* ====================================================================
@@ -288,19 +282,6 @@ export function queTocaConLaTalla(
 
 export type TonoInsignia = "verde" | "ambar" | "pizarra" | "rojo";
 
-/** El chip de «Todas» (el modelo entero, ADR-0391): la MISMA regla que el pie de la tarjeta (`botonDeTarjeta`, `existencias-acciones.ts`).
- *  Lo que marca el motor del piso gana (ámbar, «por colgar»); si el motor no marcó nada pero hay tallas con 0 colgadas y stock atrás (el
- *  piso en pausa, o un plan que no se pudo leer) se dice en neutro («sin colgar»); «Todo en el piso» solo cuando cada talla con algo libre
- *  tiene al menos una colgada. Lo agotado va en su propio chip (rojo). Antes el chip solo miraba al motor y, con el piso en pausa, decía
- *  «Todo en el piso» con tres tallas a 0: lo encontró /formidable el 2026-10-12 (el filtro «Por colgar 0» y el modal «Falta colgar» se
- *  contradecían en la misma pantalla). */
-export function insigniaDelModelo(x: { porColgar: number; sinColgar: number; agotadas: number }): { tono: "ambar" | "pizarra" | "verde"; texto: string } | null {
-  if (x.porColgar > 0) return { tono: "ambar", texto: `${plural(x.porColgar, "talla", "tallas")} por colgar` };
-  if (x.sinColgar > 0) return { tono: "pizarra", texto: `${plural(x.sinColgar, "talla", "tallas")} sin colgar` };
-  if (x.agotadas === 0) return { tono: "verde", texto: "Todo en el piso" };
-  return null;
-}
-
 /** La línea chica de «Colgar varias tallas y colores» en «Todas»: cuenta lo mismo que el chip del modelo. */
 export function subtituloColgarVarias(x: { porColgar: number; sinColgar: number; almacen: number }): string {
   if (x.porColgar > 0) return `${plural(x.porColgar, "talla falta", "tallas faltan")} en el piso`;
@@ -389,22 +370,45 @@ export function marcaDeColor<F extends FilaDeTalla>(
   return null;
 }
 
-const unirNombres = (nombres: readonly string[]) =>
-  nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+/* ====================================================================
+   La frase grande del modal (Felipe 2026-11-24, maqueta `docs/maquetas/existencias-modal-liviano-2026-11/`): dónde están las unidades
+   libres, con sus números, en palabras de tienda. Debajo va lo que queda aparte (apartadas, dañadas). Sirve a «Esta talla» (una talla) y
+   a «Todas» (las sumas del modelo). El estado («Piso en pausa», «Falta colgar»…) lo sigue diciendo `insigniaDeTalla`.
+   ==================================================================== */
+export type CuentaDeLugar = { piso: number; almacen: number; disponible: number; apartado?: number; danado?: number };
 
-/** La única línea bajo las tallas: cuántas faltan en el piso de este color y en qué otros colores también, sin nombrar las tallas (los
- *  botones de arriba ya las marcan en ámbar). `null` si no falta nada en el modelo. */
-export function lineaDeLoQueFalta(
-  colores: readonly { clave: string; color: string | null; tallas: readonly { varianteId: string }[] }[],
-  claveActual: string,
-  falta: { titulo: string; ids: ReadonlySet<string> } | null
-): string | null {
-  if (!falta) return null;
-  const cuantas = (c: (typeof colores)[number]) => c.tallas.filter((t) => falta.ids.has(t.varianteId)).length;
-  const actual = colores.find((c) => c.clave === claveActual);
-  const aqui = actual ? cuantas(actual) : 0;
-  const otros = colores.filter((c) => c.clave !== claveActual && cuantas(c) > 0).map((c) => c.color?.trim() || "Sin color");
-  if (aqui === 0 && otros.length === 0) return null;
-  if (aqui === 0) return `${falta.titulo}: en ${unirNombres(otros)}`;
-  return `${falta.titulo}: ${plural(aqui, "talla", "tallas")}${otros.length ? ` · también en ${unirNombres(otros)}` : ""}`;
+export function resumenDeLugar(c: CuentaDeLugar, separa: boolean): { titulo: string; bajada: string | null } {
+  const piso = Math.max(0, c.piso);
+  const alm = Math.max(0, c.almacen);
+  const aparte = [
+    (c.apartado ?? 0) > 0 ? plural(c.apartado ?? 0, "apartada", "apartadas") : null,
+    (c.danado ?? 0) > 0 ? plural(c.danado ?? 0, "dañada", "dañadas") : null,
+  ].filter((x): x is string => x !== null);
+  const notaAparte = aparte.length ? `Aparte, ${aparte.join(" y ")}.` : null;
+  const juntar = (...partes: (string | null)[]) => partes.filter(Boolean).join(" ") || null;
+  if (!separa) {
+    const d = Math.max(0, c.disponible);
+    return { titulo: d === 0 ? "No queda ninguna libre" : d === 1 ? "Queda 1 en esta sede" : `${d} en esta sede`, bajada: notaAparte };
+  }
+  if (piso === 0 && alm === 0) return { titulo: "No queda ninguna libre", bajada: notaAparte };
+  if (piso === 0) return { titulo: alm === 1 ? "1 está en el almacén" : `Las ${alm} están en el almacén`, bajada: juntar("Ninguna en el piso.", notaAparte) };
+  if (alm === 0) return { titulo: piso === 1 ? "Queda 1, en el piso" : `Las ${piso} están en el piso`, bajada: juntar("Nada en el almacén.", notaAparte) };
+  return { titulo: `${piso} en el piso y ${alm} en el almacén`, bajada: notaAparte };
+}
+
+/** El porqué del estado bajo la frase grande, sin repetir los números que la frase ya dice (maqueta 2026-11-24): «Falta colgar: cuelga 1»
+ *  (no «Cuelga 1: no hay en el piso y hay 4 en almacén»), «Queda poco: Lima tiene 3», «Se acabó: Lima tiene 2». Las demás frases ya son
+ *  cortas y van como vienen. `null` si no hay nada que agregar. */
+export function fraseDelEstado(insignia: { tono: TonoInsignia; texto: string; frase: string }): string | null {
+  const f = insignia.frase.trim();
+  // «Todo bien» trae los números de la talla («3 en piso · 2 en almacén»): ya están en la frase grande.
+  if (!f || insignia.tono === "verde") return null;
+  const dos = f.indexOf(":");
+  if (dos < 0) return f;
+  const antes = f.slice(0, dos).trim();
+  const despues = f.slice(dos + 1).trim();
+  // «Cuelga 1: …»: lo que hay que hacer va antes de los dos puntos; los números de después ya están en la frase grande.
+  if (insignia.tono === "ambar") return antes.charAt(0).toLocaleLowerCase("es") + antes.slice(1);
+  // «No hay aquí: Lima tiene 2» / «Queda 1 aquí: Lima tiene 3»: lo de aquí ya lo dice la frase grande; queda quién la tiene.
+  return despues || antes;
 }

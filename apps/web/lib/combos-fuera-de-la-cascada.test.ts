@@ -28,6 +28,9 @@ const COMBOS = [
   { ruta: "components/ComboResponsable.tsx", portal: "createPortal(" },
   { ruta: "components/ui/FiltrosPildora.tsx", portal: "createPortal(" },
   { ruta: "components/ui/CampoFecha.tsx", portal: "createPortal(" },
+  // El menú «Más» (2026-11-24, /chaos del modal de Existencias): colgado en `document.body`, dentro de una hoja el foco seguía atrapado en la
+  // hoja y el Escape que debía cerrar solo el menú cerraba la hoja entera.
+  { ruta: "components/ui/MenuAcciones.tsx", portal: "createPortal(" },
 ].map((c) => ({ ...c, fuente: leer(c.ruta) }));
 
 describe("la lista de un combo dentro de un modal no entra en la cascada", () => {

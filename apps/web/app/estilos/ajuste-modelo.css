@@ -48,9 +48,11 @@
   animation: ajuste-luz 1100ms var(--ease-cayla) 500ms 1 both;
 }
 .banda-ajustar-icono svg :is(path, line, polyline) { stroke-dasharray: 60; stroke-dashoffset: 60; animation: ajuste-traza 600ms var(--ease-cayla) 350ms 1 forwards; }
+/* En el celular, una sola línea: la pregunta y su botón al lado, sin el ícono (Felipe 2026-11-24, maqueta del modal liviano; antes eran tres
+   renglones con el botón a todo el ancho). */
 @media (max-width: 639px) {
-  .banda-ajustar { grid-template-columns: 40px minmax(0, 1fr); }
-  .banda-ajustar-boton { grid-column: 1 / -1; }
+  .banda-ajustar { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 6px 6px 6px 14px; }
+  .banda-ajustar-icono { display: none; }
 }
 
 /* ---- La vista de ajuste («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html) ----
