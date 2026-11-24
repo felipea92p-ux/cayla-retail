@@ -258,8 +258,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "cajon-prenda",
       ancla: "existencias.cajon-prenda",
       opcional: true,
-      titulo: "Lo de la prenda, a un toque",
-      texto: "Etiquetas imprime las de precio de este color; Rótulo, el letrero del anaquel del modelo; Historial, sus movimientos en esta sede; y Catálogo, su ficha completa. En la demo no los abrimos.",
+      titulo: "Más: lo de la prenda",
+      texto: "En «Más» están Etiquetas (las de precio de este color), Rótulo (el letrero del anaquel del modelo), Historial (sus movimientos en esta sede) y Catálogo (su ficha completa). En la demo no los abrimos.",
     },
     {
       id: "cajon-tallas",
@@ -281,7 +281,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.cajon-donde",
       opcional: true,
       titulo: "Dónde está",
-      texto: "El veredicto de esta talla (todo bien, cuelga una, se acabó…) y sus cuatro números: en piso, en almacén, apartadas y dañadas. Toca «En piso» o «En almacén» y pasas a «Todas» con ese filtro puesto. Debajo, cuántas vienen en camino y qué tienen las otras sedes.",
+      texto: "La frase grande dice dónde están; debajo, su estado (todo bien, falta colgar, se acabó…) y, si el sistema sugiere algo, su botón. Luego los cuatro números: en piso, en almacén, apartadas y dañadas; «En piso» y «En almacén» te llevan a «Todas» con ese filtro. Al final, lo que viene en camino y lo de otras sedes.",
     },
     {
       id: "cajon-ajustar",
@@ -308,8 +308,8 @@ export const GUIA_EXISTENCIAS: Guia = {
       id: "cajon-acciones",
       ancla: "existencias.cajon-acciones",
       opcional: true,
-      titulo: "Lo que puedes hacer con ella",
-      texto: "Solo lo que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada. La que más se necesita va primero y pintada. Cada una se confirma antes de mover el stock; en la demo no se toca.",
+      titulo: "También puedes",
+      texto: "Lo demás que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada, primero lo que más necesita. La que el sistema sugiere ya está arriba, como botón. Cada una se confirma antes de mover el stock; en la demo no se toca.",
     },
     {
       id: "cajon-arreglada",
@@ -319,18 +319,11 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si esta talla tiene una prenda dañada, aquí la devuelves a la venta cuando vuelve arreglada: abre su «Se arregló» con un toque. Y si te equivocaste al reportarla, en la lista de dañadas está «Me equivoqué de prenda». En la demo no se toca.",
     },
     {
-      id: "cajon-no-ahora",
-      ancla: "existencias.cajon-no-ahora",
-      opcional: true,
-      titulo: "Lo que hoy no se puede",
-      texto: "Lo que no se puede hacer ahora con esta talla, con su porqué, en una sola línea: nada guardado para colgar, ninguna tienda que la tenga, nada colgado para subir.",
-    },
-    {
       id: "cajon-ritmo",
       ancla: "existencias.cajon-ritmo",
       opcional: true,
       titulo: "A qué ritmo sale",
-      texto: "Cuántas se vendieron de este color en los últimos días, y cuántas de esta talla. Te ayuda a decidir si conviene colgar más o pedirla.",
+      texto: "El «?» junto al estado dice cuántas se vendieron de este color en los últimos días, y cuántas de esta talla. Te ayuda a decidir si conviene colgar más o pedirla.",
     },
     {
       id: "cajon-todas",
@@ -338,14 +331,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.cajon-todas" }],
       titulo: "Todas las tallas y colores",
-      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba lo colgado, abajo lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «En piso» o «En almacén» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
+      texto: "«Todas» junta cada color y cada talla en un cuadro: arriba, con la percha, lo colgado; abajo, con la caja, lo guardado; en ámbar lo que falta colgar, y al final el total por color y por talla. Toca «En piso» o «En almacén» arriba y el cuadro muestra solo eso. Toca una casilla y vuelves a esa talla.",
     },
     {
       id: "cajon-colgar-varias",
       ancla: "existencias.cajon-colgar-varias",
       opcional: true,
       titulo: "Colgar varias de una vez",
-      texto: "Abre una tabla con todas las tallas y colores del modelo para elegir cuántas bajas de cada una. Recién al confirmar se mueve el stock; en la demo no lo tocamos.",
+      texto: "Junto a la suma del modelo: abre una tabla con todas las tallas y colores para elegir cuántas bajas de cada una. Va oscuro cuando algo falta colgar. Recién al confirmar se mueve el stock; en la demo no lo tocamos.",
     },
     {
       id: "pie",

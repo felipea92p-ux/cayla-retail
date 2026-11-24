@@ -461,3 +461,53 @@ recorrida con `guias:recorrer` en un banco Supabase propio con el seed (escritor
 
 **Queda abierto.** Probar con una encargada real; que «Comprar» diga a dónde lleva si la flecha no alcanza; los montos por grupo de «No se vende» junto al total; «Qué pedir» contra Navidad fija o contra el
 Plan de campaña (sigue de antes); la curva de tallas de la hoja de un tipo todavía no suma la talla de lo vendido sin registrar (sigue de antes).
+
+## Actualización 2026-11-24 — «Qué pedir» en dos partes y tarjetas sin botones
+
+**El problema primero.** Felipe miró «Qué pedir» de Tienda TRU y preguntó si hacía falta «Comprar»: el botón no compraba ni avisaba nada, solo
+llevaba a Compras ▸ Mis compras sin la prenda. Al revisarlo aparecieron tres cosas más, todas con datos de producción del mismo día:
+1. **«Faltan 5» no decía 5 qué** (son cinco combinaciones de color y talla en cero; el modelo sí tiene stock) y Felipe lo leyó como «no hay
+   nada». **«13 días te alcanzan» tampoco decía si había stock**: el Polo Básico Cayla tenía 72 en tienda.
+2. **«Lima tiene 17» cuenta todo el modelo en Lima**, no lo que falta aquí; el detalle por color y talla, al tocar la tarjeta (la ficha).
+3. **Lo que se agota se iba de la lista.** Sin stock no hay ventas, y sin ventas en 30 días no hay ritmo: 31 modelos agotados que se vendían no
+   salían (la Camisa M/corta con Amarre: 12 en 7 días, agotada el 23 de octubre), y los 49 que sí salían decían solo «Ya no hay». Lo que se trajo en
+   poca cantidad para probar y se vendió todo es justo lo que más importa pedir (Felipe: «o se trajeron en menor cantidad para probar»).
+
+**Lo que decidió Felipe, mirando maquetas con los datos reales de TRU** (`docs/maquetas/analisis-pedir-sin-comprar-2026-11/`, sin commit porque
+llevan datos reales):
+1. **Sin botones en las tarjetas de «Qué pedir» y de «Se acaba»:** se van «Comprar →» y «o pedir a …». La tarjeta informa; «Pedir a …» sigue en
+   la ficha. «Se acaba» conserva su línea («Faltan 5 · Lima tiene 17») y su «Comprar todas» de arriba (no se tocó: queda para que Felipe decida).
+2. **«Qué pedir» en dos partes**, cada una con su título y su cuenta (`<TituloGrupo>`):
+   - **«Ya se agotaron»**, primero: los modelos sin nada aquí (en las tallas que se miran) que se vendieron en las **8 semanas** que la base ya
+     entrega (`semanas`). La tarjeta dice **«Se agotó el 23 oct.»** (su última venta), **«Vendiste 12 / en 7 días»** (desde que salió al piso o
+     llegó, sin ir más atrás de las 8 semanas; sin la fecha, «en 8 semanas») y, al pie, lo que viene en camino o la otra tienda que lo tiene.
+   - **«Se acaban antes de Navidad»**: los que todavía tienen algo y no llegan. La tarjeta dice **«Hasta el 7 dic.»** (hoy más los días que
+     alcanza: una fecha se compara directo con Navidad), **«Tienes 72»** y **«Vendes 39 por semana»** (el mismo ritmo con que se cuentan los días:
+     cada talla desde que salió al piso), y el mismo pie.
+   Los días siguen bien contados: el «13 días» del Polo Básico Cayla que pareció raro era real (salió al piso el 15 de noviembre y vendió 47 en 10
+   días); la tarjeta solo dejó de decirlos como «días» para decir el día.
+3. **La respuesta y la tarjeta de «Hoy» cuentan las dos partes juntas** (`queHayQuePedir(…).todos`).
+4. **«Ordenar por» suma «Lo que más se vende y quedan pocos»** (Felipe, la misma tarde: «debería existir otro que diga lo que más se vende pero
+   quedan pocos»). «Quedan pocos» es lo que se acaba en **2 semanas o menos** (`DIAS_SE_ACABA`, el mismo plazo de «Se acaba»; elegido entre
+   «menos unidades primero» y renombrar «Lo que se acaba antes»): primero esos, de lo más vendido a lo menos, y después el resto igual. En TRU:
+   Polo Básico Cayla, Chaleco Cecia, Falda Larga Mesh, Short Lino y Capa Encaje, y luego Polo Basico Manga Corta, Patalón Nuki…
+5. **Dos órdenes separados, cada uno con su pregunta primero, y las 10 primeras** (Felipe, esa misma tarde: «lo que más se vende» ponía arriba los
+   agotados aunque un modelo con mucho stock vendiera más; eligió dos órdenes separados antes que uno mezclado). «Ordenar por» de «Qué pedir»:
+   **«Lo que más se vende y no hay stock»** (el de siempre: arriba «Ya se agotaron») y **«Lo que más se vende y quedan pocos»** (arriba «Se acaban
+   antes de Navidad», con lo que se acaba en 2 semanas primero); siguen «Lo que se acaba antes» y «Por nombre» (`parteDeArriba`).
+6. **«Mostrar», junto a «Ordenar por», elige cuántas tarjetas de cada parte se ven: 10 de entrada, 20, 50 o Todas** (Felipe: «¿dónde se ajusta el
+   top 10?»; eligió esta píldora antes que dejar también «Ver N más», para no tener dos controles que hacen lo mismo). Es la misma pieza que «Ordenar
+   por» (`<DesplegablePildora>`), solo en «Qué pedir» (`MOSTRAR_PEDIR` en `lib/analisis-orden.ts`, `primerasQuePedir`); el título de cada parte
+   sigue diciendo cuántas son en total. Reemplaza al «Ver N más» de la misma tarde.
+
+**Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
+`textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su
+`porDia`), con sus pruebas en `lib/analisis-pedir.test.ts`. `<TarjetaPrenda>` suma `antes` (lo que va antes del número) y `lineas` (renglones
+bajo el número). Sin migración ni RPC: todo sale de lo que `fn_analisis_sede` ya devuelve. `textoPedirA` y `AccionesDeCompra` se borraron.
+
+**Cómo se verificó.** Todas las pruebas de la web (967 archivos); en el navegador, con una página local de prueba armada con las cifras reales de
+TRU, a 1600 y 375 px, en claro y oscuro (sin errores en consola); `/milimetro auditar` en
+`docs/milimetro/auditorias/2026-11-24-analisis-que-pedir.md`.
+
+**Queda abierto.** Si «Comprar todas» de «Se acaba» también se va; marcar los agotados que fueron compras de una sola vez (hoy no hay cómo, y
+salen en «Ya se agotaron» hasta 8 semanas); probarlo con una encargada real.

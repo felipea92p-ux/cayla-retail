@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DESENFOQUE_CLARO, ELEGIDO, LUMINOSIDAD, claveDelMapa, cuerpoDelFiltro, mapasDelCanto, medidasDelCanto, perfilDelCanto, type TemaDelVidrio } from "./vidrio-dobla";
+import { DESENFOQUE_CLARO, ELEGIDO, LUMINOSIDAD, claveDelMapa, cuerpoDelFiltro, mapasDelCanto, medidasDelCanto, navegadorDibujaDobla, perfilDelCanto, type TemaDelVidrio } from "./vidrio-dobla";
 
 // El vidrio que dobla (ADR-0681). Lo que se ve se revisa en el navegador; aquí se cuida lo que no se ve a simple vista: que el mapa
 // corra la luz hacia donde debe, que el filtro esté bien armado y, sobre todo, que la letra se lea con cualquier cosa detrás.
@@ -266,5 +266,24 @@ describe("el relleno claro: la letra en tinta se lee con cualquier cosa detrás"
   it("aun con el piso, deja pasar más de lo de atrás que el vidrio de siempre (26 % en claro, 12 % en oscuro)", () => {
     expect(LUMINOSIDAD.claro.pendiente).toBeGreaterThan(0.26);
     expect(LUMINOSIDAD.oscuro.pendiente).toBeGreaterThan(0.12);
+  });
+});
+
+describe("quién dibuja el vidrio que dobla (Safari dice que sí y no lo dibuja, 2026-11-24)", () => {
+  const marcas = (...b: string[]) => ({ userAgentData: { brands: b.map((brand) => ({ brand })) } });
+
+  it("Chrome y Edge, sí: los dos traen la marca Chromium", () => {
+    expect(navegadorDibujaDobla(marcas("Chromium", "Google Chrome", "Not_A Brand"))).toBe(true);
+    expect(navegadorDibujaDobla(marcas("Microsoft Edge", "Chromium", "Not=A?Brand"))).toBe(true);
+  });
+
+  it("Safari y Firefox, no: no traen userAgentData, aunque CSS.supports diga que aceptan el filtro", () => {
+    expect(navegadorDibujaDobla({})).toBe(false);
+    expect(navegadorDibujaDobla({ userAgentData: null })).toBe(false);
+    expect(navegadorDibujaDobla(undefined)).toBe(false);
+  });
+
+  it("una marca que no es de motor Chromium, no", () => {
+    expect(navegadorDibujaDobla(marcas("Not_A Brand"))).toBe(false);
   });
 });

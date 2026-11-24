@@ -7,9 +7,11 @@
 import type { PrendaAnalisis } from "./analisis-tipos";
 import type { FiltrosAnalisis } from "./analisis-filtros";
 import type { ModeloAnalisis } from "./analisis-modelo";
-import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { DIAS_MINIMOS_RITMO, DIAS_SE_ACABA, esTallaUnica, nuncaSalio, otraSedeQueLaTiene, plural, totalEnTienda } from "./analisis-reglas";
+import { textoViene } from "./analisis-acaba";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diasEntreFechas, sumarDias } from "./fechas-lima";
+import { fechaCorta } from "./motor-demanda-reglas";
 
 /* ───────── Tipo de prenda ───────── */
 
@@ -391,8 +393,14 @@ export const fraseAlcance = (n: number, hastaNavidad: number): string =>
 
 // ───────── Por modelo (Felipe 2026-11-21: «las tarjetas deberían ser por modelo y no por tipo; para eso existe el filtro de tipo») ─────────
 
-/** Para cuántos días le alcanza a un modelo lo que tiene: lo vendido y lo que hay en las tallas que se miran. */
-export type AlcanceModelo<T> = { modelo: T; vendidas: number; tiene: number; dias: number | null };
+/** Para cuántos días le alcanza a un modelo lo que tiene: lo vendido y lo que hay en las tallas que se miran, y cuánto vende por día. */
+export type AlcanceModelo<T> = { modelo: T; vendidas: number; tiene: number; porDia: number; dias: number | null };
+
+/** Las tallas y colores del modelo que se miran: los de los filtros de talla y color, o todos. */
+const tallasQueSeMiran = (m: ModeloAnalisis, f: Pick<FiltrosAnalisis, "talla" | "color">): PrendaAnalisis[] =>
+  (m.variantes.length > 0 ? m.variantes : [m]).filter(
+    (v) => (f.talla.length === 0 || f.talla.includes(v.talla)) && (f.color.length === 0 || f.color.includes(v.color)),
+  );
 
 /**
  * La misma cuenta que `alcancePorTipo`, en las tallas de UN modelo: lo que tiene entre lo que vende por día, cada talla en su ventana
@@ -402,24 +410,23 @@ export type AlcanceModelo<T> = { modelo: T; vendidas: number; tiene: number; dia
  */
 export function alcanceDelModelo<T extends ModeloAnalisis>(m: T, f: Pick<FiltrosAnalisis, "talla" | "color">, diasDeVentas: number): AlcanceModelo<T> {
   const tienda = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
-  const tallas = (m.variantes.length > 0 ? m.variantes : [m]).filter(
-    (v) => (f.talla.length === 0 || f.talla.includes(v.talla)) && (f.color.length === 0 || f.color.includes(v.color)),
-  );
   let vendidas = 0;
   let tiene = 0;
   let porDia = 0;
-  for (const v of tallas) {
+  for (const v of tallasQueSeMiran(m, f)) {
     const vend = Math.max(0, v.vendidas30);
     vendidas += vend;
     tiene += Math.max(0, totalEnTienda(v));
     porDia += vend / Math.min(30, Math.max(1, Math.round(v.diasDeVentas ?? tienda)));
   }
-  return { modelo: m, vendidas, tiene, dias: vendidas > 0 && porDia > 0 ? tiene / porDia : null };
+  return { modelo: m, vendidas, tiene, porDia, dias: vendidas > 0 && porDia > 0 ? tiene / porDia : null };
 }
 
 /**
- * Los modelos que no llegan a Navidad: los que se venden y a los que lo que tienen no les alcanza hasta ese día. El orden de «Qué
- * pedir»: lo que más se vende (de siempre), lo que se acaba antes o por nombre; a igual cosa, lo que se acaba antes y el nombre.
+ * Los modelos que se acaban antes de Navidad (la parte de abajo de «Qué pedir»): los que se venden, TODAVÍA TIENEN algo aquí y no les
+ * alcanza hasta ese día. Lo que ya no tiene nada va arriba, en «Ya se agotaron» (`modelosAgotados`). El orden: lo que más se vende (de
+ * siempre), lo que más se vende y quedan pocos (primero lo que se acaba en 2 semanas o menos, `DIAS_SE_ACABA`, de lo más vendido a lo
+ * menos; después el resto igual; Felipe 2026-11-24), lo que se acaba antes o por nombre; a igual cosa, lo que se acaba antes y el nombre.
  */
 export function modelosQueNoLlegan<T extends ModeloAnalisis>(
   modelos: readonly T[],
@@ -428,13 +435,122 @@ export function modelosQueNoLlegan<T extends ModeloAnalisis>(
   hastaNavidad: number,
   orden: string,
 ): AlcanceModelo<T>[] {
-  const piden = modelos.map((m) => alcanceDelModelo(m, f, diasDeVentas)).filter((a) => a.dias !== null && a.dias < hastaNavidad);
+  const piden = modelos.map((m) => alcanceDelModelo(m, f, diasDeVentas)).filter((a) => a.tiene > 0 && a.dias !== null && a.dias < hastaNavidad);
   const porNombre = (a: AlcanceModelo<T>, b: AlcanceModelo<T>) => a.modelo.nombre.localeCompare(b.modelo.nombre, "es");
   const antes = (a: AlcanceModelo<T>, b: AlcanceModelo<T>) => (a.dias ?? Infinity) - (b.dias ?? Infinity);
   if (orden === "nombre") return piden.sort((a, b) => porNombre(a, b) || antes(a, b));
   if (orden === "acaba") return piden.sort((a, b) => antes(a, b) || b.vendidas - a.vendidas || porNombre(a, b));
+  if (orden === "pocos") {
+    const quedanPocos = (a: AlcanceModelo<T>) => ((a.dias ?? Infinity) <= DIAS_SE_ACABA ? 0 : 1);
+    return piden.sort((a, b) => quedanPocos(a) - quedanPocos(b) || b.vendidas - a.vendidas || antes(a, b) || porNombre(a, b));
+  }
   return piden.sort((a, b) => b.vendidas - a.vendidas || antes(a, b) || porNombre(a, b));
 }
 
 /** Los días que alcanza, enteros, para la tarjeta: lo que se acaba en menos de un día dice 1; «Ya no hay» es solo el 0. null sin ritmo. */
 export const diasEnteros = (dias: number | null): number | null => (dias === null ? null : dias <= 0 ? 0 : Math.max(1, Math.round(dias)));
+
+/* ───────── «Ya se agotaron» (Felipe 2026-11-24) ─────────
+ * EL PROBLEMA. Sin stock no hay ventas, y sin ventas en 30 días no hay ritmo: un modelo que se vendió entero y rápido (lo que se trajo
+ * en poca cantidad para probar, o lo que mejor salió) se iba de «Qué pedir» al mes de agotarse, justo por haberse agotado. En TRU, el
+ * 24 de noviembre, 31 modelos agotados que se vendían no salían (la Camisa M/corta con Amarre: 12 en 7 días, agotada el 23 de octubre),
+ * y los 49 que sí salían decían solo «Ya no hay».
+ * LA REGLA. Arriba de «Qué pedir», los modelos sin nada aquí (en las tallas que se miran) que se vendieron en las 8 semanas que la base
+ * entrega (`semanas`), con cuándo se agotó y cuántas se vendieron en cuántos días: lo que dice si la prueba funcionó. */
+
+/** Las semanas que mira «Ya se agotaron»: las 8 de `semanas`. */
+export const SEMANAS_AGOTADOS = 8;
+
+/** Un modelo agotado: cuántas vendió en las 8 semanas, el día de su última venta (cuándo se agotó) y en cuántos días se vendieron. */
+export type AgotadoModelo<T> = { modelo: T; vendidas: number; agoto: string | null; dias: number | null };
+
+/** La fecha más temprana o la más tardía de las que se saben (aaaa-mm-dd se compara como texto); null si ninguna. */
+function fechaExtrema(fechas: readonly (string | null | undefined)[], cual: "primera" | "ultima"): string | null {
+  const sabidas = fechas.filter((x): x is string => typeof x === "string" && x !== "");
+  if (sabidas.length === 0) return null;
+  return sabidas.reduce((a, b) => ((cual === "primera" ? b < a : b > a) ? b : a));
+}
+
+/**
+ * El modelo, si se agotó aquí: nada en las tallas que se miran y alguna venta en las 8 semanas; null si tiene algo o no se vendió.
+ * `dias`: desde que salió al piso (o llegó, si nunca se colgó), sin ir más atrás de las 8 semanas, hasta su última venta; null si la
+ * base no dice la última venta o las fechas no cuadran (la tarjeta dice entonces «en 8 semanas», que también es cierto).
+ */
+export function agotadoDelModelo<T extends ModeloAnalisis>(m: T, f: Pick<FiltrosAnalisis, "talla" | "color">, hoy: string): AgotadoModelo<T> | null {
+  const tallas = tallasQueSeMiran(m, f);
+  if (tallas.length === 0 || tallas.some((v) => totalEnTienda(v) > 0)) return null;
+  const vendidas = tallas.reduce((s, v) => s + v.semanas.reduce((t, n) => t + Math.max(0, n), 0), 0);
+  if (vendidas <= 0) return null;
+  const agoto = fechaExtrema(tallas.map((v) => v.ultimaVenta), "ultima");
+  const inicio = sumarDias(hoy, -(SEMANAS_AGOTADOS * 7 - 1));
+  const salio = fechaExtrema(tallas.map((v) => v.salioAlPiso ?? v.llego), "primera");
+  const desde = salio !== null && salio > inicio ? salio : inicio;
+  const dias = agoto !== null && agoto >= desde ? diasEntreFechas(desde, agoto) + 1 : null;
+  return { modelo: m, vendidas, agoto, dias };
+}
+
+/**
+ * «Ya se agotaron», ordenados con la misma píldora que el resto de «Qué pedir»: lo que más se vendió (a igual venta, lo agotado más
+ * reciente; también con «quedan pocos»: de un agotado no queda nada), lo que lleva más tiempo agotado o por nombre.
+ */
+export function modelosAgotados<T extends ModeloAnalisis>(modelos: readonly T[], f: Pick<FiltrosAnalisis, "talla" | "color">, hoy: string, orden: string): AgotadoModelo<T>[] {
+  const agotados = modelos.map((m) => agotadoDelModelo(m, f, hoy)).filter((a): a is AgotadoModelo<T> => a !== null);
+  const porNombre = (a: AgotadoModelo<T>, b: AgotadoModelo<T>) => a.modelo.nombre.localeCompare(b.modelo.nombre, "es");
+  const reciente = (a: AgotadoModelo<T>, b: AgotadoModelo<T>) => (b.agoto ?? "").localeCompare(a.agoto ?? "");
+  if (orden === "nombre") return agotados.sort((a, b) => porNombre(a, b) || b.vendidas - a.vendidas);
+  if (orden === "acaba") return agotados.sort((a, b) => -reciente(a, b) || b.vendidas - a.vendidas || porNombre(a, b));
+  return agotados.sort((a, b) => b.vendidas - a.vendidas || reciente(a, b) || porNombre(a, b));
+}
+
+/**
+ * Qué parte va arriba en «Qué pedir»: con «Lo que más se vende y quedan pocos», «Se acaban antes de Navidad»; con cualquier otro orden,
+ * «Ya se agotaron» (Felipe 2026-11-24: cada orden responde su pregunta primero).
+ */
+export const parteDeArriba = (orden: string): "agotados" | "seAcaban" => (orden === "pocos" ? "seAcaban" : "agotados");
+
+/** Las primeras de una parte según «Mostrar» (`MOSTRAR_PEDIR`): «10», «20», «50» o «todas» (o algo que no es un número: todas). */
+export function primerasQuePedir<T>(lista: readonly T[], mostrar: string): T[] {
+  const n = Number(mostrar);
+  return Number.isInteger(n) && n > 0 ? lista.slice(0, n) : [...lista];
+}
+
+/** Las dos partes de «Qué pedir» y los modelos de las dos juntos, para contarlos (la pestaña y su tarjeta en «Hoy»). */
+export function queHayQuePedir<T extends ModeloAnalisis>(
+  modelos: readonly T[],
+  f: Pick<FiltrosAnalisis, "talla" | "color">,
+  diasDeVentas: number,
+  hoy: string,
+  orden: string,
+): { agotados: AgotadoModelo<T>[]; seAcaban: AlcanceModelo<T>[]; todos: T[] } {
+  const agotados = modelosAgotados(modelos, f, hoy, orden);
+  const seAcaban = modelosQueNoLlegan(modelos, f, diasDeVentas, diasANavidad(hoy), orden);
+  return { agotados, seAcaban, todos: [...agotados.map((a) => a.modelo), ...seAcaban.map((a) => a.modelo)] };
+}
+
+/* ───────── Lo que dice cada tarjeta de «Qué pedir» (Felipe 2026-11-24: sin días, sin «Faltan», sin botones) ───────── */
+
+/** El día en que se acaba al ritmo de hoy: «7 dic.» (hoy más los días que alcanza, enteros). */
+export const fechaEnQueSeAcaba = (hoy: string, dias: number): string => fechaCorta(sumarDias(hoy, Math.max(1, Math.round(dias))));
+
+/** «Vendes 39 por semana»: el mismo ritmo con el que se cuentan los días (cada talla en su ventana), por 7. */
+export function textoVendesPorSemana(porDia: number): string {
+  const n = Math.round(porDia * 7);
+  return n >= 1 ? `Vendes ${n} por semana` : "Vendes menos de 1 por semana";
+}
+
+/** «Vendiste 12» y «en 7 días» (o «en 8 semanas» si no se sabe en cuántos días): dos líneas bajo «Se agotó el…». */
+export function textoVendiste(a: Pick<AgotadoModelo<unknown>, "vendidas" | "dias">): [string, string] {
+  return [`Vendiste ${a.vendidas}`, a.dias !== null ? `en ${a.dias} ${plural(a.dias, "día", "días")}` : `en ${SEMANAS_AGOTADOS} semanas`];
+}
+
+/**
+ * El pie de la tarjeta, una línea o nada: lo que viene en camino («Llegan 12 el 6 dic.»), y si nada viene, otra tienda que tiene el
+ * modelo («Lima tiene 17»: todas sus tallas y colores; cuáles, en la ficha).
+ */
+export function pieDePedir(m: ModeloAnalisis, hoy: string, ciudadDe: (sedeId: string) => string | undefined): string | null {
+  const viene = textoViene(m, hoy);
+  if (viene) return viene;
+  const otra = otraSedeQueLaTiene(m.otras);
+  const ciudad = otra ? ciudadDe(otra.sedeId) : undefined;
+  return otra && ciudad ? `${ciudad} tiene ${otra.stock}` : null;
+}

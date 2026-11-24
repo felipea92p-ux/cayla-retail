@@ -11,6 +11,22 @@
 // Este archivo es la parte PURA (números y texto, sin navegador), con su prueba. Lo que toca el DOM vive en
 // `components/ui/useVidrioQueDobla.ts`.
 
+/** Lo que el navegador dice de sí mismo, de `navigator` (solo lo que esta regla lee). */
+export type NavegadorQueSeDescribe = { userAgentData?: { brands?: readonly { brand: string }[] } | null };
+
+/**
+ * ¿Este navegador DIBUJA un filtro SVG dentro de `backdrop-filter`? Hoy, solo los de motor Chromium (Chrome, Edge).
+ *
+ * No se le pregunta con `CSS.supports("backdrop-filter", "url(#x)")`: Safari dice que sí (la frase es válida) pero no lo dibuja. Con
+ * el ancla también aceptada (Safari 26), la hoja soltaba su vidrio para dárselo a una lente que Safari deja vacía y se veía
+ * transparente, sin desenfoque adentro ni afuera (Felipe 2026-11-24, «Colgar en el piso» en Existencias). Se pregunta por el motor:
+ * `navigator.userAgentData` solo existe en Chromium y su marca «Chromium» viene en Chrome, Edge y los demás de ese motor. Si un día
+ * Safari o Firefox lo dibujan, se suman aquí, después de verlo en ese navegador.
+ */
+export function navegadorDibujaDobla(nav: NavegadorQueSeDescribe | undefined): boolean {
+  return nav?.userAgentData?.brands?.some((b) => b.brand === "Chromium") ?? false;
+}
+
 /** Por dónde dobla la pieza: una cápsula o una hoja, por todo su contorno; una barra pegada a un borde de la pantalla, solo por su lado libre. */
 export type LadosDelCanto = "todos" | "abajo" | "derecha";
 

@@ -7,7 +7,7 @@
 
 - [x] **Toque chico en el ticket de Vender** (celular obligatorio): el «%» de descuento de cada línea mide 94 × 27 px (`components/punto-de-venta/LineaDelTicket.tsx:123`). A 360, 375 y 430.
 - [x] **Toque chico en Apartados** (celular obligatorio): «Opciones» mide 110 × 36 px (`components/apartados/ApartadosPanel.tsx:130`, `h-9`). A 360, 375 y 430.
-- [ ] **Cobro con el teléfono acostado** (844 × 390): el resumen y «Confirmar cobro» quedan fijos y a los pasos les queda una franja de unos 80 px; los medios de pago se ven a medias. Visto en captura, medido como mouse.
+- [x] **Cobro con el teléfono acostado** (844 × 390): el resumen y «Confirmar cobro» quedan fijos y a los pasos les queda una franja de unos 80 px; los medios de pago se ven a medias. Visto en captura, medido como mouse. **Era peor: «Confirmar cobro» quedaba fuera de la hoja. Arreglado el 2026-11-24** (`docs/backlog/2026-11-24-mobile-sales-flow-31a365.md`): bajo 500 px de alto la hoja del ticket corre entera.
 - [x] **Toque chico en Historial:** el chip «Pendiente de enviar» de una venta mide 151 × 26 px (`components/HistorialVentasLista.tsx`). A 360, 375 y 430.
 - [x] **Toque chico en la cabecera** (toda pantalla, desde 401 px de ancho): el colibrí que lleva al Inicio mide 39 × 26 px (`components/AppShell.tsx:1221`).
 - [ ] Menores: «Volver al ticket» de la hoja de cobro mide 42 × 42; «Dejar en espera» a 360 px queda en un ícono de 38 px de ancho; en Historial la última píldora de período se corta en seco contra «Filtros» y sus áreas se pisan (360 y 430).

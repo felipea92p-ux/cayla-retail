@@ -1,0 +1,10 @@
+## Vender en el celular (2026-11-24)
+
+- [x] «Venta registrada» abría bajada en el celular y escondía el total y «Entregar vuelto» (`VentaRegistradaModal.tsx`: el foco va con `preventScroll`).
+- [x] Con el teléfono acostado (844 × 390) «Cobrar» y «Confirmar cobro» quedaban fuera de la hoja del ticket (`vidrio/vender.css`, bajo 500 px de alto la hoja corre entera).
+- [ ] **Felipe decide — lo que de verdad frena cobrar en el celular:** la boleta no sale del celular y el ticket no pasa a la Mac. Dos caminos que ya existen a medias:
+  (a) encender «Imprimir en la caja» (el celular cobra, la boleta sale en la Mac): nunca se usó (0 filas en `retail.impresiones` al 2026-11-24), y sus dos interruptores viven al pie de «Venta registrada», donde nadie los ve;
+  (b) «Mandar a la caja»: el celular arma el ticket con el cliente y lo manda a la Mac, que cobra e imprime como siempre. Es el PASO 2 de `docs/backlog/2026-10-25-punto-venta-ventas-simultaneas-4ebde8.md` (tabla nueva con RLS, zona roja). Maqueta antes de código.
+- [ ] En el celular, «Venta registrada» ofrece «Imprimir y nueva venta» como botón principal y dice «Enter imprime… · Esc sigue sin imprimir»: un celular sin impresora ni teclado abre el diálogo de impresión del teléfono. Depende de lo que Felipe decida arriba.
+- [ ] Toques de menos de 44 px en Vender a 375 px: Apartados, Separé una dañada, Más y «Hoy» (36 de alto); − y + de la cantidad del ticket (36 × 36). `PasoCantidad.tsx` dice que el tamaño «fila» crece a 44 en pantalla táctil, pero `tacto.css` lo excluye (`.caja-campo:not(.paso-cantidad)`) y ninguna otra regla lo agranda.
+- [ ] Sin probar: modo oscuro de los dos arreglos (no cambian colores) y Safari de un iPhone real con la barra de direcciones (se probó en Chrome emulado).

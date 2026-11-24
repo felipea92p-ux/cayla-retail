@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>La hoja en Safari: hoy, con el arreglo y en Chrome</title>
+<style>
+  /* Maqueta explicativa (no es código del ERP). Colores copiados de los tokens de globals.css / vidrio/recetas.css. */
+  :root{--tinta:#1a1a18;--papel:#fbf8f2;--sand:#e8e0d0;--taupe:#805c4c;--fondo:#f3eee6}
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 32px 36px;background:var(--fondo);color:var(--tinta);font:14px/1.45 -apple-system,"Inter",system-ui,sans-serif}
+  h1{font:600 26px/1.15 Georgia,"EB Garamond",serif;margin:0 0 4px}
+  .bajada{color:#5d5a55;margin:0 0 22px;font-size:15px}
+  .fila{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .col h2{font-size:15px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+  .col .donde{font-size:13px;color:#5d5a55;margin:0 0 10px}
+  .chip{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+  .mal{background:#f6dcd6;color:#8a2c1c}.bien{background:#dfeedd;color:#2b5b2a}.igual{background:#e6e2f3;color:#3d3470}
+
+  /* ---- la pantalla de atrás (Existencias, inventada) ---- */
+  .marco{position:relative;height:410px;border-radius:16px;overflow:hidden;border:1px solid var(--sand);background:var(--papel)}
+  .fondo{position:absolute;inset:0;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-content:start}
+  .t{border:1px solid var(--sand);border-radius:12px;padding:8px;background:#fff}
+  .t b{display:block;font:600 13px Georgia,serif}
+  .t i{display:block;font-style:normal;font-size:12px;color:var(--taupe)}
+  .t .f{height:46px;border-radius:8px;margin-top:6px}
+  .t .n{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
+  .c1 .f{background:linear-gradient(135deg,#d9c2b0,#8c6a58)} .c2 .f{background:linear-gradient(135deg,#9fb3c8,#3e5873)}
+  .c3 .f{background:linear-gradient(135deg,#e7b8a6,#b5523b)} .c4 .f{background:linear-gradient(135deg,#c9d3b4,#5f7347)}
+  .c5 .f{background:linear-gradient(135deg,#e5d6a8,#a8862e)} .c6 .f{background:linear-gradient(135deg,#d4c4dc,#6e4f80)}
+
+  /* ---- el velo y la hoja ---- */
+  .velo{position:absolute;inset:0;background:rgba(26,26,24,.20)}
+  .hoja{position:absolute;left:26px;right:26px;top:34px;bottom:22px;border-radius:24px;padding:18px 20px}
+  .hoja h3{margin:0;font:600 21px/1.1 Georgia,serif}
+  .hoja .sub{font-size:12px;color:#5d5a55;margin:2px 0 12px}
+  .hoja .pre{font:600 15px Georgia,serif;margin:0 0 4px}
+  .hoja .hay{font-size:12.5px;margin:0 0 10px}
+  .stepper{display:inline-flex;align-items:center;gap:18px;border:1px solid rgba(26,26,24,.18);border-radius:12px;padding:6px 14px;font-size:18px;background:rgba(255,255,255,.35)}
+  .cajas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .caja{border:1px solid rgba(26,26,24,.14);border-radius:12px;padding:8px;text-align:center;font-size:12px;background:rgba(255,255,255,.35)}
+  .caja b{display:block;font:600 22px Georgia,serif}
+  .pie{position:absolute;right:20px;bottom:16px;display:flex;gap:8px}
+  .btn{border-radius:999px;padding:6px 14px;font-size:12.5px;border:1px solid rgba(26,26,24,.2);background:rgba(255,255,255,.6)}
+  .btn.osc{background:#2a2a27;color:#fff;border-color:#2a2a27}
+
+  /* A · HOY EN SAFARI: el velo soltó su desenfoque, la hoja se volvió transparente y la lente no dibuja nada */
+  .A .hoja{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4)}
+
+  /* B · SAFARI CON EL ARREGLO: el vidrio Serena de antes (velo desenfoca, hoja al 70 %) */
+  .B .velo{-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4)}
+  .B .hoja{background:rgba(255,255,255,.70);border:1px solid rgba(255,255,255,.55);
+           box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 40px 70px -35px rgba(26,26,24,.45)}
+
+  /* C · CHROME: igual, más el canto que dobla (aquí aproximado con un brillo de borde; el real lo hace un filtro SVG) */
+  .C .velo{-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4)}
+  .C .hoja{background:rgba(255,255,255,.66);border:1px solid rgba(255,255,255,.7);
+           box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),inset 0 10px 18px -10px rgba(255,255,255,.95),
+                      inset 0 -10px 18px -12px rgba(26,26,24,.18),inset 10px 0 16px -12px rgba(255,255,255,.8),
+                      inset -10px 0 16px -12px rgba(26,26,24,.12),0 40px 70px -35px rgba(26,26,24,.45)}
+
+  .nota{font-size:13px;margin:10px 2px 0;color:#3a3833}
+  .nota b{color:var(--tinta)}
+  .abajo{margin-top:26px;display:grid;grid-template-columns:1.2fr 1fr;gap:22px;align-items:start}
+  .card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+  .card h4{margin:0 0 6px;font:600 16px Georgia,serif}
+  .card ol{margin:0;padding-left:18px}.card li{margin:3px 0}
+  code{font:12px ui-monospace,Menlo,monospace;background:#efe8db;padding:1px 5px;border-radius:5px}
+  .ejemplo{font-size:12px;color:var(--taupe);margin-top:14px}
+</style>
+</head>
+<body>
+  <h1>La hoja de «Colgar en el piso», en tres casos</h1>
+  <p class="bajada">La misma hoja, sobre la misma pantalla de Existencias. Lo único que cambia es el navegador y si se enciende el «vidrio que dobla».</p>
+
+  <div class="fila" id="fila"></div>
+
+  <div class="abajo">
+    <div class="card">
+      <h4>Por qué pasa lo del caso 1</h4>
+      <ol>
+        <li>Antes de encender el «vidrio que dobla», el ERP le pregunta al navegador: <i>«¿sabes hacer este filtro?»</i></li>
+        <li>Chrome dice que sí y lo dibuja bien (caso 3).</li>
+        <li><b>Safari también dice que sí, pero no lo dibuja.</b> El ERP le cree y le quita a la hoja su vidrio para dárselo a la «lente». La lente queda vacía y lo de atrás se ve tal cual (caso 1).</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4>El arreglo</h4>
+      <p style="margin:0">Que el ERP <b>no le pregunte</b> al navegador: el «vidrio que dobla» se enciende solo en Chrome y Edge, que son donde se dibuja de verdad. En Safari vuelve el vidrio de antes (caso 2). En Chrome no cambia nada.</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#5d5a55">Es una línea en <code>useVidrioQueDobla.ts</code>. Arregla todas las hojas y cajones en Safari a la vez.</p>
+    </div>
+  </div>
+  <p class="ejemplo">Ejemplo inventado: las prendas de atrás son de muestra. En el caso 3, el canto que dobla está dibujado de forma aproximada: el real lo hace un filtro que Safari no tiene.</p>
+
+<script>
+  const casos = [
+    {k:"A", t:"1 · Hoy en Safari", chip:["mal","Lo que viste"], d:"Safari en tu Mac",
+     n:"<b>Transparente:</b> lo de atrás se ve nítido, dentro y fuera de la hoja. Cuesta leer los números."},
+    {k:"B", t:"2 · Safari con el arreglo", chip:["bien","Propuesta"], d:"Safari en tu Mac",
+     n:"<b>El vidrio de antes:</b> lo de atrás se desenfoca y la hoja es blanca al 70 %. Se lee bien."},
+    {k:"C", t:"3 · Chrome", chip:["igual","Sin cambios"], d:"Chrome y Edge",
+     n:"<b>El vidrio que dobla:</b> igual que el 2, y además el borde de la hoja curva lo que pasa por detrás."},
+  ];
+  const tarjetas = [["Wide Leg","Azul marino","S/ 109.00","c2"],["Aretes Grandes","Plateado","S/ 22.00","c1"],["Aretes Pequeños","Plateado","S/ 15.00","c5"],
+                    ["Blusa Akira","Blanco","S/ 59.90","c3"],["Blusa Alma","Arena","S/ 45.90","c4"],["Polo Básico","Antracita","S/ 35.00","c6"],
+                    ["Casaca Lino","Crudo","S/ 149.00","c1"],["Falda Midi","Vino","S/ 79.90","c3"],["Top Rib","Verde oliva","S/ 39.90","c4"]];
+  const fondo = tarjetas.map(([a,b,p,c],i)=>`<div class="t ${c}"><b>${a}</b><i>${b}</i><div class="f"></div><div class="n"><span>${["S","M","L"][i%3]} · ${i%4}</span><span>${p}</span></div></div>`).join("");
+  document.getElementById("fila").innerHTML = casos.map(c=>`
+    <div class="col ${c.k}">
+      <h2>${c.t} <span class="chip ${c.chip[0]}">${c.chip[1]}</span></h2>
+      <p class="donde">${c.d}</p>
+      <div class="marco">
+        <div class="fondo">${fondo}</div>
+        <div class="velo"></div>
+        <div class="hoja">
+          <h3>Aretes Grandes</h3>
+          <div class="sub">XUPING · Aretes · S/ 22.00</div>
+          <p class="pre">¿Cuántas sacas del almacén?</p>
+          <p class="hay">Hay 9 unidades en almacén.</p>
+          <span class="stepper">−&nbsp;<b>1</b>&nbsp;+</span>
+          <div class="cajas"><div class="caja">Almacén<b>8</b>antes 9</div><div class="caja">En el piso<b>1</b>antes 0</div></div>
+          <div class="pie"><span class="btn">Cancelar</span><span class="btn osc">Continuar →</span></div>
+        </div>
+      </div>
+      <p class="nota">${c.n}</p>
+    </div>`).join("");
+</script>
+</body>
+</html>
