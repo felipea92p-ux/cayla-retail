@@ -26,6 +26,7 @@ import {
   veredictoDe,
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
+import { fichaDePedir, textoCeldaQueda, type TablaFichaPedir } from "@/lib/analisis-ficha-pedir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
@@ -36,6 +37,9 @@ import { Vacio } from "@/components/ui/Vacio";
 // decide qué hacer»). Medidas: `docs/milimetro/analisis-b.md`, §6. La maqueta la dibuja como hoja lateral; en el ERP todo modal es
 // `<Modal>` (ADR-0136), con la entrada y la cascada del sistema. Lo que dice cada parte lo decide `lib/analisis-ficha.ts`; aquí solo
 // se dibuja.
+//
+// Lo que está en «Qué pedir» (lo agotado y lo que se acaba antes de Navidad) cuenta lo mismo que su tarjeta (act. 2026-11-24, punto 8,
+// `lib/analisis-ficha-pedir.ts`): la fecha arriba, las cifras de la tarjeta, una tabla limpia y «Pedir a …» en vez de «Comprar».
 //
 // No tiene campos: no lleva guía de foco (ADR-0284).
 
@@ -64,22 +68,25 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
-  const veredicto = veredictoDe(p, grupo, sinSalir, vende ? datos.sedes.find((s) => s.id === vende.sedeId)?.ciudad : undefined);
-  const cifras = cifrasDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
+  // Lo de «Qué pedir» trae su propia frase, sus cifras, su tabla y su «Pedir a …» (null si el modelo no está en «Qué pedir»).
+  const dePedir = fichaDePedir(p, { hoy: datos.hoy, diasDeVentas: datos.diasDeVentas, sedes: datos.sedes, miSede: datos.sede, acceso });
+  const veredicto = dePedir?.veredicto ?? veredictoDe(p, grupo, sinSalir, vende ? datos.sedes.find((s) => s.id === vende.sedeId)?.ciudad : undefined);
+  const cifras = dePedir?.cifras ?? cifrasDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const semanas = barrasSemanas(p.semanas, datos.hoy);
   const vendioAlgo = semanas.some((b) => b.vendidas > 0);
   const frase = fraseDelModelo(p, datos.diasDeVentas);
   const tabla = tablaDelModelo(p);
   const otras = lineaOtrasTiendas(p, datos.sedes, datos.sede.id);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
-  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
-  const pedirA = sedeParaPedir(p, grupo, datos.sedes, acceso);
+  // En «Qué pedir» no hay «Comprar» (Felipe 2026-11-24: solo llevaba a Mis compras); su botón es «Pedir a …».
+  const principal = dePedir ? null : accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
+  const pedirA = dePedir ? dePedir.pedirA : sedeParaPedir(p, grupo, datos.sedes, acceso);
   const existencias = hrefExistencias(p, acceso);
   const movimientos = hrefMovimientos(p, acceso);
   const conAcciones = Boolean(principal || pedirA || existencias || movimientos);
 
   return (
-    <Modal titulo={p.nombre} subtitulo={subtituloFicha(p)} onClose={onCerrar} variante="hoja" tamano="mediana" conCerrar>
+    <Modal titulo={p.nombre} subtitulo={dePedir ? (dePedir.precio ?? undefined) : subtituloFicha(p)} onClose={onCerrar} variante="hoja" tamano="mediana" conCerrar>
       <div ref={setRaiz} className="analisis analisis-hoja">
         <div className="anim">
           {/* Bloque 1: qué pasa, en una frase con su color, y sus tres cifras. */}
@@ -118,76 +125,82 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
 
           {/* El modelo en tu tienda (opción B, Felipe 2026-10-10): una frase, una tabla con palabras y totales —los colores que más se
               venden arriba— y las otras tiendas en una línea. */}
-          {/* Bloque 3: la talla y el color del modelo en tu tienda. */}
-          <div className="h-sec" data-guia="analisis.ficha-tallas">
-            <TituloGrupo nota={datos.diasDeVentas === 1 ? "en tu primer día de ventas" : `en tus ${datos.diasDeVentas} días de ventas`}>Talla y color</TituloGrupo>
-            <p className="m-frase">{frase}</p>
-            {tabla && (
-              <>
-                <div className="m-tabla">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th className="col-color" scope="col">
-                          Color
-                        </th>
-                        {tabla.tallas.map((t) => (
-                          <th key={t} scope="col">
-                            {t}
-                          </th>
-                        ))}
-                        <th scope="col">Vendiste</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tabla.filas.map((f) => (
-                        <tr key={f.color}>
-                          <th className="color" scope="row">
-                            <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
-                            {f.color || "Sin color"}
-                            {f.sinStock && <span className="m-sin-stock">Sin stock</span>}
-                          </th>
-                          {f.celdas.map((c) => (
-                            <td key={c.talla} className={c.estado} tabIndex={0} data-tip={c.tip} aria-label={c.tip}>
-                              <b>
-                                {c.estado === "pedir" && (
-                                  <span className="m-alerta" aria-hidden="true">
-                                    !
-                                  </span>
-                                )}
-                                {c.fuerte}
-                              </b>
-                              {c.suave && <span>{c.suave}</span>}
-                            </td>
+          {/* Bloque 3: la talla y el color del modelo en tu tienda (con «Qué pedir», su tabla limpia). */}
+          {dePedir ? (
+            <TablaDePedir tabla={dePedir.tabla} />
+          ) : (
+            <>
+              <div className="h-sec" data-guia="analisis.ficha-tallas">
+                <TituloGrupo nota={datos.diasDeVentas === 1 ? "en tu primer día de ventas" : `en tus ${datos.diasDeVentas} días de ventas`}>Talla y color</TituloGrupo>
+                <p className="m-frase">{frase}</p>
+                {tabla && (
+                  <>
+                    <div className="m-tabla">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th className="col-color" scope="col">
+                              Color
+                            </th>
+                            {tabla.tallas.map((t) => (
+                              <th key={t} scope="col">
+                                {t}
+                              </th>
+                            ))}
+                            <th scope="col">Vendiste</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tabla.filas.map((f) => (
+                            <tr key={f.color}>
+                              <th className="color" scope="row">
+                                <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
+                                {f.color || "Sin color"}
+                                {f.sinStock && <span className="m-sin-stock">Sin stock</span>}
+                              </th>
+                              {f.celdas.map((c) => (
+                                <td key={c.talla} className={c.estado} tabIndex={0} data-tip={c.tip} aria-label={c.tip}>
+                                  <b>
+                                    {c.estado === "pedir" && (
+                                      <span className="m-alerta" aria-hidden="true">
+                                        !
+                                      </span>
+                                    )}
+                                    {c.fuerte}
+                                  </b>
+                                  {c.suave && <span>{c.suave}</span>}
+                                </td>
+                              ))}
+                              <td className="total">{f.vendio}</td>
+                            </tr>
                           ))}
-                          <td className="total">{f.vendio}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <th className="color" scope="row">
-                          Vendiste
-                        </th>
-                        {tabla.vendioPorTalla.map((n, k) => (
-                          <td key={tabla.tallas[k]} className="total">
-                            {n}
-                          </td>
-                        ))}
-                        <td className="total">{tabla.vendio}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="m-leyenda">
-                  <span className="pedir">vendido y sin stock</span>
-                  <span className="queda">te queda</span>
-                  <span className="nada">no hay</span>
-                </div>
-              </>
-            )}
-            {otras && <p className="m-otras">{otras}</p>}
-          </div>
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <th className="color" scope="row">
+                              Vendiste
+                            </th>
+                            {tabla.vendioPorTalla.map((n, k) => (
+                              <td key={tabla.tallas[k]} className="total">
+                                {n}
+                              </td>
+                            ))}
+                            <td className="total">{tabla.vendio}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    <div className="m-leyenda">
+                      <span className="pedir">vendido y sin stock</span>
+                      <span className="queda">te queda</span>
+                      <span className="nada">no hay</span>
+                    </div>
+                  </>
+                )}
+                {otras && <p className="m-otras">{otras}</p>}
+              </div>
+            </>
+          )}
 
           {conAcciones && (
             <div className="h-acciones pie-acciones" data-guia="analisis.ficha-acciones">
@@ -196,12 +209,18 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                   Movimientos
                 </Link>
               )}
-              {pedirA && (
+              {pedirA && !dePedir && (
                 <button type="button" className="btn-cayla btn-secundario" onClick={() => pedir([p], pedirA.id)}>
                   Pedir a {pedirA.ciudad}
                 </button>
               )}
               {existencias && <BotonVer href={existencias}>Ver en Existencias</BotonVer>}
+              {pedirA && dePedir && (
+                // En «Qué pedir» es la acción de la hoja: negra, a la derecha (la maqueta que eligió Felipe el 2026-11-24).
+                <button type="button" className="btn-cayla btn-primario" onClick={() => pedir([p], pedirA.id)}>
+                  Pedir a {pedirA.ciudad}
+                </button>
+              )}
               {principal && (
                 // La acción de la hoja sigue negra y lleva la flecha a la derecha, como «Seguir» de Nuevo producto: no guarda aquí, lleva
                 // a la pantalla donde se hace (prueba ciega de /formidable, 2026-11-21).
@@ -259,4 +278,111 @@ function useTipDeLaFicha(raiz: HTMLElement | null, tip: HTMLElement | null) {
       document.removeEventListener("scroll", ocultar, { capture: true });
     };
   }, [raiz, tip]);
+}
+
+/** Una celda de número no necesita los 82 px de las celdas con palabras: con cuatro tallas, la tabla cabe en la hoja sin correr. */
+const ANGOSTA = { minWidth: 44 } as const;
+
+/**
+ * La tabla de la ficha de «Qué pedir»: lo agotado, por color (lo vendido en 8 semanas y lo que tiene la otra tienda); lo que se acaba,
+ * cuántas te quedan de cada talla y color (0 en rojo donde se vendió y ya no hay; «—» donde nunca hubo). Usa la caja de la tabla de siempre.
+ */
+function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
+  return (
+    <div className="h-sec" data-guia="analisis.ficha-tallas">
+      <TituloGrupo nota={tabla.nota}>{tabla.titulo}</TituloGrupo>
+      <div className="m-tabla">
+        {tabla.tipo === "colores" ? (
+          <table>
+            <thead>
+              <tr>
+                <th className="col-color" scope="col">
+                  Color
+                </th>
+                <th scope="col">Vendiste</th>
+                {tabla.ciudadAlla && <th scope="col">En {tabla.ciudadAlla}</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {tabla.filas.map((f) => (
+                <tr key={f.color}>
+                  <th className="color" scope="row">
+                    <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
+                    {f.color || "Sin color"}
+                  </th>
+                  <td className="text-lg font-semibold">{f.vendidas}</td>
+                  {tabla.ciudadAlla && <td className={f.alla ? "text-lg font-semibold" : "text-tenue"}>{f.alla ? f.alla : "—"}</td>}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th className="color" scope="row">
+                  Total
+                </th>
+                <td className="total">{tabla.total}</td>
+                {tabla.ciudadAlla && <td className="total">{tabla.totalAlla}</td>}
+              </tr>
+            </tfoot>
+          </table>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th className="col-color" scope="col">
+                  Color
+                </th>
+                {tabla.tallas.map((t) => (
+                  <th key={t} scope="col">
+                    {t}
+                  </th>
+                ))}
+                <th scope="col">Vendiste</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tabla.filas.map((f) => (
+                <tr key={f.color}>
+                  {/* El nombre baja de renglón si falta ancho (el celular): así entran todas las tallas sin correr la tabla. */}
+                  <th className="color" scope="row" style={{ whiteSpace: "normal" }}>
+                    <span className="inline-flex items-baseline">
+                      <span className="pt shrink-0" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
+                      <span>{f.color || "Sin color"}</span>
+                    </span>
+                  </th>
+                  {f.celdas.map((c) => {
+                    const tip = textoCeldaQueda(f.color, c);
+                    return (
+                      <td
+                        key={c.talla}
+                        tabIndex={0}
+                        data-tip={tip}
+                        aria-label={tip}
+                        className={c.estado === "agotada" ? "text-lg font-semibold text-rojo-profundo" : c.estado === "nunca" ? "text-tenue" : "text-lg font-semibold"}
+                        style={ANGOSTA}
+                      >
+                        {c.estado === "nunca" ? "—" : c.quedan}
+                      </td>
+                    );
+                  })}
+                  <td className="total" style={ANGOSTA}>
+                    {f.vendio}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {tabla.tipo === "quedan" && (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-secundario">
+          <span>
+            <b className="text-rojo-profundo">0</b> se vendió y ya no te queda
+          </span>
+          <span>— nunca hubo</span>
+          <span>Vendiste: en 30 días</span>
+        </div>
+      )}
+    </div>
+  );
 }
