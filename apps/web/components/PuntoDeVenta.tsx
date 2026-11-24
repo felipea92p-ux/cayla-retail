@@ -162,8 +162,8 @@ import {
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
-import { enviarTicketACaja, tomarTicketCompartido } from "@/lib/tickets-compartidos";
-import { mensajeDeTicketCompartido, ticketDelPisoParaLaEspera, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
+import { descartarTicketCompartido, enviarTicketACaja, tomarTicketCompartido } from "@/lib/tickets-compartidos";
+import { mensajeDeTicketCompartido, nombreDelTicketDelPiso, ticketDelPisoParaLaEspera, type TicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { useTicketsDelPiso } from "@/lib/useTicketsDelPiso";
 import { DesdeElPisoModal } from "@/components/punto-de-venta/DesdeElPiso";
 import { queHacerConLaFoto, recuperarEnLaEspera } from "@/lib/ticket-en-curso";
@@ -554,6 +554,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const piso = useTicketsDelPiso(ubicacionId, ticketsCompartidos && !bloqueado);
   const [abriendoDelPiso, setAbriendoDelPiso] = useState<string | null>(null);
   const [hojaDelPiso, setHojaDelPiso] = useState(false);
+  const [descartarDelPiso, setDescartarDelPiso] = useState<TicketCompartido | null>(null);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -773,7 +774,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || hojaDelPiso || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || hojaDelPiso || descartarDelPiso !== null || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1516,7 +1517,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
   /** Cerrar la caja: con tickets que tienen prendas (los que esperan y el de la caja) primero se dice cuáles se pierden; sin ellos, directo. */
   function abrirCierreDeCaja() {
-    if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
+    if (pestanas.some((p) => p.prendas > 0) || piso.tickets.length > 0) setCierreConTickets(true);
     else setModalCaja("cerrar");
   }
   /** El basurero de «En espera»: pide confirmación, porque se pierden sus prendas. */
@@ -1605,6 +1606,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
   }
 
+  /** Descartar un ticket del piso que nadie va a cobrar (ADR-0701): queda escrito en la base, nunca se borra. */
+  async function tirarDelPiso(t: TicketCompartido) {
+    const r = await descartarTicketCompartido(createClient(), responsable.firma(), t.id);
+    if (r.error) {
+      const m = mensajeDeTicketCompartido(r.error, "descartar");
+      avisar.error(m.titulo, m.detalle ? { detalle: m.detalle } : undefined);
+      void piso.refrescar();
+      return;
+    }
+    piso.quitar(t.id);
+  }
   /** «Abrir» un ticket del piso (ADR-0701): pasa a este equipo y entra a la caja como cualquier ticket que esperaba, por la misma puerta
    *  (`retomar`, que pone los precios al día). Si otra caja lo abrió primero, se dice quién y la lista se pone al día. */
   async function abrirDelPiso(t: TicketCompartido) {
@@ -2352,6 +2364,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             mandandoACaja={mandandoACaja}
             delPiso={{ tickets: piso.tickets, ahora: piso.leidoEn, abriendo: abriendoDelPiso, onVerTodos: () => setHojaDelPiso(true) }}
             onAbrirDelPiso={abrirDelPiso}
+            onDescartarDelPiso={setDescartarDelPiso}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
             onDescartarEspera={pedirDescartar}
@@ -2664,7 +2677,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ahora={piso.leidoEn}
           abriendo={abriendoDelPiso}
           onAbrir={abrirDelPiso}
+          onDescartar={setDescartarDelPiso}
           onClose={() => setHojaDelPiso(false)}
+        />
+      )}
+
+      {descartarDelPiso && (
+        <DescartarTicketModal
+          nombre={nombreDelTicketDelPiso(descartarDelPiso)}
+          prendas={descartarDelPiso.prendas}
+          total={descartarDelPiso.total}
+          onDescartar={() => void tirarDelPiso(descartarDelPiso)}
+          onClose={() => setDescartarDelPiso(null)}
         />
       )}
 
@@ -2681,6 +2705,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {cierreConTickets && (
         <TicketsSinCobrarModal
           tickets={pestanas.filter((p) => p.prendas > 0)}
+          delPiso={piso.tickets.map((t) => ({ id: t.id, nombre: nombreDelTicketDelPiso(t), prendas: t.prendas, total: t.total }))}
           onSeguir={() => setModalCaja("cerrar")}
           onClose={() => setCierreConTickets(false)}
         />

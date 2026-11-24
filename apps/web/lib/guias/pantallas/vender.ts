@@ -217,7 +217,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Del piso",
-      texto: "Los tickets que las asesoras armaron en el piso y mandaron a la caja, con quién lo mandó y hace cuánto espera. «Abrir» lo trae a este ticket con los precios de hoy: lo cobras sin volver a escanear. Si otra caja lo abrió primero, te dice quién.",
+      texto: "Lo que las asesoras mandaron del piso, con quién y hace cuánto. «Abrir» lo trae a este ticket con los precios de hoy, sin volver a escanear; si otra caja lo abrió antes, te dice quién. Si el cliente se fue, el basurero lo descarta. Al cerrar la caja no se pierden",
     },
     {
       id: "del-piso-chip",

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
@@ -16,12 +17,15 @@ export function ListaDesdeElPiso({
   ahora,
   abriendo,
   onAbrir,
+  onDescartar,
 }: {
   tickets: readonly TicketCompartido[];
   ahora: number;
   /** El id que se está abriendo: su botón espera y los demás no se tocan hasta que termine. */
   abriendo: string | null;
   onAbrir: (t: TicketCompartido) => void;
+  /** El basurero: el cliente se fue y nadie lo va a cobrar. Pide confirmación antes (no se deshace). */
+  onDescartar?: (t: TicketCompartido) => void;
 }) {
   return (
     <ul className="divide-y divide-sand" data-guia="vender.desde-el-piso">
@@ -47,6 +51,19 @@ export function ListaDesdeElPiso({
           >
             Abrir
           </Boton>
+          {/* El mismo basurero rojo de «En espera» (Felipe 2026-10-26): tira el ticket que ya no se va a cobrar. */}
+          {onDescartar && (
+            <button
+              type="button"
+              onClick={() => onDescartar(t)}
+              disabled={abriendo !== null}
+              aria-label={`Descartar el ticket de ${nombreDelTicketDelPiso(t)}`}
+              title="Descartar este ticket"
+              className="area-dedo grid h-9 w-9 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
+          )}
         </li>
       ))}
     </ul>

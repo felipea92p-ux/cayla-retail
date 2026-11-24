@@ -117,6 +117,7 @@ type Props = {
   delPiso?: { tickets: readonly TicketCompartido[]; ahora: number; abriendo: string | null; onVerTodos: () => void };
   /** «Abrir» uno de los tickets del piso (aparte de `delPiso`: dentro del objeto, el lint del compilador de React lee mal todo el componente). */
   onAbrirDelPiso?: (t: TicketCompartido) => void;
+  onDescartarDelPiso?: (t: TicketCompartido) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -209,6 +210,7 @@ export function PuntoDeVentaTicket({
   mandandoACaja = false,
   delPiso,
   onAbrirDelPiso,
+  onDescartarDelPiso,
   total,
   prendas,
   vale = null,
@@ -513,7 +515,7 @@ export function PuntoDeVentaTicket({
           ) : !carrito.length ? (
             <>
               {arriba}
-              {delPiso && onAbrirDelPiso && <DesdeElPisoEnElTicket tickets={delPiso.tickets} ahora={delPiso.ahora} abriendo={delPiso.abriendo} onAbrir={onAbrirDelPiso} />}
+              {delPiso && onAbrirDelPiso && <DesdeElPisoEnElTicket tickets={delPiso.tickets} ahora={delPiso.ahora} abriendo={delPiso.abriendo} onAbrir={onAbrirDelPiso} onDescartar={onDescartarDelPiso} />}
               <div className="anim-sube flex min-h-48 flex-col items-center justify-center px-8 text-center">
                 <p className="font-medium text-tinta">El ticket está vacío</p>
                 <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>

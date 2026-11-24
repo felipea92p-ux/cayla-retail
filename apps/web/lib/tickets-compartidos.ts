@@ -43,3 +43,9 @@ export async function tomarTicketCompartido(supabase: Supabase, firma: Firma | F
   const abierto = leerTicketAbierto(data);
   return abierto ? { dato: abierto, error: null } : { dato: null, error: sinRespuesta };
 }
+
+/** Descarta un ticket que nadie va a cobrar (queda escrito; nunca se borra). Descartar dos veces no falla. */
+export async function descartarTicketCompartido(supabase: Supabase, firma: Firma | FirmaOmitida | null, id: string): Promise<Resultado<true>> {
+  const { error } = await firmar(supabase.rpc("descartar_ticket_compartido" as never, { p_id: id } as never), firma);
+  return error ? { dato: null, error } : { dato: true, error: null };
+}
