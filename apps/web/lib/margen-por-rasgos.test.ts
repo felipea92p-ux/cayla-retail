@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { conRebajaCts, cuentaDelPrecio, IGV, pierdeConElPrecio } from "./cuenta-de-precio";
 import {
   eleccionDeRasgos,
+  eleccionParaGuardar,
+  leerEleccionGuardada,
   leerReglas,
   leerReglasYListas,
   rasgosEfectivos,
@@ -167,3 +169,23 @@ describe("lo que la prenda tiene: lo marcado, la tela por su tejido y la marca p
     });
   });
 });
+
+describe("lo que se guarda de una prenda en Catálogo (20261124183000)", () => {
+  it("sin tocar nada no hay nada que guardar; la tela sin tocar viaja nula (sigue a su tejido)", () => {
+    expect(eleccionParaGuardar({})).toBeNull();
+    expect(eleccionParaGuardar({ nadie_la_tiene: true })).toEqual({ p_nadie_la_tiene: true, p_en_tendencia: false, p_tela_que_se_nota: null });
+    expect(eleccionParaGuardar({ tela_que_se_nota: false })).toEqual({ p_nadie_la_tiene: false, p_en_tendencia: false, p_tela_que_se_nota: false });
+    // Marcar y desmarcar sí se guarda (todo en no): la persona la tocó.
+    expect(eleccionParaGuardar({ en_tendencia: false })).toEqual({ p_nadie_la_tiene: false, p_en_tendencia: false, p_tela_que_se_nota: null });
+  });
+
+  it("lo guardado vuelve como lo marcado, y la vuelta completa no cambia nada", () => {
+    expect(leerEleccionGuardada({ nadie_la_tiene: true, en_tendencia: false, tela_que_se_nota: null })).toEqual({ nadie_la_tiene: true, en_tendencia: false });
+    expect(leerEleccionGuardada({ nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false })).toEqual({ nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false });
+    expect(leerEleccionGuardada(null)).toEqual({});
+    expect(leerEleccionGuardada([1])).toEqual({});
+    const guardado = { p_nadie_la_tiene: true, p_en_tendencia: false, p_tela_que_se_nota: true };
+    expect(eleccionParaGuardar(leerEleccionGuardada({ nadie_la_tiene: true, en_tendencia: false, tela_que_se_nota: true }))).toEqual(guardado);
+  });
+});
+

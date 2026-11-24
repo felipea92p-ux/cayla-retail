@@ -106,6 +106,25 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 - Pruebas: `pnpm pruebas:editar-orden-conserva` (23; con la función de antes fallan 7) y la S4 de `orden_compra_sugerido` mide ahora su
   propio parche, no la palabra `precio_venta_sugerido`.
 
+## Qué se construyó (actividad 5, Catálogo)
+
+- `20261124183000_rasgos_de_la_prenda_en_catalogo.sql` (solo en local): `fn_producto_rasgos(uuid)` (lo guardado tal cual, con la tela nula =
+  por su tejido) y `guardar_rasgos_de_producto(uuid, boolean, boolean, boolean)` (quien ve Productos; firma el responsable; devuelve lo que
+  tiene en efecto). Prueba: `pnpm pruebas:rasgos-en-catalogo` (14).
+- Una sola pieza para las casillas: `components/QueTieneLaPrenda.tsx` («Compré ropa», Nuevo y Editar producto).
+- **Nuevo producto:** «¿Qué tiene esta prenda?» bajo el costo y el precio; el ámbar dice «Bajo tu objetivo de N %»; «Sugerido S/ …» escribe
+  el precio de la regla de un toque. Las casillas se guardan después de crear la prenda, como «cómo la llama el proveedor»: si esa segunda
+  llamada falla (o la prenda se creó sin conexión), la prenda queda creada, se mide con la base y se avisa que se marquen en Editar producto.
+- **Editar producto:** en «Variantes y precios», las casillas (solo quien ve el costo: sin costo el objetivo no se ve en ninguna parte) se
+  guardan al marcarlas (`ficha-producto/QueTieneEnLaFicha.tsx`), aparte del «Revisar y guardar», y nunca cambian un precio. La tabla de
+  tallas en «Costos» mide con la cuenta única y el objetivo de la prenda: antes era la resta con IGV adentro y el ámbar fijo en 30 %
+  (`margenDeFila` y `nivelMargen` se borraron).
+- **La IA:** su piso ya no es ×2.27 (`pisoDelPrecio`, borrado): es el menor .90 que llega al objetivo de la prenda, nunca bajo costo + 30 %.
+  La ruta recibe lo que la prenda tiene (o lo lee de la base en una revisión), se lo dice a la IA (`margen_objetivo`, `precio_minimo`) y
+  la pantalla dice «Es el mínimo para tu objetivo de N %».
+- **Queda aparte:** la lista de Productos (`ProductosTabla.tsx`, `lib/productos-vista.ts`) todavía calcula su margen con la resta con IGV
+  adentro; y la hoja de Recibir no manda las casillas a la propuesta hasta que se haga su parte web (después del PR #2001).
+
 ## Lo que falta
 
 Actividades 2 a 6: el ámbar contra el objetivo, las casillas en «Compré ropa», Recibir, Nuevo y Editar producto, y el cierre (diccionario,

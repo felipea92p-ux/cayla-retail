@@ -537,6 +537,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Las tallas que todavía no entraron por compra siguen con el costo que se escribió a mano. Este botón les pone el de la última compra a las que no tienen prendas; las grises y las que tienen stock no se tocan. Se guarda con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
+      id: "que-tiene",
+      ancla: "editar.que-tiene",
+      opcional: true,
+      titulo: "Lo que tiene la prenda",
+      texto: "Nadie la tiene, en tendencia, una tela que se nota: cada casilla le sube el margen objetivo, y con él el ámbar de cada talla. Se guarda al marcarla y no cambia ningún precio. La marca que el cliente conoce se suma sola. En la demo no la tocamos.",
+    },
+    {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
@@ -1862,7 +1869,21 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca por debajo de lo que aguanta una rebaja), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca bajo su objetivo), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+    },
+    {
+      id: "que-tiene",
+      ancla: "alta.que-tiene",
+      opcional: true,
+      titulo: "Lo que tiene la prenda",
+      texto: "Nadie la tiene, en tendencia, una tela que se nota: cada casilla le sube el margen objetivo. La tela de la lista se marca sola con el tejido, y la marca que el cliente conoce también. Es opcional: nunca frena el alta.",
+    },
+    {
+      id: "precio-sugerido",
+      ancla: "alta.precio-sugerido",
+      opcional: true,
+      titulo: "El precio sugerido",
+      texto: "Con el costo y lo que la prenda tiene, el sistema calcula el precio que llega a tu objetivo, terminado en .90. Tócalo y queda escrito en el precio; puedes cambiarlo.",
     },
     {
       id: "quien",
@@ -1986,7 +2007,7 @@ export const GUIA_REVISAR_PRECIOS: Guia = {
       ancla: "revisar-precios.proponer",
       opcional: true,
       titulo: "Proponer un precio",
-      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de lo que aguanta una rebaja de 35 %. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
+      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja del margen objetivo de la prenda. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
     },
     {
       id: "paginas",

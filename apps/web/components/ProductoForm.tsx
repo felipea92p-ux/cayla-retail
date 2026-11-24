@@ -110,6 +110,9 @@ import {
   type CambioPrecioAqui,
 } from "@/lib/precio-sede-reglas";
 import { PrecioAquiTerminal } from "@/components/ficha-producto/PrecioAquiTerminal";
+import { QueTieneEnLaFicha } from "@/components/ficha-producto/QueTieneEnLaFicha";
+import { useListasDeRasgos, useReglasDePrecio } from "@/components/ReglasDePrecio";
+import { rasgosEfectivos, type EleccionDeRasgos } from "@/lib/margen-por-rasgos";
 import { MatrizStockFicha, type BotonesDeColor, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { PuertaAjustarStock } from "@/components/ficha-producto/PuertaAjustarStock";
 import { QuitarVarianteHoja } from "@/components/ficha-producto/QuitarVarianteHoja";
@@ -317,6 +320,7 @@ export function ProductoForm({
   volverA = "/productos",
   nombreProveedor,
   costoEnLaFicha,
+  rasgosGuardados = null,
   catalogoIADisponible = false,
 }: {
   /** El servidor tiene la llave de OpenAI: se ofrece «Catálogo con IA» en las fotos (`fotoCatalogoDisponible`). */
@@ -371,6 +375,8 @@ export function ProductoForm({
   nombreProveedor?: string | null;
   /** Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Ausente en el alta. */
   costoEnLaFicha?: CostoEnLaFicha | null;
+  /** Lo que la prenda tiene, como se guardó (ADR-0700). `null` = no se pudo leer: las casillas no se dibujan. */
+  rasgosGuardados?: EleccionDeRasgos | null;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -466,6 +472,15 @@ export function ProductoForm({
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
+  // Lo que la prenda tiene (ADR-0700): lo marcado, más la tela por el tejido y la marca por la lista CON LA FICHA COMO ESTÁ (cambiar el tejido
+  // en pantalla ya mueve el objetivo). Sube el margen objetivo con que se mide cada talla.
+  const [eleccionRasgos, setEleccionRasgos] = useState<EleccionDeRasgos>(rasgosGuardados ?? {});
+  const listasDeRasgos = useListasDeRasgos();
+  const reglasDePrecio = useReglasDePrecio();
+  const rasgos = rasgosEfectivos(eleccionRasgos, {
+    tejidoSeNota: !!tejidoId && listasDeRasgos.tejidosQueSeNotan.has(tejidoId),
+    marcaConocida: !!marcaId && listasDeRasgos.marcasConocidas.has(marcaId),
+  });
   // Editar una prenda firma con UN responsable (ADR-0354, Felipe 2026-10-06): el historial de la prenda dice quién cambió cada
   // cosa. Es el mismo combo del ajuste de stock (`stock.responsable`, recordado por prenda): una sola persona por guardado, y
   // todas las llamadas de «Confirmar y guardar» van con esa firma (son un solo gesto). De 2026-09-29 a 2026-10-06 se guardaba
@@ -1954,8 +1969,24 @@ export function ProductoForm({
                     }
                   : null
               }
+              rasgos={rasgos}
               deshabilitado={loading}
             />
+
+            {producto && rasgosGuardados !== null && veCosto && (
+              <div className="mt-5">
+                <QueTieneEnLaFicha
+                  productoId={producto.id}
+                  eleccion={eleccionRasgos}
+                  onEleccion={setEleccionRasgos}
+                  rasgos={rasgos}
+                  puntos={reglasDePrecio.puntos}
+                  firma={() => stock.responsable.firma()}
+                  listo={stock.responsable.listo}
+                  motivoSinFirma={stock.responsable.motivo}
+                />
+              </div>
+            )}
 
             {vista === "precio" && tiendaTerminal && precioAquiListo && (
               <PrecioAquiTerminal

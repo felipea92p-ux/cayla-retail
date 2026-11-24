@@ -83,15 +83,6 @@ export function margenPorcentaje(precio: number, costo: number): number | null {
   return ((precio - costo) / precio) * 100;
 }
 
-export type NivelMargen = "negativo" | "bajo" | "normal";
-
-/** Bajo = menos de 30 %: por debajo, un descuento de campaña ya se come la ganancia. */
-export function nivelMargen(margen: number | null): NivelMargen | null {
-  if (margen === null) return null;
-  if (margen < 0) return "negativo";
-  if (margen < 30) return "bajo";
-  return "normal";
-}
 
 /** Código que va a tener el producto: prefijo de la categoría + correlativo (`codigos_correlativos.ultimo + 1`). Aproximado si dos personas crean a la vez. */
 export function codigoBasePrevisto(prefijo: string | null, ultimo: number | null): string {

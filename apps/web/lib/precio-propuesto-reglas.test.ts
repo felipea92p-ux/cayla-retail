@@ -66,41 +66,52 @@ describe("elegirCosto: el de la prenda, o el de su categoría marcado como estim
   });
 });
 
-describe("revisarPrecioDeLaIA: la IA propone, la regla manda", () => {
-  it("lleva la propuesta a .90", () => {
-    expect(revisarPrecioDeLaIA(79, 30)).toEqual({ precio: 79.9, piso: 68.9, subidoAlPiso: false, margen: 55.7 });
+describe("revisarPrecioDeLaIA: la IA propone, el objetivo de la prenda manda (ADR-0700)", () => {
+  it("lleva la propuesta a .90 y dice el piso y el objetivo", () => {
+    // S/ 30 de costo con la base de 37 %: el menor .90 que deja 37 % es S/ 56.90.
+    expect(revisarPrecioDeLaIA(79, 30, 37)).toEqual({ precio: 79.9, piso: 56.9, objetivo: 37, subidoAlPiso: false, margen: 55.7 });
   });
-  it("si la IA propone bajo el piso, sube al piso de la cuenta única y lo dice (ADR-0668)", () => {
-    const r = revisarPrecioDeLaIA(39.9, 35);
-    expect(r?.precio).toBe(79.9);
+  it("si la IA propone bajo el objetivo, sube al piso y lo dice", () => {
+    const r = revisarPrecioDeLaIA(39.9, 35, 37);
+    expect(r?.precio).toBe(65.9);
     expect(r?.subidoAlPiso).toBe(true);
-    expect(r?.margen).toBeGreaterThanOrEqual(30);
+  });
+  it("con más casillas, el piso sube: lo que tiene la prenda pesa también en la propuesta", () => {
+    expect(revisarPrecioDeLaIA(1, 30.9, 33)?.precio).toBe(54.9);
+    expect(revisarPrecioDeLaIA(1, 30.9, 42)?.precio).toBe(62.9);
   });
   it("el % de la propuesta es el mismo que dice la línea de al lado", () => {
     for (const costo of [12.5, 25, 36, 44]) {
-      const r = revisarPrecioDeLaIA(1, costo);
-      expect(r?.margen).toBe(margenALaVista(costo, r?.precio, 36)?.pct);
+      const r = revisarPrecioDeLaIA(1, costo, 37);
+      expect(r?.margen).toBe(margenALaVista(costo, r?.precio, 37)?.pct);
     }
   });
-  it("lo que propone nunca deja la línea de al lado en ámbar (con un objetivo de 36 %: ADR-0700)", () => {
-    for (const costo of [12.5, 25, 36, 44, 80, 150]) {
-      const r = revisarPrecioDeLaIA(1, costo);
-      expect(r).not.toBeNull();
-      expect(pideRevisarAlRecibir({ precio: r?.precio ?? 0, costo, costoAntes: costo, margenObjetivo: 36 })).toBeNull();
+  it("lo que propone nunca deja la línea de al lado en ámbar, con cualquier objetivo", () => {
+    for (const objetivo of [30, 36, 37, 43, 49, 75]) {
+      for (const costo of [12.5, 25, 36, 44, 80, 150]) {
+        const r = revisarPrecioDeLaIA(1, costo, objetivo);
+        expect(r).not.toBeNull();
+        expect(pideRevisarAlRecibir({ precio: r?.precio ?? 0, costo, costoAntes: costo, margenObjetivo: objetivo })).toBeNull();
+      }
     }
+  });
+  it("nunca bajo el 30 % de la base, aunque el objetivo fuera menor", () => {
+    // Con 5 % el objetivo pediría S/ 37.90; la base no deja menos de costo + 30 % (S/ 42.90).
+    expect(revisarPrecioDeLaIA(1, 30, 5)?.piso).toBe(pisoDePrecio(30));
   });
   it("lo que no es un precio no se le cree", () => {
     for (const malo of [null, undefined, "59.90", Number.NaN, Number.POSITIVE_INFINITY, 0, -10, 5001]) {
-      expect(revisarPrecioDeLaIA(malo, 30)).toBeNull();
+      expect(revisarPrecioDeLaIA(malo, 30, 37)).toBeNull();
     }
   });
   it("sin costo válido no hay precio", () => {
-    expect(revisarPrecioDeLaIA(59.9, 0)).toBeNull();
+    expect(revisarPrecioDeLaIA(59.9, 0, 37)).toBeNull();
   });
   it("si el piso pasa del tope de S/ 5 000, no hay propuesta", () => {
-    expect(revisarPrecioDeLaIA(4999, 4000)).toBeNull();
+    expect(revisarPrecioDeLaIA(4999, 4000, 37)).toBeNull();
   });
 });
+
 
 describe("el tope del mes", () => {
   it("corta al llegar a US$ 20, y no corta si no se sabe cuánto va", () => {

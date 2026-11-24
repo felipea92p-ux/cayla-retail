@@ -10,10 +10,10 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { Casilla } from "@/components/ui/Casilla";
+import { QueTieneLaPrenda } from "@/components/QueTieneLaPrenda";
 import { LineaMargen } from "@/components/ui/LineaMargen";
 import { useListasDeRasgos, useReglasDePrecio } from "@/components/ReglasDePrecio";
-import { NOMBRE_RASGO, sugerirPrecio, type Rasgo } from "@/lib/margen-por-rasgos";
+import { sugerirPrecio, type Rasgo } from "@/lib/margen-por-rasgos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { soles } from "@/lib/compras-reglas";
@@ -367,10 +367,7 @@ export function HojaPrenda({
 
 /** «✓ La vez pasada»: pone lo de antes de un toque; marcado (con su ✓) cuando lo escrito ya es eso. Una píldora chica bajo su campo, como
  *  la maqueta; el monto va en el campo (y en su `title`). */
-/**
- * «¿Qué tiene esta prenda?» (ADR-0700): las tres casillas que marca quien compra, y la de la marca cuando sale sola de la lista del Admin.
- * Cada una dice cuánto le suma al margen. Opcional: nunca frena la compra.
- */
+/** «¿Qué tiene esta prenda?» (ADR-0700) en la hoja de compra: la pieza compartida, guiada como un campo opcional. */
 function QueTiene({
   rasgos,
   puntos,
@@ -382,25 +379,9 @@ function QueTiene({
   guia: GuiaCampos;
   alCambiar: (rasgo: Rasgo, valor: boolean) => void;
 }) {
-  const aMano: Rasgo[] = ["nadie_la_tiene", "en_tendencia", "tela_que_se_nota"];
   return (
     <CampoGuiado id="que-tiene" guia={guia} titulo="¿Qué tiene esta prenda?" retiene="fila">
-      <div role="group" aria-label="¿Qué tiene esta prenda?" className="grid gap-1.5" data-guia="compra.que-tiene">
-        {aMano.map((r) => (
-          <label key={r} className="vd-placa flex min-h-11 cursor-pointer items-center gap-3 rounded-[14px] px-3 py-1.5">
-            <Casilla marcada={rasgos.includes(r)} onCambio={() => alCambiar(r, !rasgos.includes(r))} etiqueta={NOMBRE_RASGO[r]} />
-            <span className="min-w-0 flex-1 text-sm text-tinta">{NOMBRE_RASGO[r]}</span>
-            <span className="text-detalle tabular-nums text-secundario">+{puntos[r]} %</span>
-          </label>
-        ))}
-        {rasgos.includes("marca_conocida") && (
-          <p className="flex min-h-11 items-center gap-3 px-3 text-sm text-secundario">
-            <Check className="h-4 w-4 shrink-0 text-verde" aria-hidden />
-            <span className="min-w-0 flex-1">{NOMBRE_RASGO.marca_conocida}</span>
-            <span className="text-detalle tabular-nums">+{puntos.marca_conocida} %</span>
-          </p>
-        )}
-      </div>
+      <QueTieneLaPrenda rasgos={rasgos} puntos={puntos} alCambiar={alCambiar} guia="compra.que-tiene" />
     </CampoGuiado>
   );
 }

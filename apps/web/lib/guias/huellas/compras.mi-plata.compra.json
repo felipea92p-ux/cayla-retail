@@ -12,6 +12,9 @@
       "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
+    "components/QueTieneLaPrenda.tsx": [
+      "Casilla «{NOMBRE_RASGO[r]}»"
+    ],
     "components/mi-plata/AbrirRonda.tsx": [
       "Boton «Abrir mi ronda»"
     ],
@@ -28,7 +31,6 @@
       "Boton «Quitar de la compra»",
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
-      "Casilla «{NOMBRE_RASGO[r]}»",
       "button «{guia}»",
       "button «compra.por-definir»",
       "CampoTexto «Marca nueva»",

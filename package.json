@@ -80,6 +80,7 @@
     "pruebas:compra-con-rasgos": "node scripts/pruebas/compra_con_rasgos.mjs",
     "pruebas:recibir-con-rasgos": "node scripts/pruebas/recibir_con_rasgos.mjs",
     "pruebas:editar-orden-conserva": "node scripts/pruebas/editar_orden_conserva.mjs",
+    "pruebas:rasgos-en-catalogo": "node scripts/pruebas/rasgos_en_catalogo.mjs",
     "pruebas:asistente-sedes": "node scripts/pruebas/asistente_sedes.mjs",
     "pruebas:asistente-preguntas-equipo": "node scripts/pruebas/asistente_preguntas_equipo.mjs",
     "pruebas:asistente-informes": "node scripts/pruebas/asistente_informes.mjs",

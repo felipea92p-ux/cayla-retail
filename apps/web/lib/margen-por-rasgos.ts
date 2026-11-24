@@ -101,6 +101,29 @@ export function eleccionDeRasgos(rasgos: readonly Rasgo[]): EleccionDeRasgos {
   };
 }
 
+/** Lo que viaja a `guardar_rasgos_de_producto` (20261124183000). */
+export type RasgosParaGuardar = { p_nadie_la_tiene: boolean; p_en_tendencia: boolean; p_tela_que_se_nota: boolean | null };
+
+/**
+ * Lo marcado en Catálogo, como se guarda: `null` si la persona no tocó ninguna casilla (no hay nada que guardar). La tela que no tocó viaja
+ * nula: sigue a su tejido, y si el Admin cambia la lista, cambia con ella.
+ */
+export function eleccionParaGuardar(e: EleccionDeRasgos): RasgosParaGuardar | null {
+  if (e.nadie_la_tiene === undefined && e.en_tendencia === undefined && e.tela_que_se_nota === undefined) return null;
+  return { p_nadie_la_tiene: e.nadie_la_tiene === true, p_en_tendencia: e.en_tendencia === true, p_tela_que_se_nota: e.tela_que_se_nota ?? null };
+}
+
+/** De vuelta: lo guardado de una prenda (`fn_producto_rasgos`) como lo que la persona había marcado. La tela nula queda sin decir. */
+export function leerEleccionGuardada(data: unknown): EleccionDeRasgos {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+  const d = data as Record<string, unknown>;
+  return {
+    nadie_la_tiene: d.nadie_la_tiene === true,
+    en_tendencia: d.en_tendencia === true,
+    ...(typeof d.tela_que_se_nota === "boolean" ? { tela_que_se_nota: d.tela_que_se_nota } : {}),
+  };
+}
+
 /** Un tejido o una marca de las listas del Admin, con cuántos modelos activos lo llevan (para elegir mirando lo que más pesa). */
 export type ItemDeLista = { id: string; nombre: string; marcado: boolean; modelos: number };
 export type ListasDePrecio = { tejidos: ItemDeLista[]; marcas: ItemDeLista[] };

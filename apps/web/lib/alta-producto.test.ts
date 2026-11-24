@@ -24,7 +24,6 @@ import {
   pasoHecho,
   leerErrorAlta,
   margenPorcentaje,
-  nivelMargen,
   ordenarColores,
   problemasAlta,
   repartirFamilias,
@@ -125,12 +124,6 @@ describe("margen", () => {
   it("sin precio no hay margen", () => {
     expect(margenPorcentaje(0, 10)).toBeNull();
     expect(margenPorcentaje(NaN, 10)).toBeNull();
-  });
-  it("clasifica negativo, bajo y normal", () => {
-    expect(nivelMargen(-5)).toBe("negativo");
-    expect(nivelMargen(12)).toBe("bajo");
-    expect(nivelMargen(45)).toBe("normal");
-    expect(nivelMargen(null)).toBeNull();
   });
 });
 

@@ -99,6 +99,7 @@ export const PRUEBAS = [
   // se pisa al recibir otra vez; la tabla no se toca directo. ROLLBACK.
   "pruebas:recibir-con-rasgos",
   "pruebas:editar-orden-conserva",
+  "pruebas:rasgos-en-catalogo",
 
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.

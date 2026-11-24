@@ -24,7 +24,7 @@
  *            no une variantes (D-138: si una corrección cae sobre otra que existe, se bloquea).
  */
 
-import { claveCelda, codigoVariantePrevisto, margenPorcentaje } from "./alta-producto";
+import { claveCelda, codigoVariantePrevisto } from "./alta-producto";
 import type { VarianteFicha } from "./producto-cambios-reglas";
 import { compararTallas } from "./tallas";
 import { SIN_PROPIA } from "./temporada-reglas";
@@ -698,13 +698,6 @@ export function textosCostoFijo(sinComprobar: boolean): { nota: string; celda: s
         nota: "Las tallas grises ya entraron por Compras o por el Taller: su costo es su promedio y no se corrige a mano. Su «?» dice de dónde sale.",
         celda: "Viene de sus compras o del Taller: es el promedio de lo que había y lo que llegó, y no se corrige a mano.",
       };
-}
-
-/** Margen sobre el precio, en %. `null` sin costo o sin precio (sin costo no hay margen: antes el vacío mostraba 100 %). */
-export function margenDeFila(f: FilaFicha): number | null {
-  const costo = costoEfectivo(f);
-  if (costo.trim() === "") return null;
-  return margenPorcentaje(numeroDeMonto(f.precio), numeroDeMonto(costo));
 }
 
 export type CampoBloque = "precio" | "costo";
