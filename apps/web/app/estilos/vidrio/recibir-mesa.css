@@ -230,7 +230,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   background: color-mix(in srgb, var(--color-papel) 86%, transparent); color: var(--color-tinta);
   font-size: var(--text-xs); font-weight: 600; line-height: 1.2; text-align: center;
 }
-.rc-placa-foto-quitar { position: absolute; top: -6px; right: -6px; }
+.rc-placa-foto-quitar { position: absolute; top: -8px; right: -8px; }
 .rc-placa-sin-fondo { display: flex; align-items: center; min-height: 24px; }
 /* Las cifras de la compra en palabras, en una línea (antes, una píldora de costo junto a la de marca). */
 .rc-placa-cifras { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; color: var(--color-taupe); font-size: var(--text-detalle); }

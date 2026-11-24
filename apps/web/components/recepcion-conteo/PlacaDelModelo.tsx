@@ -354,7 +354,7 @@ export function PlacaDelModelo({
               </span>
             )}
             {onQuitarFoto && fotoTomada && estadoFoto !== "cargando" && (
-              <BotonQuitarFoto etiqueta={`Quitar la foto de ${nombreDeParada(parada)}`} onClick={onQuitarFoto} className="rc-placa-foto-quitar" />
+              <BotonQuitarFoto grande etiqueta={`Quitar la foto de ${nombreDeParada(parada)}`} onClick={onQuitarFoto} className="rc-placa-foto-quitar" />
             )}
           </div>
         )}
