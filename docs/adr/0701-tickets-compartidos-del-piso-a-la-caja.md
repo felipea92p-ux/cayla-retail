@@ -1,7 +1,7 @@
 # ADR-0701 — Tickets compartidos: del piso a la caja (ADR-0511, paso 2)
 
-**Estado:** aceptada y construida en la rama `claude/tickets-compartidos-0511` (5 actividades, cada una con su commit). **La migración
-`20261124172000_tickets_compartidos.sql` no está en producción**: hasta pegarla, la web no dibuja nada nuevo (ver «Cómo se publica»).
+**Estado:** aceptada y construida en la rama `claude/tickets-compartidos-0511` (5 actividades, cada una con su commit). La migración
+`20261124172000_tickets_compartidos.sql` **está en producción desde el 2026-11-24** (la pegó Felipe; el check «SQL pegado» la comprobó).
 **Fecha:** 2026-11-24 · **Decidió:** Felipe («Sí, constrúyelo», con la lista de 6 actividades aprobada el mismo día) ·
 **Sigue a:** ADR-0511 (varios clientes a la vez, paso 1), ADR-0161 (quién atiende), ADR-0195 (SQL por partes), ADR-0389 (guías)
 
