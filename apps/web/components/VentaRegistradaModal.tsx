@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Ticket } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
@@ -81,6 +81,14 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
   useTituloDeImpresion(r ? textoNumeroRecibo(r) : null);
   const fh = r ? fechaHoraLima(r.emitidoEn) : null;
   const sinDatosFiscales = r !== null && !emisorCompleto(emisor);
+  /** El botón principal se lleva el foco (Enter lo aprieta) SIN mover la hoja. Con `autoFocus` el navegador la desplazaba hasta el
+   *  botón: en el celular, donde la hoja no cabe entera, abría bajada y escondía el total y «Entregar vuelto», justo lo que la cajera
+   *  tiene que ver primero (2026-11-24). Corre al montar el botón (o la caja de los botones, si el principal es `BotonImprimir`, que no
+   *  recibe `ref`), antes de que Radix enfoque el primer control: con el foco ya adentro, Radix no lo mueve. */
+  const enfocarPrincipal = useCallback((el: HTMLElement | null) => {
+    const boton = el?.matches("button") ? el : el?.querySelector<HTMLElement>("button:not([disabled])");
+    boton?.focus({ preventScroll: true });
+  }, []);
 
   /** Imprime y, cuando la boleta ya se mandó (por el ayudante de la Mac, o `afterprint` del cuadro), cierra el modal. Cerrar ANTES
    *  desmontaría el recibo del `<body>` y no habría nada que imprimir (`imprimirBoleta`). Si la ventana no imprime tickets, no cierra. */
@@ -226,7 +234,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               {/* El piso no imprime: la boleta va a la cola de la caja y aquí se ve cómo va. Si no se pudo pedir (sin red, la
                   base no respondió), se reintenta o se imprime aquí si este equipo tiene impresora. */}
               <EstadoEnLaCaja estado={pedida.estado} reintentar={pedida.reintentar} />
-              <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
+              <button type="button" ref={enfocarPrincipal} onClick={cerrar} className={`${botonPrimario} w-full`}>
                 Nueva venta
               </button>
               <BotonImprimir onClick={() => void imprimirBoleta()} className="w-full whitespace-nowrap">
@@ -237,7 +245,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <div className="space-y-2">
               {/* Ya se imprimió sola al abrir: lo que queda es pasar a la siguiente clienta (Enter)
                   o reintentar el papel si se atascó o se acabó el rollo. */}
-              <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
+              <button type="button" ref={enfocarPrincipal} onClick={cerrar} className={`${botonPrimario} w-full`}>
                 Nueva venta
               </button>
               <BotonImprimir onClick={() => void imprimirBoleta()} className="w-full whitespace-nowrap">
@@ -246,10 +254,10 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               <p className="text-center text-sm text-tinta/55">Ya se imprimió · Enter abre una venta nueva</p>
             </div>
           ) : r ? (
-            <div className="space-y-2">
+            <div ref={enfocarPrincipal} className="space-y-2">
               {/* Lo que se hace en casi todas las ventas, en UN toque y con Enter (el foco ya está
-                  acá): imprime y deja la caja lista para la siguiente clienta. */}
-              <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full whitespace-nowrap">
+                  acá): imprime y deja la caja lista para la siguiente clienta. Es el primer botón de esta caja. */}
+              <BotonImprimir peso="primario" onClick={() => imprimirYSeguir(cerrar)} className="w-full whitespace-nowrap">
                 Imprimir y nueva venta
               </BotonImprimir>
               {/* Las dos salidas menos comunes, más discretas: reintentar el papel sin salir
@@ -265,7 +273,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               <p className="text-center text-sm text-tinta/55">Enter imprime y abre una venta nueva · Esc sigue sin imprimir</p>
             </div>
           ) : (
-            <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
+            <button type="button" ref={enfocarPrincipal} onClick={cerrar} className={`${botonPrimario} w-full`}>
               Nueva venta
             </button>
           )}
