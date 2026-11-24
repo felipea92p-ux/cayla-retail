@@ -91,3 +91,14 @@ prueba, así que no se creó ninguna prenda. **Envíos de prueba de la sesión: 
 **Probado en local** (Playwright sin ventana, ENV-000934 de prueba, anulado): tras «+5», «Cuántas» queda en su línea, «Crear la prenda» se
 abre, la luz se enciende en él y el foco queda en su botón; «Cambiar» vuelve a abrir el número. `tema:auditar`: 0 hallazgos solo en oscuro.
 Pruebas de `lib` 169 066 en verde; huella de la guía aceptada.
+
+## Diccionario de datos al día con producción (2026-11-24)
+
+- **Qué hice:** refresqué el volcado de producción (`docs/datos/generado/`): 122 grupos nuevos o cambiados, ninguno quitado; las 2334
+  huellas coinciden con producción (foto 17:43 UTC: 367 relaciones, 2271 funciones). Les di dueño en el aviario a las 11 tablas nuevas
+  (`fotos_por_qr` y su archivo, del ADR-0699; y otras 9 que trajeron otras ramas: barrido del piso, libro de reclamaciones, feriados,
+  tallas sueltas de una oferta, reparto de gastos de aliadas).
+- **Por qué así:** la regla dice que una migración no está terminada hasta que su tabla está en el diccionario. La consulta se corrió por
+  partes (huellas por grupo y solo las líneas nuevas), en solo lectura.
+- **Qué se rompería sin esto:** `datos:comparar` diría que `crear_foto_por_qr` o `preparar_prenda_al_recibir_con_ficha` no existen en
+  producción, y alguien podría volver a pegarlas. Hoy: ninguna pantalla llama a una función con parámetros que producción no acepte.
