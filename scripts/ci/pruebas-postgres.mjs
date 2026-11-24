@@ -94,6 +94,11 @@ export const PRUEBAS = [
   // listas de marcas y tejidos. ROLLBACK.
   "pruebas:compra-con-rasgos",
 
+  // Recibir con lo que la prenda tiene (ADR-0700, act. 4): el envío trae las casillas y el precio visto de cada línea; la prenda nueva
+  // se queda con las de su línea (la tela, por su tejido; la marca, por la lista); una línea sin casillas no deja fila; lo de Catálogo no
+  // se pisa al recibir otra vez; la tabla no se toca directo. ROLLBACK.
+  "pruebas:recibir-con-rasgos",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",

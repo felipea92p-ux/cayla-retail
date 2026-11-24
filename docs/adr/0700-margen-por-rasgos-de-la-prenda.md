@@ -80,6 +80,17 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 - **Queda abierto:** «Editar orden» del escritorio reescribe las líneas sin estas columnas (`fn_orden_compra_escribir_lineas`): una compra
   editada ahí pierde sus casillas. «Corregir la compra» no.
 
+## Qué se construyó (actividad 4, la base)
+
+- `20261124180000_prenda_con_rasgos_al_recibir.sql` (solo en local): `retail.producto_rasgos` (una fila por prenda: «Nadie la tiene» y «En
+  tendencia» sí/no; «Tela que se nota» sí/no o nula = por su tejido; la marca NO se guarda, sale siempre de la lista) y
+  `fn_rasgos_de_producto(uuid)` (lo que tiene en efecto). `fn_envio_detalle` trae `rasgos` y `precio_visto_afuera` de cada línea, y
+  `preparar_prenda_al_recibir` deja en la prenda (nueva o ya existente) las casillas de su línea si todavía no tiene las suyas: lo de Catálogo
+  no se pisa. Los dos parches son bloques nuevos: no mueven texto que anclen otras migraciones (con el primer intento, que cambiaba la
+  lectura de la línea, `envio_sin_aviso` bajaba a 40/44 porque vuelve a pegar 20261107191000). Prueba: `pnpm pruebas:recibir-con-rasgos` (14).
+- **La pantalla de Recibir espera:** la hoja donde se le pone precio a un modelo nuevo (`recepcion-envio/HojaPrenda.tsx`) y sus reglas las
+  está cambiando el PR #2001 (ADR-0699). Se hace sobre main cuando ese PR se fusione, para no chocar.
+
 ## Lo que falta
 
 Actividades 2 a 6: el ámbar contra el objetivo, las casillas en «Compré ropa», Recibir, Nuevo y Editar producto, y el cierre (diccionario,
