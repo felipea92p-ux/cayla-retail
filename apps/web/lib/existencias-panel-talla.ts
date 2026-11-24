@@ -117,12 +117,6 @@ export function separarAcciones(acciones: readonly AccionTalla[]): { posibles: A
   return { posibles: acciones.filter((a) => a.ok), noAhora: acciones.filter((a) => !a.ok) };
 }
 
-/** «No ahora: Colgar (nada en almacén) · Pedir (ninguna tienda tiene).» El nombre corto es la primera palabra del texto. */
-export function lineaNoAhora(noAhora: readonly AccionTalla[]): string | null {
-  if (noAhora.length === 0) return null;
-  return `No ahora: ${noAhora.map((a) => `${a.texto.split(" ")[0]} (${a.sub.charAt(0).toLocaleLowerCase("es")}${a.sub.slice(1)})`).join(" · ")}.`;
-}
-
 /* ====================================================================
    «Qué toca con esta talla» (2026-10-06, pedido de uso: «le falta especificar si hay, si reponer, qué falta, y si sugiere pedir o no
    a otra sede»). Tres respuestas que SIEMPRE dicen algo, aunque el motor del piso no haya respondido o el piso espere su cuadre:
@@ -288,19 +282,6 @@ export function queTocaConLaTalla(
 
 export type TonoInsignia = "verde" | "ambar" | "pizarra" | "rojo";
 
-/** El chip de «Todas» (el modelo entero, ADR-0391): la MISMA regla que el pie de la tarjeta (`botonDeTarjeta`, `existencias-acciones.ts`).
- *  Lo que marca el motor del piso gana (ámbar, «por colgar»); si el motor no marcó nada pero hay tallas con 0 colgadas y stock atrás (el
- *  piso en pausa, o un plan que no se pudo leer) se dice en neutro («sin colgar»); «Todo en el piso» solo cuando cada talla con algo libre
- *  tiene al menos una colgada. Lo agotado va en su propio chip (rojo). Antes el chip solo miraba al motor y, con el piso en pausa, decía
- *  «Todo en el piso» con tres tallas a 0: lo encontró /formidable el 2026-10-12 (el filtro «Por colgar 0» y el modal «Falta colgar» se
- *  contradecían en la misma pantalla). */
-export function insigniaDelModelo(x: { porColgar: number; sinColgar: number; agotadas: number }): { tono: "ambar" | "pizarra" | "verde"; texto: string } | null {
-  if (x.porColgar > 0) return { tono: "ambar", texto: `${plural(x.porColgar, "talla", "tallas")} por colgar` };
-  if (x.sinColgar > 0) return { tono: "pizarra", texto: `${plural(x.sinColgar, "talla", "tallas")} sin colgar` };
-  if (x.agotadas === 0) return { tono: "verde", texto: "Todo en el piso" };
-  return null;
-}
-
 /** La línea chica de «Colgar varias tallas y colores» en «Todas»: cuenta lo mismo que el chip del modelo. */
 export function subtituloColgarVarias(x: { porColgar: number; sinColgar: number; almacen: number }): string {
   if (x.porColgar > 0) return `${plural(x.porColgar, "talla falta", "tallas faltan")} en el piso`;
@@ -387,26 +368,6 @@ export function marcaDeColor<F extends FilaDeTalla>(
   if (tallas.some((t) => o.faltan.has(t.varianteId))) return "falta";
   if (tallas.some((t) => pieDeTalla(t, o.separa).texto === "otra sede")) return "afuera";
   return null;
-}
-
-const unirNombres = (nombres: readonly string[]) =>
-  nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-
-/** La única línea bajo las tallas: cuántas faltan en el piso de este color y en qué otros colores también, sin nombrar las tallas (los
- *  botones de arriba ya las marcan en ámbar). `null` si no falta nada en el modelo. */
-export function lineaDeLoQueFalta(
-  colores: readonly { clave: string; color: string | null; tallas: readonly { varianteId: string }[] }[],
-  claveActual: string,
-  falta: { titulo: string; ids: ReadonlySet<string> } | null
-): string | null {
-  if (!falta) return null;
-  const cuantas = (c: (typeof colores)[number]) => c.tallas.filter((t) => falta.ids.has(t.varianteId)).length;
-  const actual = colores.find((c) => c.clave === claveActual);
-  const aqui = actual ? cuantas(actual) : 0;
-  const otros = colores.filter((c) => c.clave !== claveActual && cuantas(c) > 0).map((c) => c.color?.trim() || "Sin color");
-  if (aqui === 0 && otros.length === 0) return null;
-  if (aqui === 0) return `${falta.titulo}: en ${unirNombres(otros)}`;
-  return `${falta.titulo}: ${plural(aqui, "talla", "tallas")}${otros.length ? ` · también en ${unirNombres(otros)}` : ""}`;
 }
 
 /* ====================================================================
