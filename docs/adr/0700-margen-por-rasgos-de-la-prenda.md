@@ -130,10 +130,48 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
   Una prueba cruza la lista con la ficha talla por talla. Producción («40/60 % sobre costo», `semaforoMargen`) sigue aparte a propósito.
 - **Queda aparte:** la hoja de Recibir no manda las casillas a la propuesta hasta que se haga su parte web (después del PR #2001).
 
+## Actualización 2026-11-24 (b): las casillas son una lista que edita el Admin (`20261124201000`)
+
+**El problema.** Felipe pidió más casillas (2026-11-24: «dame más variedad de opciones») mirando «¿Qué tiene esta prenda?» en Nuevo
+producto. Las cuatro vivían fijas: una columna de puntos por casilla en `reglas_de_precio`, una sí/no por casilla en `producto_rasgos`, los
+códigos escritos en el candado de `orden_compra_items` y en ocho funciones y siete pantallas. Cada casilla nueva era una migración, su ensayo
+y su pegado en producción. Eligió la opción «Lista que edita el Admin» y sumar ya «Detalle de diseño» y «Acabado y confección».
+
+**Lo que cambió.**
+- `retail.rasgos_de_precio`: una fila por casilla (código, nombre, ayuda, puntos 0–10, origen, orden, prendida). Nace con seis, a +3 %:
+  las cuatro de antes y las dos que eligió Felipe. El origen dice de dónde sale: `a_mano` (la marca quien compra), `por_tejido` (llega por
+  la lista de tejidos y se puede quitar) o `por_marca` (sale sola de la lista de marcas); hay a lo más una de cada una de las dos últimas.
+- Una casilla **no se borra ni cambia de código ni de origen** (un disparador lo frena aunque alguien escriba directo): se apaga. Apagada no
+  suma en ninguna prenda; las prendas y las líneas de compra conservan su código y vuelve a contar si se prende. Guardar una prenda en
+  Editar producto sin ver la casilla apagada no se la quita.
+- `producto_rasgos` guarda dos listas: `marcados` y `quitados` (lo que llegaba por el tejido y alguien quitó). Lo de las columnas sí/no
+  se pasó a las listas antes de quitarlas. Otro disparador exige que todo código de una prenda o de una línea de compra esté en la lista.
+- `reglas_de_precio` queda solo para la base (sus columnas de puntos son historia). `guardar_reglas_de_precio(p_margen_base, p_puntos)` pide
+  los puntos de cada casilla prendida, por código. Nueva: `guardar_casilla_de_precio(p_codigo, p_nombre, p_ayuda, p_puntos, p_activa)`
+  (solo Admin; sin código crea una a mano con su código sacado del nombre; frena el nombre repetido y el tope de 75 %). `fn_reglas_de_precio`
+  trae `casillas` (las prendidas, en orden) y `apagadas`. `guardar_rasgos_de_producto(uuid, text[], text[])` reemplaza a la de tres sí/no.
+- **Web:** `QueTieneLaPrenda` dibuja las casillas de la lista (de a dos con la columna ancha), cada una con su «?» que dice cómo
+  reconocerla. En Configuración ▸ Precios, cada casilla con su lápiz y «Agregar casilla» abren `CasillaDePrecioModal` (con «Existe
+  también», guía de foco y el responsable); las apagadas se ven debajo y se prenden desde su lápiz. Si la base todavía tiene la función de
+  antes (sin `casillas`), la web arma la lista con las de fábrica que nombran sus puntos: nada se cae.
+
+DECIDÍ: una tabla con la lista, y los códigos guardados como texto en la prenda y en la línea, con disparadores que exigen que existan.
+DESCARTÉ: (a) seguir sumando columnas: cada casilla nueva costaba una migración que tocaba ocho funciones; (b) una tabla puente prenda ×
+casilla con llave foránea: una fila por casilla marcada para un dato que se lee y se escribe entero, y la lista de la línea de compra
+igual tendría que validarse aparte.
+SE ROMPE SI: un Admin apaga una casilla que muchas prendas tienen: deja de sumar en todas a la vez (es lo que pide «apagar»), y el ámbar de
+esas prendas cambia sin que nadie toque una ficha.
+
+**Lo que pesa más que sumar casillas (análisis del 2026-11-24):** con más casillas, una
+prenda suma más veces el mismo motivo («Nadie la tiene», «Pocas unidades», «No se repite» miden lo mismo). El tope de 75 % frena el
+exceso, pero lo que de verdad lo corrige es medir: comparar después de una temporada si las prendas con cada casilla se vendieron más a precio
+lleno. Las casillas que calcularía el ERP solo («Llega a inicio de temporada», «Pocas unidades») necesitan un origen nuevo y código.
+
 ## Lo que falta
 
-- **Producción:** las seis migraciones, con el OK de Felipe, una por una y antes de fusionar (si la web llega antes, las casillas de «Compré
-  ropa» y Nuevo producto no se guardan); después, `pnpm datos:generar:produccion` para el diccionario.
+- **Producción:** las seis primeras migraciones ya están (2026-11-24, con el OK de Felipe). Falta `20261124201000` (las casillas como lista),
+  con su OK, antes de fusionar: la web de esta rama ya llama a `guardar_rasgos_de_producto(uuid, text[], text[])` y a
+  `guardar_casilla_de_precio`. Después, `pnpm datos:refrescar` para el diccionario.
 - **La pantalla de Recibir** (la web de la actividad 4), cuando se fusione el PR #2001 (ADR-0699 toca la misma hoja).
 - **Calibrar los +3 %** con las ventas de 3 a 6 meses de casillas guardadas: hoy son una hipótesis.
 - El detalle, en `docs/backlog/2026-11-24-margen-ganancia-atributos-2fe4df.md`.

@@ -33,3 +33,18 @@
   de la base sí tienen sus pruebas).
 - [ ] **Sin probar:** la propuesta de la IA en vivo (cuesta por consulta; su piso sí tiene pruebas); Configuración ▸ Precios con una cuenta
   que no es Admin; la base local tiene Lino en la lista de tejidos y CAYLA en la de marcas (de las pruebas a mano).
+
+## 2026-11-24 (b) — Las casillas como lista que edita el Admin (`20261124201000`)
+
+- [x] Base: `rasgos_de_precio` con seis casillas (más «Detalle de diseño» y «Acabado y confección»), `producto_rasgos` en dos listas,
+  `guardar_casilla_de_precio`, disparadores que exigen códigos de la lista y que una casilla no se borre ni cambie de código u origen.
+  Pruebas: `pruebas:reglas-de-precio` 63, `pruebas:rasgos-en-catalogo` 29, `pruebas:recibir-con-rasgos` 14, `pruebas:compra-con-rasgos` 18.
+- [x] Web: la pieza lee la lista (con su «?»), Configuración ▸ Precios agrega, renombra y apaga (`CasillaDePrecioModal`).
+- [ ] **Producción:** `20261124201000` solo en local. Espera el OK de Felipe; va **antes** de fusionar (la web nueva llama a
+  `guardar_rasgos_de_producto(uuid, text[], text[])`). Ensayo contra el esquema real y comprobación por md5 sin comentarios, como las seis.
+- [ ] **Casillas que calcularía el ERP** («Llega a inicio de temporada», «Pocas unidades»): necesitan un origen nuevo y código; esperan
+  a que Felipe elija de las opciones del análisis.
+- [ ] **`/milimetro auditar`** de la hoja de una casilla (`CasillaDePrecioModal`) y de la pieza a dos columnas: vistas en el navegador a 1440 y
+  375 px (sin desborde, el «?» abre sin marcar la casilla, «Existe también» frena «en tendencia»), pero sin correr los medidores.
+- [ ] **Medir las casillas:** con más casillas, varias miden lo mismo; antes de sumar muchas, comparar tras una temporada si las prendas con
+  cada una se vendieron más a precio lleno.

@@ -28,3 +28,11 @@ parche. Web: la suite entera en verde, con pruebas que cruzan la lista de Produc
 Configuración ▸ Precios, «Compré ropa» a 375 px, Nuevo producto (lino → «Tela que se nota» sola; costo S/ 30.90 → «Sugerido S/ 60.90»,
 objetivo 40 %), Editar producto (dos casillas → su talla de S/ 10 pasa a ámbar, «sube a S/ 11.90») y la lista de Productos a 1440 y 375
 px. Nada está en producción: las seis migraciones esperan el OK de Felipe. La IA no se probó en vivo (cuesta por consulta).
+
+## 2026-11-24 (Las casillas como lista del Admin)
+QUÉ HICE: las casillas de «¿Qué tiene esta prenda?» dejaron de estar fijas en el código: son una lista que el Admin edita en Configuración ▸
+Precios (agregar, renombrar, cuánto suma, apagar). Nacen seis: las cuatro de antes más «Detalle de diseño» y «Acabado y confección».
+POR QUÉ ASÍ: con columnas fijas, cada casilla nueva era una migración a ocho funciones; ahora es una fila. Las prendas guardan códigos, y la
+base exige que existan y que una casilla nunca se borre (se apaga y vuelve).
+QUÉ SE ROMPERÍA SIN ESTO: borrar una casilla dejaría prendas con un código huérfano que nadie sabe leer, y apagarla le quitaría la marca a
+cada prenda que se guarde sin verla. Solo en local: la migración `20261124201000` espera el OK de Felipe.
