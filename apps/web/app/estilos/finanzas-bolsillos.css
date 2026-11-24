@@ -35,7 +35,7 @@
   flex-wrap: wrap;
 }
 .bolsillos-etiqueta {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -45,7 +45,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .bolsillos-cifra {
   margin-top: 10px;
@@ -59,13 +59,13 @@
 .bolsillos-dicho {
   margin-top: 8px;
   max-width: 62ch;
-  font-size: 16px;
+  font-size: var(--text-sm);
   color: var(--color-taupe-profundo);
 }
 .bolsillos-motivo,
 .bolsillos-hoy {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-taupe-profundo);
 }
 .bolsillos-chips {
@@ -82,7 +82,7 @@
   flex-wrap: wrap;
   gap: 6px 14px;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-taupe-profundo);
 }
 .bolsillos-ley i {
@@ -136,11 +136,11 @@
   column-gap: 10px;
 }
 .bolsillos-texto-fila b {
-  font-size: 14.5px;
+  font-size: var(--text-detalle);
   font-weight: 500;
 }
 .bolsillos-texto-fila small {
-  font-size: 12.5px;
+  font-size: var(--text-xs);
 }
 .bolsillos-texto {
   display: flex;
@@ -149,16 +149,16 @@
   gap: 2px;
 }
 .bolsillos-texto b {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 600;
 }
 .bolsillos-texto small {
-  font-size: 13px;
+  font-size: var(--text-xs);
   line-height: 1.35;
   color: var(--color-taupe-profundo);
 }
 .bolsillos-monto {
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 500;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -201,7 +201,7 @@
   border-top: 0;
 }
 .bolsillos-cuenta .num {
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -255,7 +255,7 @@
 .mes-a-bajada {
   margin-top: 8px;
   max-width: 62ch;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.5;
   color: var(--color-taupe-profundo);
 }
@@ -279,21 +279,21 @@
   gap: 4px;
 }
 .mes-a-tres dt {
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-taupe-profundo);
 }
 .mes-a-tres dd {
   margin: 0;
 }
 .mes-a-monto {
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-tinta);
 }
 .mes-a-nota {
   /* Lleva frases enteras: es lectura, no etiqueta (14 px, la regla de la letra de lectura). */
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.45;
   color: var(--color-taupe-profundo);
 }
@@ -306,7 +306,7 @@
   border-top: 1px solid var(--hilo-fila);
 }
 .mes-a-eq-titular {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.45;
   color: var(--color-tinta);
 }
@@ -343,11 +343,11 @@
 }
 .proximos-justo-cifra {
   margin-top: 4px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--color-tinta);
 }
 .proximos-justo-cifra b {
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 500;
 }
 .proximos-linea {
@@ -390,12 +390,12 @@
   line-height: 1;
 }
 .proximos-fecha b {
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 .proximos-fecha small {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -446,13 +446,13 @@
   gap: 12px;
   padding: 10px 0 6px;
   border-bottom: 1px solid var(--hilo-fila);
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--color-taupe-profundo);
 }
 .movs-dia-cab .num {
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-tinta);
 }
 .movs-lista,
@@ -490,7 +490,7 @@
 }
 .movs-renglon[data-tipo="mueve"] .movs-icono,
 .movs-renglon[data-tipo="claure"] .movs-icono {
-  --c: var(--color-taupe-profundo);
+  --c: var(--color-taupe); /* el café de la categoría (ADR-0694: `taupe-profundo` ya es tinta, `taupe` vale lo mismo que antes) */
 }
 .movs-renglon[data-tipo="ajuste"] .movs-icono {
   --c: var(--color-ambar-profundo);
@@ -508,7 +508,7 @@
 }
 .movs-vacio {
   padding: 10px 0;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-taupe-profundo);
 }
 .movs-semanas > li {
@@ -534,7 +534,7 @@
   min-height: 40px;
   padding-inline: 16px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
 }
 @media (max-width: 639px) {
   .preguntas-a {
@@ -619,7 +619,7 @@
   border-top: 0;
 }
 .hoja-a-lista .num {
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -635,7 +635,7 @@
 }
 .hoja-a-lado small {
   /* «N de cada S/ 100»: se lee, no es una etiqueta (14 px). */
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-taupe-profundo);
 }
 .pie-acciones.hoja-a-pie {
@@ -701,7 +701,7 @@
 .resumen-frase {
   max-width: 68ch;
   margin-top: -8px;
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.5;
   color: var(--color-taupe-profundo);
 }
@@ -714,7 +714,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-taupe-profundo);
 }
 .mes-a-delta b {
@@ -833,7 +833,7 @@
   margin: 0;
 }
 .hoja-a-titulo-graf {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -841,7 +841,7 @@
 }
 .hoja-a-pie-graf {
   /* La frase que explica el gráfico: lectura (14 px). */
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.45;
   color: var(--color-taupe-profundo);
 }
@@ -852,7 +852,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--color-tinta);
 }
 .hoja-a-ley li {

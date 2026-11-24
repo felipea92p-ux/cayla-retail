@@ -1,7 +1,11 @@
 ---
 name: skill-analisis-arboles-decision
-description: Evalúa la complejidad y eficiencia de la lógica condicional (árboles de decisión) de un archivo, módulo o de todo `apps/web/lib` — profundidad excesiva, escaleras if/else-if, condiciones reevaluadas, falta de poda anticipada (early exit) — y propone el aplanado concreto (guardas, tabla de decisión, condición nombrada). Úsala al tocar o revisar un `*-reglas.ts`, una función con muchos `if`, o cuando Felipe pregunte por qué una regla es difícil de seguir o de probar. Mide FORMA (mantenimiento y corrección), no milisegundos.
+description: "Evalúa la lógica condicional de un archivo o de apps/web/lib (if anidados, condiciones repetidas, sin salida temprana) y propone el aplanado concreto. Úsala al tocar un *-reglas.ts o una función con muchos if. Mide la forma, no los milisegundos."
 ---
+
+## Qué hace y cuándo se usa
+
+Evalúa la complejidad y eficiencia de la lógica condicional (árboles de decisión) de un archivo, módulo o de todo `apps/web/lib` — profundidad excesiva, escaleras if/else-if, condiciones reevaluadas, falta de poda anticipada (early exit) — y propone el aplanado concreto (guardas, tabla de decisión, condición nombrada). Úsala al tocar o revisar un `*-reglas.ts`, una función con muchos `if`, o cuando Felipe pregunte por qué una regla es difícil de seguir o de probar. Mide FORMA (mantenimiento y corrección), no milisegundos.
 
 Analiza la lógica condicional de: $ARGUMENTS   (un archivo, un módulo como `frescura`, o `todo`)
 

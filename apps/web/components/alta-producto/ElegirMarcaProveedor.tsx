@@ -232,7 +232,7 @@ export function ElegirMarcaProveedor({
               Marca
             </label>
             {puedeQuitarMarca && (
-              <button type="button" onClick={() => elegirMarca("")} className="btn-cayla btn-enlace text-[12px]">
+              <button type="button" onClick={() => elegirMarca("")} className="btn-cayla btn-enlace text-xs leading-tight">
                 Quitar
               </button>
             )}
@@ -256,7 +256,7 @@ export function ElegirMarcaProveedor({
               Proveedor
             </label>
             {puedeQuitarProv && (
-              <button type="button" onClick={() => elegirProveedor("")} className="btn-cayla btn-enlace text-[12px]">
+              <button type="button" onClick={() => elegirProveedor("")} className="btn-cayla btn-enlace text-xs leading-tight">
                 Quitar
               </button>
             )}
@@ -278,7 +278,7 @@ export function ElegirMarcaProveedor({
 
       {/* Lo que se soltó o se puso solo: sin esto, un campo que cambia solo parece un error. */}
       {nota && (
-        <p className="rounded-lg vd-placa px-3 py-2 text-[12.5px] text-tinta/80" role="status">
+        <p className="rounded-lg vd-placa px-3 py-2 text-xs text-tinta/80" role="status">
           {nota}
         </p>
       )}
@@ -288,7 +288,7 @@ export function ElegirMarcaProveedor({
 
       {sinNada && sugeridas.length > 0 && (
         <div className="space-y-1.5 pt-1.5">
-          <p className="label-cayla text-[11px] text-tinta/60">{categoriaNombre ? `Lo más usado en ${categoriaNombre}` : "Lo más usado"}</p>
+          <p className="label-cayla text-xs text-tinta/60">{categoriaNombre ? `Lo más usado en ${categoriaNombre}` : "Lo más usado"}</p>
           <div className="flex flex-wrap gap-1.5">
             {sugeridas.map((s) => (
               <ChipOpcion key={`${s.marca.id}|${s.proveedor.id}`} elegido={false} onClick={() => elegirSugerida(s.marca, s.proveedor)}>

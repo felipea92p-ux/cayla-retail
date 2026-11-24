@@ -808,14 +808,14 @@ function PasoDelEditor({
   return (
     <section className={`card-cayla ${abierto ? "" : "opacity-95"}`} data-guia={guia}>
       <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left" onClick={onAbrir} aria-expanded={abierto} disabled={bloqueado}>
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${hecho && !falta ? "bg-verde text-crema" : "vd-gota-chica text-tinta"}`} aria-hidden>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${hecho && !falta ? "bg-verde text-crema" : "vd-gota-chica text-tinta"}`} aria-hidden>
           {hecho && !falta ? <Check className="h-3.5 w-3.5" /> : numero}
         </span>
         <span className="min-w-0 flex-1">
-          <b className="block text-[14px] font-semibold">{titulo}</b>
+          <b className="block text-detalle font-semibold">{titulo}</b>
           <small className="block truncate text-sm text-tinta/65">{resumen}</small>
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue"}</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue"}</span>
       </button>
       {abierto && <div className="border-t border-sand px-4 pb-4 pt-3">{children}</div>}
     </section>

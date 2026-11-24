@@ -29,12 +29,12 @@ function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave
     <div className="mt-5 space-y-4">
       <dl className="card-cayla divide-y divide-tinta/10 text-sm">
         <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-          <dt className="label-cayla text-[11px] text-tinta/65">Correo</dt>
+          <dt className="label-cayla text-xs text-tinta/65">Correo</dt>
           <dd className="break-all text-right font-medium text-tinta">{resultado.correo}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-          <dt className="label-cayla text-[11px] text-tinta/65">Clave</dt>
-          <dd className="font-mono text-[15px] tracking-wide text-tinta tabular-nums">{resultado.clave}</dd>
+          <dt className="label-cayla text-xs text-tinta/65">Clave</dt>
+          <dd className="font-mono text-sm tracking-wide text-tinta tabular-nums">{resultado.clave}</dd>
         </div>
       </dl>
       <Aviso tono="atencion" chico titulo="Anótala: no se vuelve a mostrar." />

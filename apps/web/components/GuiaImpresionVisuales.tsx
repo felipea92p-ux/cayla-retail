@@ -32,7 +32,7 @@ export function Numero({ n, activa, onActiva, className = "" }: { n: number; cla
       onMouseLeave={() => onActiva(null)}
       onFocus={() => onActiva(n)}
       onBlur={() => onActiva(null)}
-      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold tabular-nums text-crema ring-offset-0 transition-[transform,background-color,box-shadow] duration-200 ease-[var(--ease-cayla)] motion-reduce:transition-none ${
+      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums text-crema ring-offset-0 transition-[transform,background-color,box-shadow] duration-200 ease-[var(--ease-cayla)] motion-reduce:transition-none ${
         encendida ? "scale-125 bg-rojo shadow-[0_0_0_5px_color-mix(in_oklab,var(--color-rojo)_28%,transparent)]" : "bg-tinta shadow-[0_0_0_2px_var(--color-crema)]"
       } ${className}`}
     >
@@ -86,7 +86,7 @@ export function FotoConMarcas({
 export function Ventana({ titulo, mac = false, children, pie }: { titulo: ReactNode; mac?: boolean; children: ReactNode; pie?: ReactNode }) {
   return (
     <figure className="space-y-1.5">
-      <div className="overflow-hidden rounded-xl border border-sand bg-papel text-[13px] text-tinta">
+      <div className="overflow-hidden rounded-xl border border-sand bg-papel text-xs text-tinta">
         <div className="flex items-center gap-2 border-b border-sand vd-placa px-3 py-2">
           {mac && (
             <span aria-hidden className="flex gap-1.5">
@@ -138,13 +138,13 @@ export function ConNumero({ n, children, activa, onActiva }: { n: number; childr
 
 /** Un control dibujado: combo (con flecha), campo o botón. `valor` es lo que tiene que quedar escrito o elegido. */
 export function Control({ children, tipo = "combo", resaltado = false }: { children: ReactNode; tipo?: "combo" | "campo" | "boton"; resaltado?: boolean }) {
-  const base = "inline-flex min-h-7 items-center gap-2 rounded-md border px-2.5 py-1 text-[13px]";
+  const base = "inline-flex min-h-7 items-center gap-2 rounded-md border px-2.5 py-1 text-xs";
   const borde = resaltado ? "border-rojo/60 bg-papel font-semibold text-tinta" : "border-sand vd-placa text-tinta";
   if (tipo === "boton") return <span className={`${base} ${resaltado ? "border-tinta bg-tinta font-semibold text-crema" : "border-sand bg-papel"}`}>{children}</span>;
   return (
     <span className={`${base} ${borde} ${tipo === "combo" ? "min-w-[9rem] justify-between" : "min-w-[4.5rem]"}`}>
       <span className="truncate">{children}</span>
-      {tipo === "combo" && <span aria-hidden className="text-[10px] text-tinta/50">▾</span>}
+      {tipo === "combo" && <span aria-hidden className="text-xs text-tinta/50">▾</span>}
     </span>
   );
 }
@@ -152,7 +152,7 @@ export function Control({ children, tipo = "combo", resaltado = false }: { child
 /** La ruta de clics que no tiene foto propia: «Inicio › Configuración › …», cada tramo con su número. */
 export function RutaDeClics({ tramos, activa, onActiva }: { tramos: { n: number; texto: string }[] } & Resaltar) {
   return (
-    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2 rounded-xl border border-sand bg-papel px-3 py-2.5 text-[13px]">
+    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2 rounded-xl border border-sand bg-papel px-3 py-2.5 text-xs">
       {tramos.map((t, i) => (
         <li key={t.n} className="flex items-center gap-1.5">
           <Numero n={t.n} activa={activa} onActiva={onActiva} />

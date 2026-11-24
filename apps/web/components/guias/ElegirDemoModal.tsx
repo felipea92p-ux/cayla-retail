@@ -51,7 +51,7 @@ export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly Fil
         <div className="mt-2 space-y-5">
           {aqui && (
             <section aria-labelledby="demo-aqui">
-              <h3 id="demo-aqui" className="label-cayla mb-2 text-[11px] text-taupe-profundo">
+              <h3 id="demo-aqui" className="label-cayla mb-2 text-xs text-taupe-profundo">
                 Esta pantalla
               </h3>
               <button
@@ -73,7 +73,7 @@ export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly Fil
           )}
           {grupos.map((g) => (
             <section key={g.id} aria-labelledby={`demo-${g.id}`}>
-              <h3 id={`demo-${g.id}`} className="label-cayla mb-2 text-[11px] text-taupe-profundo">
+              <h3 id={`demo-${g.id}`} className="label-cayla mb-2 text-xs text-taupe-profundo">
                 {g.titulo}
               </h3>
               <ul className="overflow-hidden rounded-xl border border-sand bg-papel">
@@ -97,7 +97,7 @@ export function ElegirDemoModal({ filas, guias, onClose }: { filas: readonly Fil
                       <div className="flex items-center gap-3 px-4 py-3" aria-disabled>
                         <PlayCircle className="h-4 w-4 shrink-0 text-tinta/25" aria-hidden />
                         <span className="flex-1 text-sm text-tinta/45">{h.etiqueta}</span>
-                        <span className="text-[11px] text-tinta/45">Pronto</span>
+                        <span className="text-xs text-tinta/45">Pronto</span>
                       </div>
                     )}
                   </li>

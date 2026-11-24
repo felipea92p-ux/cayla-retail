@@ -73,7 +73,7 @@ export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
   return (
     <div data-guia="pago-modal.datos" className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand vd-hundido px-4 py-3">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
+        <p className="label-cayla text-xs text-tinta/55">Paga por</p>
         <p className="mt-0.5 text-sm text-tinta">
           {datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : "Sin definir"}
           {datos.banco ? ` · ${datos.banco}` : ""}
@@ -81,7 +81,7 @@ export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
       </div>
       {datos.plazoCreditoDias != null && (
         <div>
-          <p className="label-cayla text-[10px] text-tinta/55">Crédito</p>
+          <p className="label-cayla text-xs text-tinta/55">Crédito</p>
           <p className="mt-0.5 text-sm text-tinta">A {datos.plazoCreditoDias} días</p>
         </div>
       )}
@@ -96,7 +96,7 @@ const celularConEspacios = (c: string) => (c.length === 9 ? `${c.slice(0, 3)} ${
 function DatoSimple({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota?: string }) {
   return (
     <div className="min-w-0">
-      <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
+      <p className="label-cayla text-xs text-tinta/55">{etiqueta}</p>
       <p className="mt-1 truncate text-sm text-tinta">{valor}</p>
       {nota && <p className="mt-0.5 text-sm leading-snug text-tinta/55">{nota}</p>}
     </div>
@@ -169,7 +169,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
   if (!cuerpo) return null;
   return (
     <div className="anim-revelar rounded-xl border border-sand vd-hundido px-4 py-3">
-      <p className="label-cayla mb-2 text-[10px] text-tinta/55">{titulo}</p>
+      <p className="label-cayla mb-2 text-xs text-tinta/55">{titulo}</p>
       {cuerpo}
     </div>
   );
@@ -179,7 +179,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
 function DatoCopiable({ etiqueta, que, valor, copiar }: { etiqueta: string; que: string; valor: string; copiar: string }) {
   return (
     <div className="min-w-0">
-      <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
+      <p className="label-cayla text-xs text-tinta/55">{etiqueta}</p>
       <p className="mt-1 flex items-center gap-2 text-sm tabular-nums text-tinta">
         <span className="truncate">{valor}</span>
         <BotonCopiar forma="icono" texto={copiar} que={que} className="-my-1.5" />
@@ -223,7 +223,7 @@ export function Confirmacion({
       </p>
       <ul className="mx-auto mt-[18px] max-w-sm text-left">
         {filas.map((f, i) => (
-          <li key={f.documento} className="anim-revelar flex items-center justify-between gap-3 border-t border-tinta/10 py-2 text-[15px]" style={{ animationDelay: `${900 + i * 90}ms` }}>
+          <li key={f.documento} className="anim-revelar flex items-center justify-between gap-3 border-t border-tinta/10 py-2 text-sm" style={{ animationDelay: `${900 + i * 90}ms` }}>
             <span className="tabular-nums text-tinta">{f.documento}</span>
             <span className={`flex items-center gap-1.5 tabular-nums ${f.saldoFinal <= 0 ? "text-verde-profundo" : "text-tinta/75"}`}>
               {f.saldoFinal <= 0 ? (
@@ -422,7 +422,7 @@ export function MediosDePago({
       {!varios ? (
         <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
           <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Medio de pago</p>
+            <p className="label-cayla text-xs text-tinta/65">Medio de pago</p>
             <div className="mt-2">
               <PastillasMedio valor={lineas[0].metodo} onValor={(m) => cambiar(0, { metodo: m })} conFavor={!exacto && saldoFavor > 0} />
             </div>
@@ -436,7 +436,7 @@ export function MediosDePago({
         </div>
       ) : (
         <>
-          <p className="label-cayla text-[11px] text-tinta/65">
+          <p className="label-cayla text-xs text-tinta/65">
             Medios de pago <span className="font-normal normal-case tracking-normal text-tinta/55">· el pago se reparte en {lineas.length}</span>
           </p>
           <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
@@ -456,7 +456,7 @@ export function MediosDePago({
                   />
                 </label>
                 <div>
-                  <span className="label-cayla mb-1 block text-[10px] text-tinta/55">Medio</span>
+                  <span className="label-cayla mb-1 block text-xs text-tinta/55">Medio</span>
                   <PastillasMedio valor={l.metodo} onValor={(m) => cambiar(i, { metodo: m })} conFavor={!exacto && saldoFavor > 0} etiqueta={`Medio de pago ${i + 1}`} />
                 </div>
                 <CampoTexto etiqueta="Referencia" value={l.referencia} onChange={(e) => cambiar(i, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />

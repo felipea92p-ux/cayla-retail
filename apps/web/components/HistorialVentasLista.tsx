@@ -91,7 +91,7 @@ export function HistorialVentasLista({
                 total={
                   delDia && delDia.total > 0 ? (
                     <>
-                      <b className="font-display text-[15px] font-medium tabular-nums">{soles(delDia.total)}</b> · {ventas(delDia.ventas)}
+                      <b className="font-display text-sm leading-tight font-medium tabular-nums">{soles(delDia.total)}</b> · {ventas(delDia.ventas)}
                     </>
                   ) : (
                     ventas(dia.filas.length)
@@ -161,7 +161,7 @@ function FilaVenta({
         </div>
 
         <div className="min-w-0 flex-1 basis-56 @[30rem]:col-start-2 @[30rem]:row-start-1 @[30rem]:basis-auto">
-          <p className={`font-display line-clamp-1 text-[19px] leading-tight ${apagado}`} title={v.prendas}>
+          <p className={`font-display line-clamp-1 text-lg leading-tight ${apagado}`} title={v.prendas}>
             {titulosDePrendas(v.piezas)}
           </p>
           {subtitulo && <p className={`mt-0.5 text-sm ${v.anulada ? "text-tinta/40" : "text-tinta/70"}`}>{subtitulo}</p>}

@@ -1,0 +1,18 @@
+/* =====================================================================
+   LAS CIFRAS (ADR-0691): los dígitos del ERP salen de una letra con ancho fijo (`lib/letra-cifras.ts`), que va primera en `--font-sans`.
+
+   El papel conserva sus dígitos de siempre. Un ticket, una etiqueta o un rótulo están medidos al milímetro con los dígitos de DM Sans:
+   · al imprimir, `--font-sans` vuelve a ser solo DM Sans (el `body` la toma de la variable, así que cambia solo);
+   · en pantalla, lo que se ve como saldrá impreso (`.papel-fijo`, `[data-papel]`) redefine la variable para lo que pide `font-sans`.
+   Lo que solo hereda la letra del `body` sí muestra en pantalla los dígitos nuevos: son algo más anchos, así que lo que entra en la vista
+   previa entra en el papel.
+   ===================================================================== */
+@media print {
+  :root {
+    --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+.papel-fijo,
+[data-papel] {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}

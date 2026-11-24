@@ -226,7 +226,7 @@ export function HojaConfirmar({
                 .filter((g) => g.filas.length > 0)
                 .map((g) => (
                   <li key={g.clave} className="vd-placa rounded-[var(--radius-tarjeta,1rem)] p-3 sm:p-4">
-                    <p className="text-[15px] text-tinta">
+                    <p className="text-sm text-tinta">
                       {g.titulo} · {g.filas.length.toLocaleString("es-PE")} {g.filas.length === 1 ? "talla" : "tallas"}
                       {g.porQue && (
                         <>
@@ -267,7 +267,7 @@ export function HojaConfirmar({
               {/* La etiqueta envuelve la casilla: tocar el texto la marca (en el celular se toca el texto, no el cuadradito). */}
               <label className="flex cursor-pointer items-start gap-3">
                 <Casilla marcada={todo} onCambio={() => setTodo((t) => !t)} etiqueta="Se escaneó todo lo colgado" />
-                <span className="text-[15px] text-tinta">Se escaneó todo lo colgado. Lo que nadie escaneó está guardado y vuelve al almacén.</span>
+                <span className="text-sm text-tinta">Se escaneó todo lo colgado. Lo que nadie escaneó está guardado y vuelve al almacén.</span>
               </label>
             </CampoGuiado>
             <CampoGuiado id="responsable" guia={guia} titulo="Quién confirma">

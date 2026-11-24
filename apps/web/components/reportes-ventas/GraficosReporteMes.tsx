@@ -123,7 +123,7 @@ export function GraficosReporteMes({
               <MesAMes barras={meses} elegida={s.mes.slice(0, 7)} tiendaId={tiendaId} empresaClave={empresaClave} corte={corte} max={maxMes} etiqueta={`Ventas de cada mes: ${meses.map((m) => m.tip).join("; ")}`} />
             ) : (
               <p className="rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-sm text-tinta/65">
-                Todavía hay un solo mes con ventas: cuando haya más, los verás aquí uno al lado del otro.
+                Aún hay un solo mes con ventas.
               </p>
             )}
           </div>

@@ -188,7 +188,7 @@ function TarjetaProducto({
       </div>
       {/* Con tope de ancho y el color solo desde 640 px: a 375 «MUESTRA — AZUL MARINO» cruzaba la foto y se montaba sobre las insignias de
           la izquierda. El color ya lo dice el segundo renglón de la tarjeta. */}
-      <span className="prod-sobre-foto label-cayla absolute right-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate rounded-full px-2 py-1 text-[9px] text-tinta/70">
+      <span className="prod-sobre-foto label-cayla absolute right-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate rounded-full px-2 py-1 text-xs text-tinta/70">
         Muestra{activo ? <span className="max-sm:hidden">{` — ${activo.nombre}`}</span> : null}
       </span>
     </>

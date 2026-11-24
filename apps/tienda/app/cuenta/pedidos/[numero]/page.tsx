@@ -34,7 +34,7 @@ import { whatsappLegible } from "@/lib/tiendas";
 import "../../../estilos/catalogo.css";
 import "../../../estilos/bolsa.css";
 
-export const metadata: Metadata = { title: "Mi pedido · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Mi pedido", robots: { index: false, follow: false } };
 
 /**
  * El estado de un pedido (maqueta v4, `vPedido`): en qué va (separado → confirmado → pagado → entregado), sus prendas, cuánto falta

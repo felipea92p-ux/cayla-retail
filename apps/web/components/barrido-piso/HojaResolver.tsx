@@ -149,12 +149,12 @@ export function HojaResolver({
           <div className="min-w-0 flex-1">
             {esApartado ? (
               <>
-                <p className="text-[15px] text-tinta">{que.a.nota ?? (que.a.codigo ? `Código ${que.a.codigo}` : "Sin etiqueta, con su foto")}</p>
+                <p className="text-sm text-tinta">{que.a.nota ?? (que.a.codigo ? `Código ${que.a.codigo}` : "Sin etiqueta, con su foto")}</p>
                 <p className="texto-detalle text-taupe">{que.a.pendientes === 1 ? "Falta 1" : `Faltan ${que.a.pendientes}`}</p>
               </>
             ) : (
               <>
-                <p className="text-[15px] text-tinta">{prenda ? detalleDePrenda(prenda) || prenda.sku : que.n.prenda}</p>
+                <p className="text-sm text-tinta">{prenda ? detalleDePrenda(prenda) || prenda.sku : que.n.prenda}</p>
                 <p className="texto-detalle text-taupe">
                   {que.n.pendientes === 1 ? "1 colgada que el sistema no tiene aquí" : `${que.n.pendientes} colgadas que el sistema no tiene aquí`}
                 </p>

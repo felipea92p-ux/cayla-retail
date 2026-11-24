@@ -13,12 +13,15 @@
  *   apartar <carpeta>        Mueve a <carpeta> las migraciones que el PR agrega (contra `HEAD^1`: en un PR el checkout es el
  *                            merge sobre main), para que `supabase start` levante solo la base de main. Sin migraciones
  *                            nuevas no crea la carpeta.
- *   aplicar <carpeta> [<json>]
+ *   aplicar <carpeta> [<json>] [--partes <json>]
  *                            Con la base de main arriba, aplica cada migración apartada en orden de versión —cada una en
  *                            su propia sesión y transacción, como el SQL Editor de producción— y la anota en el historial
  *                            de Supabase. Con <json> (la tanda 1 del CI) toma huellas antes y después de cada una y escribe
  *                            por archivo cada objeto que cambió y la huella que tiene que tener en producción (la del
- *                            final). Sin <json> (las otras tandas, que solo necesitan la base) no toma huellas.
+ *                            final). Sin <json> (las otras tandas, que solo necesitan la base) no toma huellas. Con
+ *                            `--partes <json>` (también la tanda 1) mide cada una JUSTO ANTES de aplicarla, en
+ *                            `begin … rollback`, con `partes-sin-deadlock.mjs`: qué candados toma cada sentencia de cada
+ *                            parte. Lo revisa el paso «Partes de migración sin deadlock» (ADR-0195).
  *   devolver <carpeta>       Las vuelve a poner en `supabase/migrations/`: hay pruebas que leen el archivo de su migración
  *                            (42 scripts de `scripts/pruebas/` lo hacen), y sin él fallarían por algo que no es suyo.
  * Lo que asume: el contenedor `supabase_db_cayla-retail` está arriba y `deriva.sql` es la única definición de huella (la
@@ -36,6 +39,7 @@ import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { leerHuellas } from "./deriva.mjs";
+import { medirMigracion, psqlEn, reproduceElBloqueo } from "./partes-sin-deadlock.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /** El repo donde se apartan y devuelven las migraciones. Solo la prueba lo cambia (un repo de juguete). */
@@ -114,12 +118,34 @@ function apartar(destino) {
   console.log(`Apartadas ${nuevas.length} migraciones del PR: ${nuevas.map((r) => basename(r)).join(", ")}`);
 }
 
-function aplicar(carpeta, salida) {
+/** Lo primero de un error de psql, para el informe de partes (el error completo ya salió en el registro del paso). */
+const primeraLinea = (e) => String(e.stderr || e.message || e).trim().split("\n")[0];
+
+function aplicar(carpeta, salida, salidaPartes) {
   const archivos = nuevasDelPr(readdirSync(carpeta).map((n) => `${CARPETA}/${n}`)).map((r) => basename(r));
   let antes = salida ? huellasOAviso("de la base de main") : null;
   const pasos = [];
+  // Medir no aplica nada (begin … rollback); si la medida falla, la migración se aplica igual y el informe dice «no se pudo medir».
+  const medir = salidaPartes ? psqlEn(CONTENEDOR) : null;
+  const partes = [];
+  let reproduce = true;
+  if (medir) {
+    try {
+      reproduce = reproduceElBloqueo(medir);
+    } catch (e) {
+      console.log(`::warning::No se pudo correr el canario de partes: ${primeraLinea(e)}`);
+      reproduce = false;
+    }
+  }
   for (const archivo of archivos) {
     const sql = readFileSync(join(carpeta, archivo), "utf8");
+    if (medir) {
+      try {
+        partes.push({ archivo, ...medirMigracion(sql, medir) });
+      } catch (e) {
+        partes.push({ archivo, error: primeraLinea(e) });
+      }
+    }
     console.log(`Aplicando ${archivo}`);
     // Una sesión y una transacción por archivo, como el SQL Editor: un `set` de un archivo no le llega al siguiente.
     psql(["-q", "-v", "ON_ERROR_STOP=1", "-1", "-f", "-"], sql);
@@ -132,6 +158,10 @@ function aplicar(carpeta, salida) {
       if (despues) pasos.push({ archivo, despues });
       else antes = null; // Sin el paso intermedio no se sabe qué cambió cada archivo: no se escribe nada a medias.
     }
+  }
+  if (salidaPartes) {
+    writeFileSync(salidaPartes, `${JSON.stringify({ reproduce, archivos: partes }, null, 1)}\n`);
+    console.log(`Partes del PR: ${partes.length} migraciones medidas → ${salidaPartes}`);
   }
   if (!salida) {
     console.log(`Aplicadas ${archivos.length} migraciones del PR (sin huellas: no se pidieron).`);
@@ -154,11 +184,14 @@ function devolver(carpeta) {
 }
 
 function main() {
-  const [orden, ...args] = process.argv.slice(2);
-  if (orden === "apartar" && args.length === 1) return apartar(args[0]);
-  if (orden === "aplicar" && (args.length === 1 || args.length === 2)) return aplicar(args[0], args[1]);
+  const [orden, ...resto] = process.argv.slice(2);
+  const i = resto.indexOf("--partes");
+  const partes = i === -1 ? undefined : resto[i + 1];
+  const args = i === -1 ? resto : resto.filter((_, j) => j !== i && j !== i + 1);
+  if (orden === "apartar" && args.length === 1 && i === -1) return apartar(args[0]);
+  if (orden === "aplicar" && (args.length === 1 || args.length === 2) && (i === -1 || partes)) return aplicar(args[0], args[1], partes);
   if (orden === "devolver" && args.length === 1) return devolver(args[0]);
-  console.error("Uso: huellas-del-pr.mjs apartar <carpeta> | aplicar <carpeta> [<salida.json>] | devolver <carpeta>");
+  console.error("Uso: huellas-del-pr.mjs apartar <carpeta> | aplicar <carpeta> [<salida.json>] [--partes <partes.json>] | devolver <carpeta>");
   process.exit(2);
 }
 

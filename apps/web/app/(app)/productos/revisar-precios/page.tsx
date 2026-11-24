@@ -53,7 +53,7 @@ export default async function RevisarPreciosPage({ searchParams }: { searchParam
 
       {res.estado === "sin_funcion" && (
         <Aviso tono="atencion" titulo="Esta vista todavía no está activa en la base de datos" guia="revisar-precios.sin-funcion">
-          Falta aplicar la migración <span className="font-mono text-[13px]">20261110203000_precio_propuesto_con_ia.sql</span> en producción.
+          Falta aplicar la migración <span className="font-mono text-xs">20261110203000_precio_propuesto_con_ia.sql</span> en producción.
         </Aviso>
       )}
 
@@ -98,7 +98,7 @@ export default async function RevisarPreciosPage({ searchParams }: { searchParam
       )}
 
       <p className="nota-cayla" data-guia="revisar-precios.nota">
-        «Pierde dinero» y «margen bajo» se miden solo con el costo real de la prenda. Una prenda sin costo propio se compara solo con su categoría.
+        «Pierde dinero» y «margen bajo» usan el costo real de la prenda; sin costo propio, el de su categoría.
       </p>
     </div>
   );

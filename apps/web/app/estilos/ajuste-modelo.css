@@ -58,7 +58,7 @@
    lugar, con una talla o con muchas), el aviso y la planilla, que es lo ÚNICO que se desliza, con su cabecera fija. Abajo, el pie. */
 .ajuste-vista { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; min-width: 0; container-type: inline-size; }
 .ajuste-vista > * { flex: none; }
-.ajuste-encabezado { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 12.5px; color: var(--color-taupe); }
+.ajuste-encabezado { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: var(--text-xs); color: var(--color-taupe); }
 .ajuste-encabezado b { font-weight: 600; color: var(--color-tinta); }
 
 /* La banda: dos filas de opciones con su título a la izquierda, sobre un fondo propio para que se lean como «lo que eliges primero». */
@@ -71,7 +71,7 @@
   background: var(--placa-fondo); box-shadow: var(--placa-luz);
 }
 .ajuste-banda-fila { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 10px; align-items: center; }
-.ajuste-banda-tit { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
+.ajuste-banda-tit { font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
 .ajuste-opciones { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 /* «Qué pasó» es un combo (Felipe 2026-10-26): a la medida del motivo más largo, no de toda la banda. */
 .ajuste-motivo { width: 100%; max-width: 20rem; }
@@ -84,8 +84,8 @@
 }
 /* El lugar que se pidió y todavía no se puede (hay cambios sin guardar): queda marcado mientras el aviso pregunta qué hacer. */
 .ajuste-opcion.pildora-cayla[data-pide="si"] { border-color: var(--color-ambar); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ambar) 30%, transparent); }
-.ajuste-banda-pie { display: grid; gap: 2px; margin-left: calc(5.5rem + 10px); font-size: 12.5px; color: var(--color-taupe); }
-.ajuste-banda-info { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-pizarra); }
+.ajuste-banda-pie { display: grid; gap: 2px; margin-left: calc(5.5rem + 10px); font-size: var(--text-xs); color: var(--color-taupe); }
+.ajuste-banda-info { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--color-pizarra); }
 /* Lo que importa en esta hoja es la planilla (Felipe 2026-10-27: «la tabla se pierde y muestra demasiado poco»): en una hoja ancha, «Dónde» y
    «Qué pasó» van lado a lado, la nota (si el motivo la pide) con su título a la izquierda como los demás, y la ayuda y el aviso de la carga inicial
    en una sola línea que corre. Así la banda mide ~150 px en vez de ~270 y la planilla se lleva el resto. En una hoja angosta (el celular)
@@ -96,7 +96,7 @@
   .ajuste-banda-que { grid-template-columns: auto minmax(0, 1fr); }
   .ajuste-banda-sola,
   .ajuste-banda-pie { grid-column: 1 / -1; }
-  .ajuste-banda-pie { margin-left: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font-size: 12px; }
+  .ajuste-banda-pie { margin-left: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font-size: var(--text-xs); }
   .ajuste-banda-nota { display: block; }
   .ajuste-banda-nota .campo { display: grid; grid-template-columns: fit-content(11rem) minmax(0, 1fr); column-gap: 10px; align-items: center; }
   .ajuste-banda-nota .campo > div { margin-top: 0; }
@@ -128,10 +128,10 @@
   border: 1px solid color-mix(in srgb, var(--color-tinta) 16%, transparent);
   background: var(--hundido-fondo); box-shadow: var(--hundido-sombra);
 }
-.ajuste-planilla-barra { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; white-space: nowrap; font-size: 12.5px; color: var(--color-taupe); }
-.ajuste-planilla-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
-.ajuste-pista { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
-.ajuste-pista kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid var(--color-sand); border-radius: 5px; background: var(--color-papel); font: inherit; font-size: 10.5px; }
+.ajuste-planilla-barra { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; white-space: nowrap; font-size: var(--text-xs); color: var(--color-taupe); }
+.ajuste-planilla-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 600; color: var(--color-tinta); }
+.ajuste-pista { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); }
+.ajuste-pista kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid var(--color-sand); border-radius: 5px; background: var(--color-papel); font: inherit; font-size: var(--text-xs); }
 .ajuste-desliza { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 14%, transparent); }
 
 /* Cada fila pinta su fondo OPACO (mezclado con papel, nunca semitransparente): la columna del color, que se queda fija al deslizar de
@@ -140,7 +140,7 @@
 .ajuste-tabla th,
 .ajuste-tabla td { padding: 4px 8px; text-align: center; vertical-align: middle; font-weight: inherit; white-space: nowrap; background: var(--fila); }
 .ajuste-tabla thead th { position: sticky; top: 0; z-index: 3; padding: 7px 8px; background: var(--color-papel); border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); }
-.ajuste-tabla tfoot > tr > * { position: sticky; bottom: 0; z-index: 3; padding: 8px; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-family: var(--font-serif); font-size: 17px; color: var(--color-tinta); }
+.ajuste-tabla tfoot > tr > * { position: sticky; bottom: 0; z-index: 3; padding: 8px; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-family: var(--font-serif); font-size: var(--text-lg); color: var(--color-tinta); }
 .ajuste-tabla tbody tr + tr > * { border-top: 1px solid var(--color-sand); }
 .ajuste-tabla tbody tr:nth-child(even) { --fila: color-mix(in srgb, var(--color-hueso) 42%, var(--color-papel)); }
 /* Con una talla, la fila ES la cantidad: se tiñe al cambiar. Con varias, solo la celda que cambió (Felipe 2026-10-26). */
@@ -161,16 +161,16 @@
 /* Con la foto de un estampado (ADR-0634) el nombre sigue en su línea: la fila no crece y la columna se ensancha sola. */
 .ajuste-color:has(> [aria-hidden]) { flex-wrap: nowrap; }
 .ajuste-color:has(> [aria-hidden]) b { white-space: nowrap; }
-.ajuste-color b { overflow: hidden; text-overflow: ellipsis; font-family: var(--font-serif); font-size: 17.5px; font-weight: 500; line-height: 1.25; color: var(--color-tinta); }
-.ajuste-hoy-movil { display: none; flex-basis: 100%; font-size: 11.5px; color: var(--color-taupe); }
-.ajuste-hoy { min-width: 46px; font-size: 14px; color: var(--color-taupe); }
+.ajuste-color b { overflow: hidden; text-overflow: ellipsis; font-family: var(--font-serif); font-size: var(--text-lg); font-weight: 500; line-height: 1.25; color: var(--color-tinta); }
+.ajuste-hoy-movil { display: none; flex-basis: 100%; font-size: var(--text-xs); color: var(--color-taupe); }
+.ajuste-hoy { min-width: 46px; font-size: var(--text-detalle); color: var(--color-taupe); }
 .ajuste-cambio { min-width: 70px; }
 .ajuste-nada { color: var(--color-taupe); opacity: 0.55; }
-.ajuste-otro { font-size: 13px; color: var(--color-taupe); }
-.ajuste-otro small { margin-left: 8px; font-size: 11.5px; }
+.ajuste-otro { font-size: var(--text-xs); color: var(--color-taupe); }
+.ajuste-otro small { margin-left: 8px; font-size: var(--text-xs); }
 .ajuste-otro small[data-tono="nueva"] { color: var(--color-pizarra); }
 .ajuste-otro small[data-tono="ajeno"] { color: var(--color-ambar-profundo); font-weight: 600; }
-.ajuste-delta { padding: 1px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
+.ajuste-delta { padding: 1px 7px; border-radius: 999px; font-size: var(--text-xs); font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
 .ajuste-delta[data-tono="entra"] { background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde-profundo); }
 .ajuste-delta[data-tono="sale"] { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar-profundo); }
 /* El visto de un color que ya miraste entero en esta visita. */
@@ -186,12 +186,12 @@
   border: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent);
   background: var(--color-papel);
   color: var(--color-tinta);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
-.ajuste-total { min-width: 52px; font-family: var(--font-serif); font-size: 17px; color: var(--color-taupe); }
-.ajuste-guion { color: var(--color-taupe); font-size: 18px; opacity: 0.6; }
+.ajuste-total { min-width: 52px; font-family: var(--font-serif); font-size: var(--text-lg); color: var(--color-taupe); }
+.ajuste-guion { color: var(--color-taupe); font-size: var(--text-lg); opacity: 0.6; }
 
 /* La celda: el paso de cantidad «planilla» y, debajo, lo que hay que saber (con varias tallas). */
 .ajuste-celda {
@@ -216,7 +216,7 @@
 /* El número que rueda al cambiar: sube al sumar, baja al restar. */
 .ajuste-celda .paso-cantidad-n.ajuste-sube { animation: ajuste-sube 240ms var(--ease-cayla) 1; }
 .ajuste-celda .paso-cantidad-n.ajuste-baja { animation: ajuste-baja 240ms var(--ease-cayla) 1; }
-.ajuste-bajo { min-height: 13px; font-size: 10.5px; line-height: 1.25; white-space: nowrap; color: var(--color-taupe); }
+.ajuste-bajo { min-height: 13px; font-size: var(--text-xs); line-height: 1.25; white-space: nowrap; color: var(--color-taupe); }
 .ajuste-bajo[data-tono="cambio"] { color: var(--color-ambar-profundo); font-weight: 600; }
 .ajuste-bajo[data-tono="nueva"] { color: var(--color-pizarra); }
 /* Cambió mientras se contaba (ADR-0494): el mismo ámbar de lo que cambia, con un filo en la celda para encontrarla en la tabla. */
@@ -265,7 +265,7 @@
   .ajuste-banda-info,
   .ajuste-de-mas { display: none; }
   .ajuste-motivo { max-width: none; }
-  .ajuste-opcion.pildora-cayla { padding: 0.3125rem 0.625rem; font-size: 12.5px; }
+  .ajuste-opcion.pildora-cayla { padding: 0.3125rem 0.625rem; font-size: var(--text-xs); }
   .ajuste-tabla th,
   .ajuste-tabla td { padding: 4px 5px; }
   .ajuste-col-color,
@@ -296,10 +296,10 @@
   border: 1px solid var(--color-sand);
   border-radius: 10px;
   background: var(--color-papel);
-  font-size: 12.5px;
+  font-size: var(--text-xs);
 }
 .ajuste-ticket-muestra { width: 12px; height: 12px; border-radius: 999px; box-shadow: 0 0 0 1px var(--color-sand); }
-.ajuste-ticket-delta { padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
+.ajuste-ticket-delta { padding: 1px 7px; border-radius: 999px; font-size: var(--text-xs); font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
 /* El sello «Guardado» se estampa sobre los tickets, inclinado, una vez. */
 .ajuste-talon-tickets { position: relative; }
 .ajuste-sello {
@@ -313,7 +313,7 @@
   border-radius: 10px;
   background: color-mix(in srgb, var(--color-papel) 85%, transparent);
   color: var(--color-verde-profundo);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -329,7 +329,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-papel) 88%, transparent);
   color: var(--color-tinta);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   animation: ajuste-asoma 320ms var(--ease-cayla) 200ms 1 backwards;
 }

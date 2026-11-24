@@ -18,7 +18,7 @@ export function ResumenDelCierre({ filas }: { filas: readonly FilaDeLaFirma[] })
     <dl className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
       {filas.map((f) => (
         <div key={f.texto} className="flex items-center justify-between gap-4 px-4 py-3">
-          <dt className="text-[15px] font-semibold text-tinta">{f.texto}</dt>
+          <dt className="text-sm font-semibold text-tinta">{f.texto}</dt>
           <dd className={`font-display text-[22px] leading-none tabular-nums ${f.tono === "ambar" ? "text-ambar" : "text-tinta"}`}>{f.cifra}</dd>
         </div>
       ))}
@@ -48,7 +48,7 @@ export function FirmaDelCierre({
         <div className="space-y-4">
           <ResumenDelCierre filas={filas} />
           {quien && (
-            <p className="flex items-center gap-2.5 text-[15px] text-tinta">
+            <p className="flex items-center gap-2.5 text-sm text-tinta">
               <AvatarPersona personaId={quien.personaId} nombre={quien.nombre} tamano={32} />
               {quien.nombre}
             </p>

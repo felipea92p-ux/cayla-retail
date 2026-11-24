@@ -6,7 +6,7 @@
 export function VienenFardos({ bultos }: { bultos: number | null }) {
   if (bultos === null) return null;
   return (
-    <p className="text-[14.5px] text-tinta">
+    <p className="text-detalle text-tinta">
       {bultos === 1 ? "Viene" : "Vienen"} <b className="font-display text-[22px] tabular-nums">{bultos.toLocaleString("es-PE")}</b> {bultos === 1 ? "fardo" : "fardos"}
     </p>
   );

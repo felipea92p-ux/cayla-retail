@@ -286,10 +286,10 @@ export function NuevoAvioModal({
                     />
                   </CampoGuiado>
                   <div>
-                    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">
+                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">
                       Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
                     </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-[15px] font-semibold text-tinta">{codigo}</p>
+                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-sm font-semibold text-tinta">{codigo}</p>
                   </div>
                 </div>
 
@@ -333,8 +333,8 @@ export function NuevoAvioModal({
                         />
                       ) : (
                         <div>
-                          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">En qué se mide</p>
-                          <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-[14px] text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
+                          <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">En qué se mide</p>
+                          <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
                         </div>
                       )}
                     </div>
@@ -405,7 +405,7 @@ export function NuevoAvioModal({
               ) : (
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                    <div className={`${FILA} vd-placa text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
+                    <div className={`${FILA} vd-placa text-xs font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
                       <span>Color</span>
                       <span>Código</span>
                       {puedeSaldo && <span className="text-right">¿Ya tienes? ({corta})</span>}
@@ -418,11 +418,11 @@ export function NuevoAvioModal({
                       const nombreColor = c?.nombre ?? f.color;
                       return (
                         <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                          <span className="flex min-w-0 items-center gap-2 text-[14px] text-tinta">
+                          <span className="flex min-w-0 items-center gap-2 text-detalle text-tinta">
                             <Punto hex={c?.hex ?? null} familia={c?.familiaColor} tipo={c?.tipo} />
                             <span className="truncate">{nombreColor}</span>
                           </span>
-                          <span className="truncate font-mono text-[12.5px] text-tinta/75">
+                          <span className="truncate font-mono text-xs text-tinta/75">
                             {codigo}-{f.color}
                           </span>
                           {puedeSaldo && (
@@ -466,7 +466,7 @@ export function NuevoAvioModal({
                             type="button"
                             onClick={() => alternarColor(f.color)}
                             aria-label={`Quitar ${nombreColor}`}
-                            className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+                            className="grid h-8 w-8 place-items-center rounded-full text-lg leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
                           >
                             ×
                           </button>

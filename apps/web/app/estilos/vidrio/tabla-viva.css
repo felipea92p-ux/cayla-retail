@@ -54,7 +54,7 @@
 .tv-frase {
   flex: 1 1 360px;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--tv-texto-tenue);
 }
@@ -87,7 +87,7 @@
 .tv-tabla {
   --tv-cols: var(--tv-cols-todas);
   --tv-cifra: 1ch;
-  font-size: 15px;
+  font-size: var(--text-sm);
   position: relative;
   isolation: isolate;
   border-radius: var(--radius-tarjeta);
@@ -155,7 +155,7 @@
   min-height: 32px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -244,7 +244,7 @@
   position: relative;
   min-height: 60px;
   padding-block: 12px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   line-height: 1.4;
   color: var(--color-tinta);
   text-decoration: none;
@@ -268,7 +268,7 @@
 .tv-debajo {
   display: block;
   margin-top: 2px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.35;
   color: var(--color-taupe);
 }
@@ -297,7 +297,7 @@
 .tv-pie {
   min-height: 52px;
   padding-block: 10px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-tinta);
   border-top: 1px solid var(--hilo-cabeza);
@@ -316,18 +316,18 @@
   min-height: 44px;
 }
 .tv-tabla[data-letra="grande"] {
-  font-size: 17px;
+  font-size: var(--text-lg);
 }
 .tv-tabla[data-letra="grande"] .tv-fila,
 .tv-tabla[data-letra="grande"] .tv-pie {
   min-height: 68px;
-  font-size: 17px;
+  font-size: var(--text-lg);
 }
 .tv-tabla[data-letra="grande"] :is(.tv-sub, .tv-debajo) {
-  font-size: 15.5px;
+  font-size: var(--text-sm);
 }
 .tv-tabla[data-letra="grande"] .tv-col {
-  font-size: 13.5px;
+  font-size: var(--text-detalle);
 }
 
 /* ---------- Lo que se va pasa a la línea de debajo de la principal ---------- */
@@ -446,12 +446,12 @@
   .tv-etq {
     display: inline;
     margin-right: 6px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .tv-unidad {
     display: inline;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 400;
     color: var(--color-taupe);
   }
@@ -501,7 +501,7 @@
 }
 .tv-globo-titulo {
   margin: 0 4px 8px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -543,7 +543,7 @@
   gap: 16px;
   min-height: 52px;
   padding: 4px 4px 4px 10px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--color-tinta);
 }
 .tv-orden-fila + .tv-orden-fila {
@@ -568,7 +568,7 @@
   padding: 6px 10px;
   border-radius: 12px;
   text-align: left;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--color-tinta);
   cursor: pointer;
   transition: background-color 180ms var(--ease-cayla);
@@ -596,7 +596,7 @@
 }
 .tv-op-cuenta {
   margin-left: auto;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-variant-numeric: tabular-nums;
   color: var(--color-taupe);
 }
@@ -607,7 +607,7 @@
   gap: 12px;
   margin-top: 10px;
   padding-top: 10px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
   box-shadow: inset 0 1px 0 var(--hilo-cabeza);
 }

@@ -245,7 +245,7 @@ function LineaParaRecibir({
     <li>
       <CampoGuiado id={`linea-${l.itemId}`} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3.5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="min-w-0 text-[14px] text-tinta">
+          <p className="min-w-0 text-detalle text-tinta">
             {l.insumo}
             {l.codigo && <span className="ml-1.5 text-sm text-taupe">{l.codigo}</span>}
           </p>

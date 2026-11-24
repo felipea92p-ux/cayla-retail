@@ -211,7 +211,7 @@ function TarjetaEtiqueta({
             {dto && (
               <span
                 aria-hidden
-                className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none text-crema"
+                className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-xs font-bold leading-none text-crema"
                 style={{ backgroundColor: acento }}
               >
                 {dto.replace(" dto", "")}
@@ -370,7 +370,7 @@ function HojaEtiquetas({
           <div className="space-y-3">
             {grupos.map((g) => (
               <section key={g.estilo} aria-label={g.nombre}>
-                <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-[11px] text-tinta/65">
+                <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-xs text-tinta/65">
                   <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${g.punto}`} />
                   {g.nombre}
                   <span className="font-normal tabular-nums text-tinta/40">{g.etiquetas.length}</span>

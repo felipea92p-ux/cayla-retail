@@ -130,10 +130,7 @@ export function PerdidasVista({
       )}
 
       <p data-guia="perdidas.nota" className="nota-cayla">
-        <b>Una sola cuenta:</b> perder es todo lo que salió sin venderse —faltantes al contar o quitados a mano, dañadas que se
-        botaron o donaron, la venta anulada cuya prenda no volvió y lo que faltó en un traslado (en la sede que lo envió)—. Es la
-        misma cifra de «Mermas» en Finanzas. Lo liquidado es venta; el stock inicial, el primer conteo de una sede y lo que se
-        mueve entre piso y almacén nunca son pérdida. Lo que apareció va aparte.
+        <b>Perder</b> es lo que salió sin venderse: la misma cifra de «Mermas» en Finanzas. Lo que apareció va aparte.
       </p>
     </div>
   );

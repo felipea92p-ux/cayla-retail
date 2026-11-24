@@ -8,7 +8,7 @@ import Link from "next/link";
 export function PantallaNoEncontrada({ completa = false }: { completa?: boolean }) {
   const tarjeta = (
     <div className="card-cayla anim-entrada max-w-md p-8 text-center">
-      <p className="label-cayla text-[11px] text-rojo">Error 404</p>
+      <p className="eyebrow-cayla">Error 404</p>
       <h1 className="font-display mt-2 text-2xl text-tinta">Esta pantalla no existe</h1>
       <p className="mt-3 text-sm text-tinta/75">
         El enlace puede estar mal escrito, o lo que buscas ya no está. Vuelve al inicio y búscalo desde el menú.

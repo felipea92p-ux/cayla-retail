@@ -168,7 +168,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
         aria-label="Buscar una pantalla o a alguien del equipo"
         title="Buscar  ( Ctrl K )"
         // El pozo de la isla izquierda de la cabecera (ADR-0596): su fondo, su sombra y cómo se encoge viven en vidrio/marco.css.
-        className="marco-buscador hidden items-center gap-2.5 rounded-full border px-3.5 text-[13px] text-tinta/70 sm:flex"
+        className="marco-buscador hidden items-center gap-2.5 rounded-full border px-3.5 text-xs text-tinta/70 sm:flex"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
           <circle cx="10.5" cy="10.5" r="7.5" />
@@ -177,8 +177,8 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
         <span className="marco-buscador-texto truncate">Buscar…</span>
         {/* El atajo es de teclado: con el dedo no hay Ctrl. Con el iPhone de lado (ADR-0479) además dejaba la sede bajo la muesca. */}
         <span className="marco-buscador-tecla ml-auto flex items-center gap-0.5 pointer-coarse:hidden">
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">Ctrl</span>
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">K</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">Ctrl</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">K</span>
         </span>
       </button>
 
@@ -217,7 +217,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
           <div className="-mx-1 max-h-[22rem] space-y-4 overflow-y-auto px-1">
             {pantallasFiltradas.length > 0 && (
               <div>
-                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50 dark:text-tinta/60">Pantallas</p>
+                <p className="label-cayla px-2 pb-1.5 text-xs text-tinta/50 dark:text-tinta/60">Pantallas</p>
                 <div className="space-y-0.5">
                   {pantallasFiltradas.map((p, idx) => (
                     <Link
@@ -233,7 +233,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
                     >
                       <span className="min-w-0 flex-1">{p.etiqueta}</span>
                       {/* El módulo en palabras de tienda, no la dirección de la página (que en el celular no cabía y no le dice nada a nadie). */}
-                      {modulos[p.href] && <span className="shrink-0 truncate text-[12px] text-tinta/60">{modulos[p.href]}</span>}
+                      {modulos[p.href] && <span className="shrink-0 truncate text-xs text-tinta/60">{modulos[p.href]}</span>}
                     </Link>
                   ))}
                 </div>
@@ -242,7 +242,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
 
             {equipoFiltrado.length > 0 && (
               <div>
-                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50 dark:text-tinta/60">Equipo · {ubicacionEtiqueta}</p>
+                <p className="label-cayla px-2 pb-1.5 text-xs text-tinta/50 dark:text-tinta/60">Equipo · {ubicacionEtiqueta}</p>
                 <div className="space-y-0.5">
                   {equipoFiltrado.map((m, idx) => {
                     const i = pantallasFiltradas.length + idx;
@@ -251,7 +251,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
                         <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
                         <span className="flex-1">
                           <span className="block text-tinta">{m.nombre}</span>
-                          <span className="block text-[11.5px] text-tinta/55">{textoEstado(m.estado)}</span>
+                          <span className="block text-xs text-tinta/55">{textoEstado(m.estado)}</span>
                         </span>
                       </div>
                     );

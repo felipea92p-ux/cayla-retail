@@ -34,7 +34,7 @@ export default async function ReportesPorEmpresaPage({ searchParams }: { searchP
       <div className="space-y-6">
         <CabeceraReportes sede={persona.rol === "lider" ? "Todas las tiendas" : persona.ubicacionEtiqueta} activa="empresas" porEmpresa={porEmpresa} />
         <Vacio icono={<Building2 />} titulo="Aquí vende una sola empresa">
-          Esta vista separa las ventas de una tienda donde venden dos empresas. En tu tienda todo es de una.
+          Esta vista es para tiendas con dos empresas.
         </Vacio>
       </div>
     );

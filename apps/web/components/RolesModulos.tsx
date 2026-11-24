@@ -86,7 +86,7 @@ export function RolesModulos({
                   <Icono aria-hidden className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-display text-[20px] leading-tight text-tinta">{grupo}</span>
+                  <span className="block font-display text-xl leading-tight text-tinta">{grupo}</span>
                   <span className="block truncate text-sm text-tinta/65">{bajada}</span>
                 </span>
                 <span
@@ -120,7 +120,7 @@ export function RolesModulos({
                               className="-ml-9 shrink-0"
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="flex flex-wrap items-center gap-x-2 text-[14px] font-semibold text-tinta">
+                              <span className="flex flex-wrap items-center gap-x-2 text-detalle font-semibold text-tinta">
                                 {m.nombre}
                                 {control.tipo === "candado" && (
                                   <span className="inline-flex items-center gap-1 text-sm font-normal text-taupe-profundo">
@@ -144,7 +144,7 @@ export function RolesModulos({
                     <div className="flex justify-end border-t border-sand bg-crema px-4 py-2">
                       <button
                         type="button"
-                        className="btn-cayla btn-enlace text-[12.5px]"
+                        className="btn-cayla btn-enlace text-xs leading-tight"
                         onClick={() =>
                           onCambiar(alternarGrupo(borrador, grupo, !todoEncendido, rol.fijo).filter((c) => borrador.includes(c) || fueraDeLoMio([c], misModulos).length === 0))
                         }
@@ -178,8 +178,8 @@ function MenuDelRol({ rolNombre, borrador, suma, quita }: { rolNombre: string; b
       </div>
       <div className="overflow-hidden rounded-2xl border border-sand bg-papel shadow-[0_0_0_6px_var(--color-hueso)]">
         <div className="flex items-center justify-between border-b border-sand px-4 py-3">
-          <span className="font-display text-[17px] font-semibold tracking-[0.2em] text-tinta">CAYLA</span>
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-tinta/60">Su menú</span>
+          <span className="font-display text-lg font-semibold tracking-[0.2em] text-tinta">CAYLA</span>
+          <span className="text-xs font-bold uppercase tracking-[0.1em] text-tinta/60">Su menú</span>
         </div>
         <div className="max-h-[32rem] overflow-y-auto px-2 pb-3 pt-1">
           {grupos.length === 0 ? (
@@ -189,14 +189,14 @@ function MenuDelRol({ rolNombre, borrador, suma, quita }: { rolNombre: string; b
           ) : (
             grupos.map(({ grupo, modulos }) => (
               <div key={grupo}>
-                <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-taupe-profundo">{grupo}</div>
+                <div className="px-2.5 pb-1 pt-3 text-xs font-bold uppercase tracking-[0.12em] text-taupe-profundo">{grupo}</div>
                 {modulos.map((m) => {
                   const sale = quita.includes(m.clave);
                   const entra = suma.includes(m.clave);
                   return (
                     <div
                       key={m.clave}
-                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[15px] ${entra ? "anim-revelar bg-verde/15 font-semibold text-tinta" : sale ? "text-tinta/60 line-through" : "text-tinta"}`}
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${entra ? "anim-revelar bg-verde/15 font-semibold text-tinta" : sale ? "text-tinta/60 line-through" : "text-tinta"}`}
                     >
                       <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${entra ? "bg-verde" : sale ? "bg-rojo" : "bg-borde-control"}`} />
                       <span className="min-w-0 flex-1 truncate">{m.nombre}</span>

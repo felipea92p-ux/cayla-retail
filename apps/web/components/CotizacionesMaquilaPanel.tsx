@@ -37,11 +37,10 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
       <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 6 } as CSSProperties}>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0 flex-1 basis-80">
-            <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
+            <p className="label-cayla text-xs text-tinta/65">Producción</p>
             <TituloSeccion className="mt-0.5">Cotizaciones de servicios de afuera</TituloSeccion>
             <p className="mt-0.5 max-w-[46rem] text-sm text-tinta/65">
-              Lo que cobraría un taller externo por maquilar cada tipo de prenda — la referencia contra la que se mide el Taller. Una fila por tipo de
-              prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
+              Lo que cobraría un taller externo por cada tipo de prenda: contra eso se mide el Taller. Para renovar una, carga una nueva.
             </p>
           </div>
           <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden />} onClick={() => setCreando(true)}>
@@ -66,7 +65,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
           </div>
         ) : (
           <div data-guia="prod-cotizaciones.lista">
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-xs text-tinta/65 ${COLUMNAS}`}>
               <span>Tipo de prenda</span>
               <span className="text-right">Precio</span>
               <span>Vigencia</span>
@@ -94,7 +93,7 @@ function FilaCotizacion({ cotizacion: c, hoy }: { cotizacion: CotizacionMaquila;
       className={`flex flex-col gap-2 border-t border-tinta/10 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] @min-[640px]:items-center @min-[640px]:gap-x-4 @min-[640px]:gap-y-0 ${COLUMNAS}`}
     >
       <div className="min-w-0">
-        <p className="truncate text-[15px] font-semibold leading-normal text-tinta">{c.categoriaNombre}</p>
+        <p className="truncate text-sm font-semibold leading-normal text-tinta">{c.categoriaNombre}</p>
         <p className="mt-0.5 truncate text-sm text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
       </div>
 

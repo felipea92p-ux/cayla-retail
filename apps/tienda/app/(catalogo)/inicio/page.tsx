@@ -38,8 +38,14 @@ import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
 import "../../estilos/inicio.css";
+import { canonicalDe, claveCanonica, comoJsonLd, DESCRIPCIONES } from "@/lib/seo";
+import { jsonLdDeLaMarca } from "@/lib/seo-marca";
 
-export const metadata: Metadata = { title: "Inicio · CAYLA" };
+// La dirección canónica lleva la tienda principal (ADR-0696): la misma que pone el proxy a quien llega sin elegir una.
+export async function generateMetadata(): Promise<Metadata> {
+  const sedes = sedesEnOrden(await leerSedes());
+  return { title: "Inicio", description: DESCRIPCIONES.inicio(sedes), alternates: { canonical: canonicalDe("/inicio", {}, claveCanonica(sedes)) } };
+}
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -121,6 +127,8 @@ export default async function Inicio({ searchParams }: Props) {
         ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
       ]}
     >
+      {/* Quién es CAYLA para Google (ADR-0696): el logo, el sitio y las redes del pie. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: comoJsonLd(jsonLdDeLaMarca()) }} />
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       {gruposEscena.length > 0 ? (
         <EscenaPortada grupos={gruposEscena} hrefNuevo={lista("nuevo")} />

@@ -73,7 +73,7 @@ export function FilaCategoria({
       aria-label={`${linea ? "Corregir" : "Armar"} el plan de ${c.nombre}`}
     >
       <span className={celda("izq", "min-w-0")}>
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-display text-[19px] leading-tight text-tinta">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-display text-lg leading-tight text-tinta">
           {puesto !== null && <Chip tono="pizarra">N.º {puesto}</Chip>}
           {c.nombre}
         </span>

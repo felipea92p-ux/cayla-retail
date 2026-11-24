@@ -64,7 +64,7 @@
     min-height: 32px;
     padding: 0 6px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     transition: background-color 180ms var(--ease-cayla);
   }
   /* Cada fila es un filtro que se toca: con el dedo, 44 px de alto como el resto del ERP (tacto.css). */
@@ -93,11 +93,11 @@
     border-radius: 10px;
     background: var(--hundido-fondo);
     box-shadow: var(--hundido-sombra);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .trafico-talla b {
-    font-size: 15px;
+    font-size: var(--text-sm);
     color: var(--color-tinta);
   }
   .trafico-talla[data-mas] {
@@ -180,7 +180,7 @@
   .trafico-estacion-nombre {
     grid-row: 1;
     grid-column: 2;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 600;
     line-height: 1.25;
   }
@@ -197,7 +197,7 @@
     grid-row: 2;
     grid-column: 2 / 4;
     padding: 6px 0 16px;
-    font-size: 12.5px;
+    font-size: var(--text-xs);
     line-height: 1.35;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
@@ -344,13 +344,13 @@
   .trafico-calor-hora {
     height: 18px;
     overflow: visible;
-    font-size: 11.5px;
+    font-size: var(--text-xs);
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
     text-align: center;
     white-space: nowrap;
   }
   .trafico-calor-dia {
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
@@ -388,7 +388,7 @@
     display: grid;
     gap: 3px;
     padding-left: 10px;
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
   }
   .trafico-calor-suma > b {
@@ -442,7 +442,7 @@
       height: 26px;
     }
     .trafico-calor-hora {
-      font-size: 9.5px;
+      font-size: var(--text-xs);
     }
   }
 }
@@ -458,7 +458,7 @@
     align-items: center;
     padding: 12px 8px;
     border-top: 1px solid var(--color-sand);
-    font-size: 15px;
+    font-size: var(--text-sm);
     transition: background-color 180ms var(--ease-cayla);
   }
   li:first-child > .trafico-camino {
@@ -583,19 +583,19 @@
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 9.5px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.06em;
     color: var(--color-tinta);
   }
   .trafico-talla-celda > b {
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
   .trafico-talla-celda > small {
-    font-size: 9.5px;
+    font-size: var(--text-xs);
     color: var(--color-tinta);
   }
   .trafico-talla-celda[data-falta] {
@@ -643,7 +643,7 @@
   }
   .trafico-cal-dia-semana {
     padding-bottom: 2px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     letter-spacing: 0.06em;
     text-align: center;
     text-transform: uppercase;
@@ -657,13 +657,13 @@
     justify-content: space-between;
     padding: 5px 7px;
     border-radius: 9px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     line-height: 1.1;
     color: var(--color-tinta);
   }
   .trafico-cal-dia > b {
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -683,7 +683,7 @@
       padding: 4px 5px;
     }
     .trafico-cal-dia > b {
-      font-size: 12.5px;
+      font-size: var(--text-xs);
     }
   }
 }

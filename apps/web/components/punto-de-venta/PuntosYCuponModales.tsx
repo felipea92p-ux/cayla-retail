@@ -270,7 +270,7 @@ export function CodigoDeCuponModal({ totalDelTicket, cuponesDeLaClienta, nombreC
 
           {cuponesDeLaClienta.length > 0 && !bueno && (
             <div className="mt-4">
-              <p className="label-cayla text-[11px] text-tinta/60">{nombreClienta ? `Cupones de ${nombreClienta}` : "Sus cupones"}</p>
+              <p className="label-cayla text-xs text-tinta/60">{nombreClienta ? `Cupones de ${nombreClienta}` : "Sus cupones"}</p>
               <ul className="mt-1.5 divide-y divide-sand rounded-xl border border-sand bg-crema">
                 {cuponesDeLaClienta.map((c) => (
                   <li key={c.codigo}>

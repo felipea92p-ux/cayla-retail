@@ -9,7 +9,12 @@ escribe. Este tablero es el avance **pantalla por pantalla**. Es obligatorio **c
 **Estados:** `sin atacar` · `atacada, con hallazgos abiertos` · `resiste` (corrida completa del núcleo y gravedad 1 y 2 en cero, con la
 semilla anotada) · `no aplica` (solo lectura; con su motivo).
 
-**Gravedad:** 1 estado imposible en la base · 2 dato malo guardado en silencio · 3 pantalla caída · 4 error feo pero seguro.
+**Gravedad:** 1 estado imposible en la base · 2 dato malo guardado en silencio (o lo que el botón prometía no quedó hecho y la pantalla
+dijo que sí) · 3 pantalla caída · 4 error feo pero seguro.
+
+**Desde el 2026-11-23 el núcleo trae la familia `boton`** («El botón que no hace lo que dice», ADR-0693: BOT-01, 02, 03 y 05 en toda
+pantalla que guarda, con la lectura del código de `scripts/chaos/boton.mjs` antes). Una fila que dice `resiste` de antes de esa fecha no
+la corrió: vale para las ocho familias de entonces.
 
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|

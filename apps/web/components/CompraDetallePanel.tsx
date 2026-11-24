@@ -105,7 +105,7 @@ export function CompraAcciones({
             </Boton>
           ) : (
             vigente && compra.saldo <= 0 && (
-              <button type="button" disabled className="label-cayla inline-flex cursor-default items-center gap-2 rounded-md bg-verde px-4 py-3 text-[11px] text-crema transition-colors duration-500">
+              <button type="button" disabled className="label-cayla inline-flex cursor-default items-center gap-2 rounded-md bg-verde px-4 py-3 text-xs text-crema transition-colors duration-500">
                 <Check aria-hidden className="h-4 w-4" />
                 Pagado
               </button>
@@ -180,7 +180,7 @@ export function BotonPagar({
       <Boton
         type="button"
         peso={compacto ? "discreto" : "primario"}
-        className={compacto ? "px-2.5 py-1.5 text-[11px]" : ""}
+        className={compacto ? "px-2.5 py-1.5 text-xs leading-tight" : ""}
         onClick={() => setAbierto(true)}
         aria-haspopup="dialog"
       >
@@ -316,7 +316,7 @@ export function RegistrarPagoModal({
           <span className="sr-only">Pago registrado</span>
         ) : (
           <>
-            <span className="label-cayla mb-0.5 block font-sans text-[11px] text-tinta/65">Pagar a proveedor</span>
+            <span className="label-cayla mb-0.5 block font-sans text-xs leading-tight text-tinta/65">Pagar a proveedor</span>
             <span className="block text-[28px] leading-tight">{compra.proveedorNombre}</span>
           </>
         )
@@ -339,11 +339,11 @@ export function RegistrarPagoModal({
             <DatosDelProveedor datos={datos} />
 
             <section data-guia="pago-modal.aplica">
-              <p className="label-cayla mb-2 text-[11px] text-tinta/65">Cómo se aplica el pago</p>
+              <p className="label-cayla mb-2 text-xs text-tinta/65">Cómo se aplica el pago</p>
               <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
                 <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9.5rem_7.5rem_8.5rem]">
                   {["Comprobante", "Vence", "Saldo", "Se paga"].map((t, i) => (
-                    <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i >= 2 ? "text-right" : ""}`}>
+                    <span key={t} className={`label-cayla text-xs text-tinta/55 ${i >= 2 ? "text-right" : ""}`}>
                       {t}
                     </span>
                   ))}
@@ -392,7 +392,7 @@ export function RegistrarPagoModal({
                   </span>
                 </div>
                 <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
-                  <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
+                  <span className="label-cayla text-xs text-tinta">Total del pago</span>
                   {un ? (
                     // El monto en la caja que se enciende, de 48 px (como `CampoMonto`; aquí sin su etiqueta: la fila ya dice «Total del pago»).
                     <label className="caja-cayla caja-campo caja-campo-alta justify-self-end">
@@ -415,7 +415,7 @@ export function RegistrarPagoModal({
               </div>
               {un && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="label-cayla text-[10.5px] text-tinta/65">Atajos</span>
+                  <span className="label-cayla text-xs text-tinta/65">Atajos</span>
                   <button type="button" onClick={() => editarMonto(compra.saldo.toFixed(2))} className={PILDORA}>
                     Todo · {soles(compra.saldo)}
                   </button>

@@ -211,7 +211,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">, guarda
       const { data, error } = await leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta));
       if (error || !data) throw new Error(`No se pudieron leer las marcas: ${error?.message ?? "sin datos"}`);
       return data.map((p) => [p.id, p.marca_id ?? null, p.marca?.nombre ?? null] as const);
-    }).catch(() => null),
+    }).catch(() => null), // relleno-a-proposito: sin marcas la caja sigue vendiendo (lo dice arriba)
   ]);
   const marcaPorProducto = new Map<string, string>();
   // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
@@ -233,6 +233,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">, guarda
  * variante que ya está en un documento (una proforma, un traslado, un conteo cerrado) sigue con `getCatalogo()`.
  */
 export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
+  // relleno-a-proposito: sin las empresas de la sede, el catálogo entero; la base igual rechaza lo que no opera aquí.
   const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
   // La insignia es la de la FICHA (ADR-0505): una prenda dada de alta como de CLAURE lleva «CLAURE». De quién son las UNIDADES de una prenda
   // que tiene de las dos lo dice el reparto (ADR-0542, `lib/stock-por-dueno.ts`): Vender pregunta de cuál sale cuando hay duda.

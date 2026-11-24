@@ -101,9 +101,8 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
       </section>
 
       <p className="nota-cayla">
-        <strong>Para qué sirve.</strong> La investigación del 5 de octubre no encontró ninguna medida de cuánto más vende una categoría de ropa por tener más lugar; la que
-        circula es de supermercado. Con estas fotos y las ventas, en unos meses se podrá medir con los datos de CAYLA, y decidir con eso cuánto vale reasignar el piso.
-        Una foto «por cuadrar» se guarda igual pero sale apagada: sin saber lo que cuelga de verdad, no sirve para medir.
+        <strong>Para qué sirve.</strong> Con estas fotos y las ventas, en unos meses se podrá medir cuánto más vende una categoría por tener más lugar.
+        Una foto «por cuadrar» sale apagada: no sirve para medir.
       </p>
     </div>
   );

@@ -41,7 +41,7 @@ export function CostoEIgv({
   if (costos.filas.length === 0) {
     return (
       <Vacio tamano="chico" icono={<Percent />}>
-        Ninguna categoría tiene nada por comprar: cuando el plan pida comprar algo, aquí dices cuáles costos ya traen el IGV.
+        Cuando el plan pida comprar algo, aquí dices qué costos ya traen el IGV.
       </Vacio>
     );
   }

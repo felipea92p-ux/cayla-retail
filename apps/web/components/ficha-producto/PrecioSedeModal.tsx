@@ -180,7 +180,7 @@ export function PonerPrecioSedeModal({
         <form onSubmit={onGuardar} className="space-y-6">
           <CampoGuiado id="tienda" guia={guia} titulo="Tienda">
             {tiendas.length === 1 || actual ? (
-              <p className="text-[14px] text-tinta">{tienda?.nombre ?? actual?.sede}</p>
+              <p className="text-detalle text-tinta">{tienda?.nombre ?? actual?.sede}</p>
             ) : (
               <CampoSelect
                 etiqueta="Tienda"

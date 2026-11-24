@@ -90,7 +90,7 @@ export function RevisarRecorteHoja({
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <p className="text-[14px] font-medium text-tinta">{f.nombre}</p>
+          <p className="text-detalle font-medium text-tinta">{f.nombre}</p>
           <p className="text-sm text-taupe">{color}</p>
           {r?.estado === "listo" && <Chip tono="verde">En el probador</Chip>}
           {r?.estado === "descartado" && <Chip tono="apagado" tachado={false}>Descartada</Chip>}

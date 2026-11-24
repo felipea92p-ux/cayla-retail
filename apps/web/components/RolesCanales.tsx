@@ -66,7 +66,7 @@ export function RolesCanales({
             >
               <Casilla marcada={marcado} onCambio={() => alternar(c.clave)} etiqueta={`${c.nombre}: ${marcado ? "lo opera" : "no lo opera"}`} disabled={bloqueado} className="mt-0.5" />
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-x-2 text-[15px] text-tinta">
+                <span className="flex flex-wrap items-center gap-x-2 text-sm text-tinta">
                   {c.nombre}
                   {cambia === "suma" && <span className="text-sm font-semibold text-verde">+ suma</span>}
                   {cambia === "quita" && <span className="text-sm font-semibold text-rojo-profundo">− quita</span>}

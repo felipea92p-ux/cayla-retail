@@ -307,7 +307,7 @@ export function Avisos() {
       className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
     >
       {lista.length >= 3 && (
-        <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-[11px]">
+        <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-xs">
           Cerrar todos
         </button>
       )}
@@ -510,7 +510,7 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
                 quitar();
                 onClick();
               }}
-              className="aviso-acc label-cayla text-[11px]"
+              className="aviso-acc label-cayla text-xs"
             >
               {aviso.accion.texto}
             </button>

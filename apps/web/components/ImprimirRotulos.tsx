@@ -221,7 +221,7 @@ export function ImprimirRotulos({
         <div className="min-w-0 space-y-4">
           <section aria-labelledby="rotulos-titulo" className="space-y-4 rounded-2xl border border-sand bg-papel p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.que">
-              <span className="label-cayla text-[11px] text-taupe">Rótulos de</span>
+              <span className="label-cayla text-xs text-taupe">Rótulos de</span>
               <SegmentoDeslizante
                 forma="modo"
                 etiqueta="Qué rótulos imprimes"
@@ -239,7 +239,7 @@ export function ImprimirRotulos({
                 {deMarcas ? "¿Qué marcas van en el rótulo?" : "¿Qué prendas van en este anaquel?"}
               </h2>
               {vacia && (
-                <p className="text-[14.5px] text-tinta/70">
+                <p className="text-detalle text-tinta/70">
                   {deMarcas
                     ? "Búscalas por nombre: cada marca sale en su propio rótulo, con el nombre lo más grande que entra."
                     : "Búscalas por nombre o código y el rótulo sale en la Brother, listo para pegar."}
@@ -252,9 +252,9 @@ export function ImprimirRotulos({
                 {marcasElegidas.length > 0 && (
                   <>
                     <div className="flex min-h-8 items-center justify-between gap-3">
-                      <span className="label-cayla text-[11px] text-taupe">{plural(marcasElegidas.length, "marca", "marcas")}</span>
+                      <span className="label-cayla text-xs text-taupe">{plural(marcasElegidas.length, "marca", "marcas")}</span>
                       {marcasElegidas.length >= 2 && (
-                        <button type="button" className="btn-cayla btn-peligro !px-3 !py-1.5 text-[12.5px]" onClick={() => setMarcasElegidas([])}>
+                        <button type="button" className="btn-cayla btn-peligro !px-3 !py-1.5 text-xs leading-tight" onClick={() => setMarcasElegidas([])}>
                           <Trash2 aria-hidden className="h-3.5 w-3.5" />
                           Quitar todas
                         </button>
@@ -294,11 +294,11 @@ export function ImprimirRotulos({
             {!deMarcas && !vacia && (
               <div className="space-y-2.5" data-guia="rotulos.modelos">
                 <div className="flex min-h-8 items-center justify-between gap-3">
-                  <span className="label-cayla text-[11px] text-taupe">{plural(modelos.length, "prenda", "prendas")}</span>
+                  <span className="label-cayla text-xs text-taupe">{plural(modelos.length, "prenda", "prendas")}</span>
                   {modelos.length >= 2 && (
                     <button
                       type="button"
-                      className="btn-cayla btn-peligro !px-3 !py-1.5 text-[12.5px]"
+                      className="btn-cayla btn-peligro !px-3 !py-1.5 text-xs leading-tight"
                       onClick={(ev) =>
                         quitar(
                           modelos.map((m) => m.productoId),
@@ -347,7 +347,7 @@ export function ImprimirRotulos({
 
             {!deMarcas && modelos.length >= 2 && (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.como-salen">
-                <span className="label-cayla text-[11px] text-taupe">Cómo salen</span>
+                <span className="label-cayla text-xs text-taupe">Cómo salen</span>
                 <SegmentoDeslizante
                   forma="modo"
                   etiqueta="Cómo salen los rótulos"
@@ -378,7 +378,7 @@ export function ImprimirRotulos({
       </div>
 
       <p className="nota-cayla" data-guia="rotulos.nota">
-        <b>Sale en el mismo papel que las etiquetas de precio</b> (62 × 40,1 mm): no hay que cambiar nada en la Brother. Si sale corto,
+        <b>Sale en el mismo papel que las etiquetas de precio</b> (62 × 40,1 mm). Si sale corto,
         chico o girado, la{" "}
         <BotonGuiaImpresion className="font-semibold underline underline-offset-2 transition-colors hover:text-rojo">guía de impresión</BotonGuiaImpresion> lo
         muestra paso a paso.

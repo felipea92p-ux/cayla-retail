@@ -316,9 +316,9 @@ export function Cajon({
               <div className="min-w-0 flex-1">
                 {sobre ? (
                   describe === "sobre" ? (
-                    <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{sobre}</Dialog.Description>
+                    <Dialog.Description className="label-cayla truncate text-xs text-tinta/65">{sobre}</Dialog.Description>
                   ) : (
-                    <p className="label-cayla truncate text-[10.5px] text-tinta/65">{sobre}</p>
+                    <p className="label-cayla truncate text-xs text-tinta/65">{sobre}</p>
                   )
                 ) : null}
                 <Dialog.Title asChild>

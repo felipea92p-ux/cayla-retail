@@ -92,7 +92,7 @@ export function CeldaComoVa({
   const { valor, tono, frase } = lecturaComoVa(c);
   return (
     <>
-      <span className="flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">
+      <span className="flex items-center gap-1 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.12em] text-taupe">
         {de ? `¿Cómo va ${de}?` : "¿Cómo va?"}
         <Ayuda titulo="¿Cómo va?">
           <span className="block">

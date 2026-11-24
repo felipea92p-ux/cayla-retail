@@ -544,7 +544,7 @@ function ListaDeRoles({
       </Boton>
       {archivados.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 px-1">
-          <button type="button" className="btn-cayla btn-enlace text-[13px]" aria-expanded={verArchivados} onClick={onVerArchivados}>
+          <button type="button" className="btn-cayla btn-enlace text-xs leading-tight" aria-expanded={verArchivados} onClick={onVerArchivados}>
             Archivados ({archivados.length}) {verArchivados ? "▴" : "▾"}
           </button>
           {verArchivados &&
@@ -574,7 +574,7 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
         elegido ? "vd-marca shadow-[inset_3px_0_0_var(--color-rojo)]" : "vd-pasa"
       }`}
     >
-      <span className="flex items-center gap-1.5 text-[14.5px] font-semibold leading-tight text-tinta">
+      <span className="flex items-center gap-1.5 text-detalle font-semibold leading-tight text-tinta">
         {rol.fijo && <Lock aria-hidden className="h-3 w-3 shrink-0 text-taupe" />}
         <span className="truncate">{rol.nombre}</span>
         {sinGuardar && <span className="text-base leading-none text-rojo" title="Cambios sin guardar">•</span>}

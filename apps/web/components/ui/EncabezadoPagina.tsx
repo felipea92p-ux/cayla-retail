@@ -73,7 +73,7 @@ export function EncabezadoPagina({
       <div className="anim-sube min-w-0">
         <div className="flex items-center gap-3">
           {volver}
-          <p className="flex min-w-0 items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
+          <p className="flex min-w-0 items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
             <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
             <span className="min-w-0">
               {sede} · <FechaHoraLima sinHora={sinHora} />

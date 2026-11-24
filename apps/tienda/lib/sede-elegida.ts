@@ -19,6 +19,17 @@ export function claveDeSede(nombre: string): string {
 /** Las tiendas en orden alfabético, como las píldoras de la maqueta: Todas · Arequipa · Lima · Trujillo. */
 export const sedesEnOrden = <T extends ConNombre>(sedes: readonly T[]): T[] => [...sedes].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
+/**
+ * La tienda que se ve cuando nadie eligió una (Felipe 2026-11-23, ADR-0696): la de quien llega sin cookie, la que ve Google y la de la
+ * dirección canónica de cada página del catálogo. Es una clave (`claveDeSede`), no un id: así se lee igual en el proxy, que no le pregunta
+ * a la base. Si Trujillo deja de verse en la web, manda la primera en orden (`sedePrincipal`): nunca una dirección a una tienda que no está.
+ */
+export const SEDE_PRINCIPAL = "trujillo";
+
+/** La tienda principal entre las de la web (`SEDE_PRINCIPAL`), o la primera en orden si esa no se ve; `undefined` sin tiendas. */
+export const sedePrincipal = <T extends ConNombre>(sedes: readonly T[]): T | undefined =>
+  sedes.find((s) => claveDeSede(s.nombre) === SEDE_PRINCIPAL) ?? sedes[0];
+
 /** La tienda de la dirección, si es una de las que se ven en la web; si no, `null` («Todas»). */
 export function sedeDeLaUrl<T extends ConNombre>(valor: string | string[] | undefined, sedes: readonly T[]): T | null {
   const escrita = (Array.isArray(valor) ? valor[0] : valor)?.trim();
@@ -29,8 +40,8 @@ export function sedeDeLaUrl<T extends ConNombre>(valor: string | string[] | unde
 
 /**
  * Qué tienda se ve en una página del catálogo. La de la dirección, si es de la web; si no (sin `?sede=` o una que no existe) y la web
- * tiene dos tiendas o más, la que la persona eligió la última vez (`recordada`, de su cookie) o, sin ella, la primera en orden: la
- * página redirige a esa (`redirigir`). Con una sola tienda (o ninguna, si la base no respondió) no hay nada que elegir: `sede: null`.
+ * tiene dos tiendas o más, la que la persona eligió la última vez (`recordada`, de su cookie) o, sin ella, la principal (`sedePrincipal`):
+ * la página redirige a esa (`redirigir`). Con una sola tienda (o ninguna, si la base no respondió) no hay nada que elegir: `sede: null`.
  */
 export function resolverSede<T extends ConNombre>(
   valor: string | string[] | undefined,
@@ -40,7 +51,7 @@ export function resolverSede<T extends ConNombre>(
   const deLaUrl = sedeDeLaUrl(valor, sedes);
   if (deLaUrl) return { sede: deLaUrl, redirigir: false };
   if (sedes.length < 2) return { sede: null, redirigir: false };
-  return { sede: sedeDeLaUrl(recordada, sedes) ?? sedes[0], redirigir: true };
+  return { sede: sedeDeLaUrl(recordada, sedes) ?? sedePrincipal(sedes) ?? null, redirigir: true };
 }
 
 /** La tienda de un enlace de elegir tienda (`/inicio?sede=lima`), o null si no lleva ninguna. */

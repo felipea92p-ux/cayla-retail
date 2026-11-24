@@ -309,7 +309,7 @@
   height: 100%;
 }
 .tp-qr small {
-  font-size: 10.5px;
+  font-size: 10.5px; /* letra-fija: la guía de traslado que se imprime, mide lo que su papel */
   line-height: 1.2;
   color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
 }

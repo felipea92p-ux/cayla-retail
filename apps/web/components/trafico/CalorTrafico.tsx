@@ -55,7 +55,7 @@ export function CalorTrafico({ calor, ampliado, ahora }: { calor: Calor; ampliad
       </TituloSeccion>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         {l.dias && l.pico && <Chip tono="verde">Hora pico</Chip>}
-        <p className="min-w-0 flex-1 basis-[18rem] text-[14.5px] text-tinta/70">
+        <p className="min-w-0 flex-1 basis-[18rem] text-detalle text-tinta/70">
           {l.dias && l.pico ? (
             <>
               Entra más gente los <b className="font-semibold text-tinta">{diasTexto(l.dias)}</b>,{" "}

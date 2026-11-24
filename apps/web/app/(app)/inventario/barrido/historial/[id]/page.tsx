@@ -87,7 +87,7 @@ export default async function DetalleBarridoPage({ params }: { params: Promise<{
               {b.porPersona.map((p) => (
                 <li key={p.personaId} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] text-tinta">{p.nombre}</p>
+                    <p className="truncate text-sm text-tinta">{p.nombre}</p>
                     <p className="texto-detalle text-taupe">
                       {textoDeTramo(p.desde, p.hasta)}
                       {p.quitadas > 0 ? ` · ${p.quitadas.toLocaleString("es-PE")} quitadas` : ""}
@@ -127,12 +127,12 @@ function ListaMovidas({ titulo, filas }: { titulo: string; filas: { varianteId: 
   if (filas.length === 0) return null;
   return (
     <div>
-      <p className="label-cayla text-[11px] text-taupe">{titulo}</p>
+      <p className="label-cayla text-xs text-taupe">{titulo}</p>
       <ul className="mt-1 divide-y divide-tinta/10">
         {filas.map((m) => (
           <li key={m.varianteId} className="flex items-center gap-3 py-2">
-            <span className="min-w-0 flex-1 truncate text-[15px] text-tinta">{m.prenda}</span>
-            <span className="tabular-nums text-[15px] text-tinta">{m.cantidad.toLocaleString("es-PE")}</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-tinta">{m.prenda}</span>
+            <span className="tabular-nums text-sm text-tinta">{m.cantidad.toLocaleString("es-PE")}</span>
           </li>
         ))}
       </ul>

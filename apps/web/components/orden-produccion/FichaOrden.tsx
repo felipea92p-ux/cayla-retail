@@ -137,7 +137,7 @@ export function FichaOrden({
             {coloresYTallas && <p className="mt-1 text-sm text-taupe">{coloresYTallas}</p>}
           </div>
 
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-[15px] @max-[879px]:hidden">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-sm @max-[879px]:hidden">
             {seVendeA !== null && (
               <>
                 <dt className="text-taupe">Se vende a</dt>

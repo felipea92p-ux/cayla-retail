@@ -50,7 +50,7 @@ export function TiendaOnlineDeLaFicha({ clientaId, verCompleto, onRestablecer }:
   return (
     <div className="card-cayla" data-guia="clientas.ficha-tienda-online">
       <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
-        <span className="label-cayla text-[10.5px] text-tinta/55">Tienda online</span>
+        <span className="label-cayla text-xs text-tinta/55">Tienda online</span>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Chip tono="verde">Tiene cuenta</Chip>
           {acceso.restablecer && <Chip tono="ambar">Restablecer pedido</Chip>}

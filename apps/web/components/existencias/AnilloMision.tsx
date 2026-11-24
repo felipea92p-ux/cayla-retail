@@ -95,11 +95,11 @@ export function AnilloMision({
       </Anillo>
       <span className="leading-tight max-lg:hidden">
         {calculando ? (
-          <span aria-hidden className="flex h-lh items-center text-[15px]">
+          <span aria-hidden className="flex h-lh items-center text-sm">
             <Calculando className="h-4 w-24 rounded" />
           </span>
         ) : (
-          <b className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-tinta">{texto}</b>
+          <b className="block whitespace-nowrap text-sm font-semibold tabular-nums text-tinta">{texto}</b>
         )}
         <small className="text-sm text-taupe">hoy</small>
       </span>

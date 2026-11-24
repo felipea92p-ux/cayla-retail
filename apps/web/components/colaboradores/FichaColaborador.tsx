@@ -141,7 +141,7 @@ export function FichaColaborador({
           <MapPin aria-hidden className="h-3.5 w-3.5" />
           {persona.nivel === "lider" ? (persona.ubicacionNombre ? `Todas las sedes · abre en ${persona.ubicacionNombre}` : "Todas las sedes") : (persona.ubicacionNombre ?? "Sin sede")}
           <PildoraRol nombre={persona.rolNombre} lider={persona.nivel === "lider"} />
-          {persona.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
+          {persona.esAdmin && <span className="text-xs leading-tight font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
           <EstadoPersona p={persona} />
         </span>
       }
@@ -164,7 +164,7 @@ export function FichaColaborador({
           )}
           {quitable &&
             (panel === "quitar" ? (
-              <span className="flex flex-wrap items-center gap-2 text-[15px] text-tinta">
+              <span className="flex flex-wrap items-center gap-2 text-sm text-tinta">
                 ¿Quitar el acceso?
                 <button type="button" className="btn-cayla btn-chico btn-peligro" disabled={!listo} onClick={() => void acciones.quitar()}>
                   Sí, quitar
@@ -209,7 +209,7 @@ export function FichaColaborador({
                   <div className="grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg border border-dashed border-sand px-3 py-2 opacity-75">
                     <span aria-hidden className="h-[18px] w-[18px] rounded-full border-2 border-dashed border-borde-control" />
                     <span className="min-w-0">
-                      <span className="block text-[14px] font-semibold leading-tight text-tinta">{persona.rolNombre}</span>
+                      <span className="block text-detalle font-semibold leading-tight text-tinta">{persona.rolNombre}</span>
                       {rolActual?.descripcion && <span className="block truncate text-sm text-tinta/60">{rolActual.descripcion}</span>}
                     </span>
                     <Chip>Ahora</Chip>
@@ -229,7 +229,7 @@ export function FichaColaborador({
                           {elegido && <span className="h-2 w-2 rounded-full bg-tinta" />}
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[14px] font-semibold leading-tight text-tinta">{r.nombre}</span>
+                          <span className="block text-detalle font-semibold leading-tight text-tinta">{r.nombre}</span>
                           {r.descripcion && <span className="block truncate text-sm text-tinta/60">{r.descripcion}</span>}
                         </span>
                         <span className="text-sm text-tinta/60">{plural(r.modulos.filter((m) => m !== "inicio").length, "módulo", "módulos")}</span>
@@ -241,7 +241,7 @@ export function FichaColaborador({
               {destino && (
                 // De qué rol a cuál, grande y sin repetir el nombre de la persona (ya está arriba): sin lista de lo que gana o pierde.
                 <div className="flex flex-wrap items-center gap-2.5" aria-label={`De ${persona.rolNombre} a ${destino.nombre}`}>
-                  <span className="rounded-full vd-gota-chica px-3.5 py-1 text-[14px] font-semibold text-tinta/65">{persona.rolNombre}</span>
+                  <span className="rounded-full vd-gota-chica px-3.5 py-1 text-detalle font-semibold text-tinta/65">{persona.rolNombre}</span>
                   <ArrowRight aria-hidden className="h-5 w-5 text-taupe" />
                   <span className="rounded-full bg-tinta px-4 py-1.5 text-base font-bold text-crema">{destino.nombre}</span>
                 </div>
@@ -290,7 +290,7 @@ export function FichaColaborador({
                       type="button"
                       disabled={actual || !listo}
                       onClick={() => void acciones.cambiarSede(u.id)}
-                      className={`rounded-xl border px-3 py-3 text-left text-[14px] font-semibold transition-colors duration-200 ease-cayla disabled:cursor-default ${
+                      className={`rounded-xl border px-3 py-3 text-left text-detalle font-semibold transition-colors duration-200 ease-cayla disabled:cursor-default ${
                         actual ? "border-tinta vd-marca text-tinta" : "border-sand text-tinta hover:border-taupe disabled:opacity-50"
                       }`}
                     >
@@ -340,7 +340,7 @@ export function FichaColaborador({
 
       {rolActual && !destino && (
         <section aria-label="Lo que ve" className="space-y-2" data-guia="colaboradores.ficha-menu">
-          <h3 className="flex items-baseline justify-between text-[11.5px] font-bold uppercase tracking-[0.1em] text-taupe-profundo">
+          <h3 className="flex items-baseline justify-between text-xs font-bold uppercase tracking-[0.1em] text-taupe-profundo">
             Ve
             <span className="text-xs font-normal normal-case tracking-normal text-tinta/60">{plural(rolActual.modulos.length, "módulo", "módulos")}</span>
           </h3>

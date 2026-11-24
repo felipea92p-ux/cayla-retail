@@ -22,14 +22,14 @@ export function VistaDelCliente({ recomendacion: r, respuesta, ahoraIso }: { rec
           </span>
           <Chip tono="verde">Respondida</Chip>
         </div>
-        <p className="whitespace-pre-line break-words text-[14px] leading-normal text-tinta">{r.texto}</p>
+        <p className="whitespace-pre-line break-words text-detalle leading-normal text-tinta">{r.texto}</p>
         <div className="rounded-r-xl border-l-[3px] border-verde bg-verde/[0.09] px-3.5 py-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-verde">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-verde">
             <MessageCircle aria-hidden className="h-3.5 w-3.5 shrink-0" />
             CAYLA te respondió · {fechaDeLaTienda(ahoraIso)}
           </p>
           {texto ? (
-            <p className="mt-1.5 whitespace-pre-line break-words text-[14px] leading-normal text-tinta">{texto}</p>
+            <p className="mt-1.5 whitespace-pre-line break-words text-detalle leading-normal text-tinta">{texto}</p>
           ) : (
             <p className="mt-1.5 text-sm italic text-taupe">Aquí aparece tu respuesta, tal como la escribas.</p>
           )}

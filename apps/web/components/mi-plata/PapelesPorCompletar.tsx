@@ -146,7 +146,7 @@ function Bloque({
           {icono}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-tinta">{titulo}</span>
+          <span className="block text-sm font-semibold text-tinta">{titulo}</span>
           {linea && <span className="block text-sm text-taupe">{linea}</span>}
         </span>
         {derecha}
@@ -178,7 +178,7 @@ function Veredicto({ papel: p, monto }: { papel: PapelConFoto; monto: number }) 
       data-guia="fondos.papel-veredicto"
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <span className="flex items-center gap-2.5 text-[15px] font-semibold text-ambar-profundo">
+        <span className="flex items-center gap-2.5 text-sm font-semibold text-ambar-profundo">
           <TriangleAlert className="h-5 w-5" aria-hidden />
           No cuadra
         </span>
@@ -186,11 +186,11 @@ function Veredicto({ papel: p, monto }: { papel: PapelConFoto; monto: number }) 
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[11px] text-taupe">Papel</span>
+          <span className="label-cayla block text-xs text-taupe">Papel</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.pagado)}</span>
         </span>
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[11px] text-taupe">Anotó {primerNombre(p.persona)}</span>
+          <span className="label-cayla block text-xs text-taupe">Anotó {primerNombre(p.persona)}</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.anotado)}</span>
         </span>
       </div>

@@ -209,12 +209,12 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
             <div className="card-cayla space-y-4 p-5" data-guia="pagos.tandas">
               {sinNadaPorComprar ? (
                 <Aviso tono="info" chico titulo="No hay nada por pedir">
-                  Con lo que hay y lo que viene en camino, no hace falta comprar para esta campaña.
+                  Con lo que hay y lo que viene en camino, alcanza para esta campaña.
                 </Aviso>
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span className="label-cayla text-[11px] font-bold text-taupe">Tandas de compra</span>
+                    <span className="label-cayla text-xs font-bold text-taupe">Tandas de compra</span>
                     <SegmentoDeslizante
                       etiqueta="Cuántas tandas"
                       valor={String(cuantasTandas)}
@@ -242,7 +242,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
                     ))}
                   </div>
                   <div data-guia="pagos.meses" className="@container">
-                    <p className="label-cayla mb-2 text-[11px] font-bold text-taupe">Lo que sale de caja, mes a mes</p>
+                    <p className="label-cayla mb-2 text-xs font-bold text-taupe">Lo que sale de caja, mes a mes</p>
                     <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-4">
                       {meses.map((m) => (
                         <TarjetaCifra key={m.clave} etiqueta={m.nombre} valor={m.monto > 0 ? solesEnterosES(m.monto) : "—"} tono={m.monto > 0 ? undefined : "text-taupe"}>
@@ -268,7 +268,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
           <section data-guia="pagos.guardar">
             {guardado === null && (
               <Aviso tono="info" chico titulo="Todavía no guardaste cómo se paga">
-                Mientras no lo guardes, Finanzas cuenta lo que falta pedir sin fechas de pago. {empezo ? "La campaña ya empezó: lo que pidas ahora sirve para reponer." : ""}
+                Hasta guardarlo, Finanzas cuenta lo que falta pedir sin fechas. {empezo ? "La campaña ya empezó: lo que pidas ahora sirve para reponer." : ""}
               </Aviso>
             )}
             <div className="mt-3 space-y-3">

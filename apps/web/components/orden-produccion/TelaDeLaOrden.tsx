@@ -278,7 +278,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                       <Punto hex={fila.color.hex} grande />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate font-display text-[15px] leading-tight text-tinta">{fila.color.nombre}</p>
+                      <p className="truncate font-display text-sm leading-tight text-tinta">{fila.color.nombre}</p>
                       <p className="text-sm tabular-nums text-taupe">{fila.color.prendas} {fila.color.prendas === 1 ? "prenda" : "prendas"}</p>
                     </div>
                   </div>

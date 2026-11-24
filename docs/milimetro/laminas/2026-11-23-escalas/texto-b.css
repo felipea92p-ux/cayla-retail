@@ -1,0 +1,15 @@
+/* Lámina de escalas, opción B · «Tinta en tres tonos» (propuesta, NO aplicada al ERP).
+   El texto que acompaña deja el café y queda en tinta: tres tonos con nombre en vez de 13 opacidades.
+     texto-1  tinta plena                          (títulos y datos; no cambia)
+     texto-2  tinta al 80 %  ← text-tinta/70…/85 y text-taupe   claro 7,7–8,9:1 · oscuro 6,9–10,1:1
+     texto-3  tinta al 64 %  ← text-tinta/35…/65               claro 4,7–5,1:1 · oscuro 5,1–6,9:1
+   Los fantasmas (/25, /30) quedan como están. Solo alcanza a las clases de Tailwind; el texto tenue escrito en un CSS
+   (`color-mix(…tinta N%…)` en app/estilos) no cambia. Contrastes sobre crema, papel, hueso y arena (alfa compuesto en sRGB). */
+:root, :root[data-tema="oscuro"] {
+  --texto-2: color-mix(in oklab, var(--color-tinta) 80%, transparent);
+  --texto-3: color-mix(in oklab, var(--color-tinta) 64%, transparent);
+  --color-taupe-profundo: color-mix(in oklab, var(--color-tinta) 80%, var(--color-crema));
+}
+.text-tinta\/70, .text-tinta\/75, .text-tinta\/80, .text-tinta\/85,
+.text-taupe, .text-taupe-profundo, .text-taupe\/50, .text-taupe\/60, .text-taupe\/70, .text-taupe\/80 { color: var(--texto-2); }
+.text-tinta\/35, .text-tinta\/40, .text-tinta\/45, .text-tinta\/50, .text-tinta\/55, .text-tinta\/60, .text-tinta\/65 { color: var(--texto-3); }

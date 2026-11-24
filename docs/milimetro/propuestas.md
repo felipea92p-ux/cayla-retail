@@ -23,6 +23,17 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
 | 9 | `/milimetro` | **Un aviso con «Deshacer» o un error no se va solo** (hoy 7 s y 8 s, `lib/avisos-reglas.ts`) | Carbon; WCAG 2.2.1 [Práctica/Norma] | Más avisos a la vista |
 | 10 | `/espacio` | **Una escala cerrada de espacio**, escrita igual en `CLAUDE.md` y en `/formidable` (uno dice múltiplos de 4, el otro de 2; hay 313 usos de 14 px y valores sueltos de 5, 11, 15 y 18 px) | Carbon, Atlassian, Primer [Práctica] | Bajo; va con `/unificar` |
 
+## Láminas armadas para elegir mirando
+
+- **2026-11-23 · El tono del texto y las cifras** (`docs/milimetro/laminas/2026-11-23-escalas/`; se ve con `unificar-laminas` en
+  `/escalas-2026-11/elegir.html`). Dos preguntas con fotos de pantallas reales y el contraste medido en cada una:
+  1. **El tono del texto que acompaña** (propuesta nueva, sale de `docs/investigacion/2026-11-19-diseno-color-y-flujo-sin-miedo-a-las-reglas.md`):
+     hoy son 13 opacidades de tinta (2.324 usos) más el café (`text-taupe`, 1.683). Opciones: B tinta en tres tonos (100, 80 y 64 %) o C tinta y café,
+     dos voces. Ninguna baja de 4,5:1. En oscuro, los textos débiles para APCA son 94 hoy, 46 con B y 95 con C.
+  2. **Las cifras en DM Sans a Inter**, la propuesta 1 de este tablero, ya medida: DM Sans no trae `tnum` (ni la de next/font ni la completa de
+     Google) y la Garamond de los montos sí alinea, así que Inter va solo en las cifras que hoy están en DM Sans.
+  Se retiró antes de dibujarla: el eje de tamaño óptico (`opsz`) de DM Sans no cambia nada a la vista en 11–14 px (menos de 1 px en una frase).
+
 ## Las demás (cada una en su skill)
 
 - **`/movimiento`:** registro único de bucles (`lib/bucles.test.ts`), tiempos largos fuera de la lista de excepciones (`.anim-sube` hasta ~1,8 s, `.hilo-vertical` 1,8 s),
@@ -57,4 +68,6 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
 
 | Fecha | # | Decisión |
 |---|---|---|
-| | | |
+| 2026-11-23 | Lámina de escalas · el tono del texto que acompaña | **B · Tinta en tres tonos**, elegida mirando la lámina: el dato en tinta plena, lo que acompaña en tinta al 80 %, lo más tenue al 64 %, y el café sale del texto (queda para líneas y bordes). Falta: su ADR, los tokens en `globals.css` y `tema.css` con su prueba, y la migración. Las cifras (A o B) siguen sin elegir |
+| 2026-11-23 | — | La letra sale de una escala de cinco escalones (13 · 14 · 16 · 18 · 21) y nada baja de 13 px: ADR-0691. La eligió mirando `docs/maquetas/escala-de-letra-2026-11/` (escala B). Sube el piso de las etiquetas, que la regla 2 de `/tipografia` tenía en 11. |
+| 2026-11-23 | 1 | Las cifras en una letra con tabulares: sí, pero solo los diez dígitos (Inter con `unicode-range`), no todo el elemento. ADR-0691, decisión 4. |

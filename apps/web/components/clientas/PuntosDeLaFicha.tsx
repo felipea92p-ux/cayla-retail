@@ -94,7 +94,7 @@ export function PuntosDeLaFicha({ estado }: { estado: EstadoPuntos }) {
 function Fila({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-start">
-      <span className="label-cayla text-[10.5px] text-tinta/55 sm:pt-0.5">{etiqueta}</span>
+      <span className="label-cayla text-xs text-tinta/55 sm:pt-0.5">{etiqueta}</span>
       <div className="min-w-0 space-y-1">{children}</div>
     </div>
   );

@@ -127,7 +127,7 @@
   border-color: var(--color-borde-control);
   background: var(--gota-fondo);
   box-shadow: var(--gota-luz);
-  font-size: 13px;
+  font-size: var(--text-xs);
   letter-spacing: 0;
   text-transform: none;
   font-weight: 500;

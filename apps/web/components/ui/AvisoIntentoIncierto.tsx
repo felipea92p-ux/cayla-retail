@@ -43,6 +43,6 @@ export function AvisoIntentoIncierto({
 /** Lo que se dice si, con un envío en duda, se intenta mandar OTRA cosa (`useIntento` responde «congelado»). */
 export function avisarCongelado(avisar: { aviso: (texto: string, opciones?: { detalle?: string }) => unknown }) {
   avisar.aviso("Primero revisa si se guardó", {
-    detalle: "Mientras no sepamos qué pasó con el envío anterior, no se manda otra cosa. Toca «Revisar si se guardó».",
+    detalle: "Hasta saberlo, no se manda otra cosa.",
   });
 }

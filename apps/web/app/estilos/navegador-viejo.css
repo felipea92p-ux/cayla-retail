@@ -13,7 +13,7 @@
   background: var(--color-tinta, #1a1a18); /* tema-fijo: respaldo de la tinta para un navegador sin las variables de Tailwind */
   color: var(--color-crema, #f5f0e8); /* tema-fijo: respaldo de la crema para un navegador sin las variables de Tailwind */
   /* La DM Sans de la marca: `--font-dm-sans` lo pone next/font en <html>, fuera de toda capa, así que existe también aquí. */
-  font: 15px/1.4 var(--font-dm-sans, system-ui), system-ui, sans-serif;
+  font: var(--text-sm)/1.4 var(--font-dm-sans, system-ui), system-ui, sans-serif;
 }
 /* El enlace a la Play Store solo en Android, de 44 px para el dedo. */
 .aviso-navegador-viejo-enlace {

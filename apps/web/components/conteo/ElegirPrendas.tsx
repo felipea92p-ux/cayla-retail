@@ -107,7 +107,7 @@ export function ElegirPrendas({
   return (
     <div className="space-y-3 pt-3">
       {!hayLugar && (
-        <p className="text-sm text-taupe">Primero elige dónde vas a contar: así solo se buscan las prendas de ese lugar.</p>
+        <p className="text-sm text-taupe">Primero elige dónde vas a contar.</p>
       )}
 
       {hayLugar && estado === "cargando" && (
@@ -171,7 +171,7 @@ export function ElegirPrendas({
               {sinElegir.length > 1 && (
                 <div className="flex items-center justify-between gap-3 border-b border-sand vd-placa px-3 py-2">
                   <span className="text-sm text-taupe">¿Todas las tallas y colores de lo que buscaste?</span>
-                  <button type="button" onClick={() => agregar(sinElegir)} className="btn-cayla btn-enlace text-[13px]">
+                  <button type="button" onClick={() => agregar(sinElegir)} className="btn-cayla btn-enlace text-xs leading-tight">
                     Agregar las {sinElegir.length}
                   </button>
                 </div>
@@ -210,7 +210,7 @@ export function ElegirPrendas({
               </ul>
               {resultados.length > visibles && (
                 <div className="border-t border-sand px-3 py-2 text-center">
-                  <button type="button" onClick={() => setVisibles((n) => n + RESULTADOS_POR_PAGINA)} className="btn-cayla btn-enlace text-[13px]">
+                  <button type="button" onClick={() => setVisibles((n) => n + RESULTADOS_POR_PAGINA)} className="btn-cayla btn-enlace text-xs leading-tight">
                     Ver más ({resultados.length - visibles} sin mostrar)
                   </button>
                 </div>

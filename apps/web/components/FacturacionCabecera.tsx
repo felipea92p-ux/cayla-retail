@@ -86,7 +86,7 @@ export function FacturacionCabecera({ sede, cifras, entorno }: { sede: string; c
               nadie crea que una boleta de prueba vale ante SUNAT (y para notar si alguien lo cambia). */}
           {entorno === "sandbox" && (
             <Chip tono="ambar" className="normal-case tracking-normal">
-              Pruebas: se envía al sandbox, no a SUNAT
+              Modo pruebas: nada llega a SUNAT
             </Chip>
           )}
         </span>

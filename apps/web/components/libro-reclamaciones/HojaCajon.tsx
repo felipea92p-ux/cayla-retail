@@ -180,7 +180,7 @@ export function HojaCajon({
         {h.respuesta && (
           <section className="space-y-2" data-guia="libro.respuesta-dada">
             <TituloGrupo>La respuesta de CAYLA</TituloGrupo>
-            <p className="whitespace-pre-line break-words text-[14px] leading-relaxed text-tinta">{h.respuesta}</p>
+            <p className="whitespace-pre-line break-words text-detalle leading-relaxed text-tinta">{h.respuesta}</p>
             <p className="texto-detalle">
               {h.respuesta_enviada === false
                 ? "En camino al correo del cliente: la tienda la manda en unos minutos."
@@ -226,9 +226,9 @@ export function HojaCajon({
 
         <section className="space-y-2" data-guia="libro.detalle">
           <TituloGrupo>{h.tipo === "reclamo" ? "Lo que reclama" : "Su queja"}</TituloGrupo>
-          <p className="whitespace-pre-line break-words text-[14px] leading-relaxed text-tinta">{h.detalle}</p>
+          <p className="whitespace-pre-line break-words text-detalle leading-relaxed text-tinta">{h.detalle}</p>
           <TituloGrupo>Lo que pide</TituloGrupo>
-          <p className="whitespace-pre-line break-words text-[14px] leading-relaxed text-tinta">{h.pedido}</p>
+          <p className="whitespace-pre-line break-words text-detalle leading-relaxed text-tinta">{h.pedido}</p>
         </section>
 
         {porResponder && (

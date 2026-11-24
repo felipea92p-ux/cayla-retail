@@ -5,7 +5,7 @@ import { PanelDelClub, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntr
 import { hoyDeLima } from "@/lib/hoy-servidor";
 import "../estilos/entrada.css";
 
-export const metadata: Metadata = { title: "Crea tu cuenta · CAYLA" };
+export const metadata: Metadata = { title: "Crea tu cuenta", robots: { index: false, follow: false } };
 
 /**
  * «Crear cuenta»: la pantalla partida, con la tarjeta del Club del panel que lleva el nombre de quien la crea apenas el formulario lo

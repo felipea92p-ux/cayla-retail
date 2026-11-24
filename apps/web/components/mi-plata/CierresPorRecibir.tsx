@@ -121,7 +121,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
           <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${devuelve ? "bg-verde/10 text-verde" : "bg-ambar/10 text-ambar-profundo"}`}>
             <IconoFinal className="h-4 w-4" />
           </span>
-          <span className="min-w-0 flex-1 basis-24 text-[15px] font-semibold text-tinta">{devuelve ? "Devuelve" : "Le debemos"}</span>
+          <span className="min-w-0 flex-1 basis-24 text-sm font-semibold text-tinta">{devuelve ? "Devuelve" : "Le debemos"}</span>
           {/* Con S/ 10,000 o más, a 375 px el monto no cabe junto al nombre: baja a su renglón (a la derecha) en vez de salirse de la tarjeta. */}
           <span className="ml-auto whitespace-nowrap font-serif text-[clamp(1.75rem,9vw,2.5rem)] leading-none tabular-nums text-tinta">{soles(cierre.monto)}</span>
         </div>

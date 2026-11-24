@@ -92,7 +92,7 @@ export function EmpezarARecibir({
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <article className="card-cayla min-w-0 space-y-5 p-5 sm:p-6">
           <div>
-            <p className="label-cayla text-[11px] text-taupe">En camino hacia {sede}</p>
+            <p className="label-cayla text-xs text-taupe">En camino hacia {sede}</p>
             <TituloSeccion dato={<Chip tono="pizarra">En camino</Chip>}>Envío {detalle.numero}</TituloSeccion>
             <p className="mt-1 text-sm text-taupe">
               {[
@@ -109,9 +109,9 @@ export function EmpezarARecibir({
           <div data-guia="recepcion.cifra" className="flex flex-wrap items-end gap-x-6 gap-y-2">
             <p className="text-tinta">
               <b className="font-display text-[40px] leading-none tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b>{" "}
-              <span className="text-[15px]">{detalle.enviado === 1 ? "prenda" : "prendas"}</span>
+              <span className="text-sm">{detalle.enviado === 1 ? "prenda" : "prendas"}</span>
             </p>
-            <p className="pb-1 text-[15px] text-taupe">
+            <p className="pb-1 text-sm text-taupe">
               {modelos} {modelos === 1 ? "modelo" : "modelos"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
               {detalle.bultos ? `${detalle.bultos} ${detalle.bultos === 1 ? "fardo" : "fardos"}` : "sin fardos anotados"}
             </p>
@@ -129,10 +129,10 @@ export function EmpezarARecibir({
                     <li key={l.id} className="flex items-center gap-3 py-1.5">
                       <BaldosaCategoria categoria={l.categoria} tamano="chico" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] text-tinta">{l.descripcion?.trim() || l.categoria?.nombre || "Sin descripción"}</span>
+                        <span className="block truncate text-sm text-tinta">{l.descripcion?.trim() || l.categoria?.nombre || "Sin descripción"}</span>
                         <span className="block truncate text-sm text-taupe">{l.categoria?.nombre ?? "Categoría"}</span>
                       </span>
-                      <b className="text-[17px] tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
+                      <b className="text-lg tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
                     </li>
                   ))}
                 </ul>

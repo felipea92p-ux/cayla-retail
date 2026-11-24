@@ -96,7 +96,7 @@ export function PieTarjeta({
     return () => document.removeEventListener("pointerdown", afuera);
   }, [abierto]);
 
-  const estiloBoton = "area-dedo inline-flex h-8 min-w-0 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] transition-colors";
+  const estiloBoton = "area-dedo inline-flex h-8 min-w-0 items-center gap-1.5 rounded-[9px] border px-3 text-xs transition-colors";
   return (
     <div ref={caja} className="relative mt-auto flex items-center gap-1.5">
       {boton.tipo === "colgar" || boton.tipo === "ver" ? (
@@ -127,7 +127,7 @@ export function PieTarjeta({
         aria-label={`Más acciones de ${etiqueta}`}
         onClick={() => setAbierto((a) => !a)}
         // El menú «Más» del sistema (ronda 13): la cara del secundario de `MenuAcciones` con su flecha que gira, a 32 px como su vecino.
-        className="btn-cayla btn-secundario inline-flex h-8 min-h-8 shrink-0 items-center gap-2 px-3 py-0 text-[12.5px]"
+        className="btn-cayla btn-secundario inline-flex h-8 min-h-8 shrink-0 items-center gap-2 px-3 py-0 text-xs leading-tight"
       >
         Más
         <svg aria-hidden viewBox="0 0 10 6" className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}>

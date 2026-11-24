@@ -232,6 +232,7 @@ async function lotesDelEnvio(despachoId: string): Promise<string[]> {
     if (error || !Array.isArray(data)) return [];
     return data.map((f) => (f && typeof f === "object" ? (f as { id?: unknown }).id : null)).filter((x): x is string => typeof x === "string");
   } catch (e) {
+    // relleno-a-proposito: un adorno: si la lectura falla, sin etiquetas por lote.
     unstable_rethrow(e);
     return [];
   }

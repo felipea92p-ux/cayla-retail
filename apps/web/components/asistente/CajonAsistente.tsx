@@ -151,13 +151,13 @@ export function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: reado
             <section aria-live="polite" className="space-y-5">
               {vigente.resultado.tipo === "guia" ? (
                 <div className="rounded-xl border border-sand bg-papel p-4">
-                  <p className="text-[15px] leading-snug text-tinta">{vigente.resultado.texto}</p>
+                  <p className="text-sm leading-snug text-tinta">{vigente.resultado.texto}</p>
                   {vigente.resultado.tarea ? (
                     // Una tarea (Felipe 2026-10-27): los pasos cortos a la vista, y «Acompáñame» los enciende uno a uno mientras la persona los hace.
                     <ol className="mt-3 space-y-1.5">
                       {vigente.resultado.tarea.map((p, k) => (
-                        <li key={`${p.guiaId}-${p.pasoId}-${k}`} className="flex items-baseline gap-2.5 text-[15px] text-tinta">
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full vd-gota-chica text-[11px] tabular-nums text-tinta">{k + 1}</span>
+                        <li key={`${p.guiaId}-${p.pasoId}-${k}`} className="flex items-baseline gap-2.5 text-sm text-tinta">
+                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full vd-gota-chica text-xs tabular-nums text-tinta">{k + 1}</span>
                           {p.orden}
                         </li>
                       ))}
@@ -334,7 +334,7 @@ function FilaGuia({ titulo, detalle, aqui = false, enLista = false, onClick }: {
       <span className="min-w-0 flex-1">
         <span className="block text-sm text-tinta">
           {titulo}
-          {aqui ? <span className="ml-2 text-[11px] text-taupe-profundo">· esta pantalla</span> : null}
+          {aqui ? <span className="ml-2 text-xs text-taupe-profundo">· esta pantalla</span> : null}
         </span>
         <span className="mt-0.5 block text-xs text-tinta/60">{detalle}</span>
       </span>

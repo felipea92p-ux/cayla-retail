@@ -29,7 +29,7 @@ export function ComprobantePagos({ pagos, puedeAnular = false, anulados = [] }: 
 
   return (
     <section data-guia="factura.pagos">
-      <p className="label-cayla mb-1 text-[11px] text-tinta/65">Pagos registrados</p>
+      <p className="label-cayla mb-1 text-xs text-tinta/65">Pagos registrados</p>
       {pagos.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Aún no hay pagos registrados.</Vacio>
       ) : (
@@ -66,7 +66,7 @@ export function ComprobantePagos({ pagos, puedeAnular = false, anulados = [] }: 
       )}
       {anulados.length > 0 && (
         <div className="mt-3">
-          <p className="label-cayla mb-1 text-[11px] text-tinta/65">Anulados</p>
+          <p className="label-cayla mb-1 text-xs text-tinta/65">Anulados</p>
           {anulados.map((a) => (
             <p key={a.id} className="border-t border-tinta/10 py-2 text-sm text-taupe">
               <span className="line-through">{[ETIQUETA_METODO_PAGO[a.detalle] ?? a.detalle, a.fecha ? fechaCorta(a.fecha) : null, a.monto !== null ? soles(a.monto) : null].filter(Boolean).join(" · ")}</span>

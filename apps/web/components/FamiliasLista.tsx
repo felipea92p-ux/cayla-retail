@@ -181,7 +181,7 @@ export function FamiliasLista({
 
       {desactivadas.length > 0 && (
         <section data-guia="familias.desactivadas" className="space-y-2">
-          <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al elegir familia en Categorías</p>
+          <p className="label-cayla text-xs text-tinta/65">Desactivadas — no aparecen al elegir familia en Categorías</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
             {desactivadas.map((f) => (
               <span
@@ -283,8 +283,8 @@ function FamiliaModal({
                 etiqueta="Cuenta en Análisis, Frescura y el plan del piso"
                 pie={
                   borrador.entraAMotores
-                    ? "Lo normal: lo que se vende de esta familia se cuenta como demanda y se pide al Taller o a Compras."
-                    : "Sus ventas siguen entrando a caja y al comprobante, pero no cuentan como demanda ni se piden. Úsalo para bolsas, cajas o empaques."
+                    ? "Lo que se vende cuenta como demanda y se pide."
+                    : "Se vende, pero no cuenta como demanda. Para bolsas, cajas o empaques."
                 }
                 disabled={guardando}
               />

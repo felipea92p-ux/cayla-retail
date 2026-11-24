@@ -1,7 +1,11 @@
 ---
 name: formidable
-description: Lleva una pantalla o un modal del ERP al nivel «el iPhone llevado al ERP» — que una colaboradora o una encargada de sede la entienda en 5 segundos, sin manual, y que además esté impecable y alineada (CLAUDE.md «Formidable», ADR-0350). Califica la pantalla contra 9 leyes de comprensión y un eje aparte de «oficio visual» (se mide en el navegador, no es gusto), la hace recorrer a un agente ciego sin contexto, y propone los 3 cambios de mayor impacto antes de tocar nada. Orquesta /focus, /sugerir y /multi-view-responsive sin duplicarlas, y corre después de /milimetro (la medida y el porqué), que es obligatoria antes. Úsala al terminar o rediseñar cualquier pantalla o modal, y cuando Felipe diga «formidable», «no se entiende», «muy cargada», «que sea como un iPhone» o «al estilo Apple». Con `todo` o un módulo (`inventario`) informa el tablero; con `rapido` solo mide.
+description: "Obligatoria al terminar o rediseñar una pantalla o modal: que se entienda en 5 segundos sin manual. Califica 9 leyes y el oficio visual, la prueba a ciegas y propone 3 cambios. Úsala con «formidable», «no se entiende», «muy cargada» o «como un iPhone»."
 ---
+
+## Qué hace y cuándo se usa
+
+Lleva una pantalla o un modal del ERP al nivel «el iPhone llevado al ERP» — que una colaboradora o una encargada de sede la entienda en 5 segundos, sin manual, y que además esté impecable y alineada (CLAUDE.md «Formidable», ADR-0350). Califica la pantalla contra 9 leyes de comprensión y un eje aparte de «oficio visual» (se mide en el navegador, no es gusto), la hace recorrer a un agente ciego sin contexto, y propone los 3 cambios de mayor impacto antes de tocar nada. Orquesta /focus, /sugerir y /multi-view-responsive sin duplicarlas, y corre después de /milimetro (la medida y el porqué), que es obligatoria antes. Úsala al terminar o rediseñar cualquier pantalla o modal, y cuando Felipe diga «formidable», «no se entiende», «muy cargada», «que sea como un iPhone» o «al estilo Apple». Con `todo` o un módulo (`inventario`) informa el tablero; con `rapido` solo mide.
 
 Lleva a nivel Formidable: $ARGUMENTS   (una ruta como `/inventario/frescura`, un modal, un módulo, `todo`, o sin argumento = lo que estás construyendo)
 
@@ -37,7 +41,7 @@ Cada ley, con su prueba de «pasa / falla» y un ejemplo real: `referencia/leyes
 
 ## Método (cada paso deja evidencia con etiqueta: **Medido** / **Observado** / **Opinión**; sin evidencia no hay nota)
 
-0. **Terreno.** `git fetch origin`; `docs/SESIONES-ACTIVAS.md`; si existe `docs/pantallas/<slug>.md`, léelo. La finalidad de la pantalla sale de
+0. **Terreno.** `git fetch origin`; `pnpm sesiones` (quién está tocando qué); si existe `docs/pantallas/<slug>.md`, léelo. La finalidad de la pantalla sale de
    `docs/`, nunca de la captura (como `/pantalla`). Anota qué dispositivo manda según el tipo de pantalla.
 1. **Medir** (Medido). `referencia/medir-oficio.js` con `javascript_tool` a **1440 × 900 primero**, luego 1024 × 768 y 375 × 812. Y los escáneres que
    ya existen, sin reescribirlos: `pnpm focus`, `pnpm sugerir`, `node scripts/rendimiento/ui.mjs --ruta <x>`.

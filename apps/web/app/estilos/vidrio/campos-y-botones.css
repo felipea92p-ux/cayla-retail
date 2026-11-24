@@ -415,7 +415,7 @@
     content: attr(data-l);
     display: inline;
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     letter-spacing: normal;
     text-transform: none;
     text-align: left;

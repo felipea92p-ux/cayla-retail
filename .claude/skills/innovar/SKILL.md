@@ -1,7 +1,11 @@
 ---
 name: innovar
-description: Busca oportunidades de INNOVACIÓN en algo nuevo o ya hecho del ERP de CAYLA (una pantalla, un módulo, una tabla o RPC, lo que cambió en la rama, o todo), comparándolo contra lo mejor y lo más nuevo del mundo — el qué de los líderes de retail y ERP (Shopify POS, Square, Lightspeed, Odoo, NetSuite) y el cómo del software de primer nivel (Linear, Stripe, Vercel, Apple) — y contra lo último del stack (Next, React, Postgres, Supabase, Vercel), leído del radar curado `docs/radar/`. Mira cuatro frentes con agentes en paralelo (producto y experiencia, arquitectura y código, base y reglas, operación y calidad), un escéptico descarta lo falso, la moda y lo que no es para 3 tiendas + 1 taller, y entrega TODAS las propuestas separadas en «ahora» y «visión», con las 3 primeras de cada grupo al frente y todo guardado en el tablero `docs/innovacion/`. Solo propone: construye con el OK de Felipe. No repite a /formidable, /milimetro, /chaos, /rigor ni /revision: les deriva lo suyo. Úsala cuando Felipe diga «innovar», «qué haríamos mejor», «qué hacen los mejores», «qué hay de nuevo», «oportunidades de mejora» o «está al día esto», al terminar algo nuevo o para auditar lo ya hecho. Modos `rapido` y `profundo`; con `radar`, refresca el radar.
+description: "Busca oportunidades de innovación en una pantalla, un módulo, una RPC o todo el ERP, comparando con los líderes de retail y el software de primer nivel. Solo propone. Úsala con «innovar», «qué hacen los mejores» o «qué hay de nuevo»."
 ---
+
+## Qué hace y cuándo se usa
+
+Busca oportunidades de INNOVACIÓN en algo nuevo o ya hecho del ERP de CAYLA (una pantalla, un módulo, una tabla o RPC, lo que cambió en la rama, o todo), comparándolo contra lo mejor y lo más nuevo del mundo — el qué de los líderes de retail y ERP (Shopify POS, Square, Lightspeed, Odoo, NetSuite) y el cómo del software de primer nivel (Linear, Stripe, Vercel, Apple) — y contra lo último del stack (Next, React, Postgres, Supabase, Vercel), leído del radar curado `docs/radar/`. Mira cuatro frentes con agentes en paralelo (producto y experiencia, arquitectura y código, base y reglas, operación y calidad), un escéptico descarta lo falso, la moda y lo que no es para 3 tiendas + 1 taller, y entrega TODAS las propuestas separadas en «ahora» y «visión», con las 3 primeras de cada grupo al frente y todo guardado en el tablero `docs/innovacion/`. Solo propone: construye con el OK de Felipe. No repite a /formidable, /milimetro, /chaos, /rigor ni /revision: les deriva lo suyo. Úsala cuando Felipe diga «innovar», «qué haríamos mejor», «qué hacen los mejores», «qué hay de nuevo», «oportunidades de mejora» o «está al día esto», al terminar algo nuevo o para auditar lo ya hecho. Modos `rapido` y `profundo`; con `radar`, refresca el radar.
 
 Busca innovación en: $ARGUMENTS
 (una ruta `/vender`, un módulo `inventario`, una tabla o RPC `registrar_venta`, `rama` = lo que cambió frente a `main`, `todo`; sin argumento = lo que
@@ -33,7 +37,7 @@ oportunidades de mejora en cualquier cosa nueva que se crea, e incluso auditar l
 
 1. `git fetch origin` y `git rev-list --left-right --count HEAD...origin/main`; anota `git rev-parse --short origin/main`. Si la rama va detrás,
    los agentes leen con `git show origin/main:<ruta>`.
-2. Lo que ya está en vuelo: `docs/SESIONES-ACTIVAS.md` (tabla «Activas ahora») y `gh pr list --state open --limit 60`.
+2. Lo que ya está en vuelo: `pnpm sesiones` (las sesiones activas, los PR abiertos y sus choques).
 3. **Lo que ya se propuso:** `docs/innovacion/README.md`. Nada que esté `descartada` vuelve, salvo que el motivo del descarte ya no sea cierto
    (y se dice cuál cambió). Lo que está `propuesta` o `aceptada` no se repite: se cita su id.
 4. **El radar:** lee la fecha de `docs/radar/README.md`. Con más de 14 días (la rutina semanal faltó dos veces), dilo en la primera línea del informe y ofrece `/innovar radar` al final;

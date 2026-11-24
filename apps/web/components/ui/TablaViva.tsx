@@ -533,7 +533,7 @@ export function TablaViva<F>({
               filtros={pildoras.map((p) => ({ texto: p.texto, onQuitar: p.quitar }))}
               acciones={hayAlgo ? <BotonLimpiar onClick={limpiarTodo}>{textoLimpiar}</BotonLimpiar> : undefined}
             >
-              Quita alguno de los filtros, o todos de una vez.
+              Quita un filtro, o todos.
             </Vacio>
           </div>
         ) : (
@@ -607,7 +607,7 @@ function GloboDeLaTabla<F>({ globo, tabla, ancla, onCerrar }: { globo: Globo; ta
   const titulo = columna ? columna.titulo : "Ordenar";
   if (enCelular)
     return (
-      <Modal titulo={titulo} subtitulo={columna?.filtra ? "Ordena o elige qué mostrar. Se aplica al tocar." : "Elige cómo se ordena la lista."} onClose={() => onCerrar(false)} alCerrarEnfocar={ancla} mediaAltura conCerrar>
+      <Modal titulo={titulo} subtitulo={columna?.filtra ? "Ordena o elige qué mostrar." : "Elige cómo se ordena la lista."} onClose={() => onCerrar(false)} alCerrarEnfocar={ancla} mediaAltura conCerrar>
         <div className="tv-globo-cuerpo" data-en-hoja>
           <ContenidoGlobo globo={globo} tabla={tabla} />
         </div>

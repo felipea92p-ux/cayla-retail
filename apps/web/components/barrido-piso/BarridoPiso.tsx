@@ -660,7 +660,7 @@ export function BarridoPiso({
   const combo = (
     <div data-guia="barrido.responsable" className="order-1 lg:order-none">
       {enChip && (
-        <p className="flex min-h-11 items-center gap-2 text-[15px] text-tinta lg:hidden">
+        <p className="flex min-h-11 items-center gap-2 text-sm text-tinta lg:hidden">
           <UserRound aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
           <span className="min-w-0 truncate">
             Escanea <b className="font-semibold">{quienNombre}</b>
@@ -722,7 +722,7 @@ export function BarridoPiso({
     // de escritorio se «disuelven» (`max-lg:contents`) y cada pieza toma su lugar con `order`; en escritorio no cambia nada.
     <div className="flex flex-col gap-5">
       <div data-guia="barrido.cifras" className="order-4 lg:order-none">
-        <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[15px] text-taupe sm:hidden">
+        <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-taupe sm:hidden">
           <span>
             Equipo <b className="font-display text-xl font-normal tabular-nums text-tinta">{unidadesEquipo.toLocaleString("es-PE")}</b>
           </span>
@@ -893,7 +893,7 @@ export function BarridoPiso({
             <div key={destello} className="anim-revelar flex items-center gap-4">
               <MiniaturaPrenda fotoUrl={prendaUltima.fotoUrl} colorHex={prendaUltima.colorHex} tamano="2xl" {...categoriaDe(prendaUltima)} />
               <div className="min-w-0 flex-1">
-                <p className="label-cayla text-[11px] text-taupe">Última que escaneaste</p>
+                <p className="label-cayla text-xs text-taupe">Última que escaneaste</p>
                 <p className="font-display truncate text-2xl text-tinta">{prendaUltima.referencia}</p>
                 <p className="texto-detalle truncate text-taupe">{actual.detalle || "Sin talla ni color"}</p>
               </div>
@@ -915,7 +915,7 @@ export function BarridoPiso({
               <ul className="mt-2 divide-y divide-tinta/10">
                 {personas.map((p) => (
                   <li key={p.personaId} className="flex items-center gap-3 py-2">
-                    <span className="min-w-0 flex-1 truncate text-[15px] text-tinta">{p.nombre}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-tinta">{p.nombre}</span>
                     {p.activa ? (
                       <Chip tono="verde" versalitas={false}>
                         Escaneando

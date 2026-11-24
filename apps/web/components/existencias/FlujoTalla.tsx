@@ -89,7 +89,7 @@ function Opcion({ marcada, titulo, sub, onClick, deshabilitada = false }: { marc
       onClick={onClick}
       className="grid min-h-14 content-center gap-0.5 rounded-2xl border border-sand bg-papel px-3.5 py-2.5 text-left transition-colors hover:border-taupe disabled:cursor-not-allowed disabled:opacity-45 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel [&[aria-pressed=true]_small]:text-sand"
     >
-      <b className="text-[15px] font-semibold">{titulo}</b>
+      <b className="text-sm font-semibold">{titulo}</b>
       {sub && <small className="text-sm leading-snug text-taupe">{sub}</small>}
     </button>
   );
@@ -201,7 +201,7 @@ function Pregunta({ children, ayuda }: { children: ReactNode; ayuda?: ReactNode 
   );
 }
 
-const CLASE_TEXTO = "w-full rounded-xl border border-sand bg-crema px-3 py-2.5 text-[15px] text-tinta placeholder:text-taupe focus:border-tinta";
+const CLASE_TEXTO = "w-full rounded-xl border border-sand bg-crema px-3 py-2.5 text-sm text-tinta placeholder:text-taupe focus:border-tinta";
 
 /* ====================================================================
    Un paso guiado del panel de la talla (maqueta `docs/maquetas/existencias-tactil-2026-10/`, «flujos guiados»)
@@ -674,7 +674,7 @@ export function FlujoTalla({
                 al «0 → 1» que había que descifrar (Felipe, 2026-10-07: «esto también está un poco confuso»). */}
             {viaje && (
               <div className="mt-5">
-                <p className="mb-2 text-[15px] font-semibold text-tinta">Así va a quedar</p>
+                <p className="mb-2 text-sm font-semibold text-tinta">Así va a quedar</p>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <LadoDelViaje lado={viaje.de} />
                   <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
@@ -764,7 +764,7 @@ export function FlujoTalla({
                   escrita.rechazar(relleno, REGLA_RELLENO);
                   setRelleno("");
                 }}
-                className={`h-9 w-14 rounded-[9px] border vd-hundido text-center text-[15px] font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
+                className={`h-9 w-14 rounded-[9px] border vd-hundido text-center text-sm font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
               />
               {subiendo ? (
                 <button type="button" disabled={nColgado === 0} onClick={() => conAtajo({ ...todoLoColgado })} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
@@ -1136,7 +1136,7 @@ export function FlujoTalla({
               {ultimo && <IconoFinal aria-hidden className="-my-1 h-4 w-4" />}
               {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
               {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
-              <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
+              <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-xs font-normal text-crema/80 sm:inline">↵</kbd>
             </span>
           </Boton>
         </div>

@@ -119,7 +119,7 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }:
           <SigueDelPie guia={guia} />
         )}
         {conFrase && siguiente?.pendiente && (
-          <p role="status" className="text-[12.5px] text-tinta/80">
+          <p role="status" className="text-xs text-tinta/80">
             {siguiente.pendiente}
           </p>
         )}

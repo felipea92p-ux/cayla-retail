@@ -415,7 +415,7 @@ export function crearControlCandidatas(opciones: OpcionesControl) {
       control.signal.addEventListener("abort", () => rechazar(new LecturaCancelada()), { once: true });
     });
     const real = (async () => leer({ ...p, senal: control.signal }))();
-    real.catch(() => {}); // si la carrera ya la ganó el plazo, su rechazo tardío no es un error sin atender
+    real.catch(() => {}); // relleno-a-proposito: si la carrera ya la ganó el plazo, su rechazo tardío no es un error sin atender
     const promesa = Promise.race([real, vencida]);
     const limpiar = () => clearTimeout(corte);
     promesa.then(limpiar, limpiar);

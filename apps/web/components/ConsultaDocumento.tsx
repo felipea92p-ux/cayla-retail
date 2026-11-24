@@ -172,7 +172,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
 
   const chip = (valor: string, bueno: boolean) => (
     <span
-      className={`label-cayla rounded-full border px-2.5 py-0.5 text-[11px] ${
+      className={`label-cayla rounded-full border px-2.5 py-0.5 text-xs ${
         bueno ? "border-verde/45 bg-verde/10 text-verde-profundo" : "border-rojo/40 bg-rojo/10 text-rojo-profundo"
       }`}
     >
@@ -291,7 +291,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       {yaConocido ? (
         <div className="anim-revelar border-l-2 border-sand py-2.5 pl-3 pr-3">
           <p className="font-display text-base leading-tight text-tinta">{yaConocido.nombre}</p>
-          <p className="mt-1.5 text-[11px] text-tinta/65">{yaConocido.origen}</p>
+          <p className="mt-1.5 text-xs text-tinta/65">{yaConocido.origen}</p>
         </div>
       ) : datos && (
         <div
@@ -309,7 +309,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
                 </div>
               )}
               {datos.direccion && <p className="mt-1.5 text-xs leading-snug text-tinta/70">{datos.direccion}</p>}
-              <p className="mt-1.5 text-[11px] text-tinta/65">
+              <p className="mt-1.5 text-xs text-tinta/65">
                 {datos.fuente === "padron"
                   ? datos.via === "sunat_publico"
                     ? "Según SUNAT, consultado ahora"
@@ -319,7 +319,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
               {/* La consulta gratuita de SUNAT trae razón social y dirección, pero no el estado
                   ni la condición. Sin este aviso, «sin chips» se leería como «todo en orden». */}
               {datos.fuente === "padron" && datos.tipo === "ruc" && !datos.estado && (
-                <p className="mt-1 text-[11px] text-tinta/65">No informa si el RUC está activo y habido.</p>
+                <p className="mt-1 text-xs text-tinta/65">No informa si el RUC está activo y habido.</p>
               )}
             </>
           ) : (

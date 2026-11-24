@@ -24,7 +24,7 @@ export function SelectorDeVisibilidad({
 }) {
   return (
     <div className="space-y-3" data-guia="pagos.visibilidad">
-      <p className="label-cayla text-[11px] font-bold text-taupe">Mostrar esta campaña</p>
+      <p className="label-cayla text-xs font-bold text-taupe">Mostrar esta campaña</p>
       {/* Tres opciones que se leen enteras (cada una con lo que pasa si la eliges), una bajo otra: en una columna angosta tres botones en fila no caben. Elegir una GUARDA al instante, así que no es un
           radiogroup con flechas (cada flecha guardaría): son botones que se aprietan, con la elegida marcada. */}
       <div role="group" aria-label="Qué ve Finanzas de esta campaña" className="grid gap-2">
@@ -39,7 +39,7 @@ export function SelectorDeVisibilidad({
         ))}
       </div>
       <p className="text-sm text-taupe" aria-live="polite">
-        {por && en ? `Lo decidió ${por} el ${diaYHoraLima(en).dia}.` : "Por defecto, una campaña con compra se ve. Nadie lo ha cambiado."} Ocultarla no borra nada: sigue en el Plan y en Compras.
+        {por && en ? `Lo decidió ${por} el ${diaYHoraLima(en).dia}.` : "Por defecto, una campaña con compra se ve."} Ocultarla no borra nada.
       </p>
     </div>
   );
@@ -61,7 +61,7 @@ function renglonesDeFinanzas(v: VisibilidadFinanzas): Renglon[] {
     {
       marca: seVe,
       titulo: "Resumen de Finanzas",
-      detalle: "Sale como «Inversión en mercadería», no en «Te deja». Al registrar la orden o la factura, lo real reemplaza lo planeado.",
+      detalle: "Sale como «Inversión en mercadería». Al registrar la orden o la factura, lo real reemplaza lo planeado.",
     },
     { marca: seVe, titulo: "Tu caja de las próximas semanas", detalle: "Lo que falta pedir se resta de tu caja el día que lo pagas." },
     { marca: "pronto", titulo: "Flujo de caja y Escenarios (Reportes)", detalle: "Todavía no la leen: se conectarán. Hoy solo el Resumen cuenta esta compra." },

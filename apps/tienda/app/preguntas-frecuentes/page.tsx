@@ -9,7 +9,8 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
 export const metadata: Metadata = {
-  title: "Preguntas frecuentes · CAYLA",
+  alternates: { canonical: "/preguntas-frecuentes" },
+  title: "Preguntas frecuentes",
   description: "Lo que más nos preguntan: separar sin pagar en la web, cuánto se guarda lo que separas, cambios y tiendas.",
 };
 

@@ -147,7 +147,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
           <div className="space-y-2" role="img" aria-label="Línea de tiempo de las campañas de los próximos tres meses">
             <div className="flex gap-3" aria-hidden>
               <span className="w-28 shrink-0" />
-              <div className="relative h-5 flex-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">
+              <div className="relative h-5 flex-1 text-xs font-semibold uppercase tracking-[0.12em] text-taupe">
                 {tiempo.meses.map((m) => (
                   <span key={m.nombre} className="absolute top-0" style={{ left: `${m.izquierda}%` }}>
                     <span className="sm:hidden">{m.nombre.slice(0, 3)}</span>
@@ -194,7 +194,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
       )}
 
       <p className="nota-cayla" data-guia="campanas.nota">
-        Al terminar, la tienda vuelve sola a su diseño. Sin diseño, la campaña sale en la franja de arriba con su cuenta regresiva.
+        Al terminar, la tienda vuelve sola a su diseño. Sin diseño, la campaña sale en la franja de arriba.
       </p>
     </div>
   );

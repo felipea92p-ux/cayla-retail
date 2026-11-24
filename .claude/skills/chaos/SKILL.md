@@ -1,7 +1,11 @@
 ---
 name: chaos
-description: Usa MAL el ERP de CAYLA a propósito, pantalla por pantalla y en local, para encontrar lo que se rompe antes de que lo rompa una colaboradora un sábado a las 7 de la tarde. Elige los ataques de un catálogo de 8 familias (entradas hostiles, doble clic, navegación torcida, concurrencia entre cuentas, permisos y URL ajena, red y sesión, celular 375 px, teclado) más un azar con semilla reproducible, los ejecuta en el navegador y directo en la base, y después de cada ataque que escribe mira las invariantes de la base (stock contra movimientos, venta contra pagos, caja, comprobantes) — porque lo grave no es la pantalla caída sino el descuadre que nadie ve. Entrega un informe rankeado (estado imposible primero) y, con el OK de Felipe, una prueba de regresión y el arreglo de UNA pantalla. Obligatoria al cerrar toda pantalla o modal que guarda (CLAUDE.md «Caos»). Úsala cuando Felipe diga «chaos», «rómpelo», «qué pasa si lo usan mal», o antes de dar por terminada una pantalla que guarda.
+description: "Obligatoria en toda pantalla o modal que guarda: la usa mal en local (doble clic, concurrencia, red, permisos, 375 px, el botón que no hace lo que dice) y revisa la base. Úsala con «chaos», «rómpelo» o antes de cerrar algo que guarda."
 ---
+
+## Qué hace y cuándo se usa
+
+Usa MAL el ERP de CAYLA a propósito, pantalla por pantalla y en local, para encontrar lo que se rompe antes de que lo rompa una colaboradora un sábado a las 7 de la tarde. Elige los ataques de un catálogo de 9 familias (entradas hostiles, doble clic, navegación torcida, concurrencia entre cuentas, permisos y URL ajena, red y sesión, celular 375 px, teclado, y el botón que no hace lo que dice) más un azar con semilla reproducible, los ejecuta en el navegador y directo en la base, y después de cada ataque que escribe mira las invariantes de la base (stock contra movimientos, venta contra pagos, caja, comprobantes) — porque lo grave no es la pantalla caída sino el descuadre que nadie ve — y si lo que el botón promete quedó hecho (la falla sin error que las invariantes no ven). Entrega un informe rankeado (estado imposible primero) y, con el OK de Felipe, una prueba de regresión y el arreglo de UNA pantalla. Obligatoria al cerrar toda pantalla o modal que guarda (CLAUDE.md «Caos»). Úsala cuando Felipe diga «chaos», «rómpelo», «qué pasa si lo usan mal», o antes de dar por terminada una pantalla que guarda.
 
 Ataca esta pantalla, módulo o ruta: $ARGUMENTS
 
@@ -12,7 +16,7 @@ No hace: tocar producción, aplicar migraciones, cambiar una regla de dinero, st
 
 **Uso.** `/chaos /vender` (una pantalla) · `/chaos vender` (un módulo, pantalla por pantalla) · `/chaos todo` (solo informa el tablero de `docs/chaos/README.md`: no corre nada) · banderas: `--semilla 42` (repite una corrida exacta), `--azar 8` (cuántos ataques sorteados además del núcleo), `--familias doble-clic,concurrencia` (acota). Sin argumento: pregunta cuál y para.
 
-**Por qué importa lo que mira.** Un ataque casi nunca tira la pantalla; lo que deja es un estado que nadie ve: un stock que ya no cuadra con `movimientos`, una venta cuyos pagos no suman, dos comprobantes. «No se cayó» no prueba nada. Por eso cada ataque que escribe termina mirando la base (Fase 3). Principio 2 de CLAUDE.md: si el inventario puede quedar en un estado imposible, el diseño está mal, no el código.
+**Por qué importa lo que mira.** Un ataque casi nunca tira la pantalla; lo que deja es un estado que nadie ve: un stock que ya no cuadra con `movimientos`, una venta cuyos pagos no suman, dos comprobantes. «No se cayó» no prueba nada. Por eso cada ataque que escribe termina mirando la base (Fase 3). Principio 2 de CLAUDE.md: si el inventario puede quedar en un estado imposible, el diseño está mal, no el código. **Y hay una falla que ni la base ve** (ADR-0693): el botón que dice «Guardar», muestra «Listo» y no dejó nada, o lo dejó y un refresco lo pisó en la pantalla. No hay error ni estado imposible; por eso existe la familia `boton`, que mira si lo prometido quedó hecho.
 
 ## Candados (no se negocian; si uno falla, se para y se dice cuál)
 
@@ -47,6 +51,10 @@ Luego: `node scripts/chaos/catalogo.mjs plan --aplica <ingredientes> --semilla <
 
 El **núcleo corre siempre**; el azar descubre lo que no se nos ocurrió. `node scripts/chaos/catalogo.mjs --familia <f>` y `valores --tipo monto` muestran el catálogo y los valores hostiles exactos.
 
+**Si el plan trae la familia `boton`** (toda pantalla que guarda la trae en el núcleo), lee el código ANTES de atacar: `node scripts/chaos/boton.mjs <los archivos de la pantalla>` (los que da `scripts/focus/escanear.mjs --ruta`). Marca tres pistas con su línea —`refresco-tras-guardar` (BOT-02), `efecto-que-pisa` (BOT-03), `efecto-sin-guardia` (BOT-04)— y pone primero (↯) las fuertes: el refresco junto a un efecto que copia una prop, y los efectos. Una pista no es un hallazgo (en este repo hay cientos de `router.refresh()` tras guardar, casi todos bien): dice dónde mirar primero. Es el «mapa de quién resetea qué» de la skill `click-path-audit` (affaan-m/ecc), adaptado: aquí no hay stores, lo que pisa el estado local son las props del servidor y los efectos que las copian.
+
+**Una semilla de antes del 2026-11-23 sortea distinto:** ese día el catálogo sumó la familia `boton` (de 77 a 85 ataques) y el azar se arma sobre la lista entera. Para repetir una corrida vieja exacta, `--familias` con las ocho de entonces.
+
 ## Fase 2 — Estado inicial
 
 | Cuándo | Comando |
@@ -67,6 +75,7 @@ Por cada ataque del plan, en orden, uno por uno:
    - `navegador`: con las herramientas del navegador (`computer`, `find`, `form_input`, `read_page`, `javascript_tool`). **Para el doble clic**, `double_click` y, para ráfagas, `javascript_tool` con `for (…) boton.click()` en el mismo tick. **Para la red**, parchea `window.fetch` con `javascript_tool` (después de que cargó la página: el loader único también lo parchea, ADR-0149) para que falle, tarde 8 s o descarte la respuesta; restáuralo al terminar. **Para el celular**, `resize_window` con `preset: "mobile"`; al terminar, `preset: "desktop"` (el tamaño emulado se borra al acabar tu turno). Mira la consola y la red (`read_console_messages`, `read_network_requests`): un error crudo de Postgres a la vista es hallazgo.
    - `base`: consulta directa en el contenedor local, **dentro de `begin; … rollback;`** siempre que no necesites que dos sesiones se vean entre sí. Para concurrencia usa dos conexiones `psql` en paralelo (el patrón de `scripts/pruebas/concurrencia_orden_y_doble_clic.mjs` y `bajada_al_piso_concurrencia.mjs`: `spawn`, sesión simulada con `request.jwt.claim.sub`). Los uuid de las cuentas del seed salen de `supabase/seed.sql`. Un script temporal va al directorio de scratchpad de la sesión, nunca al repo.
    - `ambas`: primero el navegador (qué ve la persona), luego la base (qué quedó).
+   - Familia `boton`: además del navegador, **compara tres lecturas** —lo que la pantalla dice al terminar, lo que muestra al recargar y lo que dice la base (un `select` de solo lectura de la fila o el estado que el verbo promete)—. Que no coincidan es el hallazgo, aunque la consola esté limpia y `invariantes.mjs` no marque nada. Para la carrera (BOT-04), el parche de `window.fetch` retrasa SOLO la primera petición; para el aviso que miente (BOT-05), responde 400 sin dejarla llegar a la base.
 3. **Evidencia**: captura de la pantalla en el momento, y lo que dijo la consola/red. Etiqueta cada dato: `[visto]` (pantalla), `[base]` (consulta/invariante), `[código archivo:línea]`, `[inferido]`. Nunca captures con la página a medio animar.
 4. **Si el ataque escribió** (`escribe: true` en el catálogo): **mira la base ahora** — `node scripts/chaos/invariantes.mjs --contra chaos-<slug>`. Las violaciones NUEVAS son lo que el ataque rompió; las que ya estaban en la foto no son culpa suya. Una `sospecha` (INV-11, INV-12) se confirma con una consulta a mano antes de afirmar que hubo doble cobro. Luego restaura (Fase 2).
 5. **Clasifica** (ver «Gravedad») y sigue. No arregles nada ahora, ni siquiera lo obvio: anótalo.
@@ -76,7 +85,7 @@ Por cada ataque del plan, en orden, uno por uno:
 | | Qué es | Ejemplo |
 |---|---|---|
 | **1 · Estado imposible** | la base quedó inconsistente: inventario, dinero o comprobante que no cuadra | doble clic en Cobrar y hay dos ventas; el stock bajó 6 por un ajuste de 3 |
-| **2 · Dato malo en silencio** | se guardó algo dudoso y nadie avisó | «1,299.50» guardado como 1.29; un nombre de 5000 letras; un movimiento sin autor |
+| **2 · Dato malo en silencio** | se guardó algo dudoso y nadie avisó, o lo que el botón prometía no quedó hecho y la pantalla dijo que sí | «1,299.50» guardado como 1.29; un nombre de 5000 letras; un movimiento sin autor; «Listo» tras un error; un refresco que devolvió el precio de antes |
 | **3 · Pantalla caída** | se rompe lo que se ve, la base queda bien | página en blanco al recargar; un 500; el layout se parte |
 | **4 · Error feo pero seguro** | rechaza bien, pero con un mensaje que nadie entiende | «23502 null value in column» a la vista; foco perdido al cerrar |
 

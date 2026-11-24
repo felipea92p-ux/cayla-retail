@@ -65,7 +65,7 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
         <div>
           <p className="text-sm text-taupe">Faltaría pagar en marzo</p>
           <p className="fin-imp-vendido">{solesRedondo(r.faltaEnMarzo)}</p>
-          <dl className="mt-2 space-y-1 text-[15px] text-tinta">
+          <dl className="mt-2 space-y-1 text-sm text-tinta">
             <div className="flex justify-between gap-4">
               <dt>Renta estimada del año</dt>
               <dd className="tabular-nums">{solesRedondo(r.renta)}</dd>

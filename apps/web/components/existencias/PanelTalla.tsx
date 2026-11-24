@@ -94,7 +94,7 @@ const SIN_FALTA: ReadonlySet<string> = new Set();
 const SIN_CALCULAR: ReadonlySet<string> = new Set();
 const escribiendo = (el: Element | null) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable);
 /** Los cuatro botones de la prenda, la misma cara que en la vista rápida de Catálogo (una función, una pieza). */
-const BOTON_PRENDA = "btn-cayla btn-secundario min-h-10 gap-1.5 text-[12.5px]";
+const BOTON_PRENDA = "btn-cayla btn-secundario min-h-10 gap-1.5 text-xs leading-tight";
 /** Las casillas de «Dónde está» y de «Todo el modelo»: de a dos en el celular (cada una ~150 px, con su palabra entera) y de a cuatro desde
  *  640 px. Sin el piso y el almacén separados son tres, que sí caben en una fila. */
 const casillasDeLaFila = (separa: boolean) => `grid gap-2 sm:gap-1.5 ${separa ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`;
@@ -675,16 +675,16 @@ export function PanelTalla({
 
   /** La celda de totales de «Todas» (ADR-0391): en hueso, sin borde, no se toca; sigue a la capa (una cifra) o apila las dos. */
   const totalCelda = (pisoN: number, almacenN: number) => {
-    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[15px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[17px] font-semibold tabular-nums text-tinta">{pisoN}</div>;
-    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-[17px] font-semibold tabular-nums text-tinta">{almacenN}</div>;
+    if (!separa) return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-sm font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "piso") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{pisoN}</div>;
+    if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] vd-hundido text-lg font-semibold tabular-nums text-tinta">{almacenN}</div>;
     return (
       <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] vd-hundido tabular-nums text-tinta">
-        <span className="flex items-center justify-center gap-1 text-[15px] font-semibold">
+        <span className="flex items-center justify-center gap-1 text-sm font-semibold">
           <IconoPercha aria-hidden className="h-3 w-3 text-taupe" />
           {pisoN}
         </span>
-        <span className="flex items-center justify-center gap-1 border-t border-sand text-[15px] font-semibold">
+        <span className="flex items-center justify-center gap-1 border-t border-sand text-sm font-semibold">
           <Archive aria-hidden className="h-3 w-3 text-taupe" />
           {almacenN}
         </span>
@@ -744,7 +744,7 @@ export function PanelTalla({
                   unidades={async () => unidadesDelColor}
                   que={`${prenda.referencia}${prenda.color ? ` ${prenda.color}` : ""}`}
                   sede={sedeNombre}
-                  className={(negado) => (negado ? "btn-cayla min-h-10 gap-1.5 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : BOTON_PRENDA)}
+                  className={(negado) => (negado ? "btn-cayla min-h-10 gap-1.5 bg-rojo text-xs leading-tight text-crema hover:bg-rojo-profundo" : BOTON_PRENDA)}
                   title="Imprimir las etiquetas de precio de este color: en la pantalla eliges cuántas de cada talla"
                 >
                   <Tag aria-hidden className="h-4 w-4" />
@@ -905,7 +905,7 @@ export function PanelTalla({
                     {/* Copiar es la pieza del sistema (ronda 13): el código a la vista y, junto a él, el ícono que lo copia. */}
                     {codigo && (
                       <span data-guia="existencias.cajon-codigo" className="inline-flex w-fit items-center gap-1 px-1.5 py-1 text-sm text-taupe">
-                        código <b className="font-mono text-[12.5px] font-semibold text-tinta select-all">{codigo}</b>
+                        código <b className="font-mono text-xs font-semibold text-tinta select-all">{codigo}</b>
                         <BotonCopiar forma="icono" texto={codigo} que="el código de esta talla" alCopiar={() => avisar.exito(`Código copiado: ${codigo}`)} className="-my-1.5" />
                       </span>
                     )}
@@ -1012,7 +1012,7 @@ export function PanelTalla({
                         {/* ¿Dónde está? El veredicto con su porqué, las cuatro casillas y, siempre, en camino y otras tiendas. */}
                         <div data-guia="existencias.cajon-donde" className="grid gap-2.5">
                           <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                            <span className="label-cayla text-[11px] text-taupe">Dónde está</span>
+                            <span className="label-cayla text-xs text-taupe">Dónde está</span>
                             <Chip tono={TONO_CHIP[insignia.tono]} versalitas={false}>
                               {insignia.texto}
                             </Chip>
@@ -1057,7 +1057,7 @@ export function PanelTalla({
 
                         {/* ¿Qué hago? Solo lo que hoy se puede, la sugerida primero y teñida; lo demás, en una línea con su porqué. */}
                         <div className="grid gap-2">
-                          <span className="label-cayla text-[11px] text-taupe">Qué hago</span>
+                          <span className="label-cayla text-xs text-taupe">Qué hago</span>
                           {(posibles.length > 0 || arreglable) && (
                             <ul data-guia="existencias.cajon-acciones" className="overflow-hidden rounded-2xl border border-sand bg-crema">
                               {/* ADR-0640 (Felipe 2026-11-10: «más notable y accesible el pasar de dañada a arreglada»): con una dañada de ESTA
@@ -1074,7 +1074,7 @@ export function PanelTalla({
                                       <Check aria-hidden className="h-4 w-4" />
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                      <b className="block text-[14px] font-semibold text-tinta">Volvió arreglada</b>
+                                      <b className="block text-detalle font-semibold text-tinta">Volvió arreglada</b>
                                       <small className="block text-sm text-taupe">
                                         {fila.danado === 1 ? "1 dañada de esta talla" : `${fila.danado} dañadas de esta talla`}: devuélvela a la venta
                                       </small>
@@ -1100,10 +1100,10 @@ export function PanelTalla({
                                         <Ico aria-hidden className="h-4 w-4" />
                                       </span>
                                       <span className="min-w-0 flex-1">
-                                        <b className="block text-[14px] font-semibold text-tinta">{a.texto}</b>
+                                        <b className="block text-detalle font-semibold text-tinta">{a.texto}</b>
                                         <small className="block text-sm text-taupe">{a.sub}</small>
                                       </span>
-                                      <kbd className="hidden rounded border border-sand px-1.5 text-[10.5px] text-taupe sm:inline">{a.tecla}</kbd>
+                                      <kbd className="hidden rounded border border-sand px-1.5 text-xs text-taupe sm:inline">{a.tecla}</kbd>
                                       <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
                                     </button>
                                   </li>
@@ -1149,7 +1149,7 @@ export function PanelTalla({
                             hueso, la celda abierta con marco; un color sin nada en la capa se atenúa, no desaparece. Se fue el «N en esta
                             sede» de 46 px: era la suma de las casillas. */}
                         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                          <span className="label-cayla text-[11px] text-taupe">Todo el modelo</span>
+                          <span className="label-cayla text-xs text-taupe">Todo el modelo</span>
                           {chipModelo && (
                             <Chip tono={chipModelo.tono} versalitas={false}>
                               {chipModelo.texto}
@@ -1187,7 +1187,7 @@ export function PanelTalla({
                                 Solo lo que está <b className="font-semibold">{capa === "piso" ? "en el piso" : "en el almacén"}</b>
                                 {capa === "piso" ? " · en ámbar, lo que falta colgar" : ""}
                               </span>
-                              <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-[12.5px]">
+                              <button type="button" onClick={() => setCapa(null)} className="btn-cayla btn-enlace text-xs leading-tight">
                                 Ver piso y almacén
                               </button>
                             </p>
@@ -1294,7 +1294,7 @@ export function PanelTalla({
                                             <span
                                               aria-hidden
                                               title={`${f.danado} ${f.danado === 1 ? "dañada" : "dañadas"} de esta talla, aparte: no se vende`}
-                                              className="pointer-events-none absolute -top-1.5 right-0 z-[1] inline-flex items-center gap-0.5 rounded-full border border-rojo/30 bg-crema px-1.5 text-[12px] font-semibold leading-[18px] text-rojo-profundo" // unificar-fijo: marca dentro de la matriz de tallas, no una insignia de estado
+                                              className="pointer-events-none absolute -top-1.5 right-0 z-[1] inline-flex items-center gap-0.5 rounded-full border border-rojo/30 bg-crema px-1.5 text-xs font-semibold leading-[18px] text-rojo-profundo" // unificar-fijo: marca dentro de la matriz de tallas, no una insignia de estado
                                             >
                                               <Bandage className="h-3 w-3" />
                                               {f.danado} dañada{f.danado === 1 ? "" : "s"}
@@ -1315,7 +1315,7 @@ export function PanelTalla({
                                           ) : (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
                                               {verPiso && (
-                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[15px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
+                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-lg" : "text-sm"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
                                                   <span className="inline-flex items-center gap-1">
                                                     <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} />
                                                     {celda.piso}
@@ -1325,7 +1325,7 @@ export function PanelTalla({
                                                 </span>
                                               )}
                                               {verAlmacen && (
-                                                <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[15px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
+                                                <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-lg font-bold" : "border-t border-sand text-sm font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
                                                   <Archive aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} />
                                                   {celda.almacen}
                                                 </span>
@@ -1372,7 +1372,7 @@ export function PanelTalla({
                               <IconoPercha aria-hidden className="h-4 w-4" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
+                              <b className="block text-detalle font-semibold text-tinta">Colgar varias tallas y colores</b>
                               <small className="block text-sm text-taupe">
                                 {subtituloColgarVarias({ porColgar: porColgarModelo, sinColgar: sinColgarModelo, almacen: sumaModelo.almacen })}
                               </small>

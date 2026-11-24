@@ -12,7 +12,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/club.css";
 import "../estilos/recomendaciones.css";
 
-export const metadata: Metadata = { title: "Recomendaciones · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Recomendaciones", robots: { index: false, follow: false } };
 
 /**
  * «Recomendaciones» (ADR-0408, Felipe 2026-10-15): «un apartado de recomendaciones donde el cliente puede escribir libremente cualquier
