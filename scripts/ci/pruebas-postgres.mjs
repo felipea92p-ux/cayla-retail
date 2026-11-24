@@ -84,6 +84,11 @@ export const PRUEBAS = [
   // tiene techo (nadie infla el tope de US$ 20); quien no ve Productos no lee el contexto ni anota. ROLLBACK.
   "pruebas:precio-propuesto",
 
+  // Reglas del precio sugerido (ADR-0700): la vigente es la última fila (de fábrica, 36 % y +3); solo un Admin la cambia, con su firma,
+  // su historial y su línea de Actividad; lo que rechaza la base (base 20–60, casillas enteras 0–10, tope 75 %) y los candados de la tabla;
+  // las listas de tejidos y marcas entran y salen; nadie toca la tabla directo y anon no llama. ROLLBACK.
+  "pruebas:reglas-de-precio",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",

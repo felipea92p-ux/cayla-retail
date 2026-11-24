@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 118,
+  "total": 123,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -146,6 +146,13 @@
       "button «{nombreCortoSede(t.nombre)}»",
       "button «config.tiendas-normal»",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»"
+    ],
+    "components/vistas-config/VistaPrecios.tsx": [
+      "CampoMonto «Lo que pagaste (ejemplo)»",
+      "BotonVerMas «{`Ver ${resto.length}»",
+      "ComboResponsable «{responsable}»",
+      "Casilla «Margen base, en %»",
+      "Casilla «{`Puntos de «${NOMBRE_RASGO[rasgo]}»"
     ],
     "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
       "input «{`${NOMBRE_CAMPO[campo]}»",

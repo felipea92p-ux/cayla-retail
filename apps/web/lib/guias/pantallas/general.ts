@@ -975,7 +975,7 @@ export const GUIA_CONFIGURACION: Guia = {
   id: "configuracion",
   ruta: "/configuracion",
   titulo: "Configuración",
-  resumen: "Lo que se ajusta una vez y todas las pantallas leen: la empresa y sus tiendas, metas, dinero, gastos e impuestos.",
+  resumen: "Lo que se ajusta una vez y todas las pantallas leen: la empresa y sus tiendas, metas, dinero, gastos, impuestos y precios.",
   pasos: [
     {
       id: "bienvenida",
@@ -987,7 +987,7 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "pestanas",
       ancla: "config.pestanas",
       titulo: "Las secciones",
-      texto: "Empresa y tiendas, Metas, Dinero, Gastos e Impuestos. Te las mostramos una por una, empezando por Metas.",
+      texto: "Empresa y tiendas, Metas, Dinero, Gastos, Impuestos y Precios. Te las mostramos una por una, empezando por Metas.",
     },
     {
       id: "guardado",
@@ -1243,6 +1243,35 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "La renta: lo de antes del sistema",
       texto: "Lo de enero hasta que Finanzas empezó a contar, según tu contador: la utilidad, el costo de lo vendido, lo comprado sin factura y la renta ya pagada. Con esto, la renta de marzo de Impuestos cubre el año entero. Vacío, la estima a tu ritmo actual.",
+    },
+    {
+      id: "precios-regla",
+      ancla: "config.precios-regla",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-precios" }],
+      titulo: "El margen de cada prenda",
+      texto: "Con esto se sugiere el precio de venta de lo que se compra a proveedor. Toda prenda pide la base, y cada casilla que tiene suma sus puntos. El margen es lo que te queda del precio sin IGV. Solo un Admin lo cambia; en la demo no escribimos.",
+    },
+    {
+      id: "precios-ejemplo",
+      ancla: "config.precios-ejemplo",
+      opcional: true,
+      titulo: "Así queda",
+      texto: "Con un costo de ejemplo ves el precio que se sugeriría con cada casilla y cuánta rebaja aguanta sin perder. No guarda nada.",
+    },
+    {
+      id: "precios-tejidos",
+      ancla: "config.precios-tejidos",
+      opcional: true,
+      titulo: "Tejidos que se notan",
+      texto: "Los tejidos que el cliente siente distintos al tocarlos. Una prenda de esos tejidos llega con «Tela que se nota» marcada. Arriba, los que más modelos llevan.",
+    },
+    {
+      id: "precios-marcas",
+      ancla: "config.precios-marcas",
+      opcional: true,
+      titulo: "Marcas que el cliente conoce",
+      texto: "Las marcas que el cliente busca por su nombre. Su prenda suma esa casilla sola, sin que nadie la marque.",
     },
     {
       id: "empresa",
