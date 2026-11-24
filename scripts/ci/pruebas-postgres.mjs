@@ -764,6 +764,12 @@ export const PRUEBAS = [
   // segundo barrido no, un cuadre del almacén sí. Cada caso en ROLLBACK.
   "pruebas:barrido-piso-confirmar",
 
+  // «Tickets compartidos» (ADR-0701, ADR-0511 paso 2): la asesora manda a la caja de su sede el ticket armado en el piso; la caja lo
+  // abre y pasa a ese equipo. Quien ve Vender en esa sede; prendas y total como la web; el mismo id reenviado no crea otro; termina
+  // UNA vez (tomado o descartado), nunca se borra; tope de 20 esperando. Cada caso en ROLLBACK, salvo la carrera de dos equipos que
+  // abren el mismo ticket (con COMMIT, en su sede «ZZ Tickets carrera»): solo uno se lo lleva.
+  "pruebas:tickets-compartidos",
+
   // La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
   // Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
   // cuenta, sin almacén libre no mueve nada, firma el responsable, la misma marca no baja dos veces, y su fila del libro es

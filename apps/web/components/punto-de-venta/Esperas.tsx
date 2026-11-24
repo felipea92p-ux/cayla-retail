@@ -12,17 +12,30 @@ import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
  * cuánto, y se decide a propósito. «Seguir con el cierre» solo abre el cierre de siempre: nada se descarta hasta que la caja se
  * cierra de verdad, y si ahí se cancela, los tickets siguen donde estaban.
  */
-export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets: readonly PestanaDeTicket[]; onSeguir: () => void; onClose: () => void }) {
-  const total = tickets.reduce((acc, t) => acc + t.total, 0);
+export function TicketsSinCobrarModal({
+  tickets,
+  delPiso = [],
+  onSeguir,
+  onClose,
+}: {
+  tickets: readonly PestanaDeTicket[];
+  /** Los que el piso mandó y nadie abrió (ADR-0701). No se descartan al cerrar: siguen esperando en la caja hasta que alguien los abra o los tire. */
+  delPiso?: readonly { id: string; nombre: string; prendas: number; total: number }[];
+  onSeguir: () => void;
+  onClose: () => void;
+}) {
+  const total = tickets.reduce((acc, t) => acc + t.total, 0) + delPiso.reduce((acc, t) => acc + t.total, 0);
+  const cuantos = tickets.length + delPiso.length;
   return (
     <Modal
       titulo="Hay tickets sin cobrar"
-      subtitulo={`${tickets.length} ${tickets.length === 1 ? "cliente" : "clientes"} · S/${total.toFixed(2)}`}
+      subtitulo={`${cuantos} ${cuantos === 1 ? "cliente" : "clientes"} · S/${total.toFixed(2)}`}
       variante="hoja"
       onClose={onClose}
     >
       {(cerrar) => (
         <>
+          {tickets.length > 0 && (
           <ul className="divide-y divide-sand rounded-xl border border-sand bg-papel" data-tickets-sin-cobrar>
             {tickets.map((t) => (
               <li key={t.id ?? "caja"} className="flex items-center gap-3 px-4 py-2.5 text-sm">
@@ -34,7 +47,26 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-sm text-tinta/70">Si cierras la caja, estos tickets se descartan y no se pueden recuperar. Cancela para cobrarlos antes, o sigue con el cierre.</p>
+          )}
+          {tickets.length > 0 && (
+            <p className="mt-3 text-sm text-tinta/70">Si cierras la caja, estos tickets se descartan y no se pueden recuperar. Cancela para cobrarlos antes, o sigue con el cierre.</p>
+          )}
+          {delPiso.length > 0 && (
+            <>
+              <ul className={`divide-y divide-sand rounded-xl border border-sand bg-papel ${tickets.length > 0 ? "mt-4" : ""}`} data-tickets-del-piso-sin-cobrar>
+                {delPiso.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                    <b className="min-w-0 flex-1 truncate font-semibold">{t.nombre}</b>
+                    <span className="shrink-0 text-sm text-tinta/60">
+                      {t.prendas} {t.prendas === 1 ? "prenda" : "prendas"}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">S/{t.total.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-sm text-tinta/70">Estos llegaron del piso y siguen esperando en la caja: no se pierden al cerrar. Si el cliente se fue, descártalos desde «Del piso».</p>
+            </>
+          )}
           <PieAcciones className="mt-5">
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
