@@ -1,7 +1,7 @@
 "use client";
 
 import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Aviso } from "@/components/ui/Aviso";
@@ -122,6 +122,7 @@ import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
+import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
 import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
@@ -298,6 +299,30 @@ export function ContarEnvio({
   const pedidosDeAbrir = useRef(0);
   const pedirAbrir = (clave: string) => ({ clave, vez: ++pedidosDeAbrir.current });
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
+  // La foto que se toma al contar un modelo nuevo, antes de que tenga prenda (ADR-0699): sirve para reconocerlo en la lista y entra sola a
+  // «Fotos y colores» al crearla. Vive en el navegador mientras la pantalla esté abierta: recargar la pierde (se vuelve a tomar).
+  const [tomadas, setTomadas] = useState<ReadonlyMap<string, { archivo: File; vista: string }>>(() => new Map());
+  const tomadasVivas = useRef(tomadas);
+  useEffect(() => {
+    tomadasVivas.current = tomadas;
+  }, [tomadas]);
+  useEffect(() => () => tomadasVivas.current.forEach((t) => URL.revokeObjectURL(t.vista)), []);
+  const vistasTomadas = useMemo(() => new Map([...tomadas].map(([clave, t]) => [clave, t.vista] as const)), [tomadas]);
+  async function tomarFoto(clave: string, archivo: File) {
+    const r = await abrirFotoElegida(archivo);
+    if ("falla" in r) {
+      avisar.error("No se pudo abrir la foto", { detalle: r.texto });
+      return;
+    }
+    const vista = URL.createObjectURL(r.archivo);
+    setTomadas((m) => {
+      const n = new Map(m);
+      const antes = n.get(clave);
+      if (antes) URL.revokeObjectURL(antes.vista);
+      n.set(clave, { archivo: r.archivo, vista });
+      return n;
+    });
+  }
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
   const mesa = useAltoDeLaMesa();
@@ -818,6 +843,10 @@ export function ContarEnvio({
           repartidas,
         })
       : null;
+  const fotosDeLaParada = (clave: string): File[] => {
+    const t = tomadas.get(clave);
+    return t ? [t.archivo] : [];
+  };
   const abrirPaso = (clave: ClavePaso) => {
     if (!parada) return;
     if (clave === "cuantas") setEscribirEn(pedirAbrir(parada.clave));
@@ -875,6 +904,7 @@ export function ContarEnvio({
       modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
       orden={orden}
       fotos={fotos}
+      tomadas={vistasTomadas}
       faltanTallas={conFaltanTallas}
       onFiltro={cambiarFiltro}
       onOrden={setOrden}
@@ -994,7 +1024,9 @@ export function ContarEnvio({
               key={parada.clave}
               parada={parada}
               sinAviso={sinAviso}
-              foto={parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null}
+              foto={(parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null) ?? tomadas.get(parada.clave)?.vista ?? null}
+              onFoto={parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? (archivo) => void tomarFoto(parada.clave, archivo) : undefined}
+              fotoTomada={tomadas.has(parada.clave)}
               faltanTallas={conFaltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
               error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? errorHoja}
@@ -1282,6 +1314,7 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          fotosIniciales={fotosDeLaParada(hoja.parada)}
           anterior={creadas.anteriorDe(grupoDeHoja.principal.categoria.id)}
           onRecordar={creadas.recordar}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
@@ -1300,6 +1333,7 @@ export function ContarEnvio({
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrendaBajoDemanda
           destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas, enTabla: hoja.enTabla }}
+          fotosIniciales={hoja.modo === "nueva" ? fotosDeLaParada(hoja.parada) : undefined}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}

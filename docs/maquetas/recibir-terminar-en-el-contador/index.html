@@ -89,14 +89,17 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
 .lista-barra { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
 .grupo { border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; background: var(--papel); }
 .grupo.con-actual { border-color: var(--rojo); }
-.grupo-cab { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; background: var(--vidrio); padding: 12px 14px; }
+.grupo-cab { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: var(--vidrio); padding: 9px 14px; min-height: 44px; }
 .grupo-cab:hover { background: var(--hueso); }
 .grupo-cab .chevron { color: var(--secundario); transition: transform .2s ease; }
 .grupo-cab[aria-expanded="true"] .chevron { transform: rotate(90deg); }
-.grupo-txt { display: grid; gap: 3px; min-width: 0; }
-.grupo-txt b { font-size: 16px; font-weight: 600; }
-.grupo-txt > span:not(.riel) { font-size: 13px; color: var(--secundario); font-variant-numeric: tabular-nums; }
-.riel-cat { height: 4px; max-width: 220px; margin-top: 3px; }
+.grupo-txt { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.grupo-txt b { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.grupo-der { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--secundario); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grupo-der .chip { padding: 2px 8px; font-size: 12px; }
+/* El avance de la categoría, como filo de la cabecera: dice cómo va sin sumar alto. */
+.filo { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--sand); }
+.filo i { display: block; height: 100%; transition: width .35s ease; }
 .modelo { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--sand); background: transparent; padding: 10px 14px 10px 12px; }
 .modelo:hover { background: var(--hueso); }
 .modelo[aria-current="true"] { background: var(--rojo-suave); box-shadow: inset 3px 0 0 var(--rojo); }
@@ -429,11 +432,11 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
     const despues = ms.filter((m) => m.despues && !m.enStock).length;
     const terminados = ms.every((m) => m.enStock || m.contado === 0);
     if (S.modo === "hoy") {
-      const sub = contadas ? `Dijeron ${dij} · contaste ${contadas}${contadas < dij ? ` · faltan ${dij - contadas}` : ""}` : `Dijeron ${dij} · sin contar`;
+      const sub = contadas ? `${contadas} de ${dij}` : `dijeron ${dij}`;
       return { sub, chip: sinEmpezar ? "" : '<span class="chip c-curso">Contada</span>', avance: contadas / dij, tono: "var(--rojo)" };
     }
-    const sub = `Dijeron ${dij}${stock ? ` · ${stock} a la venta` : contadas ? ` · contaste ${contadas}` : " · sin empezar"}`;
-    const chip = terminados ? '<span class="chip c-stock">✓ Terminada</span>' : despues ? `<span class="chip c-despues">${despues} para después</span>` : sinEmpezar === ms.length ? "" : `<span class="chip c-curso">${ms.length - sinEmpezar} de ${ms.length}</span>`;
+    const sub = stock ? `${stock} de ${dij} a la venta` : contadas ? `${contadas} de ${dij}` : `dijeron ${dij}`;
+    const chip = terminados ? '<span class="chip c-stock">✓</span>' : despues ? `<span class="chip c-despues">${despues} para después</span>` : "";
     return { sub, chip, avance: stock / dij, tono: "var(--verde)" };
   }
 
@@ -453,8 +456,9 @@ h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; let
       return `<div class="grupo${tieneActual && !abierta ? " con-actual" : ""}">
         <button type="button" class="grupo-cab" data-cat="${esc(c)}" aria-expanded="${!!abierta}">
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-          <span class="grupo-txt"><b>${esc(c)}</b><span>${r.sub}</span><span class="riel riel-cat"><i style="width:${r.avance * 100}%;background:${r.tono}"></i></span></span>
-          ${r.chip}
+          <span class="grupo-txt"><b>${esc(c)}</b></span>
+          <span class="grupo-der">${r.chip}<span>${r.sub}</span></span>
+          <span class="filo" aria-hidden="true"><i style="width:${r.avance * 100}%;background:${r.tono}"></i></span>
         </button>
         ${abierta ? del.map((m) => {
           const [chip, sub] = estadoChip(m);

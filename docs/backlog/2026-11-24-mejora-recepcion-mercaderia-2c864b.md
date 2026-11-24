@@ -22,13 +22,18 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
 - [ ] **1b · Sin verificar:** oscuro, 1024 y 375 px; `/milimetro auditar /recibir/envio/[id]`, `/formidable`, `/focus`, `/chaos`.
 - [ ] **1c · Hallazgo:** poner en cero un modelo ligado a una prenda existente le quita el vínculo (vuelve a «por crear»). Misma raíz que
   el «No llegó falso»; pide decisión de Felipe.
-- [ ] **2 · La foto primero.** El paso «Qué es» pide la foto y la guarda en el navegador; al crear, «Fotos y colores» ya la trae. La
-  lista y la placa muestran la foto. Solo web.
+- [x] **2 · La foto primero (ADR-0699).** «Tomar foto» en la placa de un modelo nuevo sin prenda; la foto se ve en la lista y en la placa y
+  entra sola a «Fotos y colores» al crear. No es un paso obligatorio. Tipos y pruebas en verde.
+- [ ] **2b · Sin probar en el navegador:** tomar la foto, verla en la lista y en la placa, y que entre al crear. ENV-000644 estaba en uso
+  por Felipe.
 - [ ] **3 · La galería «¿Ya la tenemos?» con fotos.** `YaExisteLaPrenda` muestra la foto de cada prenda de la misma categoría y marca,
   y el enlace «Ver todo el catálogo» se abre en otra pestaña, ya filtrado. Hay que ver si `buscarPrendasParaRecibir` ya trae la foto.
 - [ ] **4 · Temporada y etiquetas al crear.** Va contra lo decidido el 2026-11-03 («se ponen después en Productos»): Felipe lo pide
   ahora. `preparar_prenda_al_recibir` no las recibe (14 parámetros, `20261013002000_recepcion_de_envio.sql:435`): pide una migración
   o una segunda escritura con las funciones de Editar producto. Se decide al llegar.
+- [ ] **5a · La cabecera de categoría, delgada (Felipe 2026-11-24, con captura):** una línea —flecha, nombre, «dijeron 17» o «12 de 17 a
+  la venta» a la derecha— y el avance como un filo de 2 px abajo, sin sumar alto. Adentro, los modelos como en la maqueta (versión 5).
+  En la app es la cabecera de `CategoriasAcordeon`.
 - [ ] **5 · Lo que sobra.** El aviso de Admin pasa a una chapa con «?»; la barra de etapas deja de mostrar «Por terminar» como paso
   normal; «Para después» se ve en ámbar en la lista.
 

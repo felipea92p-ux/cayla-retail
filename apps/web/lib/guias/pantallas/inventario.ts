@@ -2031,6 +2031,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Arriba van sus pasos hasta la venta: cuántas llegaron, crear la prenda (solo si es nueva), sus tallas y llevarla al stock. El punto que late es el que toca. Toca un paso listo para volver a él.",
     },
     {
+      id: "foto",
+      ancla: "recepcion.foto",
+      opcional: true,
+      requiere: [CONTADOR_A_LA_VISTA],
+      titulo: "La foto de una prenda nueva",
+      texto: "«Tomar foto» le pone cara al modelo en la lista, para no confundirlo con otro. Al crear la prenda, la foto ya está puesta y de ella sale su color.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,

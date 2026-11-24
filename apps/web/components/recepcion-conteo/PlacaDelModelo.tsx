@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
-import { Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
+import { Ban, Banknote, Camera, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -58,6 +58,8 @@ export function PlacaDelModelo({
   onCorregirLinea,
   tallas,
   pasos,
+  onFoto,
+  fotoTomada = false,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -110,6 +112,10 @@ export function PlacaDelModelo({
   tallas: ReactNode;
   /** Los pasos que le quedan al modelo para salir a la venta (ADR-0699): arriba del cuerpo, siempre a la vista. */
   pasos?: ReactNode;
+  /** Tomar la foto de un modelo nuevo que todavía no tiene prenda (ADR-0699): sirve para reconocerlo y entra sola al crearla. Sin ella, no se ofrece. */
+  onFoto?: (archivo: File) => void;
+  /** Ya se tomó una: el botón dice «Cambiar foto». */
+  fotoTomada?: boolean;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -255,6 +261,25 @@ export function PlacaDelModelo({
             {llevaCuenta}
           </p>
           <div className="rc-placa-acciones">
+            {onFoto && (
+              // La cámara del celular se abre directo (`capture`); en la computadora, el selector de archivos. Mismo archivo que «Fotos y colores».
+              <label className="btn-cayla btn-secundario btn-chico mov-boton cursor-pointer" data-guia="recepcion.foto">
+                <Camera aria-hidden className="h-4 w-4" />
+                {fotoTomada ? "Cambiar foto" : "Tomar foto"}
+                <input
+                  type="file"
+                  aria-label="Foto de la prenda"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0];
+                    e.target.value = "";
+                    if (archivo) onFoto(archivo);
+                  }}
+                />
+              </label>
+            )}
             {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
             {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}
             {onCorregirLinea && <LapizEditar que={`la categoría y la marca de ${modelo?.nombre ?? "este modelo"}`} onClick={onCorregirLinea} />}

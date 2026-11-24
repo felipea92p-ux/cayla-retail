@@ -1,6 +1,6 @@
 # ADR-0699 — Recibir: cada modelo sale al stock desde el contador
 
-- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; sin PR. Sin migración ni RPC nuevas.
+- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida, con pruebas en verde y sin probar en el navegador; sin PR. Sin migración ni RPC nuevas.
 - **Rama:** `claude/mejora-recepcion-mercaderia-2c864b`. Número reservado con `pnpm reservar adr`.
 - **Relacionados:** ADR-0393 (Recibir contando primero, «Por terminar»), ADR-0645 (Contar en dos mitades: «lo nuevo queda para después»),
   ADR-0260 (los puntos de avance de Nuevo producto), ADR-0389 (guías interactivas).
@@ -45,3 +45,19 @@ SE ROMPE SI: un envío trae 20 modelos nuevos y quien recibe no tiene acceso a c
 Actividades 2 a 5 del plan: la foto primero, la galería «¿ya la tenemos?» con el enlace al catálogo (la hoja «¿Esta prenda ya existe?» ya
 muestra las prendas de la categoría con su foto cuando no hay coincidencia por nombre), temporada y etiquetas al crear, y quitar lo que
 sobra. La comparación por foto con IA va después, solo como sugerencia (Felipe 2026-11-24).
+
+## Actividad 2 · La foto primero (2026-11-24)
+
+```
+DECIDÍ:     Un modelo nuevo que todavía no tiene prenda lleva «Tomar foto» en su placa (en el celular abre la cámara). La foto le pone
+            cara al modelo en la lista y en la placa, y al crear la prenda entra sola a «Fotos y colores»: de ella sale su color, como
+            si se hubiera elegido ahí. Vive en el navegador mientras la pantalla está abierta.
+DESCARTÉ:   (1) Un paso «Qué es» obligatorio antes de contar, como en la maqueta: frenaría el conteo de cada modelo nuevo, y lo que
+            más se repite al abrir un fardo es contar. (2) Subir la foto apenas se toma: no hay prenda a la que colgarla
+            (`producto_fotos` pide un producto), y una foto suelta en el almacén es basura si el modelo termina siendo una prenda
+            que ya existía.
+SE ROMPE SI: alguien toma las fotos de 15 modelos y recarga la página antes de crearlos: se pierden y hay que volver a tomarlas.
+            Si pasa seguido, guardarlas en el navegador (IndexedDB) por envío y modelo.
+```
+
+Quien no tiene permiso de fotos del catálogo igual ve la foto para reconocer el modelo; la hoja de crear no la sube, como hoy.

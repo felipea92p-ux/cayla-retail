@@ -132,6 +132,7 @@ export function HojaPrenda({
   onCerrar,
   anterior,
   onRecordar,
+  fotosIniciales,
 }: {
   destino: DestinoHoja;
   /** La categoría con sus tallas, tejidos y patrones; `null` si no se pudo leer el catálogo. */
@@ -151,8 +152,11 @@ export function HojaPrenda({
   anterior?: PrendaAnterior | null;
   /** Al crear una prenda nueva: lo que se recuerda de ella para ofrecerlo en la siguiente. */
   onRecordar?: (p: PrendaAnterior) => void;
+  /** La foto que se tomó al contar (ADR-0699): entra a «Fotos y colores» al llegar ahí, y de ella sale su color. Solo al crear. */
+  fotosIniciales?: readonly File[];
 }) {
   const nueva = destino.modo === "nueva";
+  const [porEntrar, setPorEntrar] = useState<readonly File[]>(() => (nueva ? (fotosIniciales ?? []) : []));
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
   const colores = useMemo(() => [...coloresIniciales, ...coloresCreados.filter((c) => !coloresIniciales.some((x) => x.codigo === c.codigo))], [coloresIniciales, coloresCreados]);
   const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);
@@ -585,6 +589,8 @@ export function HojaPrenda({
         catalogo={catalogo}
         enCurso={fotosEnCurso}
         yaTiene={coloresQueYaTiene}
+        archivosIniciales={porEntrar}
+        onArchivosIniciales={() => setPorEntrar([])}
       />
     </CampoGuiado>
   );
