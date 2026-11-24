@@ -150,5 +150,5 @@ export function dondeEstanLasDanadas(colores: readonly { color: string | null; t
       })
   );
   if (partes.length === 0) return "";
-  return `${partes.length === 1 && !varios ? "talla " : partes.length > 1 && !varios ? "tallas " : ""}${partes.join(" · ")}`;
+  return `${partes.length === 1 && !varios ? "talla " : partes.length > 1 && !varios ? "tallas " : ""}${partes.join(", ")}`;
 }

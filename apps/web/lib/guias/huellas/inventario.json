@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 219,
+  "total": 216,
   "controles": {
     "app/(app)/inventario/page.tsx": [
       "BotonVer «{avisoBarrido.boton}»"
@@ -27,9 +27,6 @@
     "components/BotonSonidoConfirmar.tsx": [
       "button «Sonido al confirmar:»",
       "button «Sonido al confirmar»"
-    ],
-    "components/EnlaceEtiquetas.tsx": [
-      "Link «{children}»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
@@ -252,19 +249,17 @@
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",
       "button «{valor}»",
-      "Link «El rótulo del anaquel de este modelo (no depende del stock)»",
-      "Link «Los movimientos de esta prenda en esta sede»",
-      "Link «La ficha completa en Catálogo: tejido, patrón, proveedor, fotos»",
       "Pestanas «(sin nombre)»",
       "button «{`${c.color ?? \"Sin color\"}»",
       "button «{lectura}»",
       "BotonCopiar «el código de esta talla»",
+      "Boton «→() => alAccionar(sugerida.clave)»",
       "button «existencias.cajon-arreglada»",
       "button «→() => alAccionar(a.clave)»",
+      "Boton «existencias.cajon-colgar-varias»",
       "button «Ver piso y almacén»",
       "button «{lectura}» #2",
-      "button «{lectura}» #3",
-      "button «existencias.cajon-colgar-varias»"
+      "button «{lectura}» #3"
     ],
     "components/existencias/ParaHoy.tsx": [
       "Link «{contenido}»",

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modal de la prenda: hoja adaptable</title>
+<style>
+  /* Maqueta (no es código del ERP): UNA hoja que se adapta al ancho. Caso por la URL: #aretes, #falda, #todas.
+     Colores de los tokens de apps/web/app/globals.css; la hoja es el vidrio Serena (blanco al 70-80 % sobre el velo que desenfoca). */
+  :root{--tinta:#1a1a18;--papel:#fbf8f2;--sand:#e8e0d0;--hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--ambar:#74501a;
+        --verde:#48603f;--rojo:#b8412d;--sec:rgba(26,26,24,.8);--tenue:rgba(26,26,24,.64)}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font:14px/1.45 "DM Sans",-apple-system,system-ui,sans-serif;color:var(--tinta);min-height:100vh}
+  .fondo{position:fixed;inset:-24px;background:url(hoy.png) center/cover;filter:blur(14px) saturate(1.3)}
+  .velo{position:fixed;inset:0;background:rgba(26,26,24,.14)}
+  .cont{position:relative;display:flex;justify-content:center;align-items:flex-start;padding:8vh 24px 40px}
+  .hoja{container-type:inline-size;width:100%;max-width:62rem;border-radius:32px;padding:28px;
+        background:rgba(255,255,255,.80);border:1px solid rgba(255,255,255,.6);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 50px 90px -40px rgba(26,26,24,.45)}
+
+  /* ---------- cabecera ---------- */
+  .cab{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+  .mini{display:none}
+  .tit{font:600 27px/1.1 "EB Garamond",Georgia,serif;margin:0;overflow-wrap:anywhere}
+  .ficha{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .etq{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:rgba(234,225,210,.85);font-size:13px;color:var(--sec);font-weight:500;white-space:nowrap}
+  .precio{font-size:17px;font-weight:700;margin-left:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .arriba{display:flex;gap:10px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;border:1px solid rgba(128,92,76,.45);border-radius:999px;padding:0 16px;font-size:14px;background:rgba(255,255,255,.7)}
+  .gota{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;border:1px solid rgba(26,26,24,.12);background:rgba(255,255,255,.85);font-size:15px;color:var(--sec);flex:none}
+
+  /* ---------- cuerpo: foto a la izquierda, lo demás a la derecha ---------- */
+  .cuerpo{display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;margin-top:24px}
+  .foto{aspect-ratio:270/330;width:100%;border-radius:18px;overflow:hidden;border:1px solid var(--sand);display:grid;place-items:center;background:#e9e6e2}
+  .foto img{width:100%;height:100%;object-fit:cover}
+  .foto svg{width:34%;height:auto}
+  .colores{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px;font-size:16px}
+  .punto{width:30px;height:30px;border-radius:999px;border:1px solid rgba(26,26,24,.14);flex:none}
+  .punto.sel{outline:2px solid var(--tinta);outline-offset:2px}
+  .tallas{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .tl{min-width:52px;border:1px solid rgba(26,26,24,.14);border-radius:12px;padding:6px 10px;font-size:13.5px;line-height:1.25;background:rgba(255,255,255,.6);text-align:center}
+  .tl b{display:block;font-size:15px}.tl.on{background:#2a2a27;color:#fff;border-color:#2a2a27}
+  .tl.falta{background:#f3e6cf;border-color:#dcc49a}
+  .seg{display:inline-flex;margin-top:14px;padding:3px;border-radius:999px;background:var(--hueso);font-size:12.5px;letter-spacing:.08em;font-weight:600}
+  .seg span{padding:8px 14px;border-radius:999px;color:var(--sec)}.seg .on{background:#fff;color:var(--tinta);box-shadow:0 1px 2px rgba(26,26,24,.1)}
+  .codigo{margin-top:14px;font-size:13px;color:var(--tenue)}.codigo b{font:600 13px ui-monospace,Menlo,monospace;color:var(--sec)}
+
+  /* el resumen */
+  .ver{border-radius:20px;padding:22px 24px;background:rgba(255,255,255,.78);border:1px solid rgba(26,26,24,.10);box-shadow:inset 0 1px 0 #fff,0 10px 30px -22px rgba(26,26,24,.4)}
+  .v1{font:600 30px/1.12 "EB Garamond",Georgia,serif;margin:0}
+  .v2{font-size:16px;color:var(--sec);margin:8px 0 0}
+  .pq{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;border:1px solid rgba(26,26,24,.25);font-size:12px;font-weight:700;margin-left:6px;color:var(--sec);vertical-align:1px}
+  .estado{margin-top:12px;font-size:14.5px;font-weight:600}
+  .estado i{width:9px;height:9px;border-radius:999px;display:inline-block;margin-right:7px;vertical-align:1px}
+  .estado span{font-weight:400}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chipe{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:13.5px;font-weight:600}
+  .chipe i{width:8px;height:8px;border-radius:999px}
+  .ch-ambar{background:#f3e6cf;color:#74501a}.ch-ambar i{background:#74501a}
+  .ch-rojo{background:#f6dcd6;color:#8a2c1c}.ch-rojo i{background:#b8412d}
+  .prim{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;background:#2a2a27;color:#fff;border-radius:999px;padding:0 20px;font-size:16px;font-weight:600;margin-top:16px}
+  .tecla{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:6px;border:1px solid currentColor;font-size:12px;opacity:.7;padding:0 4px}
+
+  /* las cifras */
+  .cif{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+  .cif div{border:1px solid rgba(26,26,24,.10);border-radius:12px;padding:8px 10px;background:rgba(255,255,255,.55);display:flex;align-items:baseline;gap:8px;min-width:0}
+  .cif b{font:600 22px "EB Garamond",Georgia,serif;font-variant-numeric:tabular-nums}
+  .cif span{font-size:14px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cif .cero b{color:var(--tenue)}
+  .cif .alerta{background:#f3e6cf;border-color:#dcc49a}.cif .alerta b{color:var(--ambar)}
+  .cif .elegida{background:#2a2a27;border-color:#2a2a27}.cif .elegida b,.cif .elegida span{color:#fff}
+  .red{display:flex;flex-wrap:wrap;gap:10px 34px;margin:12px 2px 0}
+  .red>div{display:flex;flex-direction:column;gap:3px}
+  .lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--tenue);font-weight:600}
+  .red b{font-size:15px}
+  .sedes{display:flex;gap:6px;flex-wrap:wrap}
+  .sedes span{border:1px solid rgba(26,26,24,.14);border-radius:8px;padding:1px 8px;font-size:13.5px;background:rgba(255,255,255,.6)}
+  .sedes span b{font-size:13.5px;margin-left:5px}
+  .banda{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;padding:10px 12px 10px 16px;border-radius:14px;border:1px solid rgba(128,92,76,.45);background:rgba(255,255,255,.6)}
+  .banda>div{flex:1 1 220px}.banda b{display:block;font-size:14.5px}.banda>div span{font-size:13px;color:var(--sec)}
+  .sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;border:1px solid var(--tinta);border-radius:999px;padding:0 14px;font-size:14.5px;font-weight:600;background:#fff;margin-left:auto}
+  .rot{font-size:12.5px;letter-spacing:.12em;font-weight:600;color:var(--sec);margin:22px 2px 8px}
+  .lista{border-radius:16px;overflow:hidden;border:1px solid rgba(26,26,24,.08);background:rgba(255,255,255,.55)}
+  .it{display:flex;align-items:center;gap:14px;min-height:52px;padding:8px 16px;border-top:1px solid rgba(26,26,24,.07);font-size:16px}
+  .it:first-child{border-top:0}
+  .ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;border:1px solid rgba(26,26,24,.1);background:#fff;flex:none}
+  .it .t{flex:1;min-width:0}.it .t b{font-weight:600}.it .t span{color:var(--tenue);font-size:14px;margin-left:8px}
+  .it .tecla{color:var(--sec)}
+  .vacio{font-size:14px;color:var(--tenue);margin:20px 2px 0}
+
+  /* «Todas»: la tabla del modelo */
+  .leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 2px 0;font-size:13px;color:var(--sec)}
+  .leyenda span{display:inline-flex;align-items:center;gap:6px}
+  .leyenda i{width:16px;height:12px;border-radius:3px;display:inline-block}
+  .caja-tabla{overflow-x:auto;margin-top:6px}
+  table{width:100%;min-width:440px;border-collapse:separate;border-spacing:5px 12px;table-layout:fixed}
+  th{font-size:13px;font-weight:600;color:var(--sec);padding:0}
+  th.cc{text-align:left;width:104px}
+  th.tot{width:64px}
+  .tth{display:inline-block;padding:2px 10px;border-radius:999px}
+  .tth.on{background:#2a2a27;color:#fff}
+  tr.fc th{text-align:left;font-size:14px;color:var(--tinta);padding:0 6px;border-radius:9px;line-height:1.2}
+  tr.fc.abierta th{background:rgba(234,225,210,.9)}
+  tr.fc th .pt{display:inline-block;width:12px;height:12px;border-radius:999px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(26,26,24,.15)}
+  .c{position:relative;height:58px;border-radius:10px;overflow:hidden;border:1px solid rgba(26,26,24,.12);display:flex;flex-direction:column;background:#fff}
+  .c .p,.c .a{display:flex;align-items:center;justify-content:center;gap:5px}
+  .c .p{flex:1;font:600 18px "EB Garamond",Georgia,serif}
+  .c .a{height:22px;border-top:1px solid rgba(26,26,24,.08);font-size:13px;color:var(--sec);font-variant-numeric:tabular-nums}
+  .c .p svg{color:var(--verde)}.c .a svg{color:var(--pizarra)}
+  .c.falta .p{background:#f3e6cf;color:#74501a}.c.falta .p svg{color:#74501a}
+  .t .p,.t .a{display:flex;align-items:center;justify-content:center;gap:4px}
+  .t .p{font:600 16px "EB Garamond",Georgia,serif;color:var(--tinta)}.t .p svg{color:var(--verde)}
+  .t .a{font-size:12.5px;color:var(--sec)}.t .a svg{color:var(--pizarra)}
+  .cif .ic{align-self:center;flex:none}
+  .c.agotada{display:grid;place-items:center;background:#f6dcd6;color:#8a2c1c;font-size:12.5px;font-weight:600;text-align:center;line-height:1.15}
+  .c.sel{outline:2px solid var(--tinta);outline-offset:1px;overflow:visible}
+  .dan{position:absolute;top:-10px;left:50%;transform:translateX(-50%);z-index:1;background:#fbf8f2;border:1px solid rgba(184,65,45,.35);color:#8a2c1c;border-radius:999px;font-size:11px;font-weight:700;padding:0 6px;line-height:16px;white-space:nowrap}
+  td{padding:0;position:relative}
+  td.t{text-align:center;font-size:12.5px;color:var(--sec);line-height:1.2}
+  td.t b{display:block;font:600 16px "EB Garamond",Georgia,serif;color:var(--tinta)}
+
+  /* ---------- tablet: la foto se angosta ---------- */
+  @media (max-width:1199.98px){
+    .cuerpo{grid-template-columns:200px minmax(0,1fr);gap:22px}
+    .v1{font-size:27px}
+    .cif span{font-size:13px}
+  }
+  /* la hoja más angosta que la tabla de cuatro cifras: dos y dos */
+  @container (max-width:720px){
+    .cif{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+
+  /* ---------- celular: hoja que sube desde abajo, una columna ---------- */
+  @media (max-width:639.98px){
+    .cont{padding:28px 0 0;align-items:flex-end;min-height:100vh}
+    .hoja{border-radius:26px 26px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom))}
+    .asa{display:block;width:40px;height:5px;border-radius:999px;background:rgba(26,26,24,.2);margin:0 auto 12px}
+    .cab{grid-template-columns:72px minmax(0,1fr) auto;gap:12px}
+    .mini{display:grid;width:72px;height:88px;border-radius:12px;overflow:hidden;border:1px solid var(--sand);place-items:center}
+    .mini img{width:100%;height:100%;object-fit:cover}.mini svg{width:42%;height:auto}
+    .tit{font-size:24px}
+    .etq{font-size:12.5px;padding:2px 9px}
+    .precio{font-size:16px}
+    .arriba .btn{display:none}                 /* «Más» pasa al pie de la hoja */
+    .gota{width:44px;height:44px}
+    .cuerpo{grid-template-columns:1fr;gap:16px;margin-top:14px}
+    .foto{display:none}
+    .lado{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+    .colores{margin-top:0;font-size:15px}
+    .punto{width:44px;height:44px;padding:6px;background-clip:content-box;border:0;box-shadow:inset 0 0 0 6px transparent}
+    .punto.sel{outline-offset:-3px}
+    .tallas{margin-top:0;width:100%;flex-wrap:nowrap;overflow-x:auto}
+    .tl{min-width:56px;padding:8px 10px}
+    .seg{margin-top:0}.seg span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px}
+    .codigo{display:none}
+    .ver{padding:16px}
+    .v1{font-size:24px}
+    .v2{font-size:15px}
+    .prim{width:100%;min-height:48px}
+    .cif div{padding:8px 12px;min-height:44px;align-items:center}
+    .banda{padding:12px}
+    .sec{width:100%;min-height:44px;margin-left:0}
+    .it{min-height:56px;padding:8px 12px;gap:12px;font-size:15.5px}
+    .it .t span{display:block;margin-left:0;font-size:13px}
+    .mas{display:flex;justify-content:center;margin-top:16px}
+    .mas .btn{min-height:44px;width:100%;justify-content:center}
+    table{min-width:0;border-spacing:3px 12px}
+    th.cc{width:76px}
+    th.tot{width:44px}
+    tr.fc th{font-size:13px;padding:0 4px}
+    .c{height:54px}
+    .c .p{gap:3px;font-size:17px}.c .a{gap:3px;font-size:12px;height:20px}
+    .c svg{width:13px;height:13px}
+    .dan{font-size:10px;padding:0 4px}
+  }
+  .asa,.mas{display:none}
+  @media (max-width:639.98px){.asa{display:block}.mas{display:flex}}
+
+  .corto{display:none}
+  /* ---------- celular, más liviano (Felipe 2026-11-24: «¿no se ve cargado?») ---------- */
+  @media (max-width:639.98px){
+    .tecla{display:none}                         /* las teclas no sirven con el dedo */
+    .largo{display:none}.corto{display:inline}
+    .talla-dup{display:none}                      /* la talla ya está marcada en su ficha */
+    .mini{width:56px;height:68px}
+    .cab{grid-template-columns:56px minmax(0,1fr) auto}
+    .tit{font-size:22px}
+    .ficha{margin-top:5px;gap:6px}
+    /* elegir: primero «Esta talla / Todas» a lo ancho, después el color y las tallas */
+    .lado{gap:8px 10px}
+    .seg{order:-1;width:100%;display:grid;grid-template-columns:1fr 1fr}
+    .seg span{justify-content:center}
+    .colores .punto{width:44px;height:44px;padding:6px}
+    .tallas{gap:6px}.tl{min-width:52px;padding:6px 8px;font-size:12.5px;min-height:44px}
+    /* el resumen */
+    .ver{padding:14px 16px;border-radius:16px}
+    .v1{font-size:22px}.v2{font-size:14.5px;margin-top:4px}.estado{margin-top:8px;font-size:14px}
+    .prim{margin-top:12px}
+    /* las cuatro cifras en UNA fila: número arriba, palabra abajo */
+    .cif{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+    .cif div{flex-direction:column;align-items:center;justify-content:center;gap:0;padding:6px 4px;min-height:56px}
+    .cif div .ic{display:none}
+    .cif b{font-size:20px;line-height:1.1}
+    .cif span{font-size:12px}
+    /* en camino y otras sedes en una línea */
+    .red{margin-top:10px;gap:6px 18px;align-items:center}
+    .red>div{flex-direction:row;align-items:center;gap:6px}
+    .lbl{font-size:11px}
+    /* la banda: una línea, el botón a su lado */
+    .banda{flex-wrap:nowrap;padding:6px 6px 6px 14px;margin-top:10px}
+    .banda>div{flex:1 1 auto}.banda>div>span{display:none}
+    .banda b{font-size:14px}
+    .sec{width:auto;min-height:44px;padding:0 14px}
+    /* la lista: el detalle al lado del nombre, filas de 48 */
+    .rot{margin:16px 2px 6px}
+    .it{min-height:48px;padding:4px 12px;font-size:15px}
+    .it .t span{display:inline;margin-left:6px;font-size:12.5px}
+    .ico{width:28px;height:28px}
+    .mas{margin-top:12px}
+  }
+</style>
+</head>
+<body>
+<div class="fondo"></div><div class="velo"></div>
+<div class="cont"><section class="hoja" id="hoja"></section></div>
+<script>
+const TONO={pizarra:"#4c5d6e",ambar:"#74501a",verde:"#48603f",rojo:"#b8412d"};
+const ico={
+  colgar:'<path d="M12 5a2 2 0 1 1 2 2c-1 .5-2 1-2 2v1"/><path d="M12 10 3 17h18z"/>',
+  subir:'<path d="M4 8h16v12H4z"/><path d="M4 8l2-4h12l2 4"/><path d="M10 12h4"/>',
+  enviar:'<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/>',
+  apartar:'<path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+  pedir:'<path d="M4 12h12"/><path d="M12 6l6 6-6 6"/><path d="M20 5v14"/>',
+  danada:'<rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 10v4M11 10v4M15 10v4"/>'};
+const svg=(k,c="#1a1a18",t=16)=>`<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ico[k]}</svg>`;
+const silueta='<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="1.1" stroke-linejoin="round"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg>';
+const NOMBRE={colgar:"Colgar en el piso",subir:"Subir a almacén",enviar:"Enviar a otra sede",apartar:"Apartar",pedir:"Pedir a otra sede",danada:"Reportar dañada"};
+const TECLA={colgar:1,subir:2,enviar:3,apartar:4,pedir:5,danada:7};
+const PISO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a2 2 0 1 1 2 2c-1 .5-2 1-2 2v1"/><path d="M12 10 3 17h18z"/></svg>';
+const ALM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9"/><path d="M10 13h4"/></svg>';
+const NOM_CIF=["en almacén","en piso","apartadas","dañadas"];
+
+const CASOS={
+ aretes:{p:"Aretes Grandes",marca:["XUPING","Aretes"],precio:"S/ 22.00",colores:[["#c6a240"],["#b4b8bd",1]],color:"Plateado",talla:"Única",foto:"foto.png",cod:"ARE-0002-PLA-U",
+  v1:"Las 9 están en el almacén",v2:"Ninguna en el piso todavía.",tono:"pizarra",est:"Piso en pausa",frase:"revisa lo colgado antes de colgar más",
+  cif:[9,0,0,0],sedes:null,lista:[["colgar","9 en almacén"],["apartar","con adelanto, en Vender"],["enviar",""],["danada","pasa a cuarentena"]]},
+ falda:{p:"Falda Midi",marca:["CAYLA","Faldas"],precio:"S/ 79.90",colores:[["#6b2b36",1],["#1a1a18"]],color:"Vino",talla:"M",cod:"FAL-0012-VIN-M",
+  tallas:[["S","1 piso"],["M","3 piso","on"],["L","0 piso","falta"]],
+  v1:"3 en el piso y 2 en el almacén",v2:"Aparte, 2 dañadas.",tono:"verde",est:"Todo bien",frase:"",
+  cif:[2,3,0,2],sedes:[["LIM",3],["AQP",1]],lista:[["apartar","con adelanto, en Vender"],["colgar","2 en almacén"],["subir","3 en piso"],["enviar",""],["danada","pasa a cuarentena"]]},
+ todas:{todas:true,p:"Blusa Akira",marca:["CAYLA","Blusas"],precio:"S/ 59.90",colores:[["#efece6",1],["#c9b8a6"],["#1a1a18"]],fondo:"#d4c8b9",cod:"BLU-0014",
+  v1:"11 en el piso y 21 en el almacén",cif:[21,11,1,1]},
+};
+const TALLAS=["S","M","L","XL"];
+const MODELO={Blanco:["#efece6",[[1,2,""],[0,4,"falta"],[2,1,""],[1,0,""]]],Arena:["#c9b8a6",[[0,0,"agotada"],[1,3,""],[1,2,"",1],[0,2,"falta"]]],Negro:["#1a1a18",[[1,1,""],[2,2,""],[1,3,""],[1,1,""]]]};
+
+function tabla(){
+  let tp=[0,0,0,0],ta=[0,0,0,0];
+  let h=`<div class="caja-tabla"><table><thead><tr><th class="cc">Color</th>${TALLAS.map(t=>`<th><span class="tth ${t==="M"?"on":""}">${t}</span></th>`).join("")}<th class="tot">Total</th></tr></thead><tbody>`;
+  for(const [nom,[hex,celdas]] of Object.entries(MODELO)){
+    const sp=celdas.reduce((n,x)=>n+x[0],0),sa=celdas.reduce((n,x)=>n+x[1],0);
+    h+=`<tr class="fc ${nom==="Blanco"?"abierta":""}"><th><span class="pt" style="background:${hex}"></span>${nom}</th>`;
+    celdas.forEach(([p,a,e,d],i)=>{tp[i]+=p;ta[i]+=a;
+      const sel=nom==="Blanco"&&TALLAS[i]==="M"?" sel":"";
+      const dn=d?`<span class="dan">${d} dañada</span>`:"";
+      h+= e==="agotada" ? `<td><div class="c agotada${sel}">Se<br>acabó</div></td>`
+        : `<td>${dn}<div class="c ${e}${sel}"><div class="p">${PISO}${p}</div><div class="a">${ALM}${a}</div></div></td>`;});
+    h+=`<td class="t"><div class="p">${PISO}${sp}</div><div class="a">${ALM}${sa}</div></td></tr>`;
+  }
+  h+=`<tr><th class="cc" style="padding-left:6px">Total</th>${tp.map((p,i)=>`<td class="t"><div class="p">${PISO}${p}</div><div class="a">${ALM}${ta[i]}</div></td>`).join("")}<td class="t"><div class="p">${PISO}${tp.reduce((a,b)=>a+b)}</div><div class="a">${ALM}${ta.reduce((a,b)=>a+b)}</div></td></tr></tbody></table></div>`;
+  return h;
+}
+
+const c=CASOS[(location.hash||"#aretes").slice(1)]||CASOS.aretes;
+const foto=c.foto?`<img src="${c.foto}" alt="">`:silueta;
+const fondoFoto=c.foto?"#e9e6e2":(c.fondo||c.colores.find(x=>x[1])[0]);
+const ICO_CIF=[`<span class="ic" style="color:var(--pizarra)">${ALM}</span>`,`<span class="ic" style="color:var(--verde)">${PISO}</span>`,"",""];
+const cif=c.cif.map((v,i)=>`<div class="${i===3&&v>0?"alerta":v===0?"cero":""}">${ICO_CIF[i]}<b>${v}</b><span>${NOM_CIF[i]}</span></div>`).join("");
+const red=`<div class="red"><div><span class="lbl">En camino</span><b>0</b></div><div><span class="lbl">Otras sedes</span>${c.sedes?`<span class="sedes">${c.sedes.map(([s,n])=>`<span>${s}<b>${n}</b></span>`).join("")}</span>`:"<b>ninguna la tiene</b>"}</div></div>`;
+let derecha;
+if(c.todas){
+  derecha=`<div class="ver"><p class="v1">${c.v1}</p>
+    
+    <span class="prim">${svg("colgar","#fff",17)} Colgar varias tallas y colores</span></div>
+    <div class="cif">${cif}</div>
+    <div class="leyenda"><span style="color:var(--verde)">${PISO}<span style="color:var(--sec)">en piso</span></span><span style="color:var(--pizarra)">${ALM}<span style="color:var(--sec)">en almacén</span></span><span><i style="background:#f3e6cf;border:1px solid #dcc49a"></i>falta colgar</span></div>
+    ${tabla()}`;
+}else{
+  const prim=c.prim?`<span class="prim">${svg(c.prim,"#fff",17)} ${NOMBRE[c.prim]} <span class="tecla">${TECLA[c.prim]}</span></span>`:"";
+  const lista=c.lista.length?`<div class="rot">TAMBIÉN PUEDES</div><div class="lista">${c.lista.map(([k,s])=>`<div class="it"><span class="ico">${svg(k)}</span><span class="t"><b>${NOMBRE[k]}</b>${s?`<span>${s}</span>`:""}</span><span class="tecla">${TECLA[k]}</span><span>›</span></div>`).join("")}</div>`:"";
+  derecha=`<div class="ver"><p class="v1">${c.v1}</p>${c.v2?`<p class="v2">${c.v2}<span class="pq">?</span></p>`:""}
+    <div class="estado" style="color:${TONO[c.tono]}"><i style="background:${TONO[c.tono]}"></i>${c.est}${c.frase?`<span>: ${c.frase}</span>`:""}${c.v2?"":'<span class="pq">?</span>'}</div>${prim}</div>
+    <div class="cif">${cif}</div>${red}
+    <div class="banda"><div><b><span class="largo">¿No es lo que ves en la tienda?</span><span class="corto">¿No es lo que ves?</span></b><span>Corrige ${c.color} y, si quieres, el resto del modelo.</span></div><span class="sec">Ajustar stock <span class="tecla">6</span></span></div>
+    ${lista}`;
+}
+const tallas=!c.todas&&c.tallas?`<div class="tallas">${c.tallas.map(([t,s,k])=>`<div class="tl ${k||""}"><b>${t}</b>${s}</div>`).join("")}</div>`:"";
+const nombreColor=c.todas?"":` ${c.color}${c.talla?` <span class="etq ${c.tallas?"talla-dup":""}">Talla ${c.talla}</span>`:""}`;
+document.getElementById("hoja").innerHTML=`
+  <span class="asa"></span>
+  <div class="cab">
+    <div class="mini" style="background:${fondoFoto}">${foto}</div>
+    <div><p class="tit">${c.p}</p><div class="ficha">${c.marca.map(m=>`<span class="etq">${m}</span>`).join("")}<span class="precio">${c.precio}</span></div></div>
+    <div class="arriba"><span class="btn">Más ▾</span><span class="gota">✕</span></div>
+  </div>
+  <div class="cuerpo">
+    <div class="lado">
+      <div class="foto" style="background:${fondoFoto}">${foto}</div>
+      <div class="colores">${c.colores.map(([h,s])=>`<span class="punto ${s?"sel":""}" style="background:${h}"></span>`).join("")}${nombreColor}</div>
+      ${tallas}
+      <div class="seg"><span class="${c.todas?"":"on"}">ESTA TALLA</span><span class="${c.todas?"on":""}">TODAS</span></div>
+      <div class="codigo">código <b>${c.cod}</b> ⧉</div>
+    </div>
+    <div>${derecha}</div>
+  </div>
+  <div class="mas"><span class="btn">Más: etiquetas, rótulo, historial y catálogo</span></div>`;
+</script>
+</body>
+</html>
