@@ -11,7 +11,7 @@ import {
   leerResultadoApertura,
   leerResultadoRecepcion,
   RPC_ABRIR_DESPACHO,
-  RPC_PREPARAR_PRENDA,
+  rpcDePrepararPrenda,
   RPC_PRENDAS_PARA_RECIBIR,
   RPC_PARECIDAS_PARA_RECIBIR,
   leerParecidasParaRecibir,
@@ -58,7 +58,7 @@ export async function prepararPrendaAlRecibir(
   firma: Firma | null,
   previa: PrendaRecepcion | null = null,
 ): Promise<{ prenda: PrendaRecepcion | null; error: ErrorDeBase }> {
-  const { data, error } = (await firmar(createClient().rpc(RPC_PREPARAR_PRENDA as never, args as never), firma)) as Respuesta;
+  const { data, error } = (await firmar(createClient().rpc(rpcDePrepararPrenda(args) as never, args as never), firma)) as Respuesta;
   return { prenda: error ? null : leerPrendaPreparada(data, previa), error: error ?? null };
 }
 

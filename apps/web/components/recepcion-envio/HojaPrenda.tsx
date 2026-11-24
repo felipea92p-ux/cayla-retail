@@ -14,6 +14,13 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { Volver } from "@/components/ui/Volver";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
+import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
+import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
+import { PlegableAlta } from "@/components/alta-producto/piezas";
+import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
+import { unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
+import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import { useEnLinea } from "@/lib/useEnLinea";
 import { ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ID_QUIEN_REGISTRA, IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { NombreDePrenda } from "@/components/alta-producto/NombreDePrenda";
@@ -222,6 +229,15 @@ export function HojaPrenda({
     nueva ? "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste." : "Subiste fotos que todavía no se guardaron. Si cierras ahora, se pierden.",
   );
   const cambiar = (cambios: Partial<BorradorPrenda>) => setBorrador((b) => ({ ...b, ...cambios }));
+  // ADR-0699 (Felipe 2026-11-24, «todo de creación de producto»): temporada y etiquetas al crear, plegadas como en Nuevo producto.
+  const [masAbierto, setMasAbierto] = useState(false);
+  const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
+  const vocabEtiquetas = useMemo(() => unirEtiquetas(vocabulario?.etiquetas ?? [], etiquetasNuevas), [vocabulario?.etiquetas, etiquetasNuevas]);
+  const enLinea = useEnLinea();
+  const listaTemporadas = vocabulario?.temporadas?.lista ?? [];
+  const temporadaElegida = nombreTemporada(listaTemporadas, borrador.temporada || undefined);
+  const nEtiquetas = (borrador.etiquetaIds ?? []).length;
+  const resumenMas = [temporadaElegida, nEtiquetas ? `${nEtiquetas} ${nEtiquetas === 1 ? "etiqueta" : "etiquetas"}` : null].filter(Boolean).join(" · ") || null;
   const cambiarNombre = (nuevoTipo: string, nuevoPropio: string) => {
     setNombreCaja({ tipo: nuevoTipo, propio: nuevoPropio });
     cambiar({ nombre: nombreDeLaHoja(nuevoTipo, nuevoPropio) });
@@ -708,6 +724,27 @@ export function HojaPrenda({
                             onOfrecido={ofrecer("patrones")}
                           />
                         </CampoGuiado>
+                      )}
+                      {nueva && categoria && (vocabulario?.temporadas || vocabEtiquetas.length > 0) && (
+                        <PlegableAlta titulo="Temporada y etiquetas" resumen={resumenMas} abierto={masAbierto} onAlternar={() => setMasAbierto((v) => !v)}>
+                          {vocabulario?.temporadas && (
+                            <div className="space-y-2">
+                              <p className="campo-etiqueta">Temporada</p>
+                              <ElegirTemporada temporadas={listaTemporadas} clave={borrador.temporada ?? SIN_PROPIA} onElegir={(temporada) => cambiar({ temporada })} />
+                            </div>
+                          )}
+                          <div className="space-y-2">
+                            <p className="campo-etiqueta">Insignias y campañas</p>
+                            <ElegirEtiquetas
+                              etiquetas={vocabEtiquetas}
+                              categoriaId={categoria.id}
+                              elegidas={borrador.etiquetaIds ?? []}
+                              onElegidas={(f) => setBorrador((b) => ({ ...b, etiquetaIds: typeof f === "function" ? f(b.etiquetaIds ?? []) : f }))}
+                              enLinea={enLinea}
+                              onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
+                            />
+                          </div>
+                        </PlegableAlta>
                       )}
                       <CampoGuiado id="prenda-descripcion" guia={guia} titulo="Detalle" ayuda="Opcional · Corte, largo o un detalle: lo que no dice el nombre">
                         <CampoTexto

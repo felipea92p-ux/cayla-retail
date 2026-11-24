@@ -57,3 +57,16 @@ espera el OK de Felipe.
 **Probado en local** (Playwright sin ventana, 1440 × 900, claro), con envíos sin aviso de prueba (ENV-000721 a 723, anulados). Pruebas de
 Recibir, guías y huella en verde. **Toca `app/estilos/vidrio/recibir-mesa.css`:** está en la lista de «se miran» de Dynamic; Dynamic no
 tiene Recibir, así que queda como aviso, sin tarea. **Sin probar:** oscuro y 375 px.
+
+## 2026-11-24 · Recibir: temporada y etiquetas al crear la prenda (ADR-0699, actividad 4)
+
+- **Qué hice:** «Crear la prenda» desde Recibir ofrece «Temporada y etiquetas», como Nuevo producto. Lo elegido se guarda en la misma
+  transacción que crea la prenda (`preparar_prenda_al_recibir_con_ficha`, migración `20261124165000`).
+- **Por qué así:** Felipe eligió la migración. La primera versión ampliaba la función de siempre y rompía las suites de Postgres; la nueva
+  función la envuelve sin tocarla.
+- **Qué se rompería sin esto:** la prenda creada al recibir quedaba sin temporada ni etiquetas, y había que ir a Productos a terminarla.
+
+**Probado:** suite `envio_sin_aviso` 46/46, con W6 (nace con temporada y etiqueta) y W7 (una temporada fuera de la lista no crea nada).
+En la pantalla (Playwright sin ventana): la hoja manda `p_temporada` y `p_etiqueta_ids` a la función nueva; esa llamada se cortó en la
+prueba, así que no se creó ninguna prenda. **Envíos de prueba de la sesión: ENV-000717 a 723 y 888 a 892, todos anulados.**
+**Migraciones `20261124161000` y `20261124165000` solo en local.**

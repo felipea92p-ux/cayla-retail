@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 328,
+  "total": 333,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -32,6 +32,13 @@
       "Boton «Para una prenda de dos o más colores: hueso con azul»",
       "Boton «Cancelar»",
       "button «{c.nombre}»"
+    ],
+    "components/alta-producto/ElegirEtiquetas.tsx": [
+      "Boton «{enLinea ? undefined : \"Crear una insignia necesita internet\"}»",
+      "Boton «+ Crear «»",
+      "CampoTexto «Nombre de la insignia»",
+      "Boton «{firma.motivo ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/ElegirMuestra.tsx": [
       "CampoTexto «{`Buscar ${t.singular}»"

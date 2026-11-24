@@ -36,7 +36,7 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
   (5). Los pasos del modelo se quedan con los puntos de Nuevo producto: las cajitas de la maqueta serían una segunda pieza para lo mismo.
 - [x] **3 · La galería «¿Ya la tenemos?» con fotos (hecho 2026-11-24).** `YaExisteLaPrenda` muestra la foto de cada prenda de la misma categoría y marca,
   y el enlace «Ver todo el catálogo» se abre en otra pestaña, ya filtrado. Hay que ver si `buscarPrendasParaRecibir` ya trae la foto.
-- [ ] **4 · Temporada y etiquetas al crear.** Va contra lo decidido el 2026-11-03 («se ponen después en Productos»): Felipe lo pide
+- [x] **4 · Temporada y etiquetas al crear (hecho 2026-11-24, `preparar_prenda_al_recibir_con_ficha`, migración `20261124165000`).** Va contra lo decidido el 2026-11-03 («se ponen después en Productos»): Felipe lo pide
   ahora. `preparar_prenda_al_recibir` no las recibe (14 parámetros, `20261013002000_recepcion_de_envio.sql:435`): pide una migración
   o una segunda escritura con las funciones de Editar producto. Se decide al llegar.
 - [x] **5a · La cabecera de categoría, delgada (Felipe 2026-11-24, con captura):** una línea —flecha, nombre, «dijeron 17» o «12 de 17 a

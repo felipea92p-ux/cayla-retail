@@ -113,6 +113,36 @@ export async function getNombresPorCategoria(): Promise<Record<string, string[]>
   }
 }
 
+/** Las etiquetas aprobadas y activas que se ofrecen al crear una prenda: la misma consulta en Nuevo producto y en Recibir (ADR-0699). */
+export function consultaEtiquetasAlta(supabase: Awaited<ReturnType<typeof createClient>>) {
+  return supabase
+    .from("etiquetas")
+    .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+    .eq("activo", true)
+    .eq("estado", "aprobado")
+    .order("nombre");
+}
+
+type FilaEtiquetaAlta = NonNullable<Awaited<ReturnType<typeof consultaEtiquetasAlta>>["data"]>[number];
+
+/** Lo que se ofrece de cada etiqueta. Una campaña ya terminada no se ofrece para una prenda nueva. */
+export function etiquetasAltaDe(filas: readonly FilaEtiquetaAlta[], hoy: string): EtiquetaAlta[] {
+  return filas
+    .filter((e) => vigenciaDe(e.vigente_desde, e.vigente_hasta, hoy)?.estado !== "terminada")
+    .map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      estilo: e.estilo,
+      descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
+      categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      icono: dibujoElegido(e.icono),
+      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
+      vigenteDesde: e.vigente_desde,
+      vigenteHasta: e.vigente_hasta,
+    }));
+}
+
 export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
   const supabase = await createClient();
   const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes, empresas, nombresPorCategoria] =
@@ -126,12 +156,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
         .order("created_at", { ascending: false })
         .limit(VENTANA_VARIANTES),
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
-      supabase
-        .from("etiquetas")
-        .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
-        .eq("activo", true)
-        .eq("estado", "aprobado")
-        .order("nombre"),
+      consultaEtiquetasAlta(supabase),
       supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
       supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
@@ -169,21 +194,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
   for (const c of exigir(resCorrelativos, "los correlativos de código")) correlativos[c.prefijo] = c.ultimo;
 
   const hoy = hoyLima();
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del catálogo")
-    // Una campaña ya terminada no se ofrece para una prenda nueva.
-    .filter((e) => vigenciaDe(e.vigente_desde, e.vigente_hasta, hoy)?.estado !== "terminada")
-    .map((e) => ({
-      id: e.id,
-      nombre: e.nombre,
-      estilo: e.estilo,
-      descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
-      categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
-      icono: dibujoElegido(e.icono),
-      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
-      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
-      vigenteDesde: e.vigente_desde,
-      vigenteHasta: e.vigente_hasta,
-    }));
+  const etiquetas = etiquetasAltaDe(exigir(resEtiquetas, "las etiquetas del catálogo"), hoy);
 
   return {
     ...catalogoMarcas,

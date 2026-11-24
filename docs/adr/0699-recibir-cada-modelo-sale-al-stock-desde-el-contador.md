@@ -1,6 +1,6 @@
 # ADR-0699 — Recibir: cada modelo sale al stock desde el contador
 
-- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida y probada en local; 2c (foto por QR) construida, con migración `20261124161000` SOLO en local; sin PR.
+- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida y probada en local; 2c (foto por QR) y 4 (temporada y etiquetas) construidas, con migraciones `20261124161000` y `20261124165000` SOLO en local; sin PR.
 - **Rama:** `claude/mejora-recepcion-mercaderia-2c864b`. Número reservado con `pnpm reservar adr`.
 - **Relacionados:** ADR-0393 (Recibir contando primero, «Por terminar»), ADR-0645 (Contar en dos mitades: «lo nuevo queda para después»),
   ADR-0260 (los puntos de avance de Nuevo producto), ADR-0389 (guías interactivas).
@@ -100,3 +100,24 @@ Felipe: «que se vea similar a la maqueta cumpliendo la unificación de diseño�
 
 Lo que NO se copió de la maqueta, a propósito: las cajitas de los pasos (se quedan los puntos de Nuevo producto, ADR-0358) y un paso «Qué
 es» obligatorio (actividad 2).
+
+## Actividad 4 · Temporada y etiquetas al crear la prenda (2026-11-24)
+
+Felipe eligió «con migración» frente a un segundo paso desde la pantalla. Esto revierte lo decidido el 2026-11-03 («temporada e insignias se
+ponen después en Productos»).
+
+```
+DECIDÍ:     Una función nueva, `preparar_prenda_al_recibir_con_ficha`, que llama a `preparar_prenda_al_recibir` tal cual y, en la MISMA
+            transacción, le pone a la prenda recién creada su temporada (ADR-0246) y sus etiquetas (aprobadas y activas, en todas sus
+            variantes, como `crear_producto_con_variantes`). Revisa la temporada y las etiquetas ANTES de crear: si algo no vale, no se
+            crea nada. La hoja la llama solo si se eligió alguna; si no, la de siempre.
+DESCARTÉ:   (1) Ampliar la firma de `preparar_prenda_al_recibir` de 14 a 16 parámetros: se construyó y se probó, y rompió las suites de
+            Postgres, porque once migraciones la reemplazan por ancla con su firma de 14 y las suites las vuelven a cargar; se deshizo en
+            la base local (quedó idéntica a la de antes, comparada línea por línea). (2) Un segundo paso desde la pantalla: podía dejar la
+            prenda creada sin su temporada.
+SE ROMPE SI: alguien cambia lo que devuelve `preparar_prenda_al_recibir` (`variantes` → la prenda): la función nueva no encuentra la
+            prenda y frena con `recepcion_ficha_sin_prenda`, sin crear nada.
+```
+
+En la pantalla: «Temporada y etiquetas», plegado como en Nuevo producto, en el paso «Cómo es» de «Crear la prenda» (las mismas piezas,
+`ElegirTemporada` y `ElegirEtiquetas`). La consulta de etiquetas es una sola para Nuevo producto y Recibir (`consultaEtiquetasAlta`).

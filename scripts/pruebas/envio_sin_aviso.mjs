@@ -20,7 +20,8 @@
  *   Z  MODELOS EN 0 (Felipe 2026-11-03): un modelo agregado nace en 0, con descripción y nombre por defecto; se guarda, el nombre por defecto no
  *      deja cerrar lo contado, y lo que quedó en 0 se descarta sin dejar pendiente.
  *   W  CREAR LA PRENDA (Felipe 2026-11-03): al recibir, tejido y patrón son opcionales y lo creado no sale solo en la web, sin importar quién
- *      lo crea ni si un líder lo aprueba después. Nuevo producto sigue igual.
+ *      lo crea ni si un líder lo aprueba después. Nuevo producto sigue igual. Desde el 2026-11-24 (ADR-0699) nace con su temporada y sus
+ *      etiquetas, en la misma llamada, y una temporada fuera de la lista no deja nada creado.
  *   A  LLEVAR AL STOCK AHORA (Felipe 2026-11-03): un modelo entra sin cerrar el envío; doble clic, otra versión, de más, otra prenda; lo que falta se mide al
  *      cierre final; se corrige mientras siga en el almacén; sin proveedor sale a nombre de «Por confirmar»; lo demás sigue por repartir.
  *   F  LA FORMA: permisos y RLS.
@@ -89,6 +90,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261107194000_costo_al_recibir_para_quien_recibe.sql",
       // Lo que salió al stock en un lote «Por confirmar» compartido pasa, marca por marca, a su proveedor (caso A13).
       "20261110141000_completar_lote_por_confirmar_por_marca.sql",
+      // Crear la prenda al recibir le pone su temporada y sus etiquetas, en la misma llamada (casos W6 y W7, ADR-0699).
+      "20261124165000_prenda_al_recibir_con_temporada_y_etiquetas.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -181,6 +184,11 @@ ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
   "retail.preparar_prenda_al_recibir(p_d, p_item, p_cat, p_marca, p_prod, p_ref, p_vars, p_precio, p_desc, p_tej, p_pat, p_conf, p_token, p_prov)",
+)}
+${atrapa(
+  "prepara_ficha",
+  "p_d uuid, p_cat uuid, p_ref text, p_vars jsonb, p_temporada text, p_etiquetas uuid[]",
+  "retail.preparar_prenda_al_recibir_con_ficha(p_d, null, p_cat, null, null, p_ref, p_vars, 49.90, null, null, null, false, gen_random_uuid(), null, p_temporada, p_etiquetas)",
 )}
 ${atrapa(
   "lleva",
@@ -999,6 +1007,33 @@ caso(
      (select publicado from retail.vitrina_productos where producto_id = :'p_mica'),
      (select v.publicado from retail.vitrina_productos v where v.producto_id = ${LA_PRENDA("lider")}));`,
   "pendiente / OK / f / f",
+);
+caso(
+  "W6 al recibir, la prenda nueva nace con la temporada y las etiquetas elegidas (ADR-0699); sin elegirlas, como siempre",
+  `${CON_TELA}
+   insert into retail.etiquetas (nombre, activo) values ('Etiqueta Conteo W6', true) returning id as eti \\gset
+   update retail.etiquetas set estado = 'aprobado', notas = 'Para probar que Recibir la pone al crear (W6)' where id = :'eti';
+   select clave as temp from retail.temporadas order by orden limit 1 \\gset
+   ${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.prepara_ficha(:'d', :'cat3', 'Polo Con Ficha Conteo', ${MATRIZ(["t_s", "c1"])}, :'temp', array[:'eti']::uuid[]) as con \\gset
+   select pg_temp.prepara_ficha(:'d', :'cat3', 'Polo Sin Ficha Conteo', ${MATRIZ(["t_s", "c1"])}, null, null) as sin \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'con'::jsonb), pg_temp.e(:'sin'::jsonb),
+     (select temporada = :'temp' from retail.productos where id = ${LA_PRENDA("con")}),
+     (select count(*) from retail.variante_etiquetas ve join retail.variantes v on v.id = ve.variante_id where v.producto_id = ${LA_PRENDA("con")} and ve.etiqueta_id = :'eti'),
+     (select count(*) from retail.variante_etiquetas ve join retail.variantes v on v.id = ve.variante_id where v.producto_id = ${LA_PRENDA("sin")}));`,
+  "OK / OK / t / 1 / 0",
+);
+caso(
+  "W7 una temporada que no está en la lista no deja nada a medias: no se crea la prenda (ADR-0699)",
+  `${CON_TELA}
+   ${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.prepara_ficha(:'d', :'cat3', 'Polo Temporada Inventada', ${MATRIZ(["t_s", "c1"])}, 'NO-EXISTE', null) as mala \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'mala'::jsonb) <> 'OK', (select count(*) from retail.productos where referencia ilike '%Temporada Inventada%'));`,
+  "t / 0",
 );
 caso(
   "W3 Nuevo producto sigue igual: sin tejido no se crea, y lo que crea un líder se muestra en la web",
