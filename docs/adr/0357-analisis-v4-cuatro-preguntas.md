@@ -487,6 +487,11 @@ llevan datos reales):
    Los días siguen bien contados: el «13 días» del Polo Básico Cayla que pareció raro era real (salió al piso el 15 de noviembre y vendió 47 en 10
    días); la tarjeta solo dejó de decirlos como «días» para decir el día.
 3. **La respuesta y la tarjeta de «Hoy» cuentan las dos partes juntas** (`queHayQuePedir(…).todos`).
+4. **«Ordenar por» suma «Lo que más se vende y quedan pocos»** (Felipe, la misma tarde: «debería existir otro que diga lo que más se vende pero
+   quedan pocos»). «Quedan pocos» es lo que se acaba en **2 semanas o menos** (`DIAS_SE_ACABA`, el mismo plazo de «Se acaba»; elegido entre
+   «menos unidades primero» y renombrar «Lo que se acaba antes»): primero esos, de lo más vendido a lo menos, y después el resto igual. En TRU:
+   Polo Básico Cayla, Chaleco Cecia, Falda Larga Mesh, Short Lino y Capa Encaje, y luego Polo Basico Manga Corta, Patalón Nuki… En «Ya se
+   agotaron» ordena como «Lo que más se vende» (de un agotado no queda nada).
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su

@@ -22,6 +22,8 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
   ],
   pedir: [
     { valor: "vende", texto: "Lo que más se vende" },
+    // Felipe 2026-11-24: «lo que más se vende pero quedan pocos»; «pocos» es lo que se acaba en 2 semanas o menos (`modelosQueNoLlegan`).
+    { valor: "pocos", texto: "Lo que más se vende y quedan pocos" },
     { valor: "acaba", texto: "Lo que se acaba antes" },
     { valor: "nombre", texto: "Por nombre" },
   ],

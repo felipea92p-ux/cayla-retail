@@ -7,7 +7,7 @@
 import type { PrendaAnalisis } from "./analisis-tipos";
 import type { FiltrosAnalisis } from "./analisis-filtros";
 import type { ModeloAnalisis } from "./analisis-modelo";
-import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, otraSedeQueLaTiene, plural, totalEnTienda } from "./analisis-reglas";
+import { DIAS_MINIMOS_RITMO, DIAS_SE_ACABA, esTallaUnica, nuncaSalio, otraSedeQueLaTiene, plural, totalEnTienda } from "./analisis-reglas";
 import { textoViene } from "./analisis-acaba";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
 import { diasEntreFechas, sumarDias } from "./fechas-lima";
@@ -425,7 +425,8 @@ export function alcanceDelModelo<T extends ModeloAnalisis>(m: T, f: Pick<Filtros
 /**
  * Los modelos que se acaban antes de Navidad (la parte de abajo de «Qué pedir»): los que se venden, TODAVÍA TIENEN algo aquí y no les
  * alcanza hasta ese día. Lo que ya no tiene nada va arriba, en «Ya se agotaron» (`modelosAgotados`). El orden: lo que más se vende (de
- * siempre), lo que se acaba antes o por nombre; a igual cosa, lo que se acaba antes y el nombre.
+ * siempre), lo que más se vende y quedan pocos (primero lo que se acaba en 2 semanas o menos, `DIAS_SE_ACABA`, de lo más vendido a lo
+ * menos; después el resto igual; Felipe 2026-11-24), lo que se acaba antes o por nombre; a igual cosa, lo que se acaba antes y el nombre.
  */
 export function modelosQueNoLlegan<T extends ModeloAnalisis>(
   modelos: readonly T[],
@@ -439,6 +440,10 @@ export function modelosQueNoLlegan<T extends ModeloAnalisis>(
   const antes = (a: AlcanceModelo<T>, b: AlcanceModelo<T>) => (a.dias ?? Infinity) - (b.dias ?? Infinity);
   if (orden === "nombre") return piden.sort((a, b) => porNombre(a, b) || antes(a, b));
   if (orden === "acaba") return piden.sort((a, b) => antes(a, b) || b.vendidas - a.vendidas || porNombre(a, b));
+  if (orden === "pocos") {
+    const quedanPocos = (a: AlcanceModelo<T>) => ((a.dias ?? Infinity) <= DIAS_SE_ACABA ? 0 : 1);
+    return piden.sort((a, b) => quedanPocos(a) - quedanPocos(b) || b.vendidas - a.vendidas || antes(a, b) || porNombre(a, b));
+  }
   return piden.sort((a, b) => b.vendidas - a.vendidas || antes(a, b) || porNombre(a, b));
 }
 
@@ -486,7 +491,7 @@ export function agotadoDelModelo<T extends ModeloAnalisis>(m: T, f: Pick<Filtros
 
 /**
  * «Ya se agotaron», ordenados con la misma píldora que el resto de «Qué pedir»: lo que más se vendió (a igual venta, lo agotado más
- * reciente), lo que lleva más tiempo agotado o por nombre.
+ * reciente; también con «quedan pocos»: de un agotado no queda nada), lo que lleva más tiempo agotado o por nombre.
  */
 export function modelosAgotados<T extends ModeloAnalisis>(modelos: readonly T[], f: Pick<FiltrosAnalisis, "talla" | "color">, hoy: string, orden: string): AgotadoModelo<T>[] {
   const agotados = modelos.map((m) => agotadoDelModelo(m, f, hoy)).filter((a): a is AgotadoModelo<T> => a !== null);
