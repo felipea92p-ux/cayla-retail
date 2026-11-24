@@ -972,6 +972,8 @@ export function ContarEnvio({
               Lo que cuentas se guarda solo. Cada categoría guarda quién la contó: varias personas pueden contar a la vez, y firma quien cierra.{" "}
               {notaAlCerrar(cifras.estados["por-contar"] - cifras.agregadosEnCero, cifras.agregadosEnCero)} Al cerrar: {textoResumenDelCierre(resumenDelCierre(visibles))}
               {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
+              {/* ADR-0699 (Felipe 2026-11-24): mientras se cuenta, el aviso de Admin ya no ocupa una franja: vive aquí, detrás del «?» de su chapa. */}
+              {detalle.comproQuienMira && " Compraste esto tú: lo puedes recibir porque eres Admin, y quien revise las compras verá que lo recibió quien compró."}
             </>
           }
           // En escritorio «Revisar y cerrar» va en el pie del contador (Felipe 2026-11-12); aquí solo en la hoja del celular o si no hay contador a la vista.
@@ -1294,6 +1296,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "existe" && grupoDeHoja?.principal.categoria && (
         <YaExisteLaPrenda
+          foto={tomadas.get(hoja.parada)?.vista ?? null}
           categoria={grupoDeHoja.principal.categoria}
           marca={marcaDeLinea(grupoDeHoja.principal)}
           nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}

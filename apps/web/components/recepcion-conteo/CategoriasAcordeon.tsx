@@ -45,7 +45,6 @@ import {
   type YaEnStock,
 } from "@/lib/recepcion-modelos-reglas";
 import { FiltrosDelEnvio } from "./FiltrosDelEnvio";
-import { BaldosaCategoria } from "./piezas";
 import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
 
 // La mitad izquierda (Felipe 2026-11-02, sobre el acordeón de ADR-0575; en dos mitades desde el 2026-11-11, ADR-0645): arriba, cómo va todo el envío, el buscador y el botón «Filtros»;
@@ -119,7 +118,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
           if (conservaLaCifra({ filaActiva: activa, numeroAbierto: !!document.activeElement?.classList.contains("rc-dial-caja"), botonPrincipal: e.button === 0 })) e.preventDefault();
         }}
         onClick={() => onElegir(p)}>
-        {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
+        {cat && <MiniaturaPrenda fotoUrl={foto} tamano="xl" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">
             <b title={nombreDeParada(p)}>{nombreDeParada(p)}</b>
@@ -352,7 +351,6 @@ function Categoria({
           aria-controls={idCuerpo}
           onClick={onAlternar}
         >
-          <BaldosaCategoria categoria={c.categoria} tamano="chico" />
           <span className="rc-cat-textos">
             <b>{nombre}</b>
             <span className="rc-cat-resumen">

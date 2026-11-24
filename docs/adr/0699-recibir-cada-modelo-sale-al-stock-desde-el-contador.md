@@ -84,3 +84,19 @@ SE ROMPE SI: alguien fotografía el QR de la pantalla del almacén y, en esos 10
 **Si algo no responde:** sin `SUPABASE_SERVICE_ROLE_KEY` o con la base caída, el celular dice «No se pudo subir la foto» y la computadora
 sigue esperando; una foto que la base no anotó se borra en el acto. **Pendiente:** los permisos vencidos quedan como filas (no se borran
 datos); las fotos nunca recogidas quedan en el almacén privado hasta una limpieza que todavía no existe.
+
+## Actividades 3, 5 y 5a · Igual a la maqueta, con las piezas del ERP (2026-11-24)
+
+Felipe: «que se vea similar a la maqueta cumpliendo la unificación de diseño». Lo que cambió:
+- **La cabecera de categoría, en una línea** (`CategoriasAcordeon`, `vidrio/recibir-mesa.css`): el nombre a la izquierda, cómo va a la
+  derecha y el avance como un filo de 4 px al pie (antes, una barra de 11 px bajo el nombre y la baldosa de la categoría). 44 px de alto.
+- **La foto de cada modelo en la lista, de 60 px** (antes 44): la prenda manda sobre la categoría.
+- **«¿Esta prenda ya existe?» con la galería primero** (`ElegirPrendaExistente`, `galeriaSiNoHay`): si el nombre que anotó Compras no
+  coincide con ninguna, se ven todas las de su categoría y marca («No hay «…». ¿Es alguna de estas?»), con la foto que se tomó arriba
+  para comparar y «Ver el catálogo» en otra pestaña (`/productos?cat=…&marca=…`). Antes decía «No hay…» y había que tocar «Ver todas».
+- **El aviso de Admin**, mientras se cuenta, deja su franja y va detrás del «?» de la chapa «Admin · queda a tu nombre». Antes de abrir el
+  envío sigue a la vista.
+- **«Por terminar» sale del camino** (`Trayecto`): cuatro paradas; «Por terminar» se dibuja solo si el envío de verdad quedó ahí.
+
+Lo que NO se copió de la maqueta, a propósito: las cajitas de los pasos (se quedan los puntos de Nuevo producto, ADR-0358) y un paso «Qué
+es» obligatorio (actividad 2).

@@ -31,18 +31,18 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
 - [x] **2d · Subida completa probada en local** (con `SUPABASE_SERVICE_ROLE_KEY` del contenedor de Studio en el `.env.local`).
 - [ ] **2e · Falta para producción:** OK de Felipe para pegar la migración en producción; confirmar que Vercel tiene la llave (ya la usan terminales y crons);
   una limpieza de fotos nunca recogidas.
-- [ ] **Igual a la maqueta, con las piezas del ERP (Felipe 2026-11-24).** Lo que falta para que se vea como la maqueta: la cabecera de
+- [x] **Igual a la maqueta, con las piezas del ERP (Felipe 2026-11-24).** Hecho, salvo oscuro y 375 px sin mirar. Lo que falta para que se vea como la maqueta: la cabecera de
   categoría delgada (5a), la lista con la foto de cada modelo más grande, la galería «¿ya la tenemos?» (3) y el aviso de Admin como chapa
   (5). Los pasos del modelo se quedan con los puntos de Nuevo producto: las cajitas de la maqueta serían una segunda pieza para lo mismo.
-- [ ] **3 · La galería «¿Ya la tenemos?» con fotos.** `YaExisteLaPrenda` muestra la foto de cada prenda de la misma categoría y marca,
+- [x] **3 · La galería «¿Ya la tenemos?» con fotos (hecho 2026-11-24).** `YaExisteLaPrenda` muestra la foto de cada prenda de la misma categoría y marca,
   y el enlace «Ver todo el catálogo» se abre en otra pestaña, ya filtrado. Hay que ver si `buscarPrendasParaRecibir` ya trae la foto.
 - [ ] **4 · Temporada y etiquetas al crear.** Va contra lo decidido el 2026-11-03 («se ponen después en Productos»): Felipe lo pide
   ahora. `preparar_prenda_al_recibir` no las recibe (14 parámetros, `20261013002000_recepcion_de_envio.sql:435`): pide una migración
   o una segunda escritura con las funciones de Editar producto. Se decide al llegar.
-- [ ] **5a · La cabecera de categoría, delgada (Felipe 2026-11-24, con captura):** una línea —flecha, nombre, «dijeron 17» o «12 de 17 a
+- [x] **5a · La cabecera de categoría, delgada (Felipe 2026-11-24, con captura):** una línea —flecha, nombre, «dijeron 17» o «12 de 17 a
   la venta» a la derecha— y el avance como un filo de 2 px abajo, sin sumar alto. Adentro, los modelos como en la maqueta (versión 5).
   En la app es la cabecera de `CategoriasAcordeon`.
-- [ ] **5 · Lo que sobra.** El aviso de Admin pasa a una chapa con «?»; la barra de etapas deja de mostrar «Por terminar» como paso
+- [x] **5 · Lo que sobra (hecho 2026-11-24).** El aviso de Admin pasa a una chapa con «?»; la barra de etapas deja de mostrar «Por terminar» como paso
   normal; «Para después» se ve en ámbar en la lista.
 
 ### Después (no entra en este trabajo)

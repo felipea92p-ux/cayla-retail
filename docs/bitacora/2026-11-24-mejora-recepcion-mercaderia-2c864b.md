@@ -44,3 +44,16 @@ desde el contenedor de Studio), la subida completa:** el celular dice «Listo: y
 QR se cierra sola, la foto queda en la lista y en la placa, entra a «Fotos y colores» al crear la prenda, y el almacén queda vacío (la foto
 se borra al recogerla). Los envíos de prueba ENV-000717 a 720 quedaron anulados; no se creó ninguna prenda. **Migración `20261124161000` solo en local**: producción
 espera el OK de Felipe.
+
+## 2026-11-24 · Recibir se ve como la maqueta (ADR-0699, actividades 3, 5 y 5a)
+
+- **Qué hice:** la cabecera de categoría en una línea con el avance como filo; la foto de cada modelo más grande; «¿Esta prenda ya existe?»
+  muestra la galería entera cuando el nombre no coincide, con tu foto arriba y el catálogo en otra pestaña; la franja de Admin pasó al «?»;
+  «Por terminar» ya no es una parada del camino.
+- **Por qué así:** Felipe quiere la maqueta con las piezas del ERP. Lo que identifica es la foto, no el nombre que anotó Compras.
+- **Qué se rompería sin esto:** con el nombre de Compras, la hoja decía «No hay…» y la persona creaba una prenda repetida sin ver las que ya
+  existen.
+
+**Probado en local** (Playwright sin ventana, 1440 × 900, claro), con envíos sin aviso de prueba (ENV-000721 a 723, anulados). Pruebas de
+Recibir, guías y huella en verde. **Toca `app/estilos/vidrio/recibir-mesa.css`:** está en la lista de «se miran» de Dynamic; Dynamic no
+tiene Recibir, así que queda como aviso, sin tarea. **Sin probar:** oscuro y 375 px.
