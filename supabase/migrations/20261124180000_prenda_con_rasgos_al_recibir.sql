@@ -112,6 +112,8 @@ select pg_temp.reemplazar_rasgos_recibir(
 -- Recibir: la prenda (nueva o ya existente) se queda con las casillas de su línea si todavía no tiene las suyas. El bloque va DESPUÉS del de
 -- 20261107191000 y lee la línea con su propia consulta: no toca ningún texto que anclen otras migraciones (las pruebas de Recibir las
 -- vuelven a pegar, y un ancla movida las haría detenerse).
+-- El ancla (un comentario de la función viva) se vuelve a poner al final con `||`: escrita en su propia línea, la herramienta de Supabase
+-- que transporta el SQL borra las líneas que empiezan con `--`, y con ella se iría el cierre del texto.
 select pg_temp.reemplazar_rasgos_recibir(
   'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
   $v$  -- La prenda (nueva o ya existente) se bloquea: dos personas sumándole la misma talla a la vez se ponen en fila.$v$,
@@ -127,4 +129,4 @@ select pg_temp.reemplazar_rasgos_recibir(
     on conflict (producto_id) do nothing;
   end if;
 
-  -- La prenda (nueva o ya existente) se bloquea: dos personas sumándole la misma talla a la vez se ponen en fila.$n$);
+$n$ || $v$  -- La prenda (nueva o ya existente) se bloquea: dos personas sumándole la misma talla a la vez se ponen en fila.$v$);
