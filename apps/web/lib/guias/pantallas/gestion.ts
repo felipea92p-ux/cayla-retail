@@ -171,14 +171,14 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.pedir-agotados",
       opcional: true,
       titulo: "Ya se agotaron",
-      texto: "Primero, lo que ya no tiene ni una prenda aquí: cuándo se agotó y cuántas vendiste en cuántos días. Si se vendió todo rápido, la prueba funcionó.",
+      texto: "Lo que ya no tiene ni una prenda aquí: cuándo se agotó y cuántas vendiste en cuántos días. Si se vendió todo rápido, la prueba funcionó. Se ven 10; «Mostrar», junto a «Ordenar por», cambia cuántas.",
     },
     {
       id: "pedir-tarjetas",
       ancla: "analisis.pedir-tarjetas",
       opcional: true,
       titulo: "Se acaban antes de Navidad",
-      texto: "Después, lo que todavía tienes pero no llega a Navidad: hasta qué día te alcanza, cuánto tienes y cuánto vendes por semana. Tócala para ver su ficha.",
+      texto: "Lo que todavía tienes pero no llega a Navidad: hasta qué día te alcanza, cuánto tienes y cuánto vendes por semana. Con «Ordenar por ▸ Lo que más se vende y quedan pocos» va arriba, con lo que se acaba en 2 semanas primero.",
     },
     {
       id: "fin",
