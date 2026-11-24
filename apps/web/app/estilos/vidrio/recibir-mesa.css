@@ -224,9 +224,9 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-foto:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
 /* La caja de la foto tomada (Felipe 2026-11-24): mientras se trae del celular o se le quita el fondo, un velo de papel con lo que pasa y el hilo
    que barre (la señal de espera de siempre, sigue con las animaciones apagadas); la × para quitarla, en su esquina como en «Fotos y colores». */
-.rc-placa-foto-caja { position: relative; flex: none; border-radius: 14px; }
+.rc-placa-foto-caja { position: relative; flex: none; border-radius: var(--radius-campo); }
 .rc-placa-foto-estado {
-  position: absolute; inset: 0; display: grid; place-items: center; padding: 6px; overflow: hidden; border-radius: 14px;
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 6px; overflow: hidden; border-radius: var(--radius-campo);
   background: color-mix(in srgb, var(--color-papel) 86%, transparent); color: var(--color-tinta);
   font-size: var(--text-xs); font-weight: 600; line-height: 1.2; text-align: center;
 }
