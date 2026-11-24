@@ -10,7 +10,8 @@
 // DECIDÍ: todo en céntimos enteros. Con decimales, 70 × 0,7 da 48,99999… y el piso podría quedar un céntimo debajo de lo que la base exige.
 
 import { MAX_PRECIO_PRENDA } from "./catalogo-topes";
-import { cuentaDelPrecio, pisoDelPrecio } from "./cuenta-de-precio";
+import { aNoventaCts, cuentaDelPrecio, pisoDelPrecio } from "./cuenta-de-precio";
+import { margenALaVista } from "./margen-a-la-vista";
 
 /** @internal La prueba la cruza con `pisoDePrecio` (que trabaja en céntimos, 10/7) y con el CHECK de la migración.
  *  El margen mínimo sobre el precio que Felipe fijó: ninguna propuesta deja menos (el «bajo» de Nuevo producto empieza aquí). */
@@ -19,11 +20,8 @@ export const MARGEN_MINIMO = 0.3;
 /** Lo que se puede gastar en propuestas por mes de Lima (US$), aparte del asistente. */
 export const TOPE_PRECIOS_MES_USD = 20;
 
-/** Lleva un monto en céntimos al primero que termina en .90 sin bajar (85,20 → 85,90; 85,95 → 86,90). */
-function centimosA90(centimos: number): number {
-  const resto = ((centimos % 100) + 100) % 100;
-  return resto <= 90 ? centimos - resto + 90 : centimos - resto + 190;
-}
+// El .90 de CAYLA vive en la cuenta única (`aNoventaCts`, ADR-0700): lo usan también la regla del margen y la línea.
+const centimosA90 = aNoventaCts;
 
 /** El primer precio terminado en .90 que no baja de `monto`. */
 export function redondearA90(monto: number): number {
@@ -114,16 +112,20 @@ export type RevisionAlRecibir = { margen: number; motivo: "margen_bajo" | "costo
 /**
  * Al cerrar un envío con una prenda que ya existe (ADR-0641 act. 2026-11-11, Felipe: «solo propone si el costo cambió o el margen quedó bajo
  * 30 %»): ¿conviene mirar su precio? `null` si no (o si faltan datos: sin precio o sin costo no se dice nada). Cuenta gratis, sin IA.
- * Mide con la cuenta única de la línea viva (ADR-0668, Felipe 2026-11-15): «margen_bajo» es lo mismo que el ámbar de `<LineaMargen>`, un
- * precio que no aguanta una rebaja de 35 % (`pisoDelPrecio`). Todas las prendas igual, con o sin factura.
+ * Mide con la cuenta única de la línea viva: «margen_bajo» es lo mismo que el ámbar de `<LineaMargen>`, un precio que no llega al margen
+ * objetivo de la prenda (la base del Admin más sus casillas, ADR-0700; antes, el piso de 48 % de ADR-0668). Todas las prendas igual.
  */
-export function pideRevisarAlRecibir(p: { precio: number | null; costo: number | null; costoAntes: number | null }): RevisionAlRecibir | null {
+export function pideRevisarAlRecibir(p: {
+  precio: number | null;
+  costo: number | null;
+  costoAntes: number | null;
+  margenObjetivo: number;
+}): RevisionAlRecibir | null {
   const { precio, costo, costoAntes } = p;
   if (precio === null || costo === null || !Number.isFinite(precio) || !Number.isFinite(costo) || precio <= 0 || costo <= 0) return null;
   const margen = (cuentaDelPrecio(costo, precio)?.margenPorMil ?? 0) / 10;
-  const piso = pisoDelPrecio(costo);
-  // Sin piso (ningún precio hasta el tope aguanta la rebaja con ese costo) también es bajo: la línea lo pinta ámbar igual.
-  if (piso === null || precio < piso) return { margen, motivo: "margen_bajo" };
+  // La misma pregunta que se hace la línea, con la misma función: nunca se contradicen en la misma hoja.
+  if (margenALaVista(costo, precio, p.margenObjetivo)?.tono !== "normal") return { margen, motivo: "margen_bajo" };
   if (costoAntes !== null && Number.isFinite(costoAntes) && costoAntes > 0 && Math.abs(costo - costoAntes) >= 0.01) return { margen, motivo: "costo_cambio" };
   return null;
 }

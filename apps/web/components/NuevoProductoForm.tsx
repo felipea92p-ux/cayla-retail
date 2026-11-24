@@ -1,6 +1,7 @@
 "use client";
 
 import { LineaMargen } from "@/components/ui/LineaMargen";
+import { useMargenObjetivo } from "@/components/ReglasDePrecio";
 import { margenALaVista } from "@/lib/margen-a-la-vista";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -581,8 +582,9 @@ export function NuevoProductoForm({
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
   // La cuenta única (ADR-0668, Felipe 2026-11-15): la cifra grande, su línea en soles y la ficha dicen lo mismo que Recibir. Todas las
-  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio no aguanta una rebaja de 35 %.
-  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase);
+  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio queda bajo el objetivo (ADR-0700).
+  const margenObjetivo = useMargenObjetivo();
+  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase, margenObjetivo);
   const margen = margenVivo?.pct ?? null;
   const nivel = margenVivo ? (margenVivo.tono === "pierdes" ? "negativo" : margenVivo.tono) : null;
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
@@ -893,7 +895,7 @@ export function NuevoProductoForm({
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Aguanta poca rebaja", normal: "Buen precio" } as const;
+  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Bajo tu objetivo", normal: "Buen precio" } as const;
 
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).

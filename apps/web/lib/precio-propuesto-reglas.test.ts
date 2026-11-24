@@ -79,14 +79,14 @@ describe("revisarPrecioDeLaIA: la IA propone, la regla manda", () => {
   it("el % de la propuesta es el mismo que dice la línea de al lado", () => {
     for (const costo of [12.5, 25, 36, 44]) {
       const r = revisarPrecioDeLaIA(1, costo);
-      expect(r?.margen).toBe(margenALaVista(costo, r?.precio)?.pct);
+      expect(r?.margen).toBe(margenALaVista(costo, r?.precio, 36)?.pct);
     }
   });
-  it("lo que propone nunca deja la línea de al lado en ámbar (aguanta la rebaja de 35 %)", () => {
+  it("lo que propone nunca deja la línea de al lado en ámbar (con la base de fábrica, 36 %: ADR-0700)", () => {
     for (const costo of [12.5, 25, 36, 44, 80, 150]) {
       const r = revisarPrecioDeLaIA(1, costo);
       expect(r).not.toBeNull();
-      expect(pideRevisarAlRecibir({ precio: r?.precio ?? 0, costo, costoAntes: costo })).toBeNull();
+      expect(pideRevisarAlRecibir({ precio: r?.precio ?? 0, costo, costoAntes: costo, margenObjetivo: 36 })).toBeNull();
     }
   });
   it("lo que no es un precio no se le cree", () => {
@@ -123,24 +123,26 @@ describe("textoSinPropuesta", () => {
 });
 
 describe("al recibir una prenda que ya existe: ¿conviene mirar su precio?", () => {
-  it("un precio que no aguanta la rebaja con el costo de esta compra", () => {
-    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 45, costoAntes: 45 })).toEqual({ margen: 11.4, motivo: "margen_bajo" });
+  it("un precio que no llega al objetivo con el costo de esta compra", () => {
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 45, costoAntes: 45, margenObjetivo: 36 })).toEqual({ margen: 11.4, motivo: "margen_bajo" });
   });
-  it("avisa justo donde la línea se pone ámbar: bajo el piso sí, desde el piso no (ADR-0668)", () => {
-    // Con S/ 30 de costo el piso es S/ 68.90.
-    expect(pideRevisarAlRecibir({ precio: 67.9, costo: 30, costoAntes: 30 })?.motivo).toBe("margen_bajo");
-    expect(pideRevisarAlRecibir({ precio: 68.9, costo: 30, costoAntes: 30 })).toBeNull();
+  it("avisa justo donde la línea se pone ámbar: bajo el objetivo sí, desde el objetivo no (ADR-0700)", () => {
+    // Con S/ 30 de costo y 36 % de objetivo, llega desde S/ 55.90.
+    expect(pideRevisarAlRecibir({ precio: 54.9, costo: 30, costoAntes: 30, margenObjetivo: 36 })?.motivo).toBe("margen_bajo");
+    expect(pideRevisarAlRecibir({ precio: 55.9, costo: 30, costoAntes: 30, margenObjetivo: 36 })).toBeNull();
+    // Con las casillas el objetivo sube, y el mismo precio ya pide revisar.
+    expect(pideRevisarAlRecibir({ precio: 55.9, costo: 30, costoAntes: 30, margenObjetivo: 42 })?.motivo).toBe("margen_bajo");
   });
   it("el costo cambió aunque el margen siga bien", () => {
-    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 25 })?.motivo).toBe("costo_cambio");
+    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 25, margenObjetivo: 36 })?.motivo).toBe("costo_cambio");
   });
   it("mismo costo y buen margen: nada que decir (no se gasta)", () => {
-    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 30 })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 30, margenObjetivo: 36 })).toBeNull();
   });
   it("sin precio o sin costo, nada", () => {
-    expect(pideRevisarAlRecibir({ precio: null, costo: 30, costoAntes: null })).toBeNull();
-    expect(pideRevisarAlRecibir({ precio: 59.9, costo: null, costoAntes: null })).toBeNull();
-    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 0, costoAntes: null })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: null, costo: 30, costoAntes: null, margenObjetivo: 36 })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: null, costoAntes: null, margenObjetivo: 36 })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 0, costoAntes: null, margenObjetivo: 36 })).toBeNull();
   });
   it("la línea dice el motivo, sin repetir el margen (lo dice la línea viva)", () => {
     expect(textoRevisarAlRecibir({ margen: 24.9, motivo: "margen_bajo" })).toBe("Revisa el precio.");

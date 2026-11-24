@@ -14,8 +14,7 @@
 //   NO HACE: no lee la base ni guarda nada; no baja un precio que ya existe (eso lo decide la pantalla que lo usa).
 
 import { MAX_PRECIO_PRENDA } from "./catalogo-topes";
-import { conRebajaCts, cts, cuentaDelPrecio, pierdeConElPrecio } from "./cuenta-de-precio";
-import { redondearA90 } from "./precio-propuesto-reglas";
+import { aNoventaCts, conRebajaCts, cts, cuentaDelPrecio, pierdeConElPrecio } from "./cuenta-de-precio";
 
 /** Lo que una prenda puede tener que sube su margen. El orden es el de la hoja. Las dos últimas salen de las listas del Admin. */
 export const RASGOS = ["nadie_la_tiene", "en_tendencia", "tela_que_se_nota", "marca_conocida"] as const;
@@ -97,8 +96,7 @@ export function margenObjetivo(reglas: ReglasDePrecio, rasgos: Iterable<Rasgo>):
  */
 export function precioConMargen(costo: number, margen: number): number | null {
   if (!Number.isFinite(costo) || costo <= 0 || !Number.isInteger(margen) || margen < 0 || margen >= 100) return null;
-  const minimoCts = Math.ceil((cts(costo) * 118) / (100 - margen));
-  const precio = redondearA90(minimoCts / 100);
+  const precio = aNoventaCts(Math.ceil((cts(costo) * 118) / (100 - margen))) / 100;
   return precio <= MAX_PRECIO_PRENDA ? precio : null;
 }
 
@@ -156,7 +154,7 @@ export function sugerirPrecio(e: {
   if (desde === null || regla === null) return null;
   let precio = regla;
   let motivo: MotivoSugerido = "regla";
-  const parecidas = montoValido(e.parecidas) ? redondearA90(e.parecidas) : null;
+  const parecidas = montoValido(e.parecidas) ? aNoventaCts(cts(e.parecidas)) / 100 : null;
   if (parecidas !== null && parecidas > precio) {
     precio = parecidas;
     motivo = "parecidas";

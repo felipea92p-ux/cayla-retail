@@ -1,5 +1,6 @@
 "use client";
 
+import { useMargenObjetivo } from "@/components/ReglasDePrecio";
 import { useEffect } from "react";
 import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
@@ -106,6 +107,8 @@ export function PrecioDePrenda({
   /** La hoja ya dice de qué prenda es (la de «Tallas y colores» de una sola): no se repite su nombre, solo el precio de hoy, y los campos van en una línea. */
   sinNombre?: boolean;
 }) {
+  // El objetivo de la regla del Admin (ADR-0700): con él se decide «Revisa el precio», como el ámbar de la línea de al lado.
+  const margenObjetivo = useMargenObjetivo();
   // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
   const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
@@ -146,7 +149,7 @@ export function PrecioDePrenda({
   const costoQueQueda = conCosto ? (nuevoCosto?.problema === null ? nuevoCosto.valor : null) : null;
   // ADR-0668 (A4): con el costo en duda, nada se sugiere hasta que la persona lo confirme o lo corrija.
   const duda = conCosto && costoQueQueda !== null ? (costo.duda ?? null) : null;
-  const revisar = conCosto && !duda ? pideRevisarAlRecibir({ precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
+  const revisar = conCosto && !duda ? pideRevisarAlRecibir({ precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor, margenObjetivo }) : null;
   return (
     <div
       className={

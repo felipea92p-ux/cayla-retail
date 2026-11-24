@@ -19,6 +19,12 @@ export const GANANCIA_TRAS_REBAJA_POR_MIL = 200;
 /** Soles a céntimos enteros. */
 export const cts = (n: number): number => Math.round(n * 100);
 
+/** El primer monto terminado en .90 que no baja de `centimos` (85,20 → 85,90; 85,95 → 86,90), en céntimos: así se ponen los precios en CAYLA. */
+export function aNoventaCts(centimos: number): number {
+  const resto = ((centimos % 100) + 100) % 100;
+  return resto <= 90 ? centimos - resto + 90 : centimos - resto + 190;
+}
+
 /** El precio rebajado `pct` %, hacia abajo al S/ 0.10 (ADR-0403), en céntimos. */
 export function conRebajaCts(precioCts: number, pct: number): number {
   return Math.floor((precioCts * (100 - pct)) / 1000) * 10;
