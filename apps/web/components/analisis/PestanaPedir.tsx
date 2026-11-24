@@ -2,12 +2,13 @@
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
 import { useMemo, useState, type ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, Store, Truck } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, ICONO_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
 import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { Chip } from "@/components/ui/Chip";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { Vacio } from "@/components/ui/Vacio";
@@ -27,14 +28,14 @@ import {
   notaRindeVacio,
   notaTiposSinRegistrar,
   parteDeArriba,
-  pieDePedir,
+  marcaDePedir,
   primerasQuePedir,
   queHayQuePedir,
   RINDE_POCO,
   solesRinde,
   textoRitmo,
-  textoVendesPorSemana,
-  textoVendiste,
+  vendesPorSemana,
+  vendiste,
   tipRinde,
   tiposSinRegistrar,
   type CurvaTallas,
@@ -76,12 +77,27 @@ export function PestanaPedir() {
     .filter(Boolean)
     .join(" ");
 
-  // Lo agotado: cuándo se agotó y cuántas se vendieron en cuántos días.
+  // La etiqueta bajo «qué tiene»: lo que viene en camino o la otra tienda que lo tiene.
+  const marca = (m: (typeof prendas)[number]) => {
+    const x = marcaDePedir(m, datos.hoy, ciudadDe);
+    if (!x) return { nodo: undefined, texto: "" };
+    const IconoMarca = x.tipo === "viene" ? Truck : Store;
+    return {
+      nodo: (
+        <Chip tono="neutro" versalitas={false}>
+          <IconoMarca aria-hidden className="h-3 w-3" />
+          {x.texto}
+        </Chip>
+      ),
+      texto: ` ${x.texto}.`,
+    };
+  };
+  // Lo agotado (cara «A», Felipe 2026-11-24): VENDISTE 12 en 8 días · SE AGOTÓ 23 oct., cada cifra con su rótulo.
   const tarjetasAgotados = agotados.map((a, k) => {
     const m = a.modelo;
-    const lineas = textoVendiste(a);
-    const pie = pieDePedir(m, datos.hoy, ciudadDe);
+    const v = vendiste(a);
     const cuando = a.agoto ? fechaCorta(a.agoto) : null;
+    const mk = marca(m);
     return (
       <TarjetaPrenda
         key={m.varianteId}
@@ -89,22 +105,23 @@ export function PestanaPedir() {
         miniatura={<TilePrenda prenda={m} tamano={72} />}
         nombre={m.nombre}
         que={queTiene(m)}
-        antes={cuando ? "Se agotó el" : undefined}
-        numero={cuando ?? "Ya no hay"}
-        lineas={lineas}
+        marca={mk.nodo}
+        cifras={[
+          { rotulo: "Vendiste", valor: v.valor, agregado: v.agregado },
+          { rotulo: "Se agotó", valor: cuando ?? "Ya no hay", est: "urg" },
+        ]}
         est="urg"
-        detalle={pie ?? undefined}
-        etiqueta={`${nombreLargo(m)}: ${cuando ? `se agotó el ${cuando}` : "ya no hay"}. ${lineas.join(" ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
+        etiqueta={`${nombreLargo(m)}: vendiste ${v.valor} ${v.agregado}; ${cuando ? `se agotó el ${cuando}` : "ya no hay"}.${mk.texto} Enter abre su ficha.`}
         onAbrir={() => abrirFicha(m.varianteId)}
       />
     );
   });
-  // Lo que todavía tiene algo y no llega a Navidad: hasta cuándo alcanza, cuánto tienes y cuánto vendes por semana.
+  // Lo que todavía tiene algo y no llega a Navidad: TIENES 72 · VENDES 39 /sem. · SE ACABA 7 dic.
   const tarjetasSeAcaban = seAcaban.map(({ modelo: m, dias, tiene, porDia }, k) => {
     const d = diasEnteros(dias) ?? 1;
     const hasta = fechaEnQueSeAcaba(datos.hoy, d);
-    const lineas = [`Tienes ${tiene}`, textoVendesPorSemana(porDia)];
-    const pie = pieDePedir(m, datos.hoy, ciudadDe);
+    const ritmo = vendesPorSemana(porDia);
+    const mk = marca(m);
     return (
       <TarjetaPrenda
         key={m.varianteId}
@@ -112,12 +129,14 @@ export function PestanaPedir() {
         miniatura={<TilePrenda prenda={m} tamano={72} />}
         nombre={m.nombre}
         que={queTiene(m)}
-        antes="Hasta el"
-        numero={hasta}
-        lineas={lineas}
+        marca={mk.nodo}
+        cifras={[
+          { rotulo: "Tienes", valor: String(tiene) },
+          { rotulo: "Vendes", valor: ritmo.valor, agregado: ritmo.agregado },
+          { rotulo: "Se acaba", valor: hasta, est: tonoDias(d) },
+        ]}
         est={tonoDias(d)}
-        detalle={pie ?? undefined}
-        etiqueta={`${nombreLargo(m)}: te alcanza hasta el ${hasta}. ${lineas.join(". ")}.${pie ? ` ${pie}.` : ""} Enter abre su ficha.`}
+        etiqueta={`${nombreLargo(m)}: tienes ${tiene}, vendes ${ritmo.valor} por semana, se acaba el ${hasta}.${mk.texto} Enter abre su ficha.`}
         onAbrir={() => abrirFicha(m.varianteId)}
       />
     );
