@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoSelect } from "@/components/ui/campos";
@@ -37,6 +38,7 @@ export function YaExisteLaPrenda({
   onUsar,
   onCrear,
   onCerrar,
+  foto = null,
 }: {
   categoria: CategoriaDeLinea;
   /** `id` nulo = sin marca. */
@@ -68,6 +70,8 @@ export function YaExisteLaPrenda({
   onUsar: (prenda: PrendaRecepcion, cambioCategoria: boolean) => Promise<void> | void;
   onCrear: (cambioCategoria: boolean) => void;
   onCerrar: () => void;
+  /** La foto que se tomó al contar (ADR-0699): arriba, para compararla con las del catálogo. */
+  foto?: string | null;
 }) {
   const [categoria, setCategoria] = useState(categoriaAnotada);
   const [marca, setMarca] = useState(marcaAnotada);
@@ -150,6 +154,12 @@ export function YaExisteLaPrenda({
       onClose={onCerrar}
     >
       <div className="space-y-4">
+        {foto && (
+          <div className="flex items-center gap-3">
+            <MiniaturaPrenda fotoUrl={foto} tamano="xl" prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
+            <p className="texto-detalle">Tu foto. Compárala con las de abajo.</p>
+          </div>
+        )}
         {categorias.length > 0 && (
           <div className="space-y-2">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -202,6 +212,8 @@ export function YaExisteLaPrenda({
             onElegir={setElegida}
             onVerFicha={() => setConFicha(true)}
             onEsNueva={() => void crear()}
+            galeriaSiNoHay
+            catalogoHref={`/productos?${new URLSearchParams({ cat: categoria.id, ...(marca.id ? { marca: marca.id } : {}) }).toString()}`}
           />
         )}
 
