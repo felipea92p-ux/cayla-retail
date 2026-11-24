@@ -18,7 +18,7 @@
 // `node scripts/rendimiento/observabilidad.mjs --json` da cada uno con su línea.
 
 /** Cuántos rellenos sin marca quedan en toda la web. Baja a medida que se resuelven; subir es romper la regla. */
-export const PENDIENTES_HOY = 129;
+export const PENDIENTES_HOY = 128;
 
 /** Rutas relativas a `apps/web/` → cuántos rellenos sin marca tiene ese archivo. */
 export const RELLENOS_PENDIENTES: Readonly<Record<string, number>> = {
@@ -55,7 +55,7 @@ export const RELLENOS_PENDIENTES: Readonly<Record<string, number>> = {
   "components/finanzas/telar/usePendientesTelar.ts": 1,
   "components/guias/recorrido.ts": 2,
   "components/guias/vistas.ts": 2,
-  "components/impresion/imprimirBoleta.ts": 2,
+  "components/impresion/imprimirBoleta.ts": 1,
   "components/pedidos-web/AvisosCelularHoja.tsx": 5,
   "components/punto-de-venta/useEsperaDelCartel.ts": 2,
   "components/recepcion-envio/useFotosDeEstampados.ts": 1,

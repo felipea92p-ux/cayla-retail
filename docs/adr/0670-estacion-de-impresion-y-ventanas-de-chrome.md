@@ -134,3 +134,18 @@ SE ROMPE SI:
    encender la estación. Mientras tanto quedan «Imprimir aquí» y la reimpresión desde Historial.
 3. **La caja tiene elegida otra sede:** la estación toma solo la cola de su sede activa, así que lo del piso de otra sede no sale ahí. Ya
    pasaba antes de este cambio.
+
+**(b) La Mac vuelve a preguntar si es la caja.** Esa misma tarde, en producción, la estación de TRU imprimió cinco boletas del piso
+(17:10 a 17:38) y después se apagó sola: dos boletas quedaron en la cola sin que nadie las tomara (0 intentos) hasta recargar. La Mac
+sabe que es la caja preguntándole a su ayudante si ve la ticketera, y solo lo preguntaba al abrir la página. Bastaba que una respuesta
+fallara para que dejara de ser la caja hasta recargar, y nadie lo notaba. Pasaba de dos formas: el ayudante tardaba más de 5 s, o una
+boleta no salía y el código borraba la respuesta sin avisar. El comentario del código ya prometía «cada cuánto se vuelve a preguntar»,
+pero nada lo hacía. Ahora la pregunta vive en `lib/ayudante-de-boletas.ts`:
+
+- Mientras alguien escucha (la estación o «Venta registrada»), la Mac vuelve a preguntar cada 30 s y apenas la pestaña vuelve a verse.
+  Usa un solo reloj, solo en una Mac.
+- Si una boleta no sale, pregunta de nuevo enseguida y, hasta que llegue la respuesta, vale la última.
+- `lib/boletas-por-ayudante.test.ts` recorre el caso de TRU sin recargar. Sin el arreglo falla en 3 de sus 6 casos.
+
+Se probó en el navegador con un ayudante de mentira: la insignia se va a los 29 s de perder la ticketera, vuelve a los 30 s de
+recuperarla y, al volver a la pestaña, vuelve en el acto.

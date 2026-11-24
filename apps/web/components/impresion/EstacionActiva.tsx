@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { useSedeActiva } from "@/components/SedeActiva";
-import { boletasPorAyudante, imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
 import { Chip } from "@/components/ui/Chip";
 import { createClient } from "@/lib/supabase/client";
 import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
