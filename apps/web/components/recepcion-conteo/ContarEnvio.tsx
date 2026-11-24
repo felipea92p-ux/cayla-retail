@@ -123,6 +123,11 @@ import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
 import { FotoPorQr } from "./FotoPorQr";
 import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
+import { recogerFoto } from "@/lib/foto-por-qr-acciones";
+import { leerPermisoDeFotos, pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
+import { avisoIANoRespondio } from "@/lib/foto-catalogo-reglas";
+import { useInterruptorIA } from "@/components/ficha-producto/useCatalogoIA";
+import { estadoDeLaFoto, fotoParaCrear, pideSinFondo, vistaDeLaFoto, type FotoDelModelo } from "@/lib/recepcion-foto-reglas";
 import { pasosDelModelo, type ClavePaso } from "@/lib/recepcion-pasos-reglas";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
@@ -301,27 +306,115 @@ export function ContarEnvio({
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   // La foto que se toma al contar un modelo nuevo, antes de que tenga prenda (ADR-0699): sirve para reconocerlo en la lista y entra sola a
   // «Fotos y colores» al crearla. Vive en el navegador mientras la pantalla esté abierta: recargar la pierde (se vuelve a tomar).
-  const [tomadas, setTomadas] = useState<ReadonlyMap<string, { archivo: File; vista: string }>>(() => new Map());
+  // Con «Quitar fondo» (Felipe 2026-11-24) también guarda su versión sin fondo, la misma foto de catálogo con IA de Nuevo producto.
+  const [tomadas, setTomadas] = useState<ReadonlyMap<string, FotoDelModelo>>(() => new Map());
   const tomadasVivas = useRef(tomadas);
   useEffect(() => {
     tomadasVivas.current = tomadas;
   }, [tomadas]);
-  useEffect(() => () => tomadasVivas.current.forEach((t) => URL.revokeObjectURL(t.vista)), []);
+  const soltarVistas = (f: FotoDelModelo | undefined) => {
+    if (!f) return;
+    URL.revokeObjectURL(f.vista);
+    if (f.ia) URL.revokeObjectURL(f.ia.vista);
+  };
+  useEffect(() => () => tomadasVivas.current.forEach(soltarVistas), []);
+  // La foto que está en camino (se abre, o se trae del celular): su miniatura dice «Cargando foto…» hasta que se ve.
+  const [cargandoFoto, setCargandoFoto] = useState<ReadonlySet<string>>(() => new Set());
+  const marcarCargando = (clave: string, si: boolean) =>
+    setCargandoFoto((s) => {
+      const n = new Set(s);
+      if (si) n.add(clave);
+      else n.delete(clave);
+      return n;
+    });
+  // «Quitar fondo» solo se ofrece a quien puede pedir la foto de catálogo con IA (la misma regla que «Crear la prenda»). Sin respuesta: no se ofrece.
+  const [puedeIA, setPuedeIA] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    void leerPermisoDeFotos().then((r) => {
+      if (vivo) setPuedeIA(r.ia);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  // Lo que se eligió la última vez, en este aparato: la misma preferencia que «Catálogo con IA» de Nuevo producto y de «Crear la prenda».
+  const [prefiereSinFondo, guardarSinFondo] = useInterruptorIA();
   // «Con el celular» (ADR-0699, 2c): el modelo cuyo QR está a la vista.
-  const [fotoQr, setFotoQr] = useState<{ clave: string; nombre: string } | null>(null);
-  const vistasTomadas = useMemo(() => new Map([...tomadas].map(([clave, t]) => [clave, t.vista] as const)), [tomadas]);
-  async function tomarFoto(clave: string, archivo: File) {
+  const [fotoQr, setFotoQr] = useState<{ clave: string; nombre: string; prefijo: string | null } | null>(null);
+  const vistasTomadas = useMemo(() => new Map([...tomadas].flatMap(([clave, t]) => {
+    const v = vistaDeLaFoto(t);
+    return v ? [[clave, v] as const] : [];
+  })), [tomadas]);
+  const cambiarFoto = (clave: string, cambio: (f: FotoDelModelo) => FotoDelModelo | null) =>
+    setTomadas((m) => {
+      const antes = m.get(clave);
+      if (!antes) return m;
+      const n = new Map(m);
+      const despues = cambio(antes);
+      if (despues) n.set(clave, despues);
+      else n.delete(clave);
+      return n;
+    });
+  /** Pide la versión sin fondo de la foto de AHORA. Si mientras tanto se cambió o se quitó la foto, lo que llega no se pone. */
+  async function quitarFondo(clave: string, archivo: File, prefijo: string | null) {
+    cambiarFoto(clave, (f) => (f.archivo === archivo ? { ...f, quitandoFondo: true } : f));
+    const r = await pedirFotoDeCatalogo({ frente: archivo, espalda: null, detalle: null, molde: null }, { prefijo });
+    const actual = tomadasVivas.current.get(clave);
+    if (!actual || actual.archivo !== archivo) return;
+    if ("png" in r) {
+      const vistaIA = URL.createObjectURL(r.png);
+      cambiarFoto(clave, (f) => (f.archivo === archivo ? { ...f, quitandoFondo: false, ia: { png: r.png, vista: vistaIA } } : f));
+    } else {
+      // Sin la IA queda la foto tal cual, y el interruptor vuelve a apagarse: lo que se ve es lo que se guardará.
+      cambiarFoto(clave, (f) => (f.archivo === archivo ? { ...f, quitandoFondo: false, sinFondo: false } : f));
+      avisar.aviso(avisoIANoRespondio("tal cual"), { detalle: r.error });
+    }
+  }
+  async function tomarFoto(clave: string, archivo: File, prefijo: string | null) {
+    marcarCargando(clave, true);
     const r = await abrirFotoElegida(archivo);
+    marcarCargando(clave, false);
     if ("falla" in r) {
       avisar.error("No se pudo abrir la foto", { detalle: r.texto });
       return;
     }
-    const vista = URL.createObjectURL(r.archivo);
+    const nueva: FotoDelModelo = { archivo: r.archivo, vista: URL.createObjectURL(r.archivo), sinFondo: puedeIA && prefiereSinFondo };
     setTomadas((m) => {
       const n = new Map(m);
-      const antes = n.get(clave);
-      if (antes) URL.revokeObjectURL(antes.vista);
-      n.set(clave, { archivo: r.archivo, vista });
+      soltarVistas(n.get(clave));
+      n.set(clave, nueva);
+      return n;
+    });
+    tomadasVivas.current = new Map(tomadasVivas.current).set(clave, nueva);
+    if (pideSinFondo(nueva, puedeIA)) void quitarFondo(clave, nueva.archivo, prefijo);
+  }
+  /** La foto llegó del celular: se trae mientras la miniatura dice «Cargando foto…». */
+  async function recibirDelCelular(clave: string, archivoId: string, prefijo: string | null) {
+    marcarCargando(clave, true);
+    const archivo = await recogerFoto(archivoId);
+    if (!archivo) {
+      marcarCargando(clave, false);
+      avisar.error("No se pudo traer la foto del celular", { detalle: "Vuelve a tocar «Con el celular» y tómala otra vez." });
+      return;
+    }
+    await tomarFoto(clave, archivo, prefijo);
+    avisar.exito("Llegó la foto del celular");
+  }
+  /** «Quitar fondo»: encender pide la versión sin fondo (una vez por foto); apagar muestra la original sin borrar la otra. */
+  function cambiarSinFondo(clave: string, si: boolean, prefijo: string | null) {
+    guardarSinFondo(si);
+    const f = tomadasVivas.current.get(clave);
+    if (!f) return;
+    const nueva = { ...f, sinFondo: si };
+    cambiarFoto(clave, (x) => ({ ...x, sinFondo: si }));
+    if (pideSinFondo(nueva, puedeIA)) void quitarFondo(clave, f.archivo, prefijo);
+  }
+  function quitarFotoTomada(clave: string) {
+    setTomadas((m) => {
+      const n = new Map(m);
+      soltarVistas(n.get(clave));
+      n.delete(clave);
       return n;
     });
   }
@@ -845,10 +938,7 @@ export function ContarEnvio({
           repartidas,
         })
       : null;
-  const fotosDeLaParada = (clave: string): File[] => {
-    const t = tomadas.get(clave);
-    return t ? [t.archivo] : [];
-  };
+  const fotosDeLaParada = (clave: string) => fotoParaCrear(tomadas.get(clave));
   // «Cambiar» lo contado abre otra vez el número de ESE modelo mientras lo contado siga igual: apenas cambia, vuelve a abrirse lo que toca.
   const [cuantasReabierto, setCuantasReabierto] = useState<{ clave: string; contadas: number } | null>(null);
   const pasoAbiertoDe = (p: ParadaDelConteo): ClavePaso | null => {
@@ -1035,11 +1125,27 @@ export function ContarEnvio({
               key={parada.clave}
               parada={parada}
               sinAviso={sinAviso}
-              foto={(parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null) ?? tomadas.get(parada.clave)?.vista ?? null}
-              onFoto={parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? (archivo) => void tomarFoto(parada.clave, archivo) : undefined}
+              foto={(parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null) ?? vistaDeLaFoto(tomadas.get(parada.clave))}
+              onFoto={
+                parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0
+                  ? (archivo) => void tomarFoto(parada.clave, archivo, parada.grupo.principal.categoria?.prefijo ?? null)
+                  : undefined
+              }
               fotoTomada={tomadas.has(parada.clave)}
+              estadoFoto={estadoDeLaFoto(cargandoFoto.has(parada.clave), tomadas.get(parada.clave))}
+              sinFondo={
+                puedeIA && tomadas.has(parada.clave)
+                  ? {
+                      activo: tomadas.get(parada.clave)?.sinFondo ?? false,
+                      onCambiar: (si) => cambiarSinFondo(parada.clave, si, parada.grupo.principal.categoria?.prefijo ?? null),
+                    }
+                  : undefined
+              }
+              onQuitarFoto={tomadas.has(parada.clave) ? () => quitarFotoTomada(parada.clave) : undefined}
               onFotoCelular={
-                parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0 ? () => setFotoQr({ clave: parada.clave, nombre: nombreDeParada(parada) }) : undefined
+                parada.modelo && !parada.modelo.productoId && parada.modelo.enStock === 0
+                  ? () => setFotoQr({ clave: parada.clave, nombre: nombreDeParada(parada), prefijo: parada.grupo.principal.categoria?.prefijo ?? null })
+                  : undefined
               }
               faltanTallas={conFaltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
@@ -1291,7 +1397,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "existe" && grupoDeHoja?.principal.categoria && (
         <YaExisteLaPrenda
-          foto={tomadas.get(hoja.parada)?.vista ?? null}
+          foto={vistaDeLaFoto(tomadas.get(hoja.parada))}
           categoria={grupoDeHoja.principal.categoria}
           marca={marcaDeLinea(grupoDeHoja.principal)}
           nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
@@ -1315,7 +1421,7 @@ export function ContarEnvio({
           paradaClave={fotoQr.clave}
           nombre={fotoQr.nombre}
           firma={() => responsable.firma()}
-          onFoto={(archivo) => void tomarFoto(fotoQr.clave, archivo)}
+          onLlego={(archivoId) => void recibirDelCelular(fotoQr.clave, archivoId, fotoQr.prefijo)}
           onCerrar={() => setFotoQr(null)}
         />
       )}
