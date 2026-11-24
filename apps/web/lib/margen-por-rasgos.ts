@@ -63,6 +63,44 @@ export function leerReglas(data: unknown): ReglasDePrecio {
   return { margenBase: entero(d.margen_base) ?? REGLAS_DE_FABRICA.margenBase, puntos };
 }
 
+/** La regla y las dos listas, como las manda `fn_reglas_de_precio()` desde 20261124174000 (las listas como ids). */
+export type ReglasYListas = { reglas: ReglasDePrecio; marcasConocidas: string[]; tejidosQueSeNotan: string[] };
+
+export function leerReglasYListas(data: unknown): ReglasYListas {
+  const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+  const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  return { reglas: leerReglas(data), marcasConocidas: ids(d.marcas_conocidas), tejidosQueSeNotan: ids(d.tejidos_que_se_notan) };
+}
+
+/** Las dos listas, para preguntar rápido si la marca o el tejido de una prenda suman su casilla. */
+export type ListasDeRasgos = { marcasConocidas: ReadonlySet<string>; tejidosQueSeNotan: ReadonlySet<string> };
+
+/** Lo que marcó la persona. `tela_que_se_nota` sin decir: la decide el tejido de la prenda (la lista del Admin). La marca no se marca a mano. */
+export type EleccionDeRasgos = { nadie_la_tiene?: boolean; en_tendencia?: boolean; tela_que_se_nota?: boolean };
+
+/**
+ * Lo que la prenda tiene, en el orden de la hoja: lo que marcó la persona, la tela por su tejido si la persona no dijo nada (puede quitarla
+ * en una prenda que no la merezca) y la marca por la lista, siempre.
+ */
+export function rasgosEfectivos(eleccion: EleccionDeRasgos, auto: { tejidoSeNota: boolean; marcaConocida: boolean }): Rasgo[] {
+  const tiene: Record<Rasgo, boolean> = {
+    nadie_la_tiene: eleccion.nadie_la_tiene === true,
+    en_tendencia: eleccion.en_tendencia === true,
+    tela_que_se_nota: eleccion.tela_que_se_nota ?? auto.tejidoSeNota,
+    marca_conocida: auto.marcaConocida,
+  };
+  return RASGOS.filter((r) => tiene[r]);
+}
+
+/** De vuelta: lo guardado en una línea como lo que había marcado la persona (para corregirla sin perder nada). */
+export function eleccionDeRasgos(rasgos: readonly Rasgo[]): EleccionDeRasgos {
+  return {
+    nadie_la_tiene: rasgos.includes("nadie_la_tiene"),
+    en_tendencia: rasgos.includes("en_tendencia"),
+    tela_que_se_nota: rasgos.includes("tela_que_se_nota"),
+  };
+}
+
 /** Un tejido o una marca de las listas del Admin, con cuántos modelos activos lo llevan (para elegir mirando lo que más pesa). */
 export type ItemDeLista = { id: string; nombre: string; marcado: boolean; modelos: number };
 export type ListasDePrecio = { tejidos: ItemDeLista[]; marcas: ItemDeLista[] };

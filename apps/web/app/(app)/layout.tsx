@@ -101,7 +101,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <VersionNueva />
         {/* El cronómetro del clic (ADR-0654): cuánto tarda en llegar cada pantalla, por sede, a los registros del servidor. No dibuja nada. */}
         <CronometroDelClic sedeId={persona.vista === "global" ? "global" : persona.ubicacionId} />
-        <ReglasDePrecioProveedor reglas={reglasDePrecio}>{children}</ReglasDePrecioProveedor>
+        <ReglasDePrecioProveedor valor={reglasDePrecio}>{children}</ReglasDePrecioProveedor>
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
         {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}

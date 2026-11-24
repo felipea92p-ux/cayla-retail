@@ -1,7 +1,7 @@
 # ADR-0700 — El margen del precio sugerido sube por lo que la prenda tiene
 
-- **Fecha:** 2026-11-24 · **Estado:** en construcción, solo en local. Actividades 1 y 2 de 6 construidas (reglas y Configuración ▸ Precios; el
-  ámbar contra el objetivo en Nuevo producto y Recibir); nada en producción.
+- **Fecha:** 2026-11-24 · **Estado:** en construcción, solo en local. Actividades 1 a 3 de 6 construidas (reglas y Configuración ▸ Precios; el
+  ámbar contra el objetivo en Nuevo producto y Recibir; las casillas en «Compré ropa»); nada en producción.
 - **Pidió:** Felipe, 2026-11-24: «margen 30 a 36 %; producto nuevo, tendencia, referencia y que aumente +3 %… casillas donde marquemos si es
   un producto nuevo, si tiene algo que lo diferencia, si es en tendencia». Solo para el precio de venta; el Taller va aparte.
 - **Maqueta e investigación:** https://claude.ai/artifact/H769t9La8QMYkJEv4QZQUx (privada; trae cifras agregadas de producción, por eso
@@ -64,6 +64,21 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
   «Te quedan», el nivel de Nuevo producto («Bajo tu objetivo») y el aviso «Revisa el precio» de Recibir dicen lo mismo. La regla llega a
   toda hoja desde el layout de la app (`ReglasDePrecioProveedor`, `useMargenObjetivo`); si no se puede leer, vale la de fábrica. El .90 de
   CAYLA pasó a la cuenta única (`aNoventaCts`). La propuesta con IA sigue con su piso de 48 % hasta la actividad 5.
+
+## Qué se construyó (actividad 3)
+
+- **«Compré ropa» con las casillas** (`20261124174000_compra_con_rasgos_de_la_prenda.sql`, solo en local): `orden_compra_items.rasgos` (los
+  códigos de ADR-0700, en el orden de la hoja) y `precio_visto_afuera` (techo del sugerido), con sus candados y sus lectores
+  (`fn_rasgos_de_linea`, `fn_precio_visto_de_linea`). Las escribe `fn_registrar_compra_rapida_base` en la misma transacción que crea la línea,
+  con un reemplazo anclado que NO toca el bloque que ancla 20261113211000 (las pruebas que la vuelven a pegar siguen pasando). No es
+  `sugerido_motivos`: lo que la prenda tiene es de la prenda, y una prenda «a la espera de precio» también lo guarda. `fn_reglas_de_precio`
+  trae además las listas (ids). Prueba: `pnpm pruebas:compra-con-rasgos` (18 casos).
+- **La hoja de prenda** (`mi-plata/HojaPrenda.tsx`): «¿Qué tiene esta prenda?» (tres casillas a mano y la marca sola, cada una con su «+3 %»),
+  «Sugerido S/ …» que se escribe de un toque, «¿La vieron más cara afuera?» y la línea «Te quedan» de la cuenta única. Se fue «Por cada una
+  ganas» (`gananciaPorPrenda`): era la resta simple con IGV que ADR-0668 descartó (S/ 30.90 → S/ 54.90 decía «ganas S/ 24.00»; quedan S/ 15.63).
+- Aquí no se pregunta el tejido: «Tela que se nota» la marca quien compra; llega sola por el tejido donde se elige (actividad 4).
+- **Queda abierto:** «Editar orden» del escritorio reescribe las líneas sin estas columnas (`fn_orden_compra_escribir_lineas`): una compra
+  editada ahí pierde sus casillas. «Corregir la compra» no.
 
 ## Lo que falta
 

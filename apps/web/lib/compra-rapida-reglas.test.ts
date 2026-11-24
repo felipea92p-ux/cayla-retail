@@ -25,6 +25,8 @@ import {
   leerPrecioVenta,
   leerProveedoresParaComprar,
   lineasParaBase,
+  problemaAfuera,
+  rasgosDePrenda,
   marcasDeHabituales,
   categoriasDeLasLineas,
   marcasDeLasLineas,
@@ -41,7 +43,6 @@ import {
   gananciaDeCompra,
   cuadraElPapel,
   camposPrenda,
-  gananciaPorPrenda,
   textoAgregarPrenda,
   lineasDeBorrador,
   repartoParejo,
@@ -455,7 +456,8 @@ describe("algo nuevo de este proveedor", () => {
   it("la hoja de una prenda nueva pide qué es y el nombre antes que lo de siempre; la marca es opcional; un parecido sin contestar frena el nombre", () => {
     const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
     const vacio = camposPrendaNueva(nuevoVacio([]), false, b);
-    expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "costo", "venta", "tienda"]);
+    // «Qué tiene» y el precio visto afuera son opcionales (ADR-0700): están en la hoja, pero nunca frenan.
+    expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "que-tiene", "costo", "venta", "afuera", "tienda"]);
     expect(vacio.map((c) => [c.id, c.hecho, c.requerido]).slice(0, 3)).toEqual([
       ["categoria", false, true],
       ["marca", false, false],
@@ -565,14 +567,39 @@ describe("la hoja de la prenda (rediseño)", () => {
   it("la guía coincide con la línea: sin faltas hay línea; con una falta, no", () => {
     expect(lineasDeBorrador(H, lleno)).toEqual([expect.objectContaining({ cantidad: 12, costo: 17.5, venta: 39.9, destinoId: "lim", clave: "p1" })]);
     const repartido = { ...lleno, destinos: ["lim", "aqp"], reparto: { lim: "7", aqp: "5" } };
-    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinos: [] }, { reparto: { lim: "7", aqp: "4" } }]) {
+    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinos: [] }, { reparto: { lim: "7", aqp: "4" } }, { afuera: "mucho" }, { afuera: "0" }]) {
       const b = { ...repartido, ...roto };
       expect(lineasDeBorrador(H, b).length === 0).toBe(camposPrenda(b).some((c) => c.requerido && !c.hecho));
     }
   });
-  it("la ganancia por prenda y el botón que dice lo que hace", () => {
-    expect(gananciaPorPrenda(lleno)).toBe(22.4);
-    expect(gananciaPorPrenda({ costo: "20", venta: "" })).toBeNull();
+  it("lo que la prenda tiene (ADR-0700): lo marcado y la marca por la lista; Compré ropa no pregunta el tejido", () => {
+    const listas = { marcasConocidas: new Set(["m1"]), tejidosQueSeNotan: new Set(["t1"]) };
+    expect(rasgosDePrenda({ marcaId: null }, {}, listas)).toEqual([]);
+    expect(rasgosDePrenda({ marcaId: "m1" }, { rasgos: { en_tendencia: true, nadie_la_tiene: true } }, listas)).toEqual(["nadie_la_tiene", "en_tendencia", "marca_conocida"]);
+    expect(rasgosDePrenda({ marcaId: "m2" }, { rasgos: { tela_que_se_nota: true } }, listas)).toEqual(["tela_que_se_nota"]);
+  });
+  it("las casillas y el precio visto viajan con cada línea, van a la base y vuelven al corregir", () => {
+    const b = { ...lleno, destinos: ["lim", "aqp"], reparto: { lim: "7", aqp: "5" }, rasgos: { en_tendencia: true }, afuera: "79.90" };
+    const lineas = lineasDeBorrador(H, b, true, ["en_tendencia"]);
+    expect(lineas.map((l) => [l.rasgos, l.precioVistoAfuera])).toEqual([[["en_tendencia"], 79.9], [["en_tendencia"], 79.9]]);
+    expect(lineasParaBase(lineas)[0]).toMatchObject({ rasgos: ["en_tendencia"], precio_visto_afuera: 79.9 });
+    expect(borradorDeLineas(lineas)).toMatchObject({ rasgos: { nadie_la_tiene: false, en_tendencia: true, tela_que_se_nota: false }, afuera: "79.90" });
+    // Sin casillas ni precio visto, la base no recibe esas claves (queda en nulo).
+    const sinNada = lineasParaBase(lineasDeBorrador(H, lleno))[0];
+    expect(sinNada).not.toHaveProperty("rasgos");
+    expect(sinNada).not.toHaveProperty("precio_visto_afuera");
+  });
+  it("el precio visto: opcional; mal escrito frena «Agregar» y lo dice la guía", () => {
+    expect(problemaAfuera(undefined)).toBeNull();
+    expect(problemaAfuera("  ")).toBeNull();
+    expect(problemaAfuera("79.90")).toBeNull();
+    expect(problemaAfuera("mucho")).toBe("Escribe el precio que viste, en soles.");
+    expect(problemaAfuera("0")).toBe("Escribe el precio que viste, en soles.");
+    expect(problemaAfuera("6000")).toBe("Ese precio pasa de S/\u00a05 000: revísalo.");
+    expect(camposPrenda({ ...lleno, afuera: "6000" }).find((c) => c.id === "afuera")).toMatchObject({ requerido: true, hecho: false });
+    expect(camposPrenda({ ...lleno, afuera: "" }).find((c) => c.id === "afuera")).toMatchObject({ requerido: false, hecho: false });
+  });
+  it("el botón que dice lo que hace", () => {
     expect(plano(textoAgregarPrenda(lleno, false))).toBe("Agregar 12 · S/ 210.00");
     expect(plano(textoAgregarPrenda(lleno, true))).toBe("Guardar 12 · S/ 210.00");
     expect(textoAgregarPrenda({ cantidad: "", costo: "1" }, false)).toBe("Agregar");
@@ -699,7 +726,6 @@ describe("por definir", () => {
     const espera = { ...borrador, ventaPorDefinir: true };
     expect(camposPrenda(espera).find((c) => c.id === "venta")?.hecho).toBe(true);
     expect(camposPrenda(borrador).find((c) => c.id === "venta")?.hecho).toBe(false);
-    expect(gananciaPorPrenda({ costo: "25", venta: "49.90", ventaPorDefinir: true })).toBeNull();
     const h = habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true }, categorias, [])!;
     const [l] = lineasDeBorrador(h, espera);
     expect([l.venta, l.precioPorDefinir, l.categoriaId]).toEqual([null, true, null]);

@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerListas, leerReglas, REGLAS_DE_FABRICA, type ListasDePrecio, type ReglasDePrecio } from "@/lib/margen-por-rasgos";
+import { leerListas, leerReglas, leerReglasYListas, REGLAS_DE_FABRICA, type ListasDePrecio, type ReglasDePrecio, type ReglasYListas } from "@/lib/margen-por-rasgos";
 
 // Las lecturas de las reglas del precio sugerido (ADR-0700) para Configuración ▸ Precios. La cuenta vive en `lib/margen-por-rasgos.ts`.
 
@@ -23,14 +23,18 @@ export async function getReglasDePrecio(): Promise<{ datos: ReglasLeidas | null;
 }
 
 /**
- * Para el layout de la app (`ReglasDePrecioProveedor`): la regla vigente, o la de fábrica si no se puede leer. Nunca lanza: el layout no
- * tiene `error.tsx` propio, y una excepción aquí dejaría sin pantalla a toda la app por un margen.
+ * Para el layout de la app (`ReglasDePrecioProveedor`): la regla vigente con las dos listas (ids), o la de fábrica sin listas si no se puede
+ * leer. Nunca lanza: el layout no tiene `error.tsx` propio, y una excepción aquí dejaría sin pantalla a toda la app por un margen.
  */
-export async function getReglasParaLasHojas(): Promise<ReglasDePrecio> {
-  // relleno-a-proposito: sin la regla, las hojas miden contra la de fábrica (36 % y +3); el motivo queda en el registro del servidor.
-  const leida = await getReglasDePrecio().catch((e: unknown) => ({ datos: null, falla: e instanceof Error ? e.message : String(e) }));
-  if (leida.falla) console.error(`Reglas de precio: ${leida.falla}`);
-  return leida.datos?.reglas ?? REGLAS_DE_FABRICA;
+export async function getReglasParaLasHojas(): Promise<ReglasYListas> {
+  const supabase = await createClient();
+  // relleno-a-proposito: sin la regla, las hojas miden contra la de fábrica (37 % y +3 %) sin listas; el motivo queda en el registro.
+  const { data, error } = await supabase.rpc("fn_reglas_de_precio" as never).then((r) => r, (e: unknown) => ({ data: null, error: { message: String(e) } }));
+  if (error) {
+    console.error(`Reglas de precio: ${error.message}`);
+    return { reglas: REGLAS_DE_FABRICA, marcasConocidas: [], tejidosQueSeNotan: [] };
+  }
+  return leerReglasYListas(data);
 }
 
 export async function getListasDePrecio(): Promise<{ datos: ListasDePrecio | null; falla: string | null }> {

@@ -77,6 +77,7 @@
     "pruebas:asistente-preguntas": "node scripts/pruebas/asistente_preguntas.mjs",
     "pruebas:precio-propuesto": "node scripts/pruebas/precio_propuesto.mjs",
     "pruebas:reglas-de-precio": "node scripts/pruebas/reglas_de_precio.mjs",
+    "pruebas:compra-con-rasgos": "node scripts/pruebas/compra_con_rasgos.mjs",
     "pruebas:asistente-sedes": "node scripts/pruebas/asistente_sedes.mjs",
     "pruebas:asistente-preguntas-equipo": "node scripts/pruebas/asistente_preguntas_equipo.mjs",
     "pruebas:asistente-informes": "node scripts/pruebas/asistente_informes.mjs",

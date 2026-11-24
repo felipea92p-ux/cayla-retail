@@ -2838,6 +2838,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       texto: "«La vez pasada» y «Del catálogo» ponen ese número de un toque. Si es otro, escríbelo.",
     },
     {
+      id: "que-tiene",
+      ancla: "compra.que-tiene",
+      opcional: true,
+      titulo: "¿Qué tiene esta prenda?",
+      texto: "Si nadie la tiene, si está en tendencia o si la tela se nota, márcalo: cada una sube el margen. La marca suma sola si está en la lista. Es opcional.",
+    },
+    {
       id: "costo",
       ancla: "compra.costo",
       opcional: true,
@@ -2850,6 +2857,20 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "El precio de venta",
       texto: "A cuánto se venderá. La tienda lo ve como sugerido y lo puede cambiar al recibir.",
+    },
+    {
+      id: "venta-sugerido",
+      ancla: "compra.venta-sugerido",
+      opcional: true,
+      titulo: "El precio sugerido",
+      texto: "Sale de lo que pagaste y de lo que la prenda tiene. Un toque lo escribe; debajo ves cuánto te queda después de SUNAT.",
+    },
+    {
+      id: "afuera",
+      ancla: "compra.afuera",
+      opcional: true,
+      titulo: "¿La vieron más cara afuera?",
+      texto: "Si viste la misma, o una parecida, en otra tienda, escribe su precio: el sugerido no lo pasa. Es opcional.",
     },
     {
       id: "venta-espera",

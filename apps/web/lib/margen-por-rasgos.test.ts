@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { conRebajaCts, cuentaDelPrecio, IGV, pierdeConElPrecio } from "./cuenta-de-precio";
 import {
+  eleccionDeRasgos,
   leerReglas,
+  leerReglasYListas,
+  rasgosEfectivos,
   margenObjetivo,
   MARGEN_TOPE,
   precioConMargen,
@@ -135,5 +138,32 @@ describe("rebajaQueAguanta: la rebaja más grande sin perder", () => {
         expect(pierdeConElPrecio(conRebajaCts(Math.round(precio * 100), d + 1) / 100, costo)).toBe(true);
       }
     }
+  });
+});
+
+describe("lo que la prenda tiene: lo marcado, la tela por su tejido y la marca por la lista", () => {
+  const auto = (tejidoSeNota: boolean, marcaConocida: boolean) => ({ tejidoSeNota, marcaConocida });
+  it("en el orden de la hoja, sin importar el orden en que se marcó", () => {
+    expect(rasgosEfectivos({ en_tendencia: true, nadie_la_tiene: true }, auto(false, true))).toEqual(["nadie_la_tiene", "en_tendencia", "marca_conocida"]);
+  });
+  it("la tela llega por el tejido, y la persona puede quitarla o ponerla", () => {
+    expect(rasgosEfectivos({}, auto(true, false))).toEqual(["tela_que_se_nota"]);
+    expect(rasgosEfectivos({ tela_que_se_nota: false }, auto(true, false))).toEqual([]);
+    expect(rasgosEfectivos({ tela_que_se_nota: true }, auto(false, false))).toEqual(["tela_que_se_nota"]);
+  });
+  it("la marca no se marca a mano: solo la lista la pone", () => {
+    expect(rasgosEfectivos({}, auto(false, false))).toEqual([]);
+    expect(rasgosEfectivos({}, auto(false, true))).toEqual(["marca_conocida"]);
+  });
+  it("de vuelta a lo marcado: corregir una línea no pierde nada", () => {
+    const guardado = rasgosEfectivos({ nadie_la_tiene: true, tela_que_se_nota: true }, auto(false, false));
+    expect(rasgosEfectivos(eleccionDeRasgos(guardado), auto(false, false))).toEqual(guardado);
+  });
+  it("la regla y las listas como las manda la base; lo roto, vacío", () => {
+    expect(leerReglasYListas({ margen_base: 37, marcas_conocidas: ["m1", 3], tejidos_que_se_notan: null })).toMatchObject({
+      reglas: { margenBase: 37 },
+      marcasConocidas: ["m1"],
+      tejidosQueSeNotan: [],
+    });
   });
 });
