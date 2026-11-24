@@ -29,7 +29,7 @@ al catálogo en otra pestaña. La comparación por foto con IA llega después y 
   colores» ya trae la foto y lee su color (Terracota). No se creó ninguna prenda.
 - [x] **2c · La foto con el celular por QR, sin sesión (Felipe eligió B).** Construida; migración `20261124161000` SOLO en local.
 - [x] **2d · Subida completa probada en local** (con `SUPABASE_SERVICE_ROLE_KEY` del contenedor de Studio en el `.env.local`).
-- [ ] **2e · Falta para producción:** OK de Felipe para pegar la migración en producción; confirmar que Vercel tiene la llave (ya la usan terminales y crons);
+- [x] **2e · Migraciones en producción (2026-11-24, OK de Felipe), y la llave de servicio está en Vercel.** Queda: confirmar que Vercel tiene la llave (ya la usan terminales y crons);
   una limpieza de fotos nunca recogidas.
 - [x] **Igual a la maqueta, con las piezas del ERP (Felipe 2026-11-24).** Hecho, salvo oscuro y 375 px sin mirar. Lo que falta para que se vea como la maqueta: la cabecera de
   categoría delgada (5a), la lista con la foto de cada modelo más grande, la galería «¿ya la tenemos?» (3) y el aviso de Admin como chapa

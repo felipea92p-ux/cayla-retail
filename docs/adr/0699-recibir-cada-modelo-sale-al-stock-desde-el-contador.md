@@ -1,6 +1,6 @@
 # ADR-0699 — Recibir: cada modelo sale al stock desde el contador
 
-- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida y probada en local; 2c (foto por QR) y 4 (temporada y etiquetas) construidas, con migraciones `20261124161000` y `20261124165000` SOLO en local; sin PR.
+- **Fecha:** 2026-11-24 · **Estado:** actividad 1 construida y verificada en local; actividad 2 construida y probada en local; 2c (foto por QR) y 4 (temporada y etiquetas) construidas; migraciones `20261124161000` y `20261124165000` **EN PRODUCCIÓN** desde el 2026-11-24 (OK de Felipe, verificadas por md5 contra la base local); PR #2001 en borrador, sin fusionar.
 - **Rama:** `claude/mejora-recepcion-mercaderia-2c864b`. Número reservado con `pnpm reservar adr`.
 - **Relacionados:** ADR-0393 (Recibir contando primero, «Por terminar»), ADR-0645 (Contar en dos mitades: «lo nuevo queda para después»),
   ADR-0260 (los puntos de avance de Nuevo producto), ADR-0389 (guías interactivas).

@@ -70,3 +70,13 @@ tiene Recibir, así que queda como aviso, sin tarea. **Sin probar:** oscuro y 37
 En la pantalla (Playwright sin ventana): la hoja manda `p_temporada` y `p_etiqueta_ids` a la función nueva; esa llamada se cortó en la
 prueba, así que no se creó ninguna prenda. **Envíos de prueba de la sesión: ENV-000717 a 723 y 888 a 892, todos anulados.**
 **Migraciones `20261124161000` y `20261124165000` solo en local.**
+
+## 2026-11-24 · Las dos migraciones, en producción (OK de Felipe)
+
+- `20261124161000_foto_por_qr.sql` y `20261124165000_prenda_al_recibir_con_temporada_y_etiquetas.sql` aplicadas con la integración de
+  Supabase en `cayla-dynamic`, después de comprobar sus requisitos con consultas de lectura. Verificado en producción: tablas con RLS y sin
+  políticas, `authenticated` no lee la tabla ni llama a `usar_foto_por_qr`, `anon` no crea permisos, almacén `retail-fotos-por-qr` privado
+  con tope de 10 MB; `crear_foto_por_qr`, `usar_foto_por_qr` y `preparar_prenda_al_recibir_con_ficha` con el MISMO md5 que en local.
+- Vercel tiene `SUPABASE_SERVICE_ROLE_KEY` en producción (la usan las terminales): el QR funciona al publicar.
+- Las versiones en `supabase_migrations.schema_migrations` quedaron con la hora de aplicación, no con la del archivo (así registra la
+  herramienta); no se alinearon.
