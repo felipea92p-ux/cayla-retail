@@ -22,7 +22,8 @@ import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/useP
 import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
 import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
-import { boletasPorAyudante, imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
 
 type Props = {
   ok: VentaOk;
