@@ -8660,6 +8660,11 @@
   "tabla": "retail.orden_compra_items"
  },
  {
+  "conname": "orden_compra_items_rasgos",
+  "definicion": "CHECK (((rasgos IS NULL) OR (((cardinality(rasgos) >= 1) AND (cardinality(rasgos) <= 4)) AND (rasgos <@ ARRAY['nadie_la_tiene'::text, 'en_tendencia'::text, 'tela_que_se_nota'::text, 'marca_conocida'::text]))))",
+  "tabla": "retail.orden_compra_items"
+ },
+ {
   "conname": "orden_compra_items_sugerido_motivos",
   "definicion": "CHECK (((sugerido_motivos IS NULL) OR ((precio_venta_sugerido IS NOT NULL) AND ((cardinality(sugerido_motivos) >= 1) AND (cardinality(sugerido_motivos) <= 8)) AND (length(array_to_string(sugerido_motivos, '|'::text)) <= 520))))",
   "tabla": "retail.orden_compra_items"
@@ -8667,6 +8672,11 @@
  {
   "conname": "orden_compra_items_sugerido_tope",
   "definicion": "CHECK (((precio_venta_sugerido IS NULL) OR ((precio_venta_sugerido >= (0)::numeric) AND (precio_venta_sugerido <= (5000)::numeric))))",
+  "tabla": "retail.orden_compra_items"
+ },
+ {
+  "conname": "orden_compra_items_visto_afuera",
+  "definicion": "CHECK (((precio_visto_afuera IS NULL) OR ((precio_visto_afuera > (0)::numeric) AND (precio_visto_afuera <= (5000)::numeric))))",
   "tabla": "retail.orden_compra_items"
  },
  {
@@ -12260,6 +12270,21 @@
   "tabla": "retail.producto_procesos"
  },
  {
+  "conname": "producto_rasgos_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
+  "conname": "producto_rasgos_pkey",
+  "definicion": "PRIMARY KEY (producto_id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
+  "conname": "producto_rasgos_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
   "conname": "producto_taller_declarado_por_fkey",
   "definicion": "FOREIGN KEY (declarado_por) REFERENCES personas(id)",
   "tabla": "retail.producto_taller"
@@ -12853,6 +12878,31 @@
   "conname": "recomendaciones_web_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.recomendaciones_web"
+ },
+ {
+  "conname": "reglas_de_precio_base",
+  "definicion": "CHECK (((margen_base >= 20) AND (margen_base <= 60)))",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_puntos",
+  "definicion": "CHECK ((((puntos_nadie_la_tiene >= 0) AND (puntos_nadie_la_tiene <= 10)) AND ((puntos_en_tendencia >= 0) AND (puntos_en_tendencia <= 10)) AND ((puntos_tela_que_se_nota >= 0) AND (puntos_tela_que_se_nota <= 10)) AND ((puntos_marca_conocida >= 0) AND (puntos_marca_conocida <= 10))))",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_registrado_por_fkey",
+  "definicion": "FOREIGN KEY (registrado_por) REFERENCES personas(id)",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_tope",
+  "definicion": "CHECK ((((((margen_base + puntos_nadie_la_tiene) + puntos_en_tendencia) + puntos_tela_que_se_nota) + puntos_marca_conocida) <= 75))",
+  "tabla": "retail.reglas_de_precio"
  },
  {
   "conname": "rendicion_fondo_items_montos_finitos",
@@ -14488,6 +14538,71 @@
   "conname": "tickets_cobrado_si_y_solo_si_hay_venta",
   "definicion": "CHECK (((estado = 'cobrado'::text) = (venta_id IS NOT NULL)))",
   "tabla": "retail.tickets_abiertos"
+ },
+ {
+  "conname": "tickets_compartidos_cobrado_si_tomado",
+  "definicion": "CHECK (((venta_id IS NULL) OR (estado = 'tomado'::text)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_contenido_check",
+  "definicion": "CHECK (((jsonb_typeof(contenido) = 'object'::text) AND (pg_column_size(contenido) <= 65536)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_descartado_por_fkey",
+  "definicion": "FOREIGN KEY (descartado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_enviado_por_fkey",
+  "definicion": "FOREIGN KEY (enviado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_estado_check",
+  "definicion": "CHECK ((estado = ANY (ARRAY['esperando'::text, 'tomado'::text, 'descartado'::text])))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_estado_coherente",
+  "definicion": "CHECK ((((estado = 'esperando'::text) AND (tomado_por IS NULL) AND (tomado_en IS NULL) AND (apertura_id IS NULL) AND (descartado_por IS NULL) AND (descartado_en IS NULL)) OR ((estado = 'tomado'::text) AND (tomado_por IS NOT NULL) AND (tomado_en IS NOT NULL) AND (apertura_id IS NOT NULL) AND (descartado_por IS NULL) AND (descartado_en IS NULL)) OR ((estado = 'descartado'::text) AND (descartado_por IS NOT NULL) AND (descartado_en IS NOT NULL) AND (tomado_por IS NULL) AND (tomado_en IS NULL) AND (apertura_id IS NULL))))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_nombre_check",
+  "definicion": "CHECK (((char_length(btrim(nombre)) >= 1) AND (char_length(btrim(nombre)) <= 40)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_prendas_check",
+  "definicion": "CHECK (((prendas >= 1) AND (prendas <= 500)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_tomado_por_fkey",
+  "definicion": "FOREIGN KEY (tomado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_total_check",
+  "definicion": "CHECK ((total >= (0)::numeric))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.tickets_compartidos"
  },
  {
   "conname": "tienda_push_envios_clave_check",

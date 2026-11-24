@@ -56,6 +56,9 @@ export const AVIARIO = [
     tablas: [
       // Los precios que propuso la IA en «Revisar precios» (ADR-0641). Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
       "precio_propuestas",
+      // ADR-0700: lo que tiene cada prenda (nadie la tiene, en tendencia, tela que se nota) y los puntos de margen que suma cada rasgo.
+      // Asignadas en el refresco del volcado del 2026-11-24: ya estaban en producción, venían de la rama del PR #2004.
+      "producto_rasgos", "reglas_de_precio",
       "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios", "producto_fusiones",
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
@@ -272,6 +275,9 @@ export const AVIARIO = [
       // ADR-0511 (paso 2): los tickets de Vender compartidos por la tienda (de una MacBook a un celular). Son del mostrador, como `ventas`.
       // Asignada en el refresco del volcado del 2026-10-26.
       "tickets_abiertos",
+      // ADR-0701 (ADR-0511 paso 2): el ticket que la asesora arma en el piso y manda a la caja de su sede. Del mostrador, como
+      // `tickets_abiertos`. Asignada en el refresco del volcado del 2026-11-24.
+      "tickets_compartidos",
       // ADR-0008: la huella de las lecturas del padrón de la última hora, con que la base exige que el nombre de una ficha con DNI sea
       // el del padrón (20261015133000). Cuida `clientas.nombre`. Refresco del volcado del 2026-10-16.
       "padron_lecturas",

@@ -1185,6 +1185,11 @@
   "src_table": "producto_origen"
  },
  {
+  "conname": "producto_rasgos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_rasgos"
+ },
+ {
   "conname": "producto_taller_declarado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_taller"
@@ -1243,6 +1248,11 @@
   "conname": "recomendaciones_web_respondida_por_fkey",
   "ref_table": "public.personas",
   "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "reglas_de_precio_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "reglas_de_precio"
  },
  {
   "conname": "rendiciones_fondo_aprobada_por_fkey",
@@ -1438,6 +1448,21 @@
   "conname": "terminales_reactivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "terminales"
+ },
+ {
+  "conname": "tickets_compartidos_descartado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_tomado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "tickets_compartidos"
  },
  {
   "conname": "transferencia_recepciones_registrado_por_fkey",
