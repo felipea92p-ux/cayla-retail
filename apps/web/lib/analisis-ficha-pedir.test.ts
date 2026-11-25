@@ -79,9 +79,10 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
     expect(t.tipo).toBe("colores");
     if (t.tipo !== "colores") return;
     expect(t.ciudadAlla).toBe("Ciudad Dos");
-    expect(t.filas.map((f) => [f.color, f.vendidas, f.alla])).toEqual([
-      ["Arena", 5, 1],
-      ["Chocolate", 4, 0],
+    // Cada color dice cuántas te quedan (Felipe 2026-11-25): en lo agotado, 0.
+    expect(t.filas.map((f) => [f.color, f.quedan, f.vendidas, f.alla])).toEqual([
+      ["Arena", 0, 5, 1],
+      ["Chocolate", 0, 4, 0],
     ]);
     expect([t.total, t.totalAlla]).toEqual([9, 1]);
   });
@@ -100,6 +101,8 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
     expect(t.tipo).toBe("quedan");
     if (t.tipo !== "quedan") return;
     expect(t.tallas).toEqual(["S", "M"]);
+    expect(t.encabezados).toEqual(["S", "M"]);
+    expect(t.titulo).toBe("Te quedan por talla y color");
     expect(t.filas.map((f) => [f.color, f.vendio, f.celdas.map((c) => `${c.estado}:${c.quedan}`)])).toEqual([
       ["Negro", 12, ["agotada:0", "queda:4"]],
       ["Blanco", 0, ["nunca:0", "queda:1"]],
@@ -107,6 +110,25 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
     expect(textoCeldaQueda("Negro", t.filas[0]!.celdas[0]!)).toBe("Negro S: se vendió y ya no hay");
     expect(textoCeldaQueda("Blanco", t.filas[1]!.celdas[1]!)).toBe("Blanco M: queda 1");
     expect(textoCeldaQueda("Blanco", t.filas[1]!.celdas[0]!)).toBe("Blanco S: nunca hubo");
+  });
+
+  it("con una sola talla, la columna se llama «Te quedan» (la talla única no dice nada)", () => {
+    const unica = armarModelos(
+      [
+        prenda({ productoId: "un", nombre: "Blusa Prueba", color: "Negro", piso: 2, vendidas30: 9, semanas: [0, 0, 0, 0, 0, 0, 4, 5] }),
+        prenda({ productoId: "un", nombre: "Blusa Prueba", color: "Rojo", piso: 0, vendidas30: 4, semanas: [0, 0, 0, 0, 0, 0, 2, 2] }),
+      ],
+      HOY,
+    )[0]!;
+    const t = fichaDePedir(unica, ctx())!.tabla;
+    expect(t.tipo).toBe("quedan");
+    if (t.tipo !== "quedan") return;
+    expect(t.titulo).toBe("Te quedan por color");
+    expect(t.encabezados).toEqual(["Te quedan"]);
+    expect(t.filas.map((f) => [f.color, f.celdas[0]!.quedan, f.celdas[0]!.estado])).toEqual([
+      ["Negro", 2, "queda"],
+      ["Rojo", 0, "agotada"],
+    ]);
   });
 
   it("lo que no está en «Qué pedir» (le alcanza hasta Navidad o no se vende) sigue con su ficha de siempre", () => {

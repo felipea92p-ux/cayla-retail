@@ -514,6 +514,9 @@ llevan datos reales):
    TIENES, y «LIMA TIENE 2» con sus colores o «y los 6 que te faltan»; lo que viene en camino va antes); la tabla es limpia (lo agotado, por color
    con lo que tiene la otra tienda; lo que se acaba, cuántas te quedan por talla y color, con 0 en rojo donde se vendió y ya no hay); y el botón es
    «Pedir a Lima», negro, sin «Comprar». Lo que no está en «Qué pedir» sigue con su ficha de siempre. Sin migración.
+   **Act. 2026-11-25** (Felipe: «en el detalle no indica cuánto me queda de cada color»): la tabla de lo agotado suma la columna TE QUEDAN (0 en
+   rojo en cada color, con su total) y, en un modelo de una sola talla, la columna de «Te quedan» ya no se llama por la talla («ESTÁNDAR»):
+   se llama TE QUEDAN y el título dice «Te quedan por color».
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su
