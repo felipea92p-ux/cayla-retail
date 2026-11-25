@@ -529,3 +529,27 @@ TRU, a 1600 y 375 px, en claro y oscuro (sin errores en consola); `/milimetro au
 
 **Queda abierto.** Si «Comprar todas» de «Se acaba» también se va; marcar los agotados que fueron compras de una sola vez (hoy no hay cómo, y
 salen en «Ya se agotaron» hasta 8 semanas); probarlo con una encargada real.
+
+### Act. 2026-11-25 (b) — Lo agotado, por talla y color, en casillas de dos pisos
+
+**Problema.** La ficha de un modelo agotado decía lo vendido y lo que te queda solo por color. Felipe: «¿es por talla y color cuánto quedan?»;
+y, al ver un cuadro con lo vendido por talla: «no entiendo dónde veo cuánto me queda de cada color». Hacían falta las dos cosas, talla por
+talla, y que se entendieran sin explicar.
+
+**Decisión (Felipe, mirando tres rondas de maquetas con datos de TRU: `docs/maquetas/analisis-pedir-sin-comprar-2026-11/alternativas.html`,
+`quedan.html` y `mejor-b.html`).** Eligió la «B2»: una fila por color y, por cada talla y el total, una **casilla de dos pisos**: arriba cuántas
+te quedan (0 en rojo), abajo cuántas vendiste en las 8 semanas. Una clave arriba de la tabla dice qué es cada piso. Lo que tiene la otra tienda
+**sale de la tabla** y va en su propio bloque («Arequipa tiene 7»), color por talla, para que no se mezcle con lo tuyo. Descartó el cuadro con
+una sola columna «Te quedan» por color, las dos líneas por color y los dos cuadros separados.
+
+**Reglas.** Filas: los colores que se vendieron en las 8 semanas, del que más al que menos. Columnas: las tallas que se vendieron (una que nunca
+se vendió no suma una columna de «—»); con una sola talla, solo la casilla del total. El bloque de la otra tienda va primero con los colores que
+más vendiste y, entre los demás, con lo que más tiene. La ficha de lo que se acaba no cambia.
+
+**Cómo.** `tablaDosPisos` y `textoCasillaDosPisos` en `lib/analisis-ficha-pedir.ts` (la tabla `tipo: "dosPisos"` reemplaza a `"colores"`), con
+sus pruebas; `TablaDosPisos` y `CasillaDos` en `components/analisis/FichaPrenda.tsx`; las casillas, en `app/estilos/analisis-pedir.css` (la
+placa, con el piso de arriba teñido del rojo del dato). Sin migración.
+
+**Cómo se verificó.** Pruebas de Análisis (483); en el navegador, con las cifras reales de TRU de Capa de Encaje (2 tallas), Pantalon Zenit
+(3 tallas), Blusa Alba (Arequipa tiene) y Top Tokio (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores y sin que nada se salga
+de la hoja; `docs/milimetro/auditorias/2026-11-25-analisis-agotado-dos-pisos.md`.

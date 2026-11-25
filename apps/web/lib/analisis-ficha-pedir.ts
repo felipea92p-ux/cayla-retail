@@ -5,8 +5,9 @@
 // 8 semanas; la ficha cortaba en 30 días justo lo que más se vendió), «Ya no hay.» sin decir desde cuándo, «EN LIM» donde la tarjeta dice
 // «Lima tiene 2», una tabla que repetía tres veces «sin stock» y el botón «Comprar», que ya se fue de las tarjetas.
 // LA REGLA. Si el modelo está en «Qué pedir», su ficha cuenta lo mismo que su tarjeta y agrega el detalle que la tarjeta no tiene:
-//   · lo agotado: «Se agotó el 20 nov.»; VENDISTE 23 en 37 días, TIENES 0, LIMA TIENE 2 (con qué colores); y lo vendido por color en las
-//     mismas 8 semanas, con lo que tiene la otra tienda de cada color;
+//   · lo agotado: «Se agotó el 20 nov.»; VENDISTE 23 en 37 días, TIENES 0, LIMA TIENE 2 (con qué colores); y, por talla y color, una casilla
+//     de dos pisos: arriba cuántas te quedan, abajo cuántas vendiste en esas 8 semanas (Felipe 2026-11-25, la «B2» de
+//     `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`); lo que tiene la otra tienda va aparte, color por talla;
 //   · lo que se acaba: «Se acaba el 6 dic.»; TIENES 68, VENDES 41 por semana, LIMA TIENE 17 (y cuántos de los que te faltan); y cuántas te
 //     quedan por talla y color, con 0 en rojo donde se vendió y ya no hay.
 // Sin «Comprar» (solo llevaba a Mis compras, sin la prenda): el botón de la ficha es «Pedir a Lima». Lógica pura; la dibuja `FichaPrenda`.
@@ -21,17 +22,30 @@ import { fechaCorta } from "./motor-demanda-reglas";
 import { compararTallas } from "./tallas";
 
 /**
- * Una fila de la tabla de lo agotado: un color, cuántas te quedan aquí (Felipe 2026-11-25: «no indica cuánto me queda de cada color»; en
- * lo agotado es 0, y se dice), lo que vendió en 8 semanas y lo que tiene la otra tienda (null si no se muestra).
+ * Una casilla de lo agotado, de dos pisos (Felipe 2026-11-25: «no indica cuánto me queda de cada color», y lo quiso por talla y color): arriba,
+ * cuántas te quedan aquí (en lo agotado, 0: y se dice); abajo, cuántas vendiste en las 8 semanas.
  */
-export type FilaColorAgotado = { color: string; punto: string | null; quedan: number; vendidas: number; alla: number | null };
+export type CasillaDosPisos = { quedan: number; vendidas: number };
+/** Un color de lo agotado: una casilla por talla y la de su total. */
+export type FilaDosPisos = { color: string; punto: string | null; casillas: CasillaDosPisos[]; total: CasillaDosPisos };
+/** Lo que tiene la otra tienda, color por talla (`talla` null si el modelo tiene una sola). Va en su bloque: no se mezcla con lo tuyo. */
+export type PiezaOtraTienda = { color: string; punto: string | null; talla: string | null; cantidad: number };
 
 /** Una celda de «Te quedan»: cuántas quedan (`queda`), 0 donde se vendió y ya no hay (`agotada`) o «—» donde nunca hubo (`nunca`). */
 export type CeldaQueda = { talla: string; quedan: number; estado: "queda" | "agotada" | "nunca" };
 export type FilaQueda = { color: string; punto: string | null; vendio: number; celdas: CeldaQueda[] };
 
 export type TablaFichaPedir =
-  | { tipo: "colores"; titulo: string; nota: string; ciudadAlla: string | null; filas: FilaColorAgotado[]; total: number; totalAlla: number }
+  | {
+      tipo: "dosPisos";
+      titulo: string;
+      nota: string;
+      /** Las tallas que se vendieron (con una sola talla, ninguna: la casilla del total lo dice todo). */
+      tallas: string[];
+      filas: FilaDosPisos[];
+      /** Lo que tiene la otra tienda que más tiene; null si nadie más lo tiene. */
+      otra: { ciudad: string; total: number; piezas: PiezaOtraTienda[] } | null;
+    }
   | {
       tipo: "quedan";
       titulo: string;
@@ -115,32 +129,50 @@ function terceraCifra(m: ModeloAnalisis, tipo: FichaPedir["tipo"], ctx: Contexto
   return { etiqueta, valor: String(alla.stock), detalle };
 }
 
-/** Lo agotado, por color: lo vendido en las 8 semanas y, si otra tienda tiene el modelo, cuántas de cada color tiene. */
-function tablaColores(m: ModeloAnalisis, ctx: Contexto): TablaFichaPedir {
+const vendidasEn8 = (v: PrendaAnalisis): number => v.semanas.reduce((s, n) => s + Math.max(0, n), 0);
+const casillaDe = (vs: readonly PrendaAnalisis[]): CasillaDosPisos => ({
+  quedan: vs.reduce((s, v) => s + totalEnTienda(v), 0),
+  vendidas: vs.reduce((s, v) => s + vendidasEn8(v), 0),
+});
+
+/**
+ * Lo agotado, por talla y color (la «B2» que eligió Felipe el 2026-11-25): una fila por cada color que se vendió en las 8 semanas, del que
+ * más al que menos; una columna por cada talla que se vendió (la que nunca se vendió no suma una columna de «—»); en cada casilla, arriba lo
+ * que te queda y abajo lo que vendiste. Lo de la otra tienda que más tiene va aparte, color por talla: primero los colores que más vendiste
+ * y, entre los demás, lo que más tiene.
+ */
+function tablaDosPisos(m: ModeloAnalisis, ctx: Contexto): TablaFichaPedir {
+  const vs = tallasDe(m);
+  const unaSola = new Set(vs.map((v) => v.talla)).size <= 1;
+  const vendidasDelColor = new Map<string, number>();
+  for (const v of vs) vendidasDelColor.set(v.color, (vendidasDelColor.get(v.color) ?? 0) + vendidasEn8(v));
+  const colores = [...vendidasDelColor.entries()].filter(([, n]) => n > 0).map(([c]) => c);
+  const enLaTabla = vs.filter((v) => colores.includes(v.color));
+  const tallas = unaSola ? [] : [...new Set(enLaTabla.filter((v) => vendidasEn8(v) > 0 || totalEnTienda(v) > 0).map((v) => v.talla))].sort(compararTallas);
+  const filas = colores
+    .map((color): FilaDosPisos => {
+      const delColor = enLaTabla.filter((v) => v.color === color);
+      return { color, punto: puntoDe(delColor), casillas: tallas.map((t) => casillaDe(delColor.filter((v) => v.talla === t))), total: casillaDe(delColor) };
+    })
+    .sort((a, b) => b.total.vendidas - a.total.vendidas || a.color.localeCompare(b.color, "es"));
+
   const alla = otraSedeQueLaTiene(m.otras);
   const sede = alla ? ctx.sedes.find((s) => s.id === alla.sedeId) : undefined;
-  const colores = [...new Set(tallasDe(m).map((v) => v.color))];
-  const filas = colores
-    .map((color) => {
-      const vs = tallasDe(m).filter((v) => v.color === color);
-      return {
-        color,
-        punto: puntoDe(vs),
-        quedan: vs.reduce((s, v) => s + totalEnTienda(v), 0),
-        vendidas: vs.reduce((s, v) => s + v.semanas.reduce((t, n) => t + Math.max(0, n), 0), 0),
-        alla: sede ? vs.reduce((s, v) => s + (v.otras.find((o) => o.sedeId === sede.id)?.stock ?? 0), 0) : null,
-      };
-    })
-    .filter((f) => f.vendidas > 0 || (f.alla ?? 0) > 0)
-    .sort((a, b) => b.vendidas - a.vendidas || (b.alla ?? 0) - (a.alla ?? 0) || a.color.localeCompare(b.color, "es"));
+  const vendidasDe = (color: string) => vendidasDelColor.get(color) ?? 0;
+  const piezas = sede
+    ? vs
+        .map((v) => ({ v, cantidad: v.otras.find((o) => o.sedeId === sede.id)?.stock ?? 0 }))
+        .filter((x) => x.cantidad > 0)
+        .sort((a, b) => vendidasDe(b.v.color) - vendidasDe(a.v.color) || b.cantidad - a.cantidad || a.v.color.localeCompare(b.v.color, "es") || compararTallas(a.v.talla, b.v.talla))
+        .map(({ v, cantidad }): PiezaOtraTienda => ({ color: v.color, punto: puntoDe([v]), talla: unaSola ? null : v.talla, cantidad }))
+    : [];
   return {
-    tipo: "colores",
-    titulo: "Por color",
-    nota: `en ${SEMANAS_AGOTADOS} semanas; ya no te queda ninguno`,
-    ciudadAlla: sede?.ciudad ?? null,
+    tipo: "dosPisos",
+    titulo: unaSola ? "Por color" : "Por talla y color",
+    nota: `en ${ctx.miSede.ciudad}`,
+    tallas,
     filas,
-    total: filas.reduce((s, f) => s + f.vendidas, 0),
-    totalAlla: filas.reduce((s, f) => s + (f.alla ?? 0), 0),
+    otra: sede && piezas.length > 0 ? { ciudad: sede.ciudad, total: piezas.reduce((s, p) => s + p.cantidad, 0), piezas } : null,
   };
 }
 
@@ -201,7 +233,7 @@ export function fichaDePedir(m: ModeloAnalisis, ctx: Contexto): FichaPedir | nul
         { etiqueta: "Tienes", valor: "0", detalle: `en ${ctx.miSede.ciudad}` },
         terceraCifra(m, "agotado", ctx),
       ],
-      tabla: tablaColores(m, ctx),
+      tabla: tablaDosPisos(m, ctx),
       pedirA,
     };
   }
@@ -234,3 +266,8 @@ export function textoCeldaQueda(color: string, c: CeldaQueda): string {
   return `${nombre}: ${c.quedan === 1 ? "queda 1" : `quedan ${c.quedan}`}`;
 }
 
+/** Para el lector de pantalla y el globito de una casilla de lo agotado: «Blanco S: te quedan 0, vendiste 2», «Vino: te queda 1, vendiste 2». */
+export function textoCasillaDosPisos(color: string, talla: string | null, c: CasillaDosPisos): string {
+  const nombre = [color || "Sin color", talla].filter(Boolean).join(" ");
+  return `${nombre}: te ${c.quedan === 1 ? "queda 1" : `quedan ${c.quedan}`}, vendiste ${c.vendidas}`;
+}
