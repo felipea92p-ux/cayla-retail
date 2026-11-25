@@ -571,4 +571,5 @@ no se vendió ni queda, es un 0 tenue (no falta nada). La tabla vieja de lo que 
 
 Felipe: «en la leyenda dice que arriba será rojo, pero cuando hay data es blanco». La clave mostraba «0 / 2» con el piso de arriba teñido y
 «Arriba: te quedan» en rojo, y el rojo solo marca lo que se vendió y ya no hay. Ahora la muestra lleva el piso de arriba neutro («1 / 2», como
-cuando te queda algo) y, aparte, un «0» rojo con «En rojo: se vendió y ya no te queda». En el celular, una debajo de la otra.
+cuando te queda algo) y, aparte, un «0» rojo con «Se vendió y ya no hay». Y en una sola línea, con una muestra chica (Felipe, al verla en
+tres renglones: «esto es mucho espacio ocupado»): en la computadora entra entera; en el celular, en dos líneas cortas.

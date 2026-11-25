@@ -21,6 +21,6 @@ Resumen: **0 graves · 0 medias · 0 leves**.
 
 ## La clave, corregida (rama `claude/clave-dos-pisos`)
 
-- La muestra («1 / 2») lleva el piso de arriba en tinta, sin tinte: dice lo mismo que una casilla con algo.
-- El rojo tiene su propia muestra de un piso (44 × 32 px, «0» de 16 px en rojo profundo sobre su tinte: 6,99) y su frase de 8 palabras.
-- A 375 px los dos pares de la clave van uno debajo del otro (8 px entre ellos); en escritorio, también (no caben lado a lado sin apretar).
+- La muestra («1 / 2», 22 × 30 px, letra de 13 px) lleva el piso de arriba en tinta, sin tinte: dice lo mismo que una casilla con algo.
+- El rojo tiene su propia muestra de un piso (22 × 18 px, «0» en rojo profundo sobre su tinte: 6,99) y su frase de 5 palabras.
+- La clave es una línea de leyenda (13 px, `secundario`): en escritorio entra entera en los 518 px de la tabla; a 375 px, en dos líneas cortas.
