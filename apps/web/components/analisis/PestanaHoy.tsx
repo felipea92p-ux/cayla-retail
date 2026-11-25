@@ -11,7 +11,8 @@ import { plural } from "@/lib/analisis-reglas";
 import { prendasSinSalir } from "@/lib/analisis-piso";
 import { fraseAcaba } from "@/lib/analisis-acaba";
 import { plataParada } from "@/lib/analisis-quietas";
-import { diasANavidad, fraseAlcance, modelosQueNoLlegan } from "@/lib/analisis-pedir";
+import { diasANavidad, fraseAlcance, queHayQuePedir } from "@/lib/analisis-pedir";
+import { ordenPorDefecto } from "@/lib/analisis-orden";
 import { conLoRegistrado, estadoSinNada, quietasHoy, seAcabanHoy, vacioQuietasHoy } from "@/lib/analisis-hoy";
 
 // Análisis, cara B «Una respuesta por pregunta» (ADR-0357, act. 2026-11-21): «Hoy». Cuatro tarjetas, una por pregunta de la tienda —¿qué
@@ -35,8 +36,9 @@ export function PestanaHoy() {
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
   const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
   const hastaNavidad = diasANavidad(datos.hoy);
-  // Por modelo, como su pestaña (Felipe 2026-11-21: el tipo es un filtro, no la tarjeta).
-  const piden = modelosQueNoLlegan(prendas, filtros, diasDeVentas, hastaNavidad, "vende").map((a) => a.modelo);
+  // Por modelo, como su pestaña (Felipe 2026-11-21: el tipo es un filtro, no la tarjeta), y con sus dos partes: lo que ya se agotó y lo
+  // que se acaba antes de Navidad (Felipe 2026-11-24).
+  const piden = queHayQuePedir(prendas, filtros, diasDeVentas, datos.hoy, ordenPorDefecto("pedir")).todos;
 
   return (
     <div className="an-resp4" data-guia="analisis.preguntas">

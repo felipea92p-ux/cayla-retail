@@ -12,6 +12,7 @@ import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import { BotonFoto, BotonQuitarFoto, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
+import type { FotoInicial } from "@/lib/recepcion-foto-reglas";
 import { pixelesDeLaFoto } from "@/components/alta-producto/pixelesDeLaFoto";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta } from "@/lib/color-alta-reglas";
@@ -161,6 +162,8 @@ export function FotosYColores({
   catalogo,
   enCurso,
   yaTiene,
+  archivosIniciales,
+  onArchivosIniciales,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -188,6 +191,11 @@ export function FotosYColores({
   /** Al sumar a una prenda que YA existe (Recibir): los colores que ya tiene. Su tarjeta lo dice y no pide foto; la × solo la quita de lo
    *  que llegó (no le borra nada a la prenda). */
   yaTiene?: ReadonlySet<string>;
+  /** Fotos tomadas antes de abrir la hoja (Recibir ▸ Contar, ADR-0699): entran como si se acabaran de elegir, una sola vez. Si allá ya se
+   *  preparó su versión sin fondo (`ia`), entra con ella y no se le pide otra a la IA (se paga por pedido). */
+  archivosIniciales?: readonly FotoInicial[];
+  /** Ya entraron: quien las pasó deja de pasarlas, para que volver a este paso no las sume dos veces. */
+  onArchivosIniciales?: () => void;
 }) {
   const { pendientes, setPendientes, encolar, asentada, marcarAsentada, abrirVista, soltarVista } = enCurso;
   const [porQue, setPorQue] = useState<string | null>(null);
@@ -265,7 +273,8 @@ export function FotosYColores({
     try {
       let conIA = p;
       // El interruptor de AHORA, no el del render que soltó la foto (que pudo ser de otro paso, ya desmontado).
-      const conLaIA = Boolean(catalogo?.encendidoAhora());
+      // La que ya trae su versión sin fondo (la preparó Recibir ▸ Contar) no se vuelve a pedir.
+      const conLaIA = Boolean(catalogo?.encendidoAhora()) && !p.ia;
       if (catalogo && conLaIA) {
         const png = await catalogo.prepararFoto(p.archivo, { callar });
         llego = Boolean(png);
@@ -282,7 +291,7 @@ export function FotosYColores({
       const lectura = leerColores(await pixelesDeLaFoto(conIA.ia?.usar ? conIA.ia.png : p.archivo), cartaRef.current);
       // Se encendió la IA mientras se leía sin ella: otra vez, con la IA (si no, esta foto quedaría sin ella y habría que subirla de nuevo).
       // Solo si la foto sigue ahí: una que se quitó mientras se leía no se paga.
-      if (!conLaIA && catalogo?.encendidoAhora() && enCurso.sigue(p.clave)) {
+      if (!conLaIA && !p.ia && catalogo?.encendidoAhora() && enCurso.sigue(p.clave)) {
         cambiar(p.clave, { estado: "ia" });
         return leer({ ...p, estado: "ia" }, { callar });
       }
@@ -323,21 +332,21 @@ export function FotosYColores({
     return () => enCurso.registrarAlEncenderIA(null);
   });
 
-  function agregar(archivos: File[]) {
+  function agregar(archivos: File[], yaPreparadas: readonly (FotoInicial["ia"] | undefined)[] = []) {
     if (disabled || !archivos.length) return;
     // La tarjeta nace en el MISMO clic, «abriendo», y ya cuenta como pendiente: «Listo» y «Crear producto» la esperan (/chaos de la revisión,
     // 2026-11-16: sin ella, apretar «Listo» mientras la foto se abría cerraba la hoja y la foto se perdía sin aviso).
     const nuevas: Pendiente[] = archivos.map((archivo) => ({ clave: crypto.randomUUID(), archivo, vista: "", estado: "abriendo" }));
     setPendientes((ps) => [...ps, ...nuevas]);
-    void abrirTodas(nuevas);
+    void abrirTodas(nuevas, yaPreparadas);
   }
 
   // Cada foto se lee y se abre por su lado (`abrirFotoElegida`): la que abre sigue al instante, sin esperar a una lenta de iCloud, y queda
   // copiada en memoria («Crear producto» la sube aunque el archivo de origen ya no exista). La que no abre se va, sin tarjeta rota ni error en
   // inglés, y todas las que no abrieron se dicen en UN aviso.
-  async function abrirTodas(nuevas: Pendiente[]) {
+  async function abrirTodas(nuevas: Pendiente[], yaPreparadas: readonly (FotoInicial["ia"] | undefined)[] = []) {
     const malas = await Promise.all(
-      nuevas.map(async (p) => {
+      nuevas.map(async (p, i) => {
         const r = await abrirFotoElegida(p.archivo);
         if ("falla" in r) {
           cambiar(p.clave, null);
@@ -345,8 +354,15 @@ export function FotosYColores({
         }
         const vista = URL.createObjectURL(r.archivo);
         abrirVista(vista);
-        const abierta: Pendiente = { ...p, archivo: r.archivo, vista, estado: catalogo?.encendidoAhora() ? "ia" : "leyendo" };
-        cambiar(p.clave, { archivo: abierta.archivo, vista, estado: abierta.estado });
+        const lista = yaPreparadas[i];
+        let ia: Pendiente["ia"];
+        if (lista) {
+          const vistaIA = URL.createObjectURL(lista.png);
+          abrirVista(vistaIA);
+          ia = { png: lista.png, vistaIA, vistaReal: vista, usar: lista.usar };
+        }
+        const abierta: Pendiente = { ...p, archivo: r.archivo, vista, ia, estado: catalogo?.encendidoAhora() && !ia ? "ia" : "leyendo" };
+        cambiar(p.clave, { archivo: abierta.archivo, vista, estado: abierta.estado, ...(ia ? { ia } : {}) });
         void leer(abierta);
         return [];
       }),
@@ -354,6 +370,20 @@ export function FotosYColores({
     const aviso = avisoDeFotosMalas(malas.flat());
     if (aviso) avisar.error(aviso.titulo, { detalle: aviso.detalle });
   }
+
+  // La foto que se tomó al contar entra sola al abrir la hoja: se lee su color como cualquier otra (ADR-0699).
+  const inicialesUsadas = useRef(false);
+  useEffect(() => {
+    if (inicialesUsadas.current || !archivosIniciales?.length) return;
+    inicialesUsadas.current = true;
+    agregar(
+      archivosIniciales.map((f) => f.archivo),
+      archivosIniciales.map((f) => f.ia),
+    );
+    onArchivosIniciales?.();
+    // Solo al montar: `agregar` cambia en cada render y la foto entra una vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function soltar(e: DragEvent) {
     e.preventDefault();

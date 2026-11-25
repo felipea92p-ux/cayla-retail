@@ -82,7 +82,7 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.acaba-tarjetas",
       opcional: true,
       titulo: "Un modelo por tarjeta",
-      texto: "Cada tarjeta dice cuántos días le quedan, qué talla falta y qué viene en camino. Tócala para ver su ficha, o pídela a otra sede antes de quedarte sin nada.",
+      texto: "Cada tarjeta dice cuántos días le quedan, qué talla falta y qué viene en camino. Tócala para ver su ficha: ahí la pides a otra sede antes de quedarte sin nada.",
     },
     {
       id: "ficha",
@@ -105,14 +105,14 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.ficha-tallas",
       opcional: true,
       titulo: "Qué talla y qué color",
-      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Lo marcado con «!» se vendió y ya no tienes: es lo primero que falta.",
+      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Si hay que pedirla, cada celda dice cuántas te quedan: un 0 en rojo se vendió y ya no tienes.",
     },
     {
       id: "ficha-acciones",
       ancla: "analisis.ficha-acciones",
       opcional: true,
       titulo: "Qué puedes hacer",
-      texto: "Comprar, pedir a otra sede o verla en Existencias: cada botón te lleva a su pantalla. Desde la ficha no se guarda nada.",
+      texto: "Pedir a otra sede o verla en Existencias: cada botón te lleva a su pantalla. Desde la ficha no se guarda nada.",
     },
     {
       id: "nose",
@@ -167,11 +167,18 @@ export const GUIA_ANALISIS: Guia = {
       texto: "Arriba, cuántos modelos no te alcanzan hasta Navidad, con un atajo al Plan de campaña. Elige un tipo en los filtros y ves también para cuánto le alcanza al tipo entero y qué tallas se llevan.",
     },
     {
+      id: "pedir-agotados",
+      ancla: "analisis.pedir-agotados",
+      opcional: true,
+      titulo: "Ya se agotaron",
+      texto: "Lo que ya no tiene ni una prenda aquí: cuándo se agotó y cuántas vendiste en cuántos días. Si se vendió todo rápido, la prueba funcionó. Se ven 10; «Mostrar», junto a «Ordenar por», cambia cuántas.",
+    },
+    {
       id: "pedir-tarjetas",
       ancla: "analisis.pedir-tarjetas",
       opcional: true,
-      titulo: "Un modelo por tarjeta",
-      texto: "Un modelo por tarjeta: para cuántos días te alcanza, qué talla falta y qué viene en camino. «Comprar» te lleva a comprarlo; tócala para ver su ficha.",
+      titulo: "Se acaban antes de Navidad",
+      texto: "Lo que todavía tienes pero no llega a Navidad: hasta qué día te alcanza, cuánto tienes y cuánto vendes por semana. Con «Ordenar por ▸ Lo que más se vende y quedan pocos» va arriba, con lo que se acaba en 2 semanas primero.",
     },
     {
       id: "fin",

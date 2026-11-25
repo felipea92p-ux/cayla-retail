@@ -23,6 +23,8 @@ export type ContextoAnalisis = {
   setLiquidarDesde: (dias: number) => void;
   /** El orden elegido en cada pestaña (`analisis-orden.ts`): la píldora «Ordenar por» de la barra. */
   orden: Record<VistaAnalisis, string>;
+  /** «Mostrar» de «Qué pedir»: cuántas tarjetas de cada parte («10», «20», «50» o «todas»; `MOSTRAR_PEDIR`). */
+  mostrarPedir: string;
   /** Los filtros de la barra (`analisis-filtros.ts`): «Qué pedir» cuenta talla por talla si hay talla o color puestos. */
   filtros: FiltrosAnalisis;
   /** Una tienda por id (para «AQP tiene 3» y «o pedir a Arequipa»). */

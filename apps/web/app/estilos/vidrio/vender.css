@@ -70,6 +70,24 @@
     font-size: 2.25rem;
   }
 }
+/* La hoja del ticket con el teléfono acostado (844 × 390): la cabecera, la lista (que no baja de 160 px) y el pie fijo no caben en los
+   ~360 px de la hoja, que es de alto fijo y corta lo que sobra: «Cobrar» y «Confirmar cobro» quedaban fuera de la pantalla, sin forma
+   de llegar a ellos (2026-11-24). Bajo 500 px de alto la hoja corre ENTERA, como cualquier otra: la lista toma su alto natural y el pie
+   va al final, a un desplazamiento. De pie ningún teléfono baja de 500 px, así que esto solo cambia el teléfono acostado. */
+@media (max-height: 500px) {
+  .pv-ticket[data-en-hoja] {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .pv-ticket[data-en-hoja] > form {
+    flex: none;
+  }
+  .pv-ticket[data-en-hoja] > form > [data-sin-reserva] {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+}
 
 /* ---------- La tarjeta de prenda: «A · Placa» (Felipe 2026-11-02, a las pocas horas de elegir «B · Foto al aire») ----------
    Con fotos reales, la foto al aire no funcionaba: cada foto trae su fondo (blanco, beige, celeste), así que unas se perdían contra el fondo

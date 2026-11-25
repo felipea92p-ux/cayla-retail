@@ -432,8 +432,9 @@ export function RecibirContando({
         </>
       )}
 
-      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
-      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío.
+          Mientras cuenta (ADR-0699, Felipe 2026-11-24) no ocupa una franja: va detrás del «?» de la chapa «Admin · queda a tu nombre». */}
+      {estado === "en_camino" && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
         <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
           Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
         </Aviso>

@@ -1,0 +1,820 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recibir: terminar en el contador</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+/* Maqueta de Recibir ▸ Contar con los tokens del ERP (globals.css y tema.css). Dos columnas: el envío a la izquierda, un modelo a la vez a la derecha. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --secundario: color-mix(in oklab, #1a1a18 80%, transparent); --tenue: color-mix(in oklab, #1a1a18 66%, transparent);
+  --rojo: #b8412d; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --borde-control: #96786a;
+  --vidrio: color-mix(in srgb, #ffffff 55%, transparent); --sombra: color-mix(in srgb, #1a1a18 10%, transparent);
+  --verde-suave: color-mix(in srgb, #48603f 14%, transparent); --ambar-suave: color-mix(in srgb, #c08a1e 16%, transparent);
+  --rojo-suave: color-mix(in srgb, #b8412d 10%, transparent); --pizarra-suave: color-mix(in srgb, #4c5d6e 12%, transparent);
+  --f-titulo: "EB Garamond", ui-serif, Georgia, serif;
+  --f-texto: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34;
+  --tinta: #f5f0e8; --secundario: color-mix(in oklab, #f5f0e8 80%, transparent); --tenue: color-mix(in oklab, #f5f0e8 66%, transparent);
+  --rojo: #e07a63; --verde: #9cbf8c; --ambar: #e0b25c; --pizarra: #9db2c6; --borde-control: #8a7a6e;
+  --vidrio: color-mix(in srgb, #ffffff 5%, transparent); --sombra: color-mix(in srgb, #000 40%, transparent);
+  --verde-suave: color-mix(in srgb, #9cbf8c 16%, transparent); --ambar-suave: color-mix(in srgb, #e0b25c 16%, transparent);
+  --rojo-suave: color-mix(in srgb, #e07a63 14%, transparent); --pizarra-suave: color-mix(in srgb, #9db2c6 14%, transparent); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34;
+  --tinta: #f5f0e8; --secundario: color-mix(in oklab, #f5f0e8 80%, transparent); --tenue: color-mix(in oklab, #f5f0e8 66%, transparent);
+  --rojo: #e07a63; --verde: #9cbf8c; --ambar: #e0b25c; --pizarra: #9db2c6; --borde-control: #8a7a6e;
+  --vidrio: color-mix(in srgb, #ffffff 5%, transparent); --sombra: color-mix(in srgb, #000 40%, transparent);
+  --verde-suave: color-mix(in srgb, #9cbf8c 16%, transparent); --ambar-suave: color-mix(in srgb, #e0b25c 16%, transparent);
+  --rojo-suave: color-mix(in srgb, #e07a63 14%, transparent); --pizarra-suave: color-mix(in srgb, #9db2c6 14%, transparent); color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--crema); color: var(--tinta); font: 15px/1.45 var(--f-texto); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.envoltura { max-width: 1360px; margin: 0 auto; display: grid; gap: 18px; }
+
+.barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.barra p { margin: 0; color: var(--secundario); font-size: 14px; max-width: 66ch; }
+.alternar { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--hueso); gap: 2px; }
+.alternar button { border: 0; background: transparent; padding: 8px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--secundario); }
+.alternar button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 3px var(--sombra); }
+.reiniciar { border: 1px solid var(--borde-control); background: transparent; border-radius: 999px; padding: 7px 14px; font-size: 13px; }
+
+.cabecera { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 18px; }
+.ceja { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--secundario); font-weight: 500; }
+h1 { font: 600 clamp(32px, 4vw, 46px)/1.05 var(--f-titulo); margin: 6px 0 0; letter-spacing: -.01em; }
+.etapas { display: flex; align-items: flex-start; }
+.etapa { display: grid; justify-items: center; gap: 6px; width: 92px; font-size: 13px; color: var(--tenue); position: relative; text-align: center; }
+.etapa::before { content: ""; position: absolute; top: 9px; right: 50%; width: 100%; height: 2px; background: var(--sand); }
+.etapa:first-child::before { display: none; }
+.etapa .punto { width: 20px; height: 20px; border-radius: 50%; border: 2px dashed var(--borde-control); background: var(--crema); z-index: 1; display: grid; place-items: center; font-size: 11px; color: var(--crema); }
+.etapa.hecha .punto, .etapa.actual .punto { background: var(--rojo); border: 0; }
+.etapa.hecha::before, .etapa.actual::before { background: var(--rojo); }
+.etapa.actual .punto { box-shadow: 0 0 0 5px var(--rojo-suave); }
+.etapa.actual { color: var(--tinta); font-weight: 600; }
+.etapa.hecha { color: var(--secundario); }
+.etapa.alerta .punto { border-color: var(--ambar); }
+.etapa.alerta { color: var(--ambar); font-weight: 600; }
+
+.aviso-admin { display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; border-radius: 18px; background: var(--vidrio); border: 1px solid var(--sand); }
+.aviso-admin b { color: var(--pizarra); font-weight: 600; display: block; }
+.aviso-admin span { color: var(--secundario); font-size: 14px; }
+
+.mesa { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .mesa { grid-template-columns: minmax(0, 1fr); } .etapas { display: none; } }
+.tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 24px; box-shadow: 0 1px 2px var(--sombra), 0 8px 24px -16px var(--sombra); min-width: 0; }
+
+/* Izquierda */
+.envio { padding: 20px; display: grid; gap: 14px; }
+.envio h2 { font: 500 24px/1.1 var(--f-titulo); margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.envio h2 small { font: 500 14px var(--f-texto); color: var(--secundario); }
+.avance { display: grid; gap: 8px; }
+.riel { height: 8px; border-radius: 99px; background: var(--hueso); overflow: hidden; display: flex; }
+.riel i { display: block; height: 100%; transition: width .35s ease; }
+.riel .r-stock { background: var(--verde); }
+.riel .r-contado { background: color-mix(in srgb, var(--rojo) 55%, var(--hueso)); }
+.cifras { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 14px; color: var(--secundario); }
+.cifras strong { font-size: 18px; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.leyenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--secundario); }
+.leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.buscar { display: flex; align-items: center; gap: 8px; border: 1px solid var(--borde-control); border-radius: 999px; padding: 8px 14px; background: var(--hueso); }
+.buscar input { border: 0; background: transparent; flex: 1; min-width: 0; outline: none; font-size: 15px; }
+.lista { display: grid; gap: 10px; }
+.lista-barra { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.grupo { border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; background: var(--papel); }
+.grupo.con-actual { border-color: var(--rojo); }
+.grupo-cab { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: var(--vidrio); padding: 9px 14px; min-height: 44px; }
+.grupo-cab:hover { background: var(--hueso); }
+.grupo-cab .chevron { color: var(--secundario); transition: transform .2s ease; }
+.grupo-cab[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+.grupo-txt { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.grupo-txt b { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.grupo-der { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--secundario); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grupo-der .chip { padding: 2px 8px; font-size: 12px; }
+/* El avance de la categoría, como filo de la cabecera: dice cómo va sin sumar alto. */
+.filo { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--sand); }
+.filo i { display: block; height: 100%; transition: width .35s ease; }
+.modelo { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--sand); background: transparent; padding: 10px 14px 10px 12px; }
+.modelo:hover { background: var(--hueso); }
+.modelo[aria-current="true"] { background: var(--rojo-suave); box-shadow: inset 3px 0 0 var(--rojo); }
+@media (prefers-reduced-motion: reduce) { .grupo-cab .chevron { transition: none; } }
+.mini { width: 56px; height: 56px; border-radius: 12px; background: var(--hueso); display: grid; place-items: center; color: var(--secundario); overflow: hidden; flex: none; }
+.mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.modelo b { display: block; font-weight: 600; font-size: 15px; letter-spacing: .01em; }
+.modelo .sub { font-size: 13px; color: var(--secundario); font-variant-numeric: tabular-nums; }
+.modelo .cat { font-size: 12px; color: var(--tenue); text-transform: uppercase; letter-spacing: .08em; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 500; white-space: nowrap; background: var(--hueso); color: var(--secundario); }
+.chip.c-stock { background: var(--verde-suave); color: var(--verde); }
+.chip.c-despues { background: var(--ambar-suave); color: var(--ambar); }
+.chip.c-curso { background: var(--rojo-suave); color: var(--rojo); }
+.chip.c-nuevo { background: var(--pizarra-suave); color: var(--pizarra); }
+.pie-envio { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; padding-top: 4px; }
+.sello { font-size: 13px; color: var(--pizarra); border: 1px solid color-mix(in srgb, var(--pizarra) 40%, transparent); padding: 4px 10px; border-radius: 999px; }
+
+/* Derecha */
+.placa { padding: 22px; display: grid; gap: 18px; }
+.placa-cab { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 18px; align-items: start; }
+.foto { width: 112px; height: 112px; border-radius: 18px; background: var(--hueso); display: grid; place-items: center; color: var(--secundario); overflow: hidden; position: relative; }
+.foto img { width: 100%; height: 100%; object-fit: cover; }
+.foto .sin { font-size: 12px; text-align: center; padding: 6px; }
+.placa-cab h3 { font: 600 30px/1.05 var(--f-titulo); margin: 0; letter-spacing: .01em; text-transform: uppercase; overflow-wrap: anywhere; }
+.placa-cab .meta { color: var(--secundario); font-size: 14px; margin-top: 4px; }
+.placa-cab .precios { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 14px; color: var(--secundario); align-items: center; }
+.placa-cab .precios b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .placa-cab { grid-template-columns: 80px minmax(0, 1fr); } .foto { width: 80px; height: 80px; } .placa-cab h3 { font-size: 24px; } }
+
+.pasos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; list-style: none; margin: 0; padding: 0; flex: 1; }
+.pasos li button { width: 100%; border: 1px solid var(--sand); background: transparent; border-radius: 14px; padding: 8px 10px; text-align: left; display: grid; gap: 1px; font-size: 13px; color: var(--secundario); }
+.pasos li button:disabled { cursor: default; }
+.pasos .n { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+.pasos .t { font-weight: 600; font-size: 14px; }
+.pasos .hecho button { color: var(--verde); border-color: color-mix(in srgb, var(--verde) 35%, transparent); background: var(--verde-suave); }
+.pasos .toca button { color: var(--tinta); border-color: var(--tinta); box-shadow: inset 0 -3px 0 var(--tinta); }
+.pasos .salta button { border-style: dashed; }
+@media (max-width: 640px) { .pasos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.bloque { border-top: 1px solid var(--sand); padding-top: 18px; display: grid; gap: 14px; }
+.bloque h4 { margin: 0; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sigue { font-size: 13px; font-weight: 600; padding-left: 10px; border-left: 2px solid var(--tinta); }
+.nota { font-size: 14px; color: var(--secundario); margin: 0; }
+.sub-titulo { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--secundario); }
+
+/* Paso 1: la foto y ¿qué es? */
+.tomar { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 560px) { .tomar { grid-template-columns: minmax(0, 1fr); } }
+.zona-foto { width: 160px; height: 160px; border: 2px dashed var(--borde-control); border-radius: 18px; display: grid; place-items: center; text-align: center; color: var(--secundario); font-size: 13px; padding: 10px; background: var(--hueso); overflow: hidden; position: relative; }
+.zona-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.opciones-foto { display: grid; gap: 8px; align-content: start; }
+.sugerencia { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: var(--pizarra-suave); }
+.sugerencia .mini { width: 72px; height: 72px; }
+.sugerencia b { display: block; }
+.galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.cand { border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); padding: 8px; display: grid; gap: 6px; text-align: left; font-size: 13px; }
+.cand .mini { width: 100%; height: 96px; border-radius: 10px; }
+.cand b { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.cand span { color: var(--secundario); font-variant-numeric: tabular-nums; }
+.cand[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.respuesta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.contador { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; }
+.numero { display: grid; justify-items: center; gap: 4px; }
+.numero-fila { display: flex; align-items: center; gap: 10px; }
+.redondo { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--borde-control); background: var(--papel); font-size: 22px; display: grid; place-items: center; }
+.redondo.lleno { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.numero input { width: 120px; text-align: center; font: 600 56px/1 var(--f-titulo); border: 0; border-bottom: 2px solid var(--sand); background: transparent; padding: 4px 0; font-variant-numeric: tabular-nums; }
+.numero input:focus { outline: none; border-bottom-color: var(--tinta); }
+.numero small { color: var(--rojo); font-size: 14px; }
+.atajos { display: grid; gap: 8px; min-width: 210px; }
+.fila-botones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.btn { border-radius: 999px; padding: 10px 18px; font-weight: 600; font-size: 15px; border: 1px solid var(--borde-control); background: var(--papel); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:disabled { cursor: not-allowed; background: var(--hueso); color: var(--secundario); border-color: var(--sand); }
+.btn.primario { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.btn.primario:disabled { background: var(--hueso); color: var(--secundario); border-color: var(--sand); }
+.btn.verde { background: var(--verde-suave); color: var(--verde); border-color: color-mix(in srgb, var(--verde) 40%, transparent); }
+.btn.chico { padding: 6px 12px; font-size: 14px; }
+.btn.fantasma { border-color: transparent; background: transparent; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; color: var(--secundario); padding-inline: 6px; }
+.enlace { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; padding: 0; font-weight: 500; }
+
+/* Paso 3: la ficha */
+.ficha { display: grid; gap: 14px; }
+.fila-ficha { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 560px) { .fila-ficha { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.fila-ficha > label, .fila-ficha > span { font-size: 14px; font-weight: 600; padding-top: 8px; }
+.fila-ficha small { display: block; font-weight: 400; color: var(--tenue); font-size: 13px; }
+.campo-txt { border: 1px solid var(--borde-control); border-radius: 12px; padding: 9px 12px; background: var(--hueso); font-size: 15px; width: 100%; min-width: 0; }
+.de-compras { font-size: 13px; color: var(--verde); margin-top: 4px; display: block; }
+.opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.op { border: 1px solid var(--borde-control); background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.op i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--sombra); }
+.op[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.copiar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: var(--verde-suave); font-size: 14px; }
+.precio-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.precio-fila .campo-txt { width: 130px; }
+.propuesta { font-size: 14px; color: var(--secundario); }
+
+.leidos { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; color: var(--secundario); }
+.tabla-tallas { overflow-x: auto; }
+.tabla-tallas table { border-collapse: collapse; width: 100%; min-width: 360px; font-variant-numeric: tabular-nums; }
+.tabla-tallas th, .tabla-tallas td { padding: 8px; text-align: center; border-bottom: 1px solid var(--sand); font-size: 14px; }
+.tabla-tallas th:first-child, .tabla-tallas td:first-child { text-align: left; }
+.paso-celda { display: inline-flex; align-items: center; border: 1px solid var(--borde-control); border-radius: 999px; overflow: hidden; }
+.paso-celda button { border: 0; background: transparent; width: 30px; height: 32px; font-size: 16px; }
+.paso-celda input { width: 34px; border: 0; text-align: center; background: transparent; font-weight: 600; }
+.cuadre { font-weight: 600; }
+.cuadre.ok { color: var(--verde); }
+.cuadre.falta { color: var(--ambar); }
+
+.resumen-llevar { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; background: var(--hueso); border-radius: 16px; padding: 14px 16px; font-size: 14px; }
+.resumen-llevar .mini { width: 96px; height: 96px; }
+.resumen-llevar dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; }
+.resumen-llevar dt { color: var(--secundario); }
+.resumen-llevar dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pie-placa { border-top: 1px solid var(--sand); padding-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--secundario); }
+
+/* Forma A: los pasos son el cuerpo de la placa, uno bajo otro. Lo hecho queda en una línea con su resumen; lo que toca, abierto; lo que viene, apagado. */
+.pasos-v { display: grid; gap: 0; }
+.paso-v { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 12px 0; }
+.paso-v + .paso-v { border-top: 1px solid var(--sand); }
+.paso-num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1.5px solid var(--borde-control); color: var(--secundario); background: var(--papel); }
+.paso-v.hecho .paso-num { background: var(--verde); border-color: var(--verde); color: var(--crema); }
+.paso-v.abierto .paso-num { background: var(--tinta); border-color: var(--tinta); color: var(--crema); box-shadow: 0 0 0 5px var(--rojo-suave); }
+.paso-v.falta { color: var(--tenue); }
+.paso-fila { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 32px; padding-top: 5px; }
+.paso-fila b { font-size: 16px; color: var(--tinta); }
+.paso-v.falta .paso-fila b { color: var(--tenue); font-weight: 600; }
+.paso-fila .resumen { font-size: 14px; color: var(--secundario); display: inline-flex; align-items: center; gap: 8px; }
+.paso-fila .resumen img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+.paso-fila .cambiar { margin-left: auto; font-size: 14px; }
+.paso-v .bloque { border-top: 0; padding-top: 2px; }
+/* Forma B: un paso a la vez, grande, sin fichas arriba. */
+.uno-cab { display: grid; gap: 8px; }
+.uno-cab .ceja-paso { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--secundario); font-weight: 600; }
+.uno-cab .riel { height: 6px; }
+.uno-antes { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--secundario); }
+.uno-antes span { display: inline-flex; gap: 6px; align-items: center; }
+.uno-antes img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
+.recorte { max-height: 340px; overflow: hidden; position: relative; }
+.recorte::after { content: "El paso 2 (tallas y colores) sigue abajo, fuera de la vista"; position: absolute; inset: auto 0 0; padding: 40px 0 10px; text-align: center; font-size: 13px; color: var(--ambar); background: linear-gradient(transparent, var(--papel) 60%); }
+
+.pin { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--rojo); color: var(--crema); font-size: 12px; font-weight: 700; vertical-align: 2px; margin-left: 6px; flex: none; }
+[data-modo="hoy"] .pin { display: none; }
+
+.cambios { padding: 22px; display: grid; gap: 16px; }
+.cambios h2 { font: 500 24px/1.1 var(--f-titulo); margin: 0; }
+.cambios h3 { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
+.cambios ol, .cambios ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+.cambios li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; font-size: 14px; color: var(--secundario); }
+.cambios li b { color: var(--tinta); display: block; font-size: 15px; margin-bottom: 2px; }
+.cambios li .pin { margin: 2px 0 0; }
+.cambios li .pin.gris { background: var(--hueso); color: var(--secundario); }
+
+.velo { position: fixed; inset: 0; background: color-mix(in srgb, #1a1a18 45%, transparent); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.hoja { background: var(--papel); border-radius: 24px; max-width: 520px; width: 100%; padding: 24px; display: grid; gap: 14px; box-shadow: 0 20px 60px var(--sombra); max-height: calc(100vh - 32px); overflow: auto; }
+.hoja h3 { font: 600 26px/1.1 var(--f-titulo); margin: 0; }
+.hoja ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--secundario); }
+.qr { width: 150px; height: 150px; justify-self: center; }
+.aviso-sale { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--tinta); color: var(--crema); padding: 12px 18px; border-radius: 14px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); box-shadow: 0 10px 30px var(--sombra); }
+@media (prefers-reduced-motion: reduce) { .riel i { transition: none; } }
+</style>
+
+<div class="envoltura" id="app" data-modo="cambio">
+  <div class="barra">
+    <div class="alternar" role="group" aria-label="Qué ver">
+      <button type="button" id="btn-hoy" aria-pressed="false">Hoy</button>
+      <button type="button" id="btn-cambio" aria-pressed="true">Con el cambio</button>
+    </div>
+    <div class="alternar" role="group" aria-label="Cómo se ven los pasos" id="formas">
+      <button type="button" data-forma="lista" aria-pressed="true">A · Pasos en la placa</button>
+      <button type="button" data-forma="uno" aria-pressed="false">B · Uno a la vez</button>
+    </div>
+    <p id="explica-modo"></p>
+    <button type="button" class="reiniciar" id="reiniciar">Empezar de nuevo</button>
+  </div>
+
+  <header class="cabecera">
+    <div>
+      <div class="ceja">Tienda TRU · martes, 24 de noviembre · ENV-000017</div>
+      <h1>Recibir mercadería</h1>
+    </div>
+    <div class="etapas" id="etapas"></div>
+  </header>
+
+  <div class="aviso-admin" id="aviso-admin">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+    <div><b>Compraste esto tú: lo puedes recibir porque eres Admin</b><span>Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.</span></div>
+  </div>
+
+  <div class="mesa">
+    <section class="tarjeta envio" aria-label="El envío">
+      <h2>Categorías del envío <small id="n-modelos"></small></h2>
+      <div class="avance" id="avance"></div>
+      <label class="buscar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="buscar" placeholder="Busca un modelo o escanea su etiqueta" aria-label="Buscar un modelo"></label>
+      <div class="lista" id="lista"></div>
+      <div class="pie-envio">
+        <span class="sello" id="sello">Admin · queda a tu nombre</span>
+        <button type="button" class="btn" id="btn-cerrar">Revisar y cerrar →</button>
+      </div>
+    </section>
+
+    <section class="tarjeta placa" id="placa" aria-live="polite"></section>
+  </div>
+
+  <section class="tarjeta cambios" id="cambios">
+    <h2>Lo que cambia</h2>
+    <ol>
+      <li><span class="pin">1</span><div><b>Un modelo termina en el stock, no en el conteo</b>Cada modelo pasa por sus pasos y sale a la venta desde aquí. La barra cuenta prendas en stock (verde), no solo contadas.</div></li>
+      <li><span class="pin">2</span><div><b>Por categoría, con la foto de cada modelo</b>Cada categoría se contrae y en su cabecera dice cómo va. Adentro, cada modelo se reconoce por su foto, también arriba de la placa.</div></li>
+      <li><span class="pin">3</span><div><b>¿Nueva o ya la tenemos?</b>Junto a tu foto, la galería de la misma categoría y marca, o el catálogo completo en otra pestaña. Quien recibe decide. La comparación por foto con IA llega después, solo como sugerencia.</div></li>
+      <li><span class="pin">4</span><div><b>La ficha de Nuevo producto, ya llena</b>Nombre, tejido, patrón, temporada, etiquetas y precio, como en Nuevo producto. Lo que anotó Compras ya viene puesto, y hay un precio propuesto.</div></li>
+      <li><span class="pin">5</span><div><b>«Igual que la anterior»</b>El segundo modelo nuevo del envío copia tejido, patrón, temporada y etiquetas del primero en un toque.</div></li>
+      <li><span class="pin">6</span><div><b>Los colores salen de la foto</b>Como en Nuevo producto: la foto dice el color, y se agrega otro si llegó en varios.</div></li>
+      <li><span class="pin">7</span><div><b>Los pasos son el camino, no una opción</b>No van como fichas arriba, que se pasan por alto: el que toca está abierto y no se salta, y lo hecho queda resumido con «Cambiar». A: todos en la placa; B: uno a la vez. Una reposición se salta la ficha sola.</div></li>
+      <li><span class="pin">8</span><div><b>La foto también desde el celular</b>Un QR abre la cámara del celular, y la foto llega a esta pantalla. La computadora sigue contando.</div></li>
+      <li><span class="pin">9</span><div><b>«Para después» es la excepción, y se ve</b>Queda en ámbar en la lista y en la barra. Si pasa de 7 días, le aparece al encargado de sede. El aviso de Admin pasa a una chapa en el pie.</div></li>
+    </ol>
+    <h3>También propongo, sin dibujar aquí</h3>
+    <ul>
+      <li><span class="pin gris">·</span><div><b>Tallas como la última compra</b>Si la marca siempre manda S 1 · M 2 · L 2, la tabla lo sugiere y se ajusta lo que cambió.</div></li>
+      <li><span class="pin gris">·</span><div><b>Escanear la etiqueta del proveedor</b>El buscador ya acepta la pistola: el código lleva directo al modelo.</div></li>
+      <li><span class="pin gris">·</span><div><b>Llegó dañada, desde el contador</b>Separar a cuarentena en el mismo paso de contar, sin abrir otra hoja (ya existe; solo se acerca).</div></li>
+    </ul>
+  </section>
+</div>
+
+<input type="file" id="archivo" accept="image/*" hidden>
+<div id="capa"></div>
+
+<script>
+(() => {
+  const TALLAS = ["S", "M", "L"];
+  const PALETA = { Mostaza: "#c9a227", Negro: "#2a2826", Crema: "#efe6d4", "Verde oliva": "#6b7442", Azul: "#2f5d8a", Rosa: "#d99aa5", Terracota: "#b5603c", Blanco: "#f7f4ee" };
+  const TEJIDOS = ["Algodón", "Lino", "Gasa", "Viscosa", "Denim", "Crepé"];
+  const PATRONES = ["Liso", "Rayas", "Flores", "Cuadros", "Plisado"];
+  const TEMPORADAS = ["Verano 2027", "Todo el año"];
+  const ETIQUETAS = ["Nueva colección", "Básico", "Para evento"];
+
+  const PATH = {
+    falda: "M38 18h24l14 64H24z",
+    vestido: "M40 10h20l-4 18 18 56H26l18-56z",
+    short: "M24 22h52l4 54H58l-8-30-8 30H20z",
+    conjunto: "M34 10l16 8 16-8 12 14-12 8v18H34V32L22 24zM34 56h32l4 32H30z",
+  };
+  // La silueta de la prenda en su color: hace de «foto» en la maqueta, sin imágenes de afuera.
+  const silueta = (tipo, color, fondo = "#e9e1d3") => "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${fondo}"/><path d="${PATH[tipo]}" fill="${color}" stroke="#1a1a18" stroke-opacity=".25" stroke-width="1.2" stroke-linejoin="round"/></svg>`);
+  const icono = (tipo) => `<svg width="26" height="26" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="${PATH[tipo]}"/></svg>`;
+
+  // Lo que ya está en el catálogo, por categoría y marca (de ejemplo).
+  const CATALOGO = [
+    { id: "lucia", cat: "Faldas", marca: "candy lopez mostazero", tipo: "falda", nombre: "Falda Lucía plisada", colores: ["Negro", "Terracota"], stock: 6, precio: 54.9 },
+    { id: "carmen", cat: "Faldas", marca: "candy lopez mostazero", tipo: "falda", nombre: "Falda Midi Carmen", colores: ["Crema"], stock: 3, precio: 59.9 },
+    { id: "ada", cat: "Faldas", marca: "candy lopez mostazero", tipo: "falda", nombre: "Falda Tubo Ada", colores: ["Negro"], stock: 0, precio: 44.9 },
+    { id: "rosa", cat: "Faldas", marca: "candy lopez mostazero", tipo: "falda", nombre: "Falda Lino Rosa", colores: ["Rosa"], stock: 2, precio: 49.9 },
+    { id: "emma", cat: "Vestidos", marca: "acuarela", tipo: "vestido", nombre: "Vestido Emma", colores: ["Negro", "Verde oliva"], stock: 0, precio: 79.9 },
+    { id: "lila", cat: "Vestidos", marca: "acuarela", tipo: "vestido", nombre: "Vestido Lila", colores: ["Rosa"], stock: 4, precio: 84.9 },
+    { id: "rocio", cat: "Vestidos", marca: "acuarela", tipo: "vestido", nombre: "Vestido Tul Rocío", colores: ["Blanco"], stock: 1, precio: 99.9 },
+    { id: "nora", cat: "Conjuntos", marca: "candy lopez mostazero", tipo: "conjunto", nombre: "Conjunto Nora", colores: ["Terracota"], stock: 2, precio: 119.9 },
+    { id: "paz", cat: "Conjuntos", marca: "candy lopez mostazero", tipo: "conjunto", nombre: "Conjunto Lino Paz", colores: ["Crema"], stock: 5, precio: 109.9 },
+  ];
+
+  const ejemplo = () => [
+    { id: "lucrecia", cat: "Faldas", tipo: "falda", nombre: "Falda Lucrecia", nuevo: true, dijeron: 5, costo: 25, venta: 49.9, propuesta: 54.9, marca: "candy lopez mostazero", proveedor: "acuarela store", deFoto: ["Mostaza"] },
+    { id: "emma", cat: "Vestidos", tipo: "vestido", nombre: "Vestido Emma", nuevo: false, dijeron: 12, costo: 38, venta: 79.9, marca: "acuarela", proveedor: "acuarela store", deFoto: ["Negro", "Verde oliva"] },
+    { id: "acuarela", cat: "Vestidos", tipo: "vestido", nombre: "Vestido Acuarela", nuevo: true, dijeron: 5, costo: 42, venta: 89.9, propuesta: 89.9, marca: "acuarela", proveedor: "acuarela store", deFoto: ["Azul"] },
+    { id: "lia", cat: "Shorts", tipo: "short", nombre: "Short Denim Lía", nuevo: false, dijeron: 7, costo: 22, venta: 45.9, marca: "denim co", proveedor: "acuarela store", deFoto: ["Azul"] },
+    { id: "mila", cat: "Conjuntos", tipo: "conjunto", nombre: "Conjunto Mila", nuevo: true, dijeron: 4, costo: 55, venta: 109.9, propuesta: 114.9, marca: "candy lopez mostazero", proveedor: "acuarela store", deFoto: ["Crema"] },
+  ].map((m) => ({
+    ...m, contado: null, borrador: m.dijeron, enStock: false, despues: false, paso: 1,
+    // Una reposición ya tiene foto y ya sabe qué prenda es.
+    foto: m.nuevo ? null : silueta(m.tipo, PALETA[m.deFoto[0]]),
+    decision: m.nuevo ? null : "existente", existenteId: m.nuevo ? null : m.id, elegida: null,
+    creado: !m.nuevo, colores: m.nuevo ? [] : [...m.deFoto], reparto: {},
+    ficha: { nombre: m.nombre, tejido: null, patron: null, temporada: "Verano 2027", etiquetas: [], precio: m.venta },
+  }));
+
+  const estadoInicial = (modo = "cambio") => {
+    const modelos = ejemplo();
+    if (modo === "cambio") {
+      const emma = modelos.find((m) => m.id === "emma");
+      emma.contado = 12; emma.reparto = { Negro: { S: 3, M: 4, L: 2 }, "Verde oliva": { S: 1, M: 1, L: 1 } }; emma.enStock = true;
+    }
+    return { modo, modelos, actual: "lucrecia", ultimaFicha: null, filtro: "", cerradas: new Set(), visto: null, forma: S_FORMA };
+  };
+  let S_FORMA = "lista";
+  let S = estadoInicial();
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const soles = (n) => "S/ " + Number(n).toFixed(2);
+  const sumaReparto = (m) => Object.values(m.reparto).reduce((a, fila) => a + Object.values(fila).reduce((b, n) => b + n, 0), 0);
+  const modeloActual = () => S.modelos.find((m) => m.id === S.actual);
+  const delCatalogo = (id) => CATALOGO.find((c) => c.id === id);
+  const miniDe = (m) => m.foto ? `<img src="${m.foto}" alt="">` : icono(m.tipo);
+
+  // El paso que le toca a un modelo, deducido de lo que ya tiene. 6 = terminado.
+  function pasoQueToca(m) {
+    if (!m.foto || !m.decision) return 1;
+    if (m.contado === null) return 2;
+    if (m.contado === 0 || m.enStock) return 6;
+    if (!m.creado) return 3;
+    if (!m.colores.length || sumaReparto(m) !== m.contado) return 4;
+    return 5;
+  }
+  const NOMBRES_PASO = ["Qué es", "Cuántas", "Ficha", "Tallas", "Llevar"];
+
+  function estadoChip(m) {
+    if (S.modo === "hoy") {
+      if (m.contado === null) return ['<span class="chip">• Por contar</span>', `dijeron ${m.dijeron}`];
+      if (m.contado === 0) return ['<span class="chip">No llegó</span>', `dijeron ${m.dijeron}`];
+      return ['<span class="chip c-curso">Contado</span>', `${m.contado} de ${m.dijeron}`];
+    }
+    if (m.enStock) return ['<span class="chip c-stock">✓ En stock</span>', `${m.contado} de ${m.dijeron} · a la venta`];
+    if (m.contado === 0) return ['<span class="chip">No llegó</span>', `dijeron ${m.dijeron}`];
+    const p = pasoQueToca(m);
+    if (m.despues) return ['<span class="chip c-despues">Para después</span>', `${m.contado ?? 0} contadas · falta ${NOMBRES_PASO[p - 1].toLowerCase()}`];
+    if (!m.foto && m.contado === null) return ['<span class="chip">• Sin empezar</span>', `dijeron ${m.dijeron}`];
+    return [`<span class="chip c-curso">${NOMBRES_PASO[p - 1]}</span>`, m.contado === null ? `dijeron ${m.dijeron}` : `${m.contado} de ${m.dijeron}`];
+  }
+
+  function pintarEtapas() {
+    const despues = S.modelos.filter((m) => m.despues && !m.enStock).length;
+    const etapas = S.modo === "hoy"
+      ? [["Salió", "hecha"], ["En camino", "hecha"], ["Contando", "actual"], ["Por terminar", ""], ["Recibido", ""]]
+      : [["Salió", "hecha"], ["En camino", "hecha"], ["Contando y llevando", "actual"], ["Recibido", ""]];
+    $("etapas").innerHTML = etapas.map(([t, c]) => `<div class="etapa ${c}"><span class="punto">${c === "hecha" ? "✓" : ""}</span>${t}</div>`).join("")
+      + (S.modo === "cambio" && despues ? `<div class="etapa alerta"><span class="punto"></span>${despues} para después</div>` : "");
+  }
+
+  function pintarAvance() {
+    const total = S.modelos.reduce((a, m) => a + m.dijeron, 0);
+    const contadas = S.modelos.reduce((a, m) => a + (m.contado ?? 0), 0);
+    const enStock = S.modelos.reduce((a, m) => a + (m.enStock ? m.contado : 0), 0);
+    const porContar = S.modelos.filter((m) => m.contado === null).length;
+    $("n-modelos").textContent = `${S.modelos.length} modelos`;
+    if (S.modo === "hoy") {
+      $("avance").innerHTML = `<div class="riel"><i style="width:${(contadas / total) * 100}%;background:var(--rojo)"></i></div>
+        <div class="cifras"><span><strong>${contadas}</strong> de ${total} prendas contadas</span><span style="color:var(--rojo)">${porContar ? `Faltan ${porContar} modelos por contar` : "Todo contado"}</span></div>`;
+      return;
+    }
+    const despues = S.modelos.filter((m) => m.despues && !m.enStock).length;
+    $("avance").innerHTML = `<div class="riel"><i class="r-stock" style="width:${(enStock / total) * 100}%"></i><i class="r-contado" style="width:${((contadas - enStock) / total) * 100}%"></i></div>
+      <div class="cifras"><span><strong>${enStock}</strong> de ${total} prendas ya a la venta<span class="pin">1</span></span><span>${porContar ? `${porContar} modelos por contar` : "Todo contado"}${despues ? ` · <span style="color:var(--ambar)">${despues} para después</span>` : ""}</span></div>
+      <div class="leyenda"><span><i style="background:var(--verde)"></i>En stock</span><span><i style="background:color-mix(in srgb, var(--rojo) 55%, var(--hueso))"></i>Contadas, sin terminar</span></div>`;
+  }
+
+  // La lista va por categoría (Felipe 2026-11-24): cada una con su cabecera, que se contrae y dice cómo va; adentro, cada modelo con su foto.
+  function resumenCategoria(ms) {
+    const dij = ms.reduce((a, m) => a + m.dijeron, 0);
+    const stock = ms.reduce((a, m) => a + (m.enStock ? m.contado : 0), 0);
+    const contadas = ms.reduce((a, m) => a + (m.contado ?? 0), 0);
+    const sinEmpezar = ms.filter((m) => m.contado === null).length;
+    const despues = ms.filter((m) => m.despues && !m.enStock).length;
+    const terminados = ms.every((m) => m.enStock || m.contado === 0);
+    if (S.modo === "hoy") {
+      const sub = contadas ? `${contadas} de ${dij}` : `dijeron ${dij}`;
+      return { sub, chip: sinEmpezar ? "" : '<span class="chip c-curso">Contada</span>', avance: contadas / dij, tono: "var(--rojo)" };
+    }
+    const sub = stock ? `${stock} de ${dij} a la venta` : contadas ? `${contadas} de ${dij}` : `dijeron ${dij}`;
+    const chip = terminados ? '<span class="chip c-stock">✓</span>' : despues ? `<span class="chip c-despues">${despues} para después</span>` : "";
+    return { sub, chip, avance: stock / dij, tono: "var(--verde)" };
+  }
+
+  function pintarLista() {
+    const f = S.filtro.trim().toLowerCase();
+    const ms = S.modelos.filter((m) => !f || (m.nombre + " " + m.cat + " " + m.marca).toLowerCase().includes(f));
+    if (!ms.length) { $("lista").innerHTML = '<p class="nota">Ningún modelo se llama así en este envío.</p>'; return; }
+    const cats = [...new Set(ms.map((m) => m.cat))];
+    const todasCerradas = cats.every((c) => S.cerradas.has(c));
+    const barra = `<div class="lista-barra"><span class="nota">${cats.length} categorías${S.modo === "cambio" ? '<span class="pin">2</span>' : ""}</span>
+      <button type="button" class="enlace" data-acc="${todasCerradas ? "expandir" : "contraer"}">${todasCerradas ? "Expandir todo" : "Contraer todo"}</button></div>`;
+    $("lista").innerHTML = barra + cats.map((c) => {
+      const del = ms.filter((m) => m.cat === c);
+      const abierta = f || !S.cerradas.has(c);
+      const r = resumenCategoria(S.modelos.filter((m) => m.cat === c));
+      const tieneActual = del.some((m) => m.id === S.actual);
+      return `<div class="grupo${tieneActual && !abierta ? " con-actual" : ""}">
+        <button type="button" class="grupo-cab" data-cat="${esc(c)}" aria-expanded="${!!abierta}">
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          <span class="grupo-txt"><b>${esc(c)}</b></span>
+          <span class="grupo-der">${r.chip}<span>${r.sub}</span></span>
+          <span class="filo" aria-hidden="true"><i style="width:${r.avance * 100}%;background:${r.tono}"></i></span>
+        </button>
+        ${abierta ? del.map((m) => {
+          const [chip, sub] = estadoChip(m);
+          return `<button type="button" class="modelo" data-id="${m.id}" aria-current="${m.id === S.actual}"><span class="mini">${S.modo === "cambio" ? miniDe(m) : icono(m.tipo)}</span><span><b>${esc(m.nombre.toUpperCase())}</b>${m.nuevo && !m.creado ? ' <span class="chip c-nuevo">Nuevo</span>' : ""}<span class="sub">${sub}</span></span>${chip}</button>`;
+        }).join("") : ""}
+      </div>`;
+    }).join("");
+  }
+
+  function cabeceraPlaca(m) {
+    const etiqueta = m.decision === "existente" ? (m.nuevo ? "Ya estaba en el catálogo" : "Reposición") : m.nuevo ? (m.creado ? "Nuevo · ya creado" : "Nuevo · por crear") : "Reposición";
+    const foto = S.modo === "cambio" ? (m.foto ? `<img src="${m.foto}" alt="Foto de ${esc(m.nombre)}">` : `<span class="sin">${icono(m.tipo)}<br>Sin foto</span>`) : icono(m.tipo);
+    return `<div class="placa-cab"><div class="foto">${foto}</div><div>
+      <h3>${esc(m.nombre)}</h3><div class="meta">${esc(m.cat)} · ${esc(m.marca)} · ${esc(m.proveedor)}</div>
+      <div class="precios"><span class="chip ${m.nuevo && !m.creado ? "c-nuevo" : ""}">${etiqueta}</span><span>Costo <b>${soles(m.costo)}</b></span><span>Venta <b>${soles(m.ficha.precio)}</b></span></div></div></div>`;
+  }
+
+  // Paso 1: la foto, y con ella, ¿nueva o ya la tenemos?
+  function bloqueQueEs(m) {
+    const mismos = CATALOGO.filter((c) => c.cat === m.cat && c.marca === m.marca);
+    const zona = m.foto ? `<img src="${m.foto}" alt="Foto tomada">` : `<span>${icono(m.tipo)}<br>Saca una foto de la prenda, de frente</span>`;
+    let comparar = "";
+    if (m.foto) {
+      comparar = `<div class="bloque" style="padding-top:14px"><div class="sub-titulo">¿Ya la tenemos?<span class="pin">3</span></div>
+        <div class="nota">Compara tu foto con ${esc(m.cat.toLowerCase())} de ${esc(m.marca)} que ya tenemos (${mismos.length}). Primero va la de nombre más parecido.</div>
+        <div class="galeria">${mismos.map((c) => `<button type="button" class="cand" data-cand="${c.id}" aria-pressed="${m.elegida === c.id}"><span class="mini"><img src="${silueta(c.tipo, PALETA[c.colores[0]])}" alt=""></span><b>${esc(c.nombre)}</b><span>${c.colores.join(", ")} · ${c.stock} en stock</span></button>`).join("")}</div>
+        <div class="respuesta">
+          <button type="button" class="btn primario" data-acc="es-nueva">Es nueva, no está aquí</button>
+          <button type="button" class="btn" data-acc="es-esta" ${m.elegida ? "" : "disabled"}>${m.elegida ? `Es ${esc(delCatalogo(m.elegida).nombre)}` : "Toca la que es"}</button>
+          <a class="enlace" href="#catalogo" data-acc="catalogo">Ver todo el catálogo en otra pestaña ↗</a>
+        </div></div>`;
+    }
+    return `<div class="bloque"><h4>¿Qué prenda es? <span class="sigue">Sigue</span></h4>
+      <div class="tomar"><div class="zona-foto">${zona}</div>
+      <div class="opciones-foto"><button type="button" class="btn ${m.foto ? "" : "primario"}" data-acc="subir">${m.foto ? "Cambiar la foto" : "Subir o tomar foto"}</button>
+      <button type="button" class="btn" data-acc="celular">Con el celular (QR)<span class="pin">8</span></button>
+      ${m.foto ? "" : `<button type="button" class="btn fantasma" data-acc="foto-ejemplo">Usar una foto de ejemplo</button>`}
+      <p class="nota">La misma foto sirve para la ficha y para la tienda web (Catálogo con IA, como en Nuevo producto).</p></div></div>
+      ${comparar}</div>`;
+  }
+
+  function bloqueContar(m, hoy) {
+    return `<div class="bloque"><h4>¿Cuántas llegaron? ${hoy ? '<span class="sigue">Sigue</span>' : '<span class="sigue">Sigue</span>'}</h4>
+      <div class="contador"><div class="numero"><div class="numero-fila"><button type="button" class="redondo" data-acc="menos" aria-label="Una menos">−</button>
+      <input id="numero" inputmode="numeric" value="${m.borrador}" aria-label="Cuántas llegaron"><button type="button" class="redondo lleno" data-acc="mas" aria-label="Una más">+</button></div><small>dijeron ${m.dijeron}</small></div>
+      <div class="atajos"><button type="button" class="btn verde" data-acc="todas">✓ Llegaron las ${m.dijeron}</button><button type="button" class="btn" data-acc="nada">⊘ No llegó nada</button></div></div>
+      ${hoy ? '<p class="nota">Toca el número para escribirlo.</p>' : `<div class="fila-botones"><button type="button" class="btn primario" data-acc="confirmar">Confirmar ${m.borrador} y seguir →</button></div>`}</div>`;
+  }
+
+  // Paso 3: la ficha de Nuevo producto, ya llena con lo de Compras.
+  function bloqueFicha(m) {
+    const f = m.ficha;
+    const opciones = (lista, campo, varias = false) => `<div class="opciones">${lista.map((o) => {
+      const on = varias ? f[campo].includes(o) : f[campo] === o;
+      return `<button type="button" class="op" data-ficha="${campo}|${o}|${varias ? 1 : 0}" aria-pressed="${on}">${esc(o)}</button>`;
+    }).join("")}</div>`;
+    const u = S.ultimaFicha;
+    const copiar = u && u.de !== m.id && (u.tejido !== f.tejido || u.patron !== f.patron)
+      ? `<div class="copiar"><span>Igual que <b>${esc(u.nombre)}</b>: ${[u.tejido, u.patron, u.temporada].filter(Boolean).join(" · ")}</span><button type="button" class="btn chico verde" data-acc="copiar">Copiar<span class="pin">5</span></button></div>` : "";
+    const listo = f.nombre.trim() && f.precio > 0;
+    return `<div class="bloque"><h4><span>Ficha de la prenda<span class="pin">4</span></span><span class="sigue">Sigue</span></h4>
+      ${copiar}
+      <div class="ficha">
+        <div class="fila-ficha"><label for="f-nombre">Nombre<small>Como se lo dirías a un cliente</small></label><div><input class="campo-txt" id="f-nombre" value="${esc(f.nombre)}"><span class="de-compras">✓ De la compra</span></div></div>
+        <div class="fila-ficha"><span>Tejido<small>De qué tela es</small></span>${opciones(TEJIDOS, "tejido")}</div>
+        <div class="fila-ficha"><span>Patrón<small>Si no tiene dibujo, Liso</small></span>${opciones(PATRONES, "patron")}</div>
+        <div class="fila-ficha"><span>Temporada</span>${opciones(TEMPORADAS, "temporada")}</div>
+        <div class="fila-ficha"><span>Etiquetas<small>Opcional</small></span>${opciones(ETIQUETAS, "etiquetas", true)}</div>
+        <div class="fila-ficha"><label for="f-precio">Precio de venta<small>Costo ${soles(m.costo)}</small></label><div class="precio-fila"><input class="campo-txt" id="f-precio" inputmode="decimal" value="${f.precio.toFixed(2)}">
+          ${m.propuesta && m.propuesta !== f.precio ? `<span class="propuesta">Propuesta: <b>${soles(m.propuesta)}</b>, por el costo y las parecidas</span><button type="button" class="btn chico" data-acc="usar-propuesta">Usar</button>` : `<span class="de-compras" style="margin:0">✓ ${f.precio === m.venta ? "Venta sugerida de Compras" : "Propuesta usada"}</span>`}</div></div>
+      </div>
+      <div class="fila-botones"><button type="button" class="btn primario" data-acc="crear" ${listo ? "" : "disabled"}>Crear la prenda y seguir →</button></div></div>`;
+  }
+
+  function bloqueTallas(m) {
+    const suma = sumaReparto(m);
+    const ok = suma === m.contado && m.colores.length;
+    const otros = Object.keys(PALETA).filter((c) => !m.colores.includes(c));
+    const filas = m.colores.map((c) => `<tr><td><span class="op" style="border:0;padding:0"><i style="background:${PALETA[c]}"></i>${c}</span></td>${TALLAS.map((t) => `<td><span class="paso-celda"><button type="button" data-celda="${c}|${t}|-1" aria-label="Una menos ${c} ${t}">−</button><input value="${m.reparto[c]?.[t] ?? 0}" data-input="${c}|${t}" inputmode="numeric" aria-label="${c} talla ${t}"><button type="button" data-celda="${c}|${t}|1" aria-label="Una más ${c} ${t}">+</button></span></td>`).join("")}</tr>`).join("");
+    return `<div class="bloque"><h4>Tallas y colores <span class="sigue">Sigue</span></h4>
+      <div class="leidos">Leídos de la foto<span class="pin">6</span>: ${m.deFoto.map((c) => `<span class="op" style="padding:3px 10px"><i style="background:${PALETA[c]}"></i>${c}</span>`).join("")}
+        <details style="display:inline"><summary class="enlace" style="cursor:pointer">+ Llegó en otro color</summary><div class="opciones" style="margin-top:6px">${otros.map((c) => `<button type="button" class="op" data-color="${c}"><i style="background:${PALETA[c]}"></i>${c}</button>`).join("")}</div></details></div>
+      ${m.decision === "existente" && m.nuevo ? `<p class="nota">${m.colores.filter((c) => !delCatalogo(m.existenteId).colores.includes(c)).map((c) => `<b>${c}</b> es un color nuevo para esta prenda: se le agrega.`).join(" ")}</p>` : ""}
+      <div class="tabla-tallas"><table><thead><tr><th>Color</th>${TALLAS.map((t) => `<th>${t}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table></div>
+      <div class="fila-botones" style="justify-content:space-between"><span class="cuadre ${ok ? "ok" : "falta"}">${ok ? `✓ Repartiste las ${m.contado}` : `Repartiste ${suma} de ${m.contado}`}</span>
+      <span class="fila-botones"><button type="button" class="btn" data-acc="parejo">Repartir parejo</button><button type="button" class="btn primario" data-acc="seguir" ${ok ? "" : "disabled"}>Seguir →</button></span></div></div>`;
+  }
+
+  function bloqueLlevar(m) {
+    const lineas = m.colores.map((c) => `${c}: ${TALLAS.filter((t) => m.reparto[c]?.[t]).map((t) => `${t} ${m.reparto[c][t]}`).join(", ") || "—"}`);
+    const f = m.ficha;
+    return `<div class="bloque"><h4>Llevar al stock <span class="sigue">Sigue</span></h4>
+      <div class="resumen-llevar"><span class="mini">${miniDe(m)}</span><dl><dt>Entran</dt><dd>${m.contado} ${esc(m.nombre)}</dd><dt>Tallas</dt><dd>${lineas.map(esc).join("<br>")}</dd>
+      ${f.tejido || f.patron ? `<dt>Ficha</dt><dd>${[f.tejido, f.patron, f.temporada].filter(Boolean).join(" · ")}</dd>` : ""}<dt>Costo</dt><dd>${soles(m.costo)}</dd><dt>Precio</dt><dd>${soles(f.precio)}</dd></dl></div>
+      <div class="fila-botones"><button type="button" class="btn primario" data-acc="llevar-imprimir">Llevar e imprimir ${m.contado} etiquetas</button><button type="button" class="btn" data-acc="llevar">Solo llevar</button></div>
+      <p class="nota">Desde este momento Vender ya la ve. Lo que falte o sobre se responde al cerrar.</p></div>`;
+  }
+
+  function bloqueHecho(m) {
+    const sig = siguientePendiente(m.id);
+    return `<div class="bloque"><h4 style="color:var(--verde)">✓ ${m.contado === 0 ? "No llegó" : "En stock"}</h4><p class="nota">${m.contado === 0 ? "Anotado que no llegó. Se responde al cerrar." : `${m.contado} ya están a la venta en Tienda TRU.`}</p>
+      ${sig ? `<div class="fila-botones"><button type="button" class="btn primario" data-ir="${sig.id}">Siguiente: ${esc(sig.nombre)} →</button></div>` : ""}</div>`;
+  }
+
+  function siguientePendiente(desde) {
+    const i = S.modelos.findIndex((m) => m.id === desde);
+    const rot = S.modelos.slice(i + 1).concat(S.modelos.slice(0, i));
+    return rot.find((m) => !m.enStock && m.contado !== 0 && !m.despues) || null;
+  }
+
+  function pasosDelModelo(m) {
+    const toca = pasoQueToca(m);
+    return `<ol class="pasos" aria-label="Pasos del modelo">${NOMBRES_PASO.map((n, i) => {
+      const k = i + 1;
+      const salta = k === 3 && m.creado && (m.decision === "existente" || !m.nuevo);
+      const hecho = k < toca || toca === 6;
+      const cls = salta ? "salta" : hecho ? "hecho" : k === m.paso ? "toca" : "";
+      const sub = salta ? "Ya existe" : hecho ? "✓ Hecho" : k === toca ? "Ahora" : "Después";
+      return `<li class="${cls}"><button type="button" data-paso="${k}" ${k > toca || salta ? "disabled" : ""}><span class="n">Paso ${k}</span><span class="t">${n}</span><span>${sub}</span></button></li>`;
+    }).join("")}</ol>`;
+  }
+
+  // Lo que dice un paso ya hecho, en una línea.
+  function resumenPaso(m, k) {
+    if (k === 1) return m.decision === "existente" ? `${m.foto ? `<img src="${m.foto}" alt="">` : ""}${m.nuevo ? `Es ${esc(m.nombre)}, ya estaba` : "Reposición"}` : `${m.foto ? `<img src="${m.foto}" alt="">` : ""}Prenda nueva`;
+    if (k === 2) return `${m.contado} de ${m.dijeron}`;
+    if (k === 3) return [m.ficha.tejido, m.ficha.patron, m.ficha.temporada].filter(Boolean).map(esc).join(" · ") || "Creada";
+    if (k === 4) return m.colores.map((c) => `${esc(c)} ${TALLAS.filter((t) => m.reparto[c]?.[t]).map((t) => `${t}${m.reparto[c][t]}`).join(" ")}`).join(" · ");
+    return "A la venta";
+  }
+  const CUERPOS = [null, bloqueQueEs, (x) => bloqueContar(x, false), bloqueFicha, bloqueTallas, bloqueLlevar];
+  const saltaFicha = (m) => m.creado && (m.decision === "existente" || !m.nuevo);
+
+  // Forma A: los pasos son el cuerpo. No se elige uno: el que toca está abierto y los demás dicen cómo van.
+  function pasosEnLaPlaca(m) {
+    const toca = pasoQueToca(m);
+    return `<div class="pasos-v">${NOMBRES_PASO.map((n, i) => {
+      const k = i + 1;
+      if (k === 3 && saltaFicha(m)) return `<div class="paso-v hecho"><span class="paso-num">✓</span><div class="paso-fila"><b>${n}</b><span class="resumen">Ya está en el catálogo</span></div></div>`;
+      const hecho = toca === 6 || k < toca;
+      if (k === m.paso && toca !== 6) return `<div class="paso-v abierto"><span class="paso-num">${k}</span><div>${CUERPOS[k](m)}</div></div>`;
+      if (hecho) return `<div class="paso-v hecho"><span class="paso-num">✓</span><div class="paso-fila"><b>${n}</b><span class="resumen">${resumenPaso(m, k)}</span>${toca !== 6 && k !== 5 ? `<button type="button" class="enlace cambiar" data-paso="${k}">Cambiar</button>` : ""}</div></div>`;
+      return `<div class="paso-v falta"><span class="paso-num">${k}</span><div class="paso-fila"><b>${n}</b><span class="resumen">Después</span></div></div>`;
+    }).join("")}</div>${toca === 6 ? bloqueHecho(m) : ""}`;
+  }
+
+  // Forma B: un paso a la vez, grande. Arriba solo dice en cuál va; lo hecho queda en una línea con «Cambiar».
+  function unPasoALaVez(m) {
+    const toca = pasoQueToca(m);
+    if (toca === 6) return bloqueHecho(m);
+    const k = m.paso;
+    const total = saltaFicha(m) ? 4 : 5;
+    const orden = NOMBRES_PASO.map((n, i) => i + 1).filter((x) => !(x === 3 && saltaFicha(m)));
+    const enOrden = orden.indexOf(k) + 1;
+    const antes = orden.filter((x) => x < toca && x !== k);
+    return `<div class="uno-cab"><span class="ceja-paso">Paso ${enOrden} de ${total} · ${NOMBRES_PASO[k - 1]}</span>
+        <div class="riel"><i class="r-stock" style="width:${((enOrden - 1) / total) * 100}%"></i></div>
+        ${antes.length ? `<div class="uno-antes">${antes.map((x) => `<span>✓ ${NOMBRES_PASO[x - 1]}: ${resumenPaso(m, x)} <button type="button" class="enlace" data-paso="${x}">Cambiar</button></span>`).join("")}</div>` : ""}
+      </div>${CUERPOS[k](m)}`;
+  }
+
+  function pintarPlaca() {
+    const m = modeloActual();
+    if (S.modo === "hoy") {
+      const s = S.modelos.find((x) => x.contado === null && x.id !== m.id);
+      $("placa").innerHTML = cabeceraPlaca(m) + `<div class="recorte">${bloqueContar(m, true)}<div class="bloque"><h4>Tallas y colores</h4><p class="nota">Reparte por color y talla.</p></div></div>`
+        + `<div class="pie-placa"><span>${s ? `Falta contar: <button type="button" class="enlace" data-ir="${s.id}">${esc(s.nombre)}</button>` : "Todo contado"}</span></div>`;
+      return;
+    }
+    const toca = pasoQueToca(m);
+    if (toca === 6) m.paso = 6;
+    const cuerpo = S.forma === "uno" ? unPasoALaVez(m) : pasosEnLaPlaca(m);
+    const pie = m.contado !== null && toca < 6 ? `<button type="button" class="enlace" data-acc="despues">Terminar este modelo después</button><span class="pin">9</span>` : "";
+    const sig = S.modelos.find((x) => x.contado === null && x.id !== m.id);
+    $("placa").innerHTML = cabeceraPlaca(m) + cuerpo
+      + `<div class="pie-placa"><span>${sig ? `Falta empezar: <button type="button" class="enlace" data-ir="${sig.id}">${esc(sig.nombre)}</button>` : "Todo contado"}</span><span>${pie}</span></div>`;
+  }
+
+  function pintar() {
+    $("app").dataset.modo = S.modo;
+    $("btn-hoy").setAttribute("aria-pressed", S.modo === "hoy");
+    $("btn-cambio").setAttribute("aria-pressed", S.modo === "cambio");
+    $("explica-modo").textContent = S.modo === "hoy"
+      ? "Así funciona hoy: se cuenta, se cierra, y lo que falta crear o repartir queda en «Por terminar» para otra visita."
+      : "Con el cambio: cada modelo sale al stock desde aquí. Prueba con la Falda Lucrecia: foto, ¿nueva o ya la tenemos?, cuenta, ficha, tallas y lleva.";
+    $("aviso-admin").hidden = S.modo === "cambio";
+    $("formas").hidden = S.modo === "hoy";
+    document.querySelectorAll("#formas button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.forma === S.forma));
+    $("sello").innerHTML = S.modo === "cambio" ? 'Admin · queda a tu nombre <span title="Compraste esto tú: lo puedes recibir porque eres Admin. Al cerrar queda anotado que lo recibió quien hizo la compra.">ⓘ</span>' : "Admin · queda a tu nombre";
+    $("cambios").hidden = S.modo === "hoy";
+    if (S.visto !== S.actual) { S.cerradas.delete(modeloActual().cat); S.visto = S.actual; }
+    pintarEtapas(); pintarAvance(); pintarLista(); pintarPlaca();
+    const n = $("numero"); if (n && matchMedia("(pointer: fine)").matches) n.focus({ preventScroll: true });
+  }
+
+  function avisar(t) {
+    document.querySelectorAll(".aviso-sale").forEach((x) => x.remove());
+    const d = document.createElement("div"); d.className = "aviso-sale"; d.textContent = t; d.setAttribute("role", "status");
+    document.body.appendChild(d); setTimeout(() => d.remove(), 3400);
+  }
+  const avanzar = (m) => { m.paso = Math.min(pasoQueToca(m), 5); };
+
+  function confirmarConteo(m, n) {
+    m.contado = Math.max(0, n); m.borrador = m.contado;
+    if (S.modo === "hoy") { const s = S.modelos.find((x) => x.contado === null); if (s) S.actual = s.id; pintar(); return; }
+    if (m.contado > 0 && m.creado && m.colores.length === 1 && !sumaReparto(m)) m.reparto = { [m.colores[0]]: {} };
+    avanzar(m); pintar();
+  }
+  function repartirParejo(m) {
+    m.reparto = {}; const celdas = []; m.colores.forEach((c) => { m.reparto[c] = {}; TALLAS.forEach((t) => celdas.push([c, t])); });
+    for (let i = 0; i < m.contado; i++) { const [c, t] = celdas[i % celdas.length]; m.reparto[c][t] = (m.reparto[c][t] || 0) + 1; }
+  }
+  function llevar(m, imprimir) {
+    m.enStock = true; m.despues = false; m.paso = 6;
+    avisar(`${m.contado} ${m.nombre} ya están a la venta${imprimir ? ` · se imprimieron ${m.contado} etiquetas` : ""}`);
+    const s = siguientePendiente(m.id); if (s) { S.actual = s.id; avanzar(s); }
+    pintar();
+  }
+  function ponerFoto(m, src) {
+    m.foto = src; m.colores = []; avanzar(m); pintar();
+  }
+
+  function abrirHoja(html) {
+    $("capa").innerHTML = `<div class="velo" id="velo"><div class="hoja" role="dialog" aria-modal="true">${html}<div class="fila-botones" style="justify-content:flex-end"><button type="button" class="btn primario" id="cerrar-hoja">Entendido</button></div></div></div>`;
+    $("cerrar-hoja").focus();
+    $("cerrar-hoja").addEventListener("click", cerrarHoja);
+    $("velo").addEventListener("click", (e) => { if (e.target.id === "velo") cerrarHoja(); });
+  }
+  function cerrarHoja() { $("capa").innerHTML = ""; }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button, a[data-acc]"); if (!t || t.closest("#capa") && t.id === "cerrar-hoja") return;
+    const m = modeloActual();
+    if (t.dataset.cat) { const c = t.dataset.cat; S.cerradas.has(c) ? S.cerradas.delete(c) : S.cerradas.add(c); pintarLista(); return; }
+    if (t.dataset.acc === "contraer") { S.modelos.forEach((x) => S.cerradas.add(x.cat)); pintarLista(); return; }
+    if (t.dataset.acc === "expandir") { S.cerradas.clear(); pintarLista(); return; }
+    if (t.dataset.id) { S.actual = t.dataset.id; const x = modeloActual(); x.paso = Math.min(pasoQueToca(x), 5); pintar(); return; }
+    if (t.dataset.ir) { S.actual = t.dataset.ir; avanzar(modeloActual()); pintar(); return; }
+    if (t.dataset.paso) { m.paso = +t.dataset.paso; pintar(); return; }
+    if (t.dataset.cand) { m.elegida = m.elegida === t.dataset.cand ? null : t.dataset.cand; pintar(); return; }
+    if (t.dataset.color) { m.colores.push(t.dataset.color); m.reparto[t.dataset.color] = {}; pintar(); return; }
+    if (t.dataset.ficha) {
+      const [campo, val, varias] = t.dataset.ficha.split("|");
+      if (varias === "1") m.ficha[campo] = m.ficha[campo].includes(val) ? m.ficha[campo].filter((x) => x !== val) : [...m.ficha[campo], val];
+      else m.ficha[campo] = m.ficha[campo] === val ? null : val;
+      pintar(); return;
+    }
+    if (t.dataset.celda) { const [c, ta, d] = t.dataset.celda.split("|"); m.reparto[c] = m.reparto[c] || {}; m.reparto[c][ta] = Math.max(0, (m.reparto[c][ta] || 0) + +d); pintar(); return; }
+    switch (t.dataset.acc) {
+      case "subir": $("archivo").click(); break;
+      case "foto-ejemplo": ponerFoto(m, silueta(m.tipo, PALETA[m.deFoto[0]])); break;
+      case "celular": abrirHoja(`<h3>Toma la foto con el celular</h3><p class="nota">Escanea este código con el celular. Se abre la cámara y la foto llega aquí sola, a ${esc(m.nombre)}.</p>
+        <svg class="qr" viewBox="0 0 21 21" aria-label="Código QR de ejemplo" shape-rendering="crispEdges">${Array.from({ length: 441 }, (_, i) => { const x = i % 21, y = (i / 21) | 0; const ojo = (a, b) => x >= a && x < a + 7 && y >= b && y < b + 7 && (x === a || x === a + 6 || y === b || y === b + 6 || (x > a + 1 && x < a + 5 && y > b + 1 && y < b + 5)); const enOjo = (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12); const on = enOjo ? ojo(0, 0) || ojo(14, 0) || ojo(0, 14) : ((x * 7 + y * 13 + x * y) % 5) < 2; return on ? `<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>` : ""; }).join("")}</svg>
+        <p class="nota">En la maqueta no llega ninguna foto: usa «Subir o tomar foto» o la de ejemplo.</p>`); break;
+      case "catalogo": e.preventDefault(); avisar(`Se abre Catálogo en otra pestaña, filtrado por ${m.cat} · ${m.marca}. Esta pantalla no se mueve.`); break;
+      case "es-nueva": m.decision = "nueva"; m.elegida = null; avanzar(m); pintar(); break;
+      case "es-esta": {
+        const c = delCatalogo(m.elegida);
+        m.decision = "existente"; m.existenteId = c.id; m.nombre = c.nombre; m.creado = true; m.ficha.precio = c.precio;
+        m.colores = [...m.deFoto]; m.reparto = Object.fromEntries(m.colores.map((x) => [x, {}]));
+        avisar(`Se usa ${c.nombre}: no se crea otra prenda`); avanzar(m); pintar(); break;
+      }
+      case "menos": m.borrador = Math.max(0, m.borrador - 1); pintar(); break;
+      case "mas": m.borrador += 1; pintar(); break;
+      case "todas": confirmarConteo(m, m.dijeron); break;
+      case "nada": confirmarConteo(m, 0); break;
+      case "confirmar": confirmarConteo(m, m.borrador); break;
+      case "usar-propuesta": m.ficha.precio = m.propuesta; pintar(); break;
+      case "copiar": { const u = S.ultimaFicha; Object.assign(m.ficha, { tejido: u.tejido, patron: u.patron, temporada: u.temporada, etiquetas: [...u.etiquetas] }); pintar(); break; }
+      case "crear":
+        m.creado = true; m.nombre = m.ficha.nombre.trim();
+        m.colores = [...m.deFoto]; m.reparto = Object.fromEntries(m.colores.map((x) => [x, {}]));
+        S.ultimaFicha = { de: m.id, nombre: m.nombre, tejido: m.ficha.tejido, patron: m.ficha.patron, temporada: m.ficha.temporada, etiquetas: [...m.ficha.etiquetas] };
+        avisar(`${m.nombre} creada en el catálogo, con su foto`); avanzar(m); pintar(); break;
+      case "parejo": repartirParejo(m); pintar(); break;
+      case "seguir": avanzar(m); pintar(); break;
+      case "llevar-imprimir": llevar(m, true); break;
+      case "llevar": llevar(m, false); break;
+      case "despues": { m.despues = true; avisar(`${m.nombre} queda para después`); const s = siguientePendiente(m.id); if (s) { S.actual = s.id; avanzar(s); } pintar(); break; }
+    }
+  });
+  $("archivo").addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => ponerFoto(modeloActual(), r.result); r.readAsDataURL(f); e.target.value = "";
+  });
+  document.addEventListener("input", (e) => {
+    const m = modeloActual();
+    if (e.target.id === "buscar") { S.filtro = e.target.value; pintarLista(); }
+    if (e.target.id === "numero") { m.borrador = parseInt(e.target.value.replace(/\D/g, ""), 10) || 0; const b = document.querySelector('[data-acc="confirmar"]'); if (b) b.textContent = `Confirmar ${m.borrador} y seguir →`; }
+    if (e.target.id === "f-nombre") { m.ficha.nombre = e.target.value; }
+    if (e.target.id === "f-precio") { m.ficha.precio = parseFloat(e.target.value.replace(",", ".")) || 0; }
+    if (e.target.dataset.input) { const [c, ta] = e.target.dataset.input.split("|"); m.reparto[c] = m.reparto[c] || {}; m.reparto[c][ta] = parseInt(e.target.value.replace(/\D/g, ""), 10) || 0; }
+  });
+  document.addEventListener("change", (e) => { if (e.target.dataset.input || e.target.id === "f-precio" || e.target.id === "f-nombre") pintar(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.id === "numero") { e.preventDefault(); confirmarConteo(modeloActual(), modeloActual().borrador); }
+    if (e.key === "Escape") cerrarHoja();
+  });
+
+  $("btn-cerrar").addEventListener("click", () => {
+    const sinContar = S.modelos.filter((m) => m.contado === null);
+    let html;
+    if (S.modo === "hoy") {
+      const porTerminar = S.modelos.filter((m) => m.contado > 0);
+      html = `<h3>${sinContar.length ? `Faltan ${sinContar.length} modelos por contar` : "Conteo cerrado"}</h3>
+        ${sinContar.length ? '<p class="nota">Cuenta todo antes de cerrar.</p>' : `<p class="nota">Lo contado es oficial, pero ${porTerminar.length} modelos no entraron al stock: Vender todavía no los ve.</p>
+        <ul>${porTerminar.map((m) => `<li>${esc(m.nombre)}: ${m.nuevo ? "por crear" : "por poner tallas"}</li>`).join("")}</ul>
+        <p class="nota" style="color:var(--ambar)">Para terminarlos: volver a Recibir mercadería ▸ «Por terminar» ▸ abrir el envío ▸ «Hacer ahora», uno por uno.</p>`}`;
+    } else {
+      const despues = S.modelos.filter((m) => m.despues && !m.enStock);
+      const sinLlevar = S.modelos.filter((m) => !m.enStock && m.contado !== 0 && !m.despues);
+      const dif = S.modelos.filter((m) => m.contado !== null && m.contado !== m.dijeron);
+      html = sinLlevar.length
+        ? `<h3>Todavía no</h3><ul>${sinLlevar.map((m) => `<li>${esc(m.nombre)}: le falta «${NOMBRES_PASO[pasoQueToca(m) - 1]}», o déjalo para después</li>`).join("")}</ul>`
+        : `<h3>${despues.length ? "Listo para cerrar" : "Todo recibido"}</h3>
+          <p class="nota">${S.modelos.filter((m) => m.enStock).reduce((a, m) => a + m.contado, 0)} prendas ya están a la venta.${despues.length ? "" : " No queda nada por terminar."}</p>
+          ${dif.length ? `<p class="nota">Lo que no cuadró (se responde aquí mismo):</p><ul>${dif.map((m) => `<li>${esc(m.nombre)}: dijeron ${m.dijeron}, llegaron ${m.contado}</li>`).join("")}</ul>` : ""}
+          ${despues.length ? `<p class="nota" style="color:var(--ambar)">${despues.length} para después: quedan en este mismo envío, y si pasan 7 días le aparecen al encargado de sede.</p>` : ""}`;
+    }
+    abrirHoja(html);
+  });
+
+  document.querySelectorAll("#formas button").forEach((b) => b.addEventListener("click", () => {
+    S_FORMA = b.dataset.forma; S.forma = S_FORMA; pintar();
+  }));
+  $("btn-hoy").addEventListener("click", () => { S = estadoInicial("hoy"); pintar(); });
+  $("btn-cambio").addEventListener("click", () => { S = estadoInicial("cambio"); pintar(); });
+  $("reiniciar").addEventListener("click", () => { S = estadoInicial(S.modo); $("buscar").value = ""; pintar(); });
+
+  pintar();
+})();
+</script>

@@ -20,8 +20,11 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
     { valor: "dias", texto: "Más días en la tienda" },
     { valor: "nombre", texto: "Por nombre" },
   ],
+  // Felipe 2026-11-24: dos órdenes separados, cada uno con su pregunta. «No hay stock» pone arriba «Ya se agotaron»; «quedan pocos» pone
+  // arriba «Se acaban antes de Navidad», con lo que se acaba en 2 semanas o menos primero (`modelosQueNoLlegan`, `parteDeArriba`).
   pedir: [
-    { valor: "vende", texto: "Lo que más se vende" },
+    { valor: "agotado", texto: "Lo que más se vende y no hay stock" },
+    { valor: "pocos", texto: "Lo que más se vende y quedan pocos" },
     { valor: "acaba", texto: "Lo que se acaba antes" },
     { valor: "nombre", texto: "Por nombre" },
   ],
@@ -31,6 +34,17 @@ export const ORDENES: Partial<Record<VistaAnalisis, readonly OpcionOrden[]>> = {
     { valor: "prendas", texto: "Más prendas" },
   ],
 };
+
+/**
+ * «Mostrar» de «Qué pedir» (Felipe 2026-11-24: «por defecto el top 10», y que se pueda cambiar): cuántas tarjetas se ven de cada parte. Va
+ * junto a «Ordenar por» y reemplaza a «Ver N más» (un solo control para lo mismo). La primera opción es la de entrada.
+ */
+export const MOSTRAR_PEDIR: readonly OpcionOrden[] = [
+  { valor: "10", texto: "10" },
+  { valor: "20", texto: "20" },
+  { valor: "50", texto: "50" },
+  { valor: "todas", texto: "Todas" },
+];
 
 /** El orden de siempre de una pestaña («» si no ofrece ordenar). */
 export const ordenPorDefecto = (vista: VistaAnalisis): string => ORDENES[vista]?.[0]?.valor ?? "";

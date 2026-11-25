@@ -23,6 +23,7 @@
       "Link «Movimientos»",
       "button «Pedir a»",
       "BotonVer «Ver en Existencias»",
+      "button «Pedir a» #2",
       "BotonEnlace «{principal.texto}»"
     ],
     "components/analisis/FiltrosAnalisis.tsx": [
@@ -30,6 +31,7 @@
       "BotonLimpiar «Limpiar todo»",
       "BotonFiltros «→() => setHoja(true)»",
       "FiltroPuesto «{`Quitar filtro ${p.texto}»",
+      "DesplegablePildora «Mostrar»",
       "DesplegablePildora «Ordenar por»",
       "button «Limpiar»",
       "button «Ver»",
@@ -45,9 +47,7 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
-      "BotonVer «Comprar todas»",
-      "BotonVer «{`Comprar: ${nombreLargo(m)}»",
-      "button «{`${textoPedirA(sede)}»"
+      "BotonVer «Comprar todas»"
     ],
     "components/analisis/PestanaHoy.tsx": [
       "BotonVer «{boton}»"

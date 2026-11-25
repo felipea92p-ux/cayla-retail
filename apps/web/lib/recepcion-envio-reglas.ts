@@ -15,7 +15,8 @@
 // se lee con la costumbre del ERP (punto decimal, coma de miles; «12,50» sin punto es doce cincuenta: `leerNumero`).
 
 import { claveCelda, claveReferencia, construirCeldas, leerCantidad, tituloReferencia, type ColorAlta } from "./alta-producto";
-import type { ImagenesMuestra, ValorVocabulario } from "./catalogo-v2";
+import type { ImagenesMuestra, TemporadasCatalogo, ValorVocabulario } from "./catalogo-v2";
+import type { EtiquetaAlta } from "./alta-producto-datos";
 import { leerCostosAtipicos, MOTIVOS_COSTO_ATIPICO, type CostoAtipico, type MotivoCostoAtipico } from "./costo-atipico-reglas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
@@ -43,6 +44,8 @@ export const RPC_PARECIDAS_PARA_RECIBIR = "fn_parecidas_para_recibir";
 export const RPC_ABRIR_DESPACHO = "abrir_despacho";
 export const RPC_RECIBIR_SIN_ENVIO = "recibir_orden_sin_envio";
 export const RPC_PREPARAR_PRENDA = "preparar_prenda_al_recibir";
+/** ADR-0699 (20261124165000): la misma, más la temporada y las etiquetas de la prenda nueva, en la misma transacción. */
+export const RPC_PREPARAR_PRENDA_CON_FICHA = "preparar_prenda_al_recibir_con_ficha";
 export const RPC_RECIBIR_DESPACHO = "recibir_despacho";
 
 /** Lo que la base acepta (los topes de `recibir_despacho`). */
@@ -1582,6 +1585,10 @@ export type VocabularioParaRecibir = {
   patrones: ValorVocabulario[];
   imagenes: ImagenesMuestra;
   nombresPorCategoria: Record<string, string[]>;
+  /** ADR-0699: para poner la temporada al crear la prenda (como Nuevo producto). `null` si no se pudo leer: la hoja no la ofrece. */
+  temporadas: TemporadasCatalogo | null;
+  /** ADR-0699: las etiquetas aprobadas y activas que se ofrecen al crear. Vacía si no se pudo leer. */
+  etiquetas: EtiquetaAlta[];
 };
 
 export type BorradorPrenda = {
@@ -1592,6 +1599,10 @@ export type BorradorPrenda = {
   descripcion: string;
   tejidoId: string;
   patronId: string;
+  /** ADR-0699: la temporada elegida al crear (vacía = la de su categoría). */
+  temporada?: string;
+  /** ADR-0699: las etiquetas elegidas al crear. */
+  etiquetaIds?: string[];
 };
 
 export type ContextoPrenda = {
@@ -1772,7 +1783,14 @@ export type ArgsPrepararPrenda = {
   p_token: string;
   /** Algo fuera de la guía en un envío de dos o más proveedores: de cuál es (con la pareja marca–proveedor se registra). */
   p_proveedor_id: string | null;
+  /** ADR-0699: solo al crear y solo si se eligió; con alguno de los dos, la hoja llama a `preparar_prenda_al_recibir_con_ficha`. */
+  p_temporada?: string;
+  p_etiqueta_ids?: string[];
 };
+
+/** ¿Va por la función con temporada y etiquetas? Sin nada elegido, la de siempre (así la web no depende del SQL nuevo para lo de siempre). */
+export const rpcDePrepararPrenda = (a: ArgsPrepararPrenda): string =>
+  a.p_temporada || (a.p_etiqueta_ids?.length ?? 0) > 0 ? RPC_PREPARAR_PRENDA_CON_FICHA : RPC_PREPARAR_PRENDA;
 
 /**
  * Los argumentos de `preparar_prenda_al_recibir`. Para una línea del envío, la categoría y la marca salen de la línea (la base ignora las que
@@ -1811,6 +1829,8 @@ export function argsPrepararPrenda(
     p_confirmo_distinto: o.confirmoDistinto,
     p_token: o.token,
     p_proveedor_id: o.despachoItemId ? null : o.proveedorId || null,
+    ...(nueva && b.temporada?.trim() ? { p_temporada: b.temporada.trim() } : {}),
+    ...(nueva && (b.etiquetaIds?.length ?? 0) > 0 ? { p_etiqueta_ids: [...new Set(b.etiquetaIds)] } : {}),
   };
 }
 
