@@ -21,14 +21,25 @@ export function valorValido<T extends string>(guardado: string | null | undefine
   return (validos as readonly string[]).includes(guardado ?? "") ? (guardado as T) : deFabrica;
 }
 
-export function preferenciaLocal<T extends string>(clave: string, validos: readonly T[], deFabrica: T): PreferenciaLocal<T> {
+/**
+ * `deFabricaEnEsteEquipo` (opcional): el valor de fábrica cuando depende de qué equipo es (un computador o un teléfono), y no es el mismo
+ * en todos. Solo se pregunta en el navegador y solo mientras el equipo no eligió nada; el servidor sigue con `deFabrica`.
+ */
+export function preferenciaLocal<T extends string>(
+  clave: string,
+  validos: readonly T[],
+  deFabrica: T,
+  deFabricaEnEsteEquipo?: () => T,
+): PreferenciaLocal<T> {
   const oyentes = new Set<() => void>();
   const leer = (): T => {
     if (typeof window === "undefined") return deFabrica;
+    let fabrica = deFabrica;
     try {
-      return valorValido(window.localStorage.getItem(clave), validos, deFabrica);
+      fabrica = deFabricaEnEsteEquipo?.() ?? deFabrica;
+      return valorValido(window.localStorage.getItem(clave), validos, fabrica);
     } catch {
-      return deFabrica;
+      return fabrica;
     }
   };
   return {

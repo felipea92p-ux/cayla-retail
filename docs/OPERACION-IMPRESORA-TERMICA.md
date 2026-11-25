@@ -82,9 +82,12 @@ Trujillo». Los íconos «CAYLA Caja» / «CAYLA Etiquetas» de abajo quedan sol
 
 ## Imprimir solo al cobrar (sin el segundo toque)
 
-Con la boleta ya sin cuadro (el ayudante en la Mac, o el Chrome de la caja en Windows), en la hoja **«Venta registrada»** de Vender enciende **«Imprimir solo al cobrar»**. Desde
-la venta siguiente, confirmar el cobro ya imprime la boleta: sin vuelto vuelve sola a una venta nueva; con vuelto deja
-a la vista cuánto entregar y Enter abre la siguiente. Es de ese equipo; no lo enciendas donde la boleta todavía abre el cuadro.
+Desde el 2026-11-25 viene **encendido en todo computador** (apagado en celulares y tablets): confirmar el cobro imprime la boleta y
+Vender vuelve solo a una venta nueva, sin la hoja «Venta registrada». Un aviso dice el número, el vuelto y **«Reimprimir»**. La hoja
+solo aparece si la boleta no salió, si la venta quedó sin conexión o sin comprobante, si se manda a la caja o si hay un WhatsApp que
+enviarle al cliente; en ella sigue el interruptor **«Imprimir solo al cobrar»** para apagarlo en ese equipo (ADR-0670, act. 2026-11-25).
+Donde la boleta todavía abre el cuadro (Windows sin `--kiosk-printing`, Mac sin el ayudante), el cuadro se abre solo en cada venta:
+configura la impresión directa de arriba.
 
 ## La ventana sabe qué es (ADR-0670)
 
