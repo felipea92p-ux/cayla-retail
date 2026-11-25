@@ -831,8 +831,9 @@ export function PuntoDeVentaTicket({
                   aria-label="Dejar en espera"
                   title="Dejar en espera"
                   className="btn-cayla btn-secundario flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 px-1 text-xs leading-tight"
-                  // La esquina de «Cobrar» (`rounded-md`), no la píldora del botón: lado a lado, dos formas distintas se veían sueltas.
-                  style={{ borderRadius: "var(--radius-md)" }}
+                  // La esquina de «Cobrar» (`rounded-md`), no la píldora del botón: lado a lado, dos formas distintas se veían sueltas. Y su
+                  // relleno corto: con los 18 px de `btn-cayla`, «En espera» se salía 5 px del botón (`/milimetro`, textos cortados).
+                  style={{ borderRadius: "var(--radius-md)", paddingInline: "0.5rem" }}
                 >
                   <CirclePause className="h-4 w-4 shrink-0" aria-hidden />
                   En espera
