@@ -32,6 +32,16 @@ export function filtroDeUbicacion(ubicacionId: string | null | undefined): strin
   return `ubicacion_id=eq.${ubicacionId}`;
 }
 
+/**
+ * El nombre del canal es de CADA oyente, no de la tabla y la sede. `supabase.channel(nombre)` devuelve el canal que ya existe
+ * con ese nombre: si dos piezas de la misma pantalla escuchan la misma tabla en la misma sede (la Caja y la estación de
+ * impresión, ambas `ventas` de TRU), la segunda recibía el canal ya suscrito, su `.on()` lanzaba y la pantalla se caía en
+ * «No se pudo cargar»; además, al desmontarse una cerraba el canal de la otra. El filtro sigue siendo el de la sede.
+ */
+export function nombreDeCanal(tabla: string, ubicacionId: string | null | undefined, oyente: string): string {
+  return `en-vivo:${tabla}:${ubicacionId || "todas"}:${oyente}`;
+}
+
 /** Un id que no cabe en un filtro no se escucha (queda el sondeo), pero «sin sede» sí es válido. */
 export function sePuedeEscuchar(ubicacionId: string | null | undefined): boolean {
   return !ubicacionId || UUID.test(ubicacionId);
