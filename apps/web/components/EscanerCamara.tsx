@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ExistenciasEnCamara } from "@/components/ExistenciasEnCamara";
+import { AvisoRepetida } from "@/components/ui/AvisoRepetida";
 import type { ResultadoConsulta } from "@/lib/escaner-existencias";
 import {
   MS_AVISO,
@@ -44,8 +45,10 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
        clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
        del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
        aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`);
-     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`); si la prenda ya
-       estaba en el ticket, el doble toque de «ya la escaneaste» y la fila dice «van 2» (2026-11-25: entra igual, ADR-0562).
+     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`).
+     · la prenda que YA está en el ticket no se suma sola (2026-11-25, ADR-0562 act.): la pantalla responde `repetida`, suena el
+       doble toque de «ya la escaneaste» y la cámara se tapa con «Ya está en el ticket · ¿Sumar otra?» (`AvisoRepetida`, la misma de
+       Bajar al piso): Sumar, No o Cambiar cantidad (`onSumarOtra`, `onCantidad`). Mientras se pregunta, no se lee.
 
    Lo que se ve aunque las animaciones estén apagadas (2026-11-25; vienen apagadas, ADR-0625, y sin ellas no había vuelo ni
    destello: lo único que cambiaba era una fila chica abajo): las esquinas del visor se pintan del tono de la lectura un momento
@@ -163,6 +166,8 @@ export type ConsultaDeExistencias = {
 export function EscanerCamara({
   onCodigo,
   onBajar,
+  onSumarOtra,
+  onCantidad,
   pausada = false,
   consulta,
   ticket,
@@ -175,6 +180,10 @@ export function EscanerCamara({
   /** «Agregar» de una fila que frenó el almacén: registra la bajada y la agrega (Vender abre su hoja encima). Devuelve cuántas
    *  van de esa prenda si entró, `null` si no. Sin él, la fila solo dice que no entró (Apartados). */
   onBajar?: (codigo: string) => Promise<number | null>;
+  /** «Sumar» de la pregunta por una prenda que ya está en el ticket: la agrega sin volver a preguntar. */
+  onSumarOtra?: (codigo: string) => ResultadoEscaneo;
+  /** «Cambiar cantidad» de esa pregunta: deja esa prenda con ese total en el ticket (y no vuelve a preguntar por ella). */
+  onCantidad?: (codigo: string, total: number) => ResultadoEscaneo;
   /** Otra hoja está encima de la cámara (la de la bajada): no se lee nada hasta que se cierre. */
   pausada?: boolean;
   /** Con esto la cámara ofrece el interruptor «Al ticket / Existencias». */
@@ -212,10 +221,12 @@ export function EscanerCamara({
   }, [marca]);
   // La fila que está registrando su bajada (su «Agregar» espera a la hoja de encima).
   const [bajando, setBajando] = useState<number | null>(null);
+  // La pregunta por una prenda que ya está en el ticket: tapa el visor y la cámara no lee hasta que se responda.
+  const [pregunta, setPregunta] = useState<Lectura | null>(null);
   const pausadaRef = useRef(pausada);
   useEffect(() => {
-    pausadaRef.current = pausada;
-  }, [pausada]);
+    pausadaRef.current = pausada || pregunta !== null;
+  }, [pausada, pregunta]);
   const [linterna, setLinterna] = useState<{ disponible: boolean; encendida: boolean }>({ disponible: false, encendida: false });
 
   // El ticket que muestra la bandeja va un paso atrás del de verdad mientras una prenda está en el aire: cambia cuando la
@@ -279,6 +290,14 @@ export function EscanerCamara({
       const r = onCodigoRef.current(codigo);
       n += 1;
       const lectura = { ...r, id: n };
+      // Ya está en el ticket: no entra sola. Se pregunta y se deja de leer hasta la respuesta. El sonido de «repetida» lo pone la
+      // pantalla que decide preguntar (`decidirLectura`, ADR-0690), no esta hoja: sonaría dos veces.
+      if (r.estado === "repetida") {
+        pausadaRef.current = true;
+        setPregunta(lectura);
+        setMarca({ id: n, tono: "ambar" });
+        return;
+      }
       const tono = mensajeEscaneo(r).tono;
       setHistorial((h) => [lectura, ...h].slice(0, 3));
       setDestello({ id: n, tono });
@@ -389,6 +408,20 @@ export function EscanerCamara({
     };
   }, [vuelo]);
 
+  /** La respuesta a «¿Sumar otra?» ya hecha por la pantalla: la fila, el sonido y el visor, como una lectura que entró o no. */
+  const idRespuesta = useRef(1_000_000);
+  function mostrarRespuesta(r: ResultadoEscaneo) {
+    setPregunta(null);
+    idRespuesta.current += 1;
+    const lectura: Lectura = { ...r, id: idRespuesta.current };
+    const tono = mensajeEscaneo(r).tono;
+    setHistorial((h) => [lectura, ...h].slice(0, 3));
+    setMarca({ id: lectura.id, tono });
+    // Ya se avisó que estaba (la pregunta): ahora solo «entró» o «no entró».
+    avisarLectura(sonidoDeLecturaCamara(tono));
+    if (r.estado === "agregada") setLatidoBolsa((x) => x + 1);
+  }
+
   /** «Agregar» de una fila del almacén: la pantalla abre su hoja (encima) y, si la bajada se registró, la fila pasa a «entró». */
   async function bajar(l: Lectura) {
     if (!onBajar || bajando !== null) return;
@@ -452,6 +485,9 @@ export function EscanerCamara({
             <canvas ref={lienzoRef} className="hidden" aria-hidden />
           </div>
 
+          {/* El velo de la pregunta: tapa el visor entero (la barra de arriba y la bandeja quedan por encima), como en Bajar al piso. */}
+          {pregunta && <div aria-hidden data-sin-cascada className="anim-revelar absolute inset-0 z-[5] bg-sombra/80 backdrop-blur-sm" />}
+
           {/* Barra de arriba: sobre un degradé para que la ✕ se lea sobre cualquier imagen. */}
           <div className="papel-fijo relative z-10 flex items-center justify-between gap-2 bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
@@ -491,8 +527,26 @@ export function EscanerCamara({
           </div>
 
           {/* El visor: todo se oscurece salvo el cuadro (la sombra de 200vmax ES el velo con recorte). */}
-          <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
-            {sinCamara ? (
+          <div className={`papel-fijo relative flex min-h-0 flex-1 flex-col items-center gap-5 ${pregunta ? "z-10 justify-end px-3 pb-4" : "justify-center px-6"}`}>
+            {pregunta ? (
+              <div className="w-full max-w-md">
+                <AvisoRepetida
+                  key={pregunta.id}
+                  variante="camara"
+                  donde="el ticket"
+                  nombre={[pregunta.prenda?.referencia ?? pregunta.codigo, pregunta.prenda?.detalle].filter(Boolean).join(" · ")}
+                  miniatura={<Miniatura prenda={pregunta.prenda} lado={48} />}
+                  lleva={pregunta.lleva ?? 1}
+                  tope={pregunta.tope ?? null}
+                  onSi={() => {
+                    if (onSumarOtra) mostrarRespuesta(onSumarOtra(pregunta.codigo));
+                    else setPregunta(null);
+                  }}
+                  onNo={() => setPregunta(null)}
+                  onVarias={onCantidad ? (total) => mostrarRespuesta(onCantidad(pregunta.codigo, total)) : undefined}
+                />
+              </div>
+            ) : sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
                 <p className="text-sm leading-relaxed">
                   {estado === "sin-permiso"
@@ -557,7 +611,10 @@ export function EscanerCamara({
               <>
                 <p className="label-cayla text-xs text-taupe">Escaneadas</p>
                 <ul aria-live="polite" className="mt-1 h-[6.5rem] overflow-hidden [@media(min-height:700px)]:h-[9.75rem]">
-                  {historial.length === 0 ? (
+                  {pregunta ? (
+                    // Con la pregunta abierta la bandeja no se toca (su «Agregar» abriría otra hoja sin responder), como en Bajar al piso.
+                    <li className="grid h-full place-items-center text-center text-sm text-tenue">Responde arriba para seguir.</li>
+                  ) : historial.length === 0 ? (
                     <li className="grid h-full place-items-center text-center text-xs text-tinta/55">Las prendas que escanees aparecen aquí.</li>
                   ) : (
                     historial.map((l, i) => {

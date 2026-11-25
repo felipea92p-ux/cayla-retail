@@ -21,7 +21,9 @@ export const PAUSA_MISMO_CODIGO_MS = 2000;
  *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
  *  (`lib/vender-stock-local.ts`). */
 /** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384, `sinPrecioParaVender`). */
-export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada";
+/** `repetida`: la prenda ya está en el ticket y no se sumó sola: la cámara pregunta «¿Sumar otra?» (ADR-0562, act. 2026-11-25;
+ *  la regla es `decidirLectura`, `lib/lectura-repetida.ts`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada" | "repetida";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -32,9 +34,11 @@ export type ResultadoEscaneo = {
   /** Cuántas hay en el almacén de esta tienda (sin lo apartado); null/ausente sin almacén. La cámara no muestra el
    *  aviso de arriba (le taparía la ✕), así que su tarjeta tiene que decir por sí sola dónde está la prenda. */
   almacen?: number | null;
-  /** Solo si entró: cuántas de esta prenda lleva el ticket DESPUÉS de esta lectura. Desde 2, la bandeja dice «van 2» y suena
-   *  distinto: la prenda ya estaba en el ticket (Vender no pregunta, ADR-0562: dos iguales en un ticket son normales). */
+  /** Si entró: cuántas de esta prenda lleva el ticket DESPUÉS de esta lectura (desde 2, la bandeja dice «van 2»). Si es
+   *  `repetida`: cuántas lleva AHORA, antes de responder. */
   lleva?: number;
+  /** Solo en `repetida`: hasta cuántas admite el ticket de esa prenda (lo libre en el piso), para «Cambiar cantidad». */
+  tope?: number | null;
 };
 
 /** Cuánto dura el vuelo de la tarjeta al ticket, de que aparece a que entra en la bolsa. Son tres tramos, cada uno dentro
@@ -132,6 +136,8 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: no tiene precio en el catálogo` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
+    case "repetida":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} ya está en el ticket: ¿sumar otra?` };
   }
 }
 
@@ -157,5 +163,7 @@ export function estadoCorto(r: ResultadoEscaneo): string | null {
       return "No entró · sin precio";
     case "no-encontrada":
       return "No es de esta tienda";
+    case "repetida":
+      return "Ya está en el ticket";
   }
 }

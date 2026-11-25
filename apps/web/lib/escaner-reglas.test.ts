@@ -112,3 +112,17 @@ describe("la bandeja de la cámara de Vender dice qué pasó con cada lectura (2
     expect(detalleDeLectura({ estado: "no-encontrada", codigo: "XYZ-1" })).toBe("Código XYZ-1");
   });
 });
+
+describe("la prenda que ya está en el ticket, en la cámara (ADR-0562, act. 2026-11-25)", () => {
+  const r = { estado: "repetida" as const, codigo: "CAS-0002-BEI-M", nombre: "Casaca Luciana · M", lleva: 1, tope: 4 };
+
+  it("no entró sola: es una pregunta, no una venta", () => {
+    expect(mensajeEscaneo(r)).toEqual({ tono: "ambar", texto: "Casaca Luciana · M ya está en el ticket: ¿sumar otra?" });
+    expect(estadoCorto(r)).toBe("Ya está en el ticket");
+    expect(yaEstabaEnElTicket(r)).toBe(false);
+  });
+
+  it("no ofrece registrar una bajada: lo que la frena es la pregunta, no el almacén", () => {
+    expect(sePuedeBajar({ ...r, almacen: 3 })).toBe(false);
+  });
+});
