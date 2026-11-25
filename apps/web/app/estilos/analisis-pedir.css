@@ -118,6 +118,32 @@
     .mini-al .al .v{text-align:right;font-weight:600;white-space:nowrap;color:var(--color-ambar);font-variant-numeric:tabular-nums}
     .mini-al .navidad{position:absolute;top:14px;bottom:-4px;left:calc(82px + (100% - 156px) * var(--n));border-left:1.5px dashed var(--color-tinta);pointer-events:none}
     .mini-al .navidad span{position:absolute;bottom:100%;left:0;transform:translateX(-50%);font-size:var(--text-xs);font-weight:600;color:var(--color-tinta);white-space:nowrap}
+    /* La ficha de lo agotado, por talla y color (Felipe 2026-11-25 eligió la «B2», `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`):
+       cada casilla tiene dos pisos, arriba cuántas te quedan (0 en rojo) y abajo cuántas vendiste; la clave de arriba dice qué es cada piso.
+       La casilla es la placa (vidrio que explica, sin desenfoque); el piso de arriba se tiñe del rojo del dato. Va con `:is(…)` para ganarle a
+       `.m-tabla td span` (analisis.css), que la volvería un bloque sin pisos. */
+    .pisos-clave{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:var(--text-detalle);color:var(--color-secundario)}
+    .pisos-clave .pisos-casilla{width:44px;min-height:44px}
+    .pisos-clave-txt{display:grid;grid-template-rows:1fr 1fr;min-height:44px}
+    .pisos-clave-txt span{display:flex;align-items:center}
+    .pisos-clave-txt .pisos-q{color:var(--color-rojo-profundo)}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla{display:grid;grid-template-rows:1fr 1fr;min-height:56px;border-radius:12px;overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;
+      background:var(--placa-fondo);box-shadow:var(--placa-luz), inset 0 0 0 1px var(--placa-borde)}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla > span{display:grid;place-items:center}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q{background:color-mix(in srgb,var(--color-rojo-profundo) 9%,transparent);color:var(--color-rojo-profundo);font-weight:600;font-size:var(--text-sm)}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q.hay{background:transparent;color:var(--color-tinta)}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v{font-size:var(--text-detalle);color:var(--color-tinta)}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v.nada{color:var(--color-tenue)}
+    .m-tabla.pisos td.pisos-td{padding:0;min-width:52px;border-radius:12px}
+    .m-tabla.pisos td.pisos-total .pisos-v{font-weight:600}
+    @container analisis (max-width:460px){ .m-tabla.pisos td.pisos-td{min-width:48px;padding:0} }
+    /* Lo que tiene la otra tienda, color por talla: en su bloque, con el chip de siempre; el punto es el color de la prenda (dato). */
+    .pisos-otra{margin-top:16px}
+    .pisos-piezas{display:flex;flex-wrap:wrap;gap:6px}
+    .pisos-pt{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--prenda);margin-right:2px;
+      box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 18%,transparent)}
+    .pisos-talla{margin-left:4px;font-weight:600;letter-spacing:.06em;color:var(--color-secundario)}
+    .pisos-cant{margin-left:4px;font-weight:600;color:var(--color-tinta)}
   }
 }
 
