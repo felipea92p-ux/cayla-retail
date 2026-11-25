@@ -566,3 +566,10 @@ no se vendió ni queda, es un 0 tenue (no falta nada). La tabla vieja de lo que 
 
 **Cómo se verificó.** Pruebas de `lib/analisis-ficha-pedir.test.ts`; en el navegador, con las cifras reales de TRU del Chaleco Cecia (3 tallas,
 7 colores), Blusa Alba (agotado, Arequipa tiene) y Polo Basico Manga Corta (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores.
+
+### Act. 2026-11-25 (d) — La clave de los dos pisos ya no pinta de rojo el piso de arriba
+
+Felipe: «en la leyenda dice que arriba será rojo, pero cuando hay data es blanco». La clave mostraba «0 / 2» con el piso de arriba teñido y
+«Arriba: te quedan» en rojo, y el rojo solo marca lo que se vendió y ya no hay. Ahora la muestra lleva el piso de arriba neutro («1 / 2», como
+cuando te queda algo) y, aparte, un «0» rojo con «Se vendió y ya no hay». Y en una sola línea, con una muestra chica (Felipe, al verla en
+tres renglones: «esto es mucho espacio ocupado»): en la computadora entra entera; en el celular, en dos líneas cortas.
