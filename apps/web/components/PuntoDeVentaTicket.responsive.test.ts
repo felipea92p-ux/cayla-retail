@@ -37,14 +37,16 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
   // cede el ancho es el bloque del nombre (`min-w-0 flex-1`), que corta el nombre en 2 líneas y deja bajar a otra
   // línea el «color · talla · stock». Sin esas clases, a 320-375 px la fila empuja al ticket fuera de la pantalla.
   // Desde el 2026-10-23 (auditoría del celular, hallazgo 10), bajo `sm` la fila ocupa DOS filas —arriba el nombre con la papelera, abajo la
-  // cantidad y el importe—: el bloque del nombre conserva `min-w-0 flex-1` y suma sus clases `max-sm:`.
+  // cantidad y el importe—: el bloque del nombre conserva `min-w-0 flex-1` y suma sus clases `max-sm:`. Desde el 2026-11-25 (Felipe) esas dos
+  // filas son una grilla («controles a la vista»): miniatura, nombre e importe arriba; la cantidad, el «%» y la papelera abajo; la columna
+  // del nombre es `minmax(0,1fr)`.
   it("la fila de cada prenda cede el ancho por el nombre y el detalle baja de línea", () => {
     const linea = readFileSync(join(__dirname, "punto-de-venta", "LineaDelTicket.tsx"), "utf8");
     expect(codigo).toContain("<LineaDelTicket");
     expect(linea).toMatch(/<div className="min-w-0 flex-1[^"]*" title=/);
-    expect(linea).toMatch(/flex items-center gap-2 max-sm:flex-wrap/);
+    expect(linea).toMatch(/flex items-center gap-2 max-sm:grid max-sm:grid-cols-\[auto_minmax\(0,1fr\)_auto_auto\]/);
     expect(linea).toContain("line-clamp-2");
-    expect(linea).toMatch(/<p className="[^"]*\bflex-wrap\b[^"]*">\s*<span>\{f\.detalle\}/);
+    expect(linea).toMatch(/<p className="[^"]*\bflex-wrap\b[^"]*">\s*<span[^>]*>\{f\.detalle\}/);
     // El paso, el importe y el basurero no se encogen: se encoge el nombre.
     expect(linea.match(/\bshrink-0\b/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
@@ -57,7 +59,8 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 90);
     expect(fila).toContain("flex-wrap");
-    expect(codigo.slice(inicio, inicio + 3600)).toContain(">cupón");
+    // En la hoja del celular la palabra larga ni se dibuja (`{!enHoja && …}cupón`, Felipe 2026-11-25).
+    expect(codigo.slice(inicio, inicio + 3600)).toMatch(/[>}]cupón/);
     // En un ticket angosto las dos frases se acortan («Descuento · Cupón») para no partir la fila en dos líneas.
     expect(codigo.slice(inicio, inicio + 3600)).toContain("@max-[21rem]:hidden");
   });
