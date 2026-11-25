@@ -3,7 +3,7 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Globito } from "@/components/ui/Globito";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
+import { Check, Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -12,15 +12,18 @@ import type { ResultadoConsulta } from "@/lib/escaner-existencias";
 import {
   MS_AVISO,
   MS_VUELO,
-  esLecturaRepetida,
+  detalleDeLectura,
   estadoCorto,
   keyframesAviso,
   keyframesVuelo,
   mensajeEscaneo,
   normalizarLectura,
+  sePuedeBajar,
   sonidoDeLecturaCamara,
+  yaEstabaEnElTicket,
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
+import { debeContarLectura } from "@/lib/conteo-conectado";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -41,7 +44,19 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
        clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
        del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
        aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`);
-     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`).
+     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`); si la prenda ya
+       estaba en el ticket, el doble toque de «ya la escaneaste» y la fila dice «van 2» (2026-11-25: entra igual, ADR-0562).
+
+   Lo que se ve aunque las animaciones estén apagadas (2026-11-25; vienen apagadas, ADR-0625, y sin ellas no había vuelo ni
+   destello: lo único que cambiaba era una fila chica abajo): las esquinas del visor se pintan del tono de la lectura un momento
+   (color, no movimiento) y la fila más nueva queda marcada con su ✓ o su «!».
+
+   CUÁNDO cuenta una lectura (2026-11-25): la regla de Conteo (`debeContarLectura`). La misma etiqueta quieta frente a la cámara
+   nunca vuelve a entrar sola; para la segunda prenda igual, la etiqueta sale del cuadro y entra otra. Antes bastaba con dejarla
+   2 s: medido, una etiqueta sostenida 2,5 s entraba dos veces al ticket.
+
+   Lo del almacén de la tienda (`sePuedeBajar`) trae «Agregar» en su fila (`onBajar`): abre la hoja de la bajada encima de la
+   cámara, que deja de leer mientras tanto (`pausada`), y si se registra la fila pasa a «entró».
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Dos modos (2026-10-28, pedido de Felipe), con un interruptor arriba cuando la pantalla pasa `consulta`:
@@ -133,8 +148,6 @@ function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado:
 
 type Lectura = ResultadoEscaneo & { id: number };
 
-/** La segunda línea de una prenda leída: color · talla, o el código si no es de ninguna prenda. */
-const detalleDe = (l: ResultadoEscaneo) => l.prenda?.detalle || `Código ${l.codigo}`;
 
 type ModoCamara = "ticket" | "existencias";
 
@@ -149,6 +162,8 @@ export type ConsultaDeExistencias = {
 
 export function EscanerCamara({
   onCodigo,
+  onBajar,
+  pausada = false,
   consulta,
   ticket,
   onBuscarPorNombre,
@@ -157,6 +172,11 @@ export function EscanerCamara({
 }: {
   /** El camino del lector: decide qué prenda es y si entra al ticket. */
   onCodigo: (codigo: string) => ResultadoEscaneo;
+  /** «Agregar» de una fila que frenó el almacén: registra la bajada y la agrega (Vender abre su hoja encima). Devuelve cuántas
+   *  van de esa prenda si entró, `null` si no. Sin él, la fila solo dice que no entró (Apartados). */
+  onBajar?: (codigo: string) => Promise<number | null>;
+  /** Otra hoja está encima de la cámara (la de la bajada): no se lee nada hasta que se cierre. */
+  pausada?: boolean;
   /** Con esto la cámara ofrece el interruptor «Al ticket / Existencias». */
   consulta?: ConsultaDeExistencias;
   /** El ticket de Vender tal cual está: la bandeja lo muestra (cuando termina el vuelo). */
@@ -183,6 +203,19 @@ export function EscanerCamara({
   const [vuelo, setVuelo] = useState<Lectura | null>(null);
   const [destello, setDestello] = useState<{ id: number; tono: "verde" | "ambar" } | null>(null);
   const [latidoBolsa, setLatidoBolsa] = useState(0);
+  // El tono de la última lectura en las esquinas del visor, un momento: se ve aunque las animaciones estén apagadas.
+  const [marca, setMarca] = useState<{ id: number; tono: "verde" | "ambar" } | null>(null);
+  useEffect(() => {
+    if (!marca) return;
+    const t = window.setTimeout(() => setMarca((m) => (m?.id === marca.id ? null : m)), 1600);
+    return () => window.clearTimeout(t);
+  }, [marca]);
+  // La fila que está registrando su bajada (su «Agregar» espera a la hoja de encima).
+  const [bajando, setBajando] = useState<number | null>(null);
+  const pausadaRef = useRef(pausada);
+  useEffect(() => {
+    pausadaRef.current = pausada;
+  }, [pausada]);
   const [linterna, setLinterna] = useState<{ disponible: boolean; encendida: boolean }>({ disponible: false, encendida: false });
 
   // El ticket que muestra la bandeja va un paso atrás del de verdad mientras una prenda está en el aire: cambia cuando la
@@ -206,6 +239,8 @@ export function EscanerCamara({
     consultaRef.current = consulta;
   }, [consulta]);
   const ultimaRef = useRef<{ codigo: string; en: number } | null>(null);
+  // ¿Hubo un cuadro sin código desde la última lectura que contó? Es la señal de que la etiqueta salió del visor (`debeContarLectura`).
+  const huboHuecoRef = useRef(true);
   // Lo último que se leyó en «Existencias»: solo el CÓDIGO. Lo que se ve se consulta en cada pintada, así sigue al stock de ahora.
   const [consultado, setConsultado] = useState<{ id: number; codigo: string } | null>(null);
   // El color que la persona tocó en la bandeja para ESA lectura; una lectura nueva vuelve al color de la etiqueta.
@@ -215,6 +250,7 @@ export function EscanerCamara({
     const nuevo: ModoCamara = clave === "existencias" ? "existencias" : "ticket";
     modoRef.current = nuevo;
     ultimaRef.current = null;
+    huboHuecoRef.current = true;
     setModo(nuevo);
   }
 
@@ -227,14 +263,16 @@ export function EscanerCamara({
     const alLeer = (crudo: string) => {
       const codigo = normalizarLectura(crudo);
       const ahora = Date.now();
-      if (!codigo || esLecturaRepetida(codigo, ultimaRef.current, ahora)) return;
+      if (!debeContarLectura(codigo, ultimaRef.current, { huboHueco: huboHuecoRef.current, ahora })) return;
       ultimaRef.current = { codigo, en: ahora };
+      huboHuecoRef.current = false;
       // «Existencias»: la misma lectura, pero solo se consulta. No pasa por `onCodigo`, así que no entra nada al ticket.
       if (modoRef.current === "existencias" && consultaRef.current) {
         n += 1;
         const tono = consultaRef.current.leer(codigo).tipo === "prenda" ? "verde" : "ambar";
         setConsultado({ id: n, codigo });
         setDestello({ id: n, tono });
+        setMarca({ id: n, tono });
         avisarLectura(sonidoDeLecturaCamara(tono));
         return;
       }
@@ -244,8 +282,9 @@ export function EscanerCamara({
       const tono = mensajeEscaneo(r).tono;
       setHistorial((h) => [lectura, ...h].slice(0, 3));
       setDestello({ id: n, tono });
+      setMarca({ id: n, tono });
       // Suena y vibra en cada lectura (el bip de Conteo): quien vende mira la prenda y al cliente, no la pantalla.
-      avisarLectura(sonidoDeLecturaCamara(tono));
+      avisarLectura(sonidoDeLecturaCamara(tono, { yaEstaba: yaEstabaEnElTicket(r) }));
       if (moverse()) {
         setVuelo(lectura);
         if (r.estado === "agregada") setEnVuelo(true);
@@ -289,8 +328,12 @@ export function EscanerCamara({
       const ciclo = async () => {
         if (!vivo) return;
         try {
-          const crudo = lienzoRef.current ? await leer(video, lienzoRef.current) : null;
-          if (crudo && vivo) alLeer(crudo);
+          // Con otra hoja encima no se lee: tampoco se marca el hueco, así la etiqueta que siga quieta al volver no entra sola.
+          if (!pausadaRef.current) {
+            const crudo = lienzoRef.current ? await leer(video, lienzoRef.current) : null;
+            if (crudo && vivo) alLeer(crudo);
+            else if (!crudo) huboHuecoRef.current = true;
+          }
         } catch {
           // Un cuadro que no se pudo leer no corta la cámara: se intenta con el siguiente.
         }
@@ -345,6 +388,24 @@ export function EscanerCamara({
       animacion.cancel();
     };
   }, [vuelo]);
+
+  /** «Agregar» de una fila del almacén: la pantalla abre su hoja (encima) y, si la bajada se registró, la fila pasa a «entró». */
+  async function bajar(l: Lectura) {
+    if (!onBajar || bajando !== null) return;
+    setBajando(l.id);
+    let lleva: number | null = null;
+    try {
+      lleva = await onBajar(l.codigo);
+    } finally {
+      setBajando(null);
+    }
+    if (lleva === null) return;
+    const entro: Lectura = { ...l, estado: "agregada", lleva };
+    setHistorial((h) => h.map((x) => (x.id === l.id ? entro : x)));
+    setMarca({ id: l.id, tono: "verde" });
+    setLatidoBolsa((x) => x + 1);
+    avisarLectura(sonidoDeLecturaCamara("verde", { yaEstaba: yaEstabaEnElTicket(entro) }));
+  }
 
   async function alternarLinterna() {
     const pista = pistaRef.current;
@@ -460,7 +521,8 @@ export function EscanerCamara({
                         "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[30px]",
                       ] as const
                     ).map((pos) => (
-                      <span key={pos} aria-hidden className={`absolute h-11 w-11 border-crema ${pos}`} />
+                      // El tono de la última lectura, un momento: color y no movimiento, así se ve también con las animaciones apagadas.
+                      <span key={pos} aria-hidden className={`absolute h-11 w-11 transition-colors duration-200 ${marca?.tono === "verde" ? "border-verde" : marca?.tono === "ambar" ? "border-ambar" : "border-crema"} ${pos}`} />
                     ))}
                   </div>
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
@@ -498,17 +560,43 @@ export function EscanerCamara({
                   {historial.length === 0 ? (
                     <li className="grid h-full place-items-center text-center text-xs text-tinta/55">Las prendas que escanees aparecen aquí.</li>
                   ) : (
-                    historial.map((l) => {
+                    historial.map((l, i) => {
                       const { tono } = mensajeEscaneo(l);
+                      // La más nueva queda marcada con su ✓ o su «!»: se ve que se leyó aunque las animaciones estén apagadas.
+                      const nueva = i === 0;
+                      const bajable = onBajar !== undefined && sePuedeBajar(l);
                       return (
-                        <li key={l.id} className="anim-asentar flex h-[3.25rem] items-center gap-3">
+                        <li
+                          key={l.id}
+                          aria-current={nueva ? "true" : undefined}
+                          className={`anim-asentar -mx-2 flex h-[3.25rem] items-center gap-3 rounded-xl px-2 ${nueva ? (tono === "verde" ? "bg-verde/10" : "bg-ambar/10") : ""}`}
+                        >
                           <Miniatura prenda={l.prenda} lado={40} />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm text-tinta">{l.prenda?.referencia ?? l.codigo}</span>
-                            <span className="block truncate text-xs text-taupe">{detalleDe(l)}</span>
+                            <span className={`block truncate text-detalle ${tono === "verde" ? "text-secundario" : "text-ambar-profundo"}`}>
+                              {tono === "verde" ? detalleDeLectura(l) : bajable ? `En el almacén · ${detalleDeLectura(l)}` : detalleDeLectura(l)}
+                            </span>
                           </span>
                           {tono === "verde" ? (
-                            <span className="shrink-0 text-sm tabular-nums text-tinta">{soles(l.prenda?.precio ?? 0)}</span>
+                            <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-tinta">
+                              {soles(l.prenda?.precio ?? 0)}
+                              {nueva && (
+                                <span aria-label="Entró al ticket" className="grid h-6 w-6 place-items-center rounded-full bg-verde text-crema">
+                                  <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
+                                </span>
+                              )}
+                            </span>
+                          ) : bajable ? (
+                            <button
+                              type="button"
+                              onClick={() => void bajar(l)}
+                              disabled={bajando !== null}
+                              aria-label={`Agregar ${l.prenda?.referencia ?? l.codigo}: está en el almacén, se registra la bajada`}
+                              className="btn-cayla btn-secundario shrink-0"
+                            >
+                              Agregar
+                            </button>
                           ) : (
                             <span className="flex shrink-0 items-center gap-1.5 text-xs text-ambar-profundo">
                               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />
@@ -559,7 +647,7 @@ export function EscanerCamara({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-tinta">{vuelo.prenda?.referencia ?? vuelo.codigo}</span>
                   <span className="block truncate text-xs text-taupe">
-                    {detalleDe(vuelo)} · {vuelo.estado === "agregada" ? soles(vuelo.prenda?.precio ?? 0) : <span className="text-ambar-profundo">{estadoCorto(vuelo)}</span>}
+                    {detalleDeLectura(vuelo)} · {vuelo.estado === "agregada" ? soles(vuelo.prenda?.precio ?? 0) : <span className="text-ambar-profundo">{estadoCorto(vuelo)}</span>}
                   </span>
                 </span>
                 {vuelo.estado === "agregada" ? (

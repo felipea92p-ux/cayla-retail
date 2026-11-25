@@ -44,7 +44,7 @@ ningún cuadro: una mano que tiembla la hace salir y entrar, y suma otra vez. El
 | Cuadrar el piso (pistola y cámara) | construido |
 | Recibir envío, Llegó mercadería, Etiquetas, Apartar | pendiente: misma pieza y misma función, en otro PR |
 | Conteo (cámara en ráfaga) | **decisión de Felipe**: contar una pila de iguales es pasar la misma etiqueta muchas veces |
-| Vender (ticket) | **decisión de Felipe**: dos prendas iguales en un ticket son normales y es dinero |
+| Vender (ticket) | **decisión de Felipe**: dos prendas iguales en un ticket son normales y es dinero. Desde el 2026-11-25 la cámara no pregunta pero lo dice: la misma etiqueta quieta no vuelve a entrar (`debeContarLectura`) y la segunda de una prenda dice «van 2» con el sonido de «repetida» (ADR-0321, act. 2026-11-25 b) |
 
 ## Alternativas descartadas
 

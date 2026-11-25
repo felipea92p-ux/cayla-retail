@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PAUSA_MISMO_CODIGO_MS, esLecturaRepetida, estadoCorto, keyframesAviso, keyframesVuelo, mensajeEscaneo, normalizarLectura } from "./escaner-reglas";
+import { PAUSA_MISMO_CODIGO_MS, detalleDeLectura, esLecturaRepetida, estadoCorto, keyframesAviso, keyframesVuelo, mensajeEscaneo, normalizarLectura, sePuedeBajar, sonidoDeLecturaCamara, yaEstabaEnElTicket } from "./escaner-reglas";
 
 describe("escaner-reglas", () => {
   it("normaliza la lectura como la dejaría el lector", () => {
@@ -72,5 +72,43 @@ describe("una prenda sin precio que la cámara lee (ADR-0384)", () => {
     const r = { estado: "sin_precio" as const, codigo: "C1", nombre: "Blusa Emma · M" };
     expect(mensajeEscaneo(r)).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: no tiene precio en el catálogo" });
     expect(estadoCorto(r)).toBe("No entró · sin precio");
+  });
+});
+
+describe("la bandeja de la cámara de Vender dice qué pasó con cada lectura (2026-11-25)", () => {
+  const prenda = { referencia: "Casaca Luciana", detalle: "Beige · M", precio: 159.9, fotoUrl: null };
+
+  it("la primera de una prenda: color · talla, y el bip agudo", () => {
+    const r = { estado: "agregada" as const, codigo: "CAS-0002-BEI-M", prenda, lleva: 1 };
+    expect(detalleDeLectura(r)).toBe("Beige · M");
+    expect(yaEstabaEnElTicket(r)).toBe(false);
+    expect(sonidoDeLecturaCamara("verde", { yaEstaba: yaEstabaEnElTicket(r) })).toBe("suma");
+  });
+
+  it("la misma prenda otra vez entra (Vender no pregunta, ADR-0562), pero dice cuántas van y suena como «ya la escaneaste»", () => {
+    const r = { estado: "agregada" as const, codigo: "CAS-0002-BEI-M", prenda, lleva: 2 };
+    expect(detalleDeLectura(r)).toBe("Beige · M · van 2");
+    expect(yaEstabaEnElTicket(r)).toBe(true);
+    expect(sonidoDeLecturaCamara("verde", { yaEstaba: true })).toBe("repetida");
+  });
+
+  it("lo que no entró suena grave aunque se diga que ya estaba: el ámbar manda", () => {
+    expect(sonidoDeLecturaCamara("ambar", { yaEstaba: true })).toBe("desconocida");
+    expect(yaEstabaEnElTicket({ estado: "tope", lleva: 3 })).toBe(false);
+  });
+
+  it("sin el dato de cuántas van (Apartados), se lee como la primera", () => {
+    expect(yaEstabaEnElTicket({ estado: "agregada" })).toBe(false);
+  });
+
+  it("ofrece «Agregar» solo si lo frena el almacén de esta tienda", () => {
+    expect(sePuedeBajar({ estado: "en_almacen", almacen: 5 })).toBe(true);
+    expect(sePuedeBajar({ estado: "tope", almacen: 2 })).toBe(true);
+    expect(sePuedeBajar({ estado: "tope", almacen: 0 })).toBe(false);
+    for (const estado of ["agregada", "agotada", "apartada", "sin_precio", "no-encontrada"] as const) expect(sePuedeBajar({ estado, almacen: 3 }), estado).toBe(false);
+  });
+
+  it("un código que no es de ninguna prenda dice el código", () => {
+    expect(detalleDeLectura({ estado: "no-encontrada", codigo: "XYZ-1" })).toBe("Código XYZ-1");
   });
 });
