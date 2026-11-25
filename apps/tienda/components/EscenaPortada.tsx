@@ -58,7 +58,6 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
     <section className="dn-heroe" aria-labelledby="dn-lo-nuevo">
       <div className="dn-heroe-rejilla">
         <div className="dn-heroe-texto">
-          <span className="dn-ceja">New in</span>
           <h1 id="dn-lo-nuevo">Lo nuevo</h1>
           <p className="dn-heroe-bajada">Prendas que inspiran tu estilo.</p>
           <Link className="t-btn" href={hrefNuevo}>
@@ -110,7 +109,6 @@ export function EscenaEnEspera() {
     <div className="dn-heroe">
       <div className="dn-heroe-rejilla">
         <div className="dn-heroe-texto">
-          <span className="dn-ceja">New in</span>
           <div className="dn-titulo-espera">Lo nuevo</div>
           <p className="dn-heroe-bajada">Prendas que inspiran tu estilo.</p>
           <span className="t-btn">
