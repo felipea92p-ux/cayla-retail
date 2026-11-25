@@ -47,3 +47,14 @@ Resumen: **0 graves · 0 medias · 0 leves de esta rama** · 1 heredado anotado 
 
 - `campo-etiqueta` de `ComboResponsable` sobre la hoja de vidrio en claro: 4,48:1 (mínimo 4,5). Es la pieza del combo en todas las hojas; va a quien
   decida la etiqueta del campo (`/unificar`, familia `etiqueta-campo`).
+
+## Capturas (375 × 812)
+
+Antes: [el aviso arriba](2026-11-25-vender-hoja-bajada-celular/1-antes-aviso-arriba.jpg) · [la segunda hoja](2026-11-25-vender-hoja-bajada-celular/2-antes-segunda-hoja.jpg).
+Después: [la hoja abajo](2026-11-25-vender-hoja-bajada-celular/3-despues-hoja-abajo.jpg) · [de vuelta en las tallas](2026-11-25-vender-hoja-bajada-celular/4-despues-vuelve-a-tallas.jpg) · [oscuro](2026-11-25-vender-hoja-bajada-celular/5-despues-oscuro.jpg).
+
+## Caos (a mano, local)
+
+Doble toque: 1 fila en `movimientos` (la hoja espera con «Agregando…»). Con la base local respondiendo en ~50 ms, el segundo toque puede llegar con la
+hoja ya cerrada y caer en el «Listo» de la ventana de tallas (mismo lugar): la cierra, sin mover datos. Gravedad baja; anotado, no resuelto.
+Red caída: aviso «Se cortó la conexión… Vuelve a agregarla», 0 filas, nada en el ticket. Cancelar y «atrás»: 0 filas, sigue en `/vender`.
