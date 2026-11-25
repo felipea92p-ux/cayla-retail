@@ -82,6 +82,7 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { useSinRegistrarDeHoy } from "@/lib/useSinRegistrarDeHoy";
 import { SinRegistrarDeHoy } from "@/components/punto-de-venta/SinRegistrarDeHoy";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,
@@ -760,7 +761,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const insigniaPorVariante = useMemo(() => new Map(variantes.map((v) => [v.varianteId, v.empresa])), [variantes]);
   // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
   // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
-  const detallesDelTicket = useMemo(() => new Map(variantes.map((v) => [v.varianteId, { color: v.color, talla: v.talla }])), [variantes]);
+  const detallesDelTicket = useMemo(
+    () =>
+      new Map(
+        variantes.map((v) => [
+          v.varianteId,
+          { color: v.color, talla: v.talla, miniatura: { fotoUrl: v.fotoUrl, colorHex: v.colorHex ?? null, categoria: categoriaDe(v) } },
+        ]),
+      ),
+    [variantes],
+  );
   // Las prendas de este ticket que también están en otro abierto cuando no alcanza para todos (Felipe, 2026-10-25): solo avisa, no reserva.
   const prendasEnOtrosTickets = useMemo(
     () =>
@@ -2539,7 +2549,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             responsable={responsable}
           enHoja={enHoja}
           onCerrarHoja={() => setHojaTicket(false)}
-          abajo={<SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
+          // En la hoja del celular no va (Felipe 2026-11-25): le quitaba dos líneas a las prendas y en el piso no se usa; la mesa
+          // de «Por regularizar» sigue en Existencias y el pie de escritorio la sigue diciendo.
+          abajo={enHoja ? undefined : <SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
           arriba={
             <>
               {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
