@@ -8,7 +8,6 @@ import { traducirError } from "./error-escritura";
 // Si alguien quita la opción, esta prueba falla.
 const PANTALLAS: [archivo: string, contexto: string][] = [
   ["InsumoModales.tsx", "ingresar el insumo"],
-  ["ComprobanteProduccionForm.tsx", "registrar el comprobante"],
   ["PagarComprobanteProduccionModal.tsx", "registrar el pago"],
   ["RecibirComprobanteModal.tsx", "registrar la recepción"],
   ["NuevaOrdenProduccionForm.tsx", "abrir la orden"],

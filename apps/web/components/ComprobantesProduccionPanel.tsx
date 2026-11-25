@@ -9,11 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteProduccionDetalle } from "@/components/ComprobanteProduccionDetalle";
-import { ComprobanteProduccionForm } from "@/components/ComprobanteProduccionForm";
 import { estadoVisible, etiquetaTipo, filtrarComprobantes, resumenComprobantes, type ComprobanteProduccion, type FiltroEstado } from "@/lib/comprobantes-produccion-reglas";
-import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
-import type { OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
@@ -29,29 +26,21 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 export function ComprobantesProduccionPanel({
   comprobantes,
-  proveedores,
   todosLosProveedores,
-  insumos,
   hoy,
   tallerId,
   sede,
-  pedidosPorRecibir,
 }: {
   comprobantes: ComprobanteProduccion[];
-  proveedores: ProveedorProduccion[];
   todosLosProveedores: ProveedorProduccion[];
-  insumos: InsumoParaComprobante[];
   hoy: string;
   tallerId: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
-  /** Los pedidos de insumos con algo por recibir: «Nueva factura» pregunta si la factura es de uno (ADR-0587). */
-  pedidosPorRecibir: OrdenInsumoPorRecibir[];
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  const [nuevo, setNuevo] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
 
   const resumen = resumenComprobantes(comprobantes, hoy);
@@ -66,11 +55,9 @@ export function ComprobantesProduccionPanel({
         sede={sede}
         titulo="Facturas de insumos"
         subtitulo="Las facturas de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar."
-        acciones={
-          <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
-            + Nueva factura
-          </Boton>
-        }
+        // Sin «+ Nueva factura» (Felipe 2026-11-25): las facturas del Taller nacen donde pasa la compra —tela y avíos en Insumos ▸
+        // «Llegó una compra», corte y ploteo en Por pagar ▸ «Pagar servicio»—. Una tercera puerta aquí confundía: esta pantalla solo
+        // las lista para consultarlas, pagarlas o corregirlas.
       />
 
       <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -116,14 +103,14 @@ export function ComprobantesProduccionPanel({
                   Ir a Proveedores
                 </BotonEnlace>
               ) : (
-                <Boton peso="primario" onClick={() => setNuevo(true)}>
-                  Registrar la primera
-                </Boton>
+                <BotonEnlace href="/produccion/insumos" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
+                  Ir a Insumos
+                </BotonEnlace>
               )
             }
           >
-            Aquí va la factura de cada proveedor del Taller: la tela por metro, los avíos, la maquila. De ella salen cuánto se le debe, cuándo vence y a qué precio subió la tela.
-            {todosLosProveedores.length === 0 ? " Primero agrega al proveedor en Proveedores; después registra su factura." : null}
+            Aquí aparece la factura de cada compra del Taller: la tela y los avíos que entran por Insumos, y el corte o el ploteo que se paga en Por pagar. De ella salen cuánto se le debe, cuándo vence y a qué precio subió la tela.
+            {todosLosProveedores.length === 0 ? " Primero agrega al proveedor en Proveedores; después registra la compra en Insumos." : null}
           </Vacio>
         </div>
       ) : (
@@ -235,11 +222,10 @@ export function ComprobantesProduccionPanel({
               </ul>
             </div>
           )}
-          <p className="text-sm text-tinta/65">Una factura dice qué se compró, no qué llegó: lo que llega se anota en Recibir, y un crédito se paga en Por pagar.</p>
+          <p className="text-sm text-tinta/65">Las facturas se registran solas: la tela y los avíos, en Insumos; el corte y el ploteo, al pagarlos en Por pagar.</p>
         </div>
       )}
 
-      {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} pedidosPorRecibir={pedidosPorRecibir} onClose={() => setNuevo(false)} />}
       {detalle && <ComprobanteProduccionDetalle comprobante={detalle} hoy={hoy} tallerId={tallerId} onClose={() => setAbierto(null)} />}
     </div>
   );
