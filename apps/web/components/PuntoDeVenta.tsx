@@ -67,7 +67,10 @@ import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
-import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
+import { VentaRegistradaModal, queHacerEnEsteEquipo } from "@/components/VentaRegistradaModal";
+import { ImpresionAlCobrar } from "@/components/punto-de-venta/ImpresionAlCobrar";
+import type { FinBoleta } from "@/components/impresion/imprimirBoleta";
+import { detalleDelAvisoAlCobrar } from "@/lib/imprimir-al-cobrar";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
@@ -363,6 +366,8 @@ export type VentaOk = {
   celular?: string | null;
   /** Qué pasó al guardar ese celular en la ficha (`agregar_celular_clienta`, ADR-0288 act. o): `null` = no se intentó o ya tenía uno. */
   celularEnFicha?: CelularEnFicha | null;
+  /** Se mandó a imprimir sola al cobrar, sin hoja, y no salió: «Venta registrada» se abre para imprimirla desde ahí. */
+  noSeImprimio?: boolean;
 };
 
 const MAX_RESULTADOS = 6;
@@ -669,6 +674,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     return () => window.removeEventListener("online", alVolver);
   });
   const [ok, setOk] = useState<VentaOk | null>(null);
+  // La boleta que sale sola al cobrar, sin hoja (`lib/imprimir-al-cobrar.ts`): la venta, y cuál impresión es (una nueva al reimprimir).
+  const [impresion, setImpresion] = useState<{ venta: VentaOk & { recibo: ReciboVenta }; vez: number } | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
   // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
   const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
@@ -2372,9 +2379,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     setLoading(false);
     responsable.despues(null);
-    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
-    setOk({
+    const venta: VentaOk = {
       total,
       prendas,
       recibo,
@@ -2385,7 +2391,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
       celularEnFicha,
-    });
+    };
+    // «Imprimir solo al cobrar» (de fábrica en un computador, `lib/imprimir-al-cobrar.ts`): la boleta sale sola y Vender vuelve a una
+    // venta nueva sin la hoja; el aviso de la venta sale cuando la boleta ya se mandó (`terminoLaImpresion`). Si no, la hoja como siempre.
+    if (venta.recibo && queHacerEnEsteEquipo(venta) === "imprimir-sin-hoja") {
+      setImpresion({ venta: { ...venta, recibo: venta.recibo }, vez: 1 });
+      volverAArmar();
+    } else {
+      avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
+      setOk(venta);
+    }
     // El cupón se gastó con esta venta (o no se usó): la próxima empieza sin él, y los puntos de la clienta se leen de nuevo.
     cuponClub.quitar();
     cuponClub.recargar();
@@ -2401,16 +2416,39 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     } else trasVender(vendidas);
   }
 
-  // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
-  // arranca por las prendas, no por el cobro.
-  function cerrarVentaRegistrada() {
-    setOk(null);
+  // Al cerrar «Venta registrada» (o al cobrar sin ella) el ticket vuelve a «armar»: la venta
+  // siguiente arranca por las prendas, no por el cobro.
+  function volverAArmar() {
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
     setNota("");
     responsable.limpiar();
     setMomento("armar");
+  }
+
+  function cerrarVentaRegistrada() {
+    setOk(null);
+    volverAArmar();
+  }
+
+  /** La boleta que salió sola al cobrar ya se mandó (o no). Si no salió, se abre «Venta registrada» para imprimirla desde ahí. Si salió,
+   *  el aviso de la venta dice su número y el vuelto, con «Reimprimir» por si se atascó el papel. Una reimpresión no repite ese aviso. */
+  function terminoLaImpresion(actual: { venta: VentaOk & { recibo: ReciboVenta }; vez: number }, fin: FinBoleta) {
+    // Solo si sigue siendo la de ahora: una impresión que termina tarde no se lleva la de la venta siguiente.
+    setImpresion((enCurso) => (enCurso === actual ? null : enCurso));
+    if (fin === "frenada" || fin === "fallo") {
+      setOk({ ...actual.venta, noSeImprimio: true });
+      return;
+    }
+    if (actual.vez > 1) return;
+    const r = actual.venta.recibo;
+    avisar.exito(`Venta de ${money(actual.venta.total)} registrada`, {
+      detalle: detalleDelAvisoAlCobrar({ comprobante: `${ETIQUETA_TIPO[r.tipo]} ${textoNumeroRecibo(r)}`, vuelto: r.vueltoTotal }),
+      accion: { texto: "Reimprimir", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
+    });
+    // El cuadro de impresión se llevó el foco: vuelve al buscador para escanear la siguiente prenda, sin mover la pantalla.
+    buscador.current?.focus({ preventScroll: true });
   }
 
   // La hoja de cobro (Felipe, 2026-10-02): en escritorio entra sobre el catálogo y confirma el formulario del ticket desde
@@ -3046,6 +3084,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+      {impresion && (
+        <ImpresionAlCobrar
+          key={`${impresion.venta.ventaId ?? textoNumeroRecibo(impresion.venta.recibo)}-${impresion.vez}`}
+          recibo={impresion.venta.recibo}
+          conAviso={impresion.vez > 1}
+          alTerminar={(fin) => terminoLaImpresion(impresion, fin)}
+        />
+      )}
 
       {envio.incierto && (
         <CobroEnDuda
