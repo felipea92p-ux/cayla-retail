@@ -70,7 +70,7 @@ export default async function ClubPublico() {
                   Crear mi cuenta
                 </Link>
                 <Link className="ay-enlace" href="/entrar">
-                  Ya tengo cuenta · Entrar <Icono nombre="flecha" />
+                  Entrar a mi cuenta <Icono nombre="flecha" />
                 </Link>
               </div>
             </section>

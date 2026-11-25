@@ -612,7 +612,8 @@ function DatosDeCampana({ c }: { c: CampanaVigente }) {
       <span className="pct">−{pctTexto(c.pct)} %</span>
       <b>{c.nombre}</b>
       <small>
-        {c.cuantas} {c.cuantas === 1 ? "prenda" : "prendas"} · {c.hasta ? `hasta el ${fechaLarga(c.hasta)}` : "sin fecha de término"}
+        {c.cuantas} {c.cuantas === 1 ? "prenda" : "prendas"}
+        {c.hasta ? ` hasta el ${fechaLarga(c.hasta)}` : ", sin fecha de término"}
       </small>
     </>
   );

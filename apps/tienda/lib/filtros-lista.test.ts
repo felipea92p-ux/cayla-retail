@@ -113,18 +113,18 @@ describe("elegidoEnElDestino", () => {
 describe("coincidenciaDe", () => {
   const f = (e: Elegido) => filtrosDeLaLista(datos, e, prendas);
 
-  it("dice por qué está («En Negro · talla M»), con los colores y tallas ELEGIDOS que tiene, no todos los suyos", () => {
+  it("dice por qué está («En Negro, talla M»), con los colores y tallas ELEGIDOS que tiene, no todos los suyos", () => {
     const c = coincidenciaDe(f(negroM), { id: CARLA });
-    expect(c).toEqual({ color: "NEG", talla: "M", texto: "En Negro · talla M", codigos: ["NEG"] });
+    expect(c).toEqual({ color: "NEG", talla: "M", texto: "En Negro, talla M", codigos: ["NEG"] });
     // Carla tiene negro y beige en M; si se eligen los dos colores, dice los dos y marca las dos muestras.
     const dos = coincidenciaDe(f({ color: ["negro", "beige"], talla: ["M"] }), { id: CARLA });
-    expect(dos?.texto).toBe("En Negro / Beige y arena · talla M");
+    expect(dos?.texto).toBe("En Negro / Beige y arena, talla M");
     expect(dos?.codigos).toEqual(["NEG", "BEI"]);
   });
 
   it("con varias tallas elegidas, solo las que esa prenda tiene (en el orden de la tienda)", () => {
     const c = coincidenciaDe(f({ color: ["negro"], talla: ["M", "S", "L"] }), { id: CARLA });
-    expect(c?.texto).toBe("En Negro · tallas S y M");
+    expect(c?.texto).toBe("En Negro, tallas S y M");
     expect(c?.talla).toBe("S"); // la primera elegida que tiene la variante con la que abre
   });
 

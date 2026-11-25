@@ -89,7 +89,7 @@ export function TuLook({
                   <span className="pb-punto-color" data-color-dato style={c.hex ? { background: c.hex } : undefined} aria-hidden="true" />
                   <span>
                     {c.nombre}
-                    {c.nota && ` · ${c.nota.texto}`}
+                    {c.nota && ` (${c.nota.texto})`}
                   </span>
                 </span>
               </button>

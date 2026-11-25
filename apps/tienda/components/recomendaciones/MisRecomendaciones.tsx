@@ -12,20 +12,20 @@ function Recomendacion({ r }: { r: MiRecomendacion }) {
     <li className="r-item">
       <div className="r-item-cab">
         <span>
-          <b>{r.sobre ? nombreTienda(r.sobre) : "CAYLA en general"}</b> · {fechaCorta(r.creadaEn)}
+          <b>{r.sobre ? nombreTienda(r.sobre) : "CAYLA en general"}</b>
         </span>
         <span className={`w-estado-chip t-${insignia.tono}`}>{insignia.texto}</span>
       </div>
       {/* La conversación completa: lo que escribió (siempre) y, debajo, lo que respondió CAYLA. */}
       <div className="r-tuyo">
-        <span className="r-tuyo-t">Tú escribiste · {fechaCorta(r.creadaEn)}</span>
+        <span className="r-tuyo-t">Tú escribiste el {fechaCorta(r.creadaEn)}</span>
         <p className="r-texto">{r.texto}</p>
       </div>
       {r.respuesta && (
         <div className="r-respuesta">
           <span className="r-respuesta-t">
             <Icono nombre="chat" />
-            CAYLA te respondió{r.respondidaEn ? ` · ${fechaCorta(r.respondidaEn)}` : ""}
+            CAYLA te respondió{r.respondidaEn ? ` el ${fechaCorta(r.respondidaEn)}` : ""}
           </span>
           <p>{r.respuesta}</p>
         </div>

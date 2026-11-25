@@ -66,7 +66,7 @@ async function ContenidoDeLaVistaPrevia({ params }: { params: Promise<{ llave: s
   return (
     <div className="tienda">
       <div className="cp-previa-aviso" role="note">
-        <b>Vista previa privada</b> · «{campana.nombre}» · {vista.valeHasta ? `vale hasta el ${fechaCorta(vista.valeHasta)}` : "vale unos días"} · Solo la ve quien tiene este enlace. Las prendas son de la
+        <b>Vista previa privada</b> de «{campana.nombre}», {vista.valeHasta ? `vale hasta el ${fechaCorta(vista.valeHasta)}` : "vale unos días"}. Solo la ve quien tiene este enlace. Las prendas son de la
         tienda; el descuento se muestra como se verá cuando la campaña esté en vivo.
       </div>
       <Anuncio frases={anuncios({ nombre: campana.nombre, pct: campana.pct, hasta: campana.hasta }, (await leerAyuda()).diasParaCambiar)} diseno={diseno} />

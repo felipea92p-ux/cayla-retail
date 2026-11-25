@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MESES, soles, type Dia } from "./cuentas";
+import { detalleDicho } from "./detalle-dicho";
 
 // El Club en la cuenta de la tienda online (ADR-0408, actividad 12): lo que «Mi cuenta» dice de los beneficios del Club de ESA
 // persona (su descuento de cumpleaños y su vale por aniversario), «Novedades para ti», sus favoritos y lo que espera («Avísame
@@ -199,10 +200,10 @@ export const textoNovedades = (n: MiClub["novedades"]) =>
 /** Cuántas novedades se dibujan en el carril (la maqueta muestra hasta 8). */
 export const NOVEDADES_EN_EL_CARRIL = 8;
 
-/** «Negro · Talla M · en Trujillo». */
+/** «Negro, talla M, en Trujillo». */
 export function detalleEspera(e: Espera): string {
-  const partes = [e.color?.nombre, e.talla ? `Talla ${e.talla}` : null, e.sede ? `en ${e.sede.nombre ?? "tu tienda"}` : "en cualquier tienda"];
-  return partes.filter(Boolean).join(" · ");
+  const partes = [e.color?.nombre, e.talla ? `talla ${e.talla}` : null, e.sede ? `en ${e.sede.nombre ?? "tu tienda"}` : "en cualquier tienda"];
+  return detalleDicho(partes);
 }
 
 /** «Lima y Trujillo». */

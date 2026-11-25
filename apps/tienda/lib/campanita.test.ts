@@ -25,7 +25,7 @@ const aviso = (n: number, recibidoEn: string, tipo: "llego" | "respuesta" = "lle
   clave: tipo === "llego" ? `llego-abcdef12-${n}` : `respuesta-abcdef12-${n}`,
   tipo,
   titulo: tipo === "llego" ? `Blusa ${n} ya llegó` : "CAYLA te respondió",
-  texto: "Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.",
+  texto: "Negro, talla M. Hay en Trujillo: sepárala antes de que se acabe.",
   href: tipo === "llego" ? `/catalogo/modelo-${n}` : "/recomendaciones",
   recibidoEn,
 });

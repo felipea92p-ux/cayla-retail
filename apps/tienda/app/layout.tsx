@@ -32,11 +32,11 @@ const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", displa
 const titulos = Playfair_Display({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"], variable: "--font-titulos", display: "swap" });
 
 // Lo que ven Google y WhatsApp (ADR-0696): las direcciones completas salen de `cayla.pe`, cada página escribe solo su nombre (la plantilla
-// le suma «· CAYLA») y la vista previa dice el sitio y el idioma. La dirección canónica la pone cada página, nunca este layout: la
+// le suma «| CAYLA») y la vista previa dice el sitio y el idioma. La dirección canónica la pone cada página, nunca este layout: la
 // heredarían todas.
 export const metadata: Metadata = {
   metadataBase: new URL(ORIGEN_PUBLICO),
-  title: { default: "CAYLA · Tienda online", template: "%s · CAYLA" },
+  title: { default: "CAYLA | Tienda online", template: "%s | CAYLA" },
   description: "Separa tus prendas de CAYLA y recógelas en tu tienda.",
   // Sin título ni frase: los heredaría cada página en su vista previa. Sin `og:title`, WhatsApp y Google leen el `<title>` de la página.
   openGraph: OPEN_GRAPH_BASE,
