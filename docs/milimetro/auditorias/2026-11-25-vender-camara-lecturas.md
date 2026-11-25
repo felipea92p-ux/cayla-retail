@@ -38,3 +38,9 @@ conexión…», la fila sigue con «Agregar», ticket en 0, 0 filas en `movimien
 [la hoja encima de la cámara](2026-11-25-vender-camara-lecturas/4-despues-hoja-encima.jpg) ·
 [entró](2026-11-25-vender-camara-lecturas/5-despues-entro.jpg) ·
 [oscuro](2026-11-25-vender-camara-lecturas/6-despues-oscuro.jpg)
+
+## La pregunta «¿Sumar otra?» (mismo día)
+
+La pieza es `AvisoRepetida variante="camara"` (decidida en ADR-0562, la misma de Bajar al piso), con `donde="el ticket"`: botones de 54 px, velo
+`bg-sombra/80` sobre el visor, la bandeja dice «Responde arriba para seguir.». Medido en la cámara simulada: el ticket no cambia mientras pregunta;
+Sumar → 2 («van 2», bip agudo); No → 1; Cambiar cantidad → «Guardar 2» → 2. Sin hallazgos nuevos: la pieza ya pasó su auditoría en Bajar al piso.

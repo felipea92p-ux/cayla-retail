@@ -44,7 +44,7 @@ ningún cuadro: una mano que tiembla la hace salir y entrar, y suma otra vez. El
 | Cuadrar el piso (pistola y cámara) | construido |
 | Recibir envío, Llegó mercadería, Etiquetas, Apartar | pendiente: misma pieza y misma función, en otro PR |
 | Conteo (cámara en ráfaga) | **decisión de Felipe**: contar una pila de iguales es pasar la misma etiqueta muchas veces |
-| Vender (ticket) | **decisión de Felipe**: dos prendas iguales en un ticket son normales y es dinero. Desde el 2026-11-25 la cámara no pregunta pero lo dice: la misma etiqueta quieta no vuelve a entrar (`debeContarLectura`) y la segunda de una prenda dice «van 2» con el sonido de «repetida» (ADR-0321, act. 2026-11-25 b) |
+| Vender (ticket) | **cámara del celular: construido (2026-11-25)**, ver la actualización de abajo. El lector de la computadora sigue sin preguntar (decisión de Felipe: dos prendas iguales en un ticket son normales y es dinero) |
 
 ## Alternativas descartadas
 
@@ -82,3 +82,22 @@ a la primera y la caja amarilla se parecía a una alerta. Eligió mirando la «f
 
 Probado en el navegador con una página temporal (datos inventados, sin cámara real: el panel la bloquea): franja a 394 px y a 1440 px,
 cámara con velo, «Cambiar cantidad» → «Guardar 3». Falta verlo con la cámara del teléfono y con la pistola en una tienda.
+
+## Actualización 2026-11-25 — La cámara de Vender también pregunta
+
+**Origen:** el equipo (cuenta CAYLA), probando Vender en el celular: «cuando se escanea alguna prenda no hay ninguna indicación de que ya fue
+escaneada ni sonido, como al escanear cuando se baja a piso». Se le mostró que este ADR dejaba Vender fuera por decisión de Felipe, y respondió:
+**«Sí, que pregunte "¿Sumar otra?"»**. Medido antes del cambio, con una cámara simulada: una etiqueta sostenida 2,5 s se cobraba dos veces.
+
+1. **Solo la cámara del celular** (`EscanerCamara` en Vender). El lector de la computadora no pregunta: ahí la decisión de Felipe sigue (una
+   cajera con pistola pasa prendas iguales a propósito, y preguntar en cada una frena el mostrador). Si se quiere también ahí, es otra decisión.
+2. **La misma regla y la misma pieza:** `decidirLectura` en `PuntoDeVenta.alEscanear` (que también hace sonar `repetida`, ADR-0690) y
+   `AvisoRepetida variante="camara" donde="el ticket"` («Ya está en el ticket · ¿Sumar otra?»). La cámara se tapa y no lee hasta la respuesta.
+3. **Las respuestas:** **Sumar** agrega una sin volver a preguntar; **No** no hace nada; **Cambiar cantidad** pone el total (hasta lo libre en el
+   piso) y declara la prenda «varias iguales», que deja de preguntar mientras siga en el ticket (si sale del ticket, vuelve a preguntar).
+4. **Lo que no se suma por su cuenta no pregunta** (tope del piso, almacén, sin precio): se lee como siempre y su fila dice por qué; lo del almacén
+   trae «Agregar» (ADR-0321, act. 2026-11-25 b).
+5. **La misma etiqueta quieta no se relee** (`debeContarLectura`): la pregunta sale cuando la etiqueta salió del cuadro y volvió.
+
+**Verificado** (cámara simulada, 375 × 812): la segunda lectura pregunta con el doble toque y el ticket no cambia mientras pregunta; Sumar → 2 y
+«van 2»; No → 1; Cambiar cantidad → 2.

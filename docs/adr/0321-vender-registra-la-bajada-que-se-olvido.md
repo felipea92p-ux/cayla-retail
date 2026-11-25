@@ -157,9 +157,8 @@ almacén» y se resolvía recién al cerrar la cámara.
    segunda prenda igual, la etiqueta sale del cuadro y entra otra. Medido: quieta 12 s, entra una vez.
 2. **Cada lectura se ve sin animaciones:** las esquinas del visor toman el tono de la lectura un momento (verde o ámbar: color, no movimiento) y
    la fila más nueva queda marcada, con su ✓ si entró.
-3. **«Ya estaba en el ticket» se dice y se oye:** la fila dice «van 2» y suena el doble toque de «ya la escaneaste» de Bajar al piso
-   (`sonidoDeLecturaCamara(tono, { yaEstaba })`, `yaEstabaEnElTicket`). **Entra igual: Vender no pregunta** (ADR-0562, decisión de Felipe: dos
-   prendas iguales en un ticket son normales y es dinero).
+3. **«Ya estaba en el ticket» se dice y se oye:** la fila dice «van 2». **Ese mismo día el equipo pidió que la cámara pregunte** «¿Sumar otra?»
+   como Bajar al piso: ver ADR-0562, actualización 2026-11-25. «van 2» queda para lo que entra igual (Sumar, o una prenda «varias iguales»).
 4. **Lo del almacén se agrega desde su fila:** «Agregar» (`sePuedeBajar`) abre la hoja «¿La tienes en la mano?» encima de la cámara, que deja de
    leer mientras tanto (`pausada`); si se registra, la fila pasa a «entró» con su bip, y al cerrar la cámara ya no se pregunta por ella. Lo que no
    se tocó sigue saliendo en la hoja al cerrar la cámara. El aviso de éxito no se pinta con la cámara abierta (le taparía la ✕): lo dice la fila.
