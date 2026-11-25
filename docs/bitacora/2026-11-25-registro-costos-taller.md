@@ -1,0 +1,5 @@
+## 2026-11-25 — Producción ▸ Abastecimiento se achica (ADR-0702, retira la fase 7 de ADR-0362)
+
+- **Qué:** Facturas de insumos queda solo como lista (sin «+ Nueva factura»). Salen «Órdenes de insumos» (`/ordenes-insumos`, su módulo, menú, guías) y el «Recibir» del Taller (`/produccion/recibir`); Abastecimiento queda con Proveedores, Facturas de insumos y Por pagar. La migración `20261125231000` quita el módulo, pasa `fn_ordenes_insumo_nos_debe` a pedir Producción y le quita a la web nueve funciones; tablas y funciones quedan quietas.
+- **Por qué:** en producción hay 0 órdenes de insumos; las 9 facturas del Taller nacieron en Por pagar ▸ «Pagar servicio» (8, corte y ploteo) y en Insumos ▸ «Llegó una compra» (1, tela). Felipe: «para no causar confusión» y «eliminemos los otros módulos que no se usan».
+- **Cómo se verifica:** `pruebas:ordenes-insumo-retirada` 5/5 con la migración en transacción, vitest completo de la web, `tsc`, `knip` y `knip:produccion` en verde. Migración SIN pegar en producción.

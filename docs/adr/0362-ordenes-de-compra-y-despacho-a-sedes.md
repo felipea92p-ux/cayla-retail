@@ -1,5 +1,8 @@
 # ADR-0362 · Órdenes de compra, comprobante y despacho a las sedes
 
+> **La fase 7 (Órdenes de insumos del Taller) se retiró con ADR-0702 (2026-11-25):** 0 órdenes en producción; la tela se compra y se recibe en un
+> paso en Insumos ▸ «Llegó una compra». Las tablas y funciones quedan quietas, sin permiso para la web. Lo de la fase 7 abajo es historia.
+
 - **Fecha:** 2026-10-07 · **Estado:** ACEPTADO por fases — decisiones 1–38 (32–38 el 2026-10-10). **Fase 1 aprobada y en
   construcción desde el 2026-10-10**; las fases 2 a 7 siguen en diseño. **Las 5 migraciones de la fase 1 están EN PRODUCCIÓN desde el
   2026-10-10** (con el OK de Felipe; versiones `20261010224526`–`…224946`; las 16 funciones con la misma huella que el banco donde
