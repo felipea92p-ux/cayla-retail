@@ -86,6 +86,7 @@ describe("filaDelTicket — importe y descuento (misma cuenta que antes)", () =>
     expect(f.importe).toBeCloseTo(269.7, 10);
     expect(f.importeLista).toBeNull();
     expect(f.nota).toBeNull();
+    expect(f.motivo).toBeNull();
     expect(f.pct).toBe(0);
   });
 
@@ -96,6 +97,7 @@ describe("filaDelTicket — importe y descuento (misma cuenta que antes)", () =>
     expect(f.importeLista).toBe(200);
     expect(f.pct).toBe(porcentajeDeLinea(l));
     expect(f.nota).toBe("−20 % · Prenda con desperfecto");
+    expect(f.motivo).toBe("Prenda con desperfecto");
   });
 
   it("de campaña: el % es el de su campaña, no la cuenta monto ÷ precio, y la nota lleva su nombre", () => {

@@ -59,16 +59,15 @@
 .pv-mesa .pv-ticket:not([data-en-hoja]) .pv-ticket-pie {
   background: transparent;
 }
-/* La hoja del ticket en un teléfono bajo (iPhone SE, 667 px): el pie fijo (Total, Responsable y Cobrar) se comía casi la mitad de la
-   hoja y el cobro quedaba en ~200 px. Se achica solo el número del Total y el aire del pie; el desglose y los datos no se tocan. */
-@media (max-height: 760px) {
-  .pv-ticket[data-en-hoja] .pv-ticket-pie {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
-  .pv-ticket[data-en-hoja] .pv-pie-total {
-    font-size: 2.25rem;
-  }
+/* La hoja del ticket en el celular: el pie fijo (Total, Responsable y Cobrar) se comía casi la mitad de la hoja y las prendas quedaban
+   en una franja (nació en el iPhone SE, 667 px; desde el 2026-11-25, Felipe, en todo teléfono). Se achica solo el número del Total y el
+   aire del pie; el desglose y los datos no se tocan. */
+.pv-ticket[data-en-hoja] .pv-ticket-pie {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.pv-ticket[data-en-hoja] .pv-pie-total {
+  font-size: 2.25rem;
 }
 /* La hoja del ticket con el teléfono acostado (844 × 390): la cabecera, la lista (que no baja de 160 px) y el pie fijo no caben en los
    ~360 px de la hoja, que es de alto fijo y corta lo que sobra: «Cobrar» y «Confirmar cobro» quedaban fuera de la pantalla, sin forma
