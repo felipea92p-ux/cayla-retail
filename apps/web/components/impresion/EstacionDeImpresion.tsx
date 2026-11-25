@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useSyncExternalStore } from "react";
 import { useSedeActiva } from "@/components/SedeActiva";
-import { boletasPorAyudante } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 import { estacionActiva, estacionDeLaCaja } from "@/lib/estacion-de-impresion";
 

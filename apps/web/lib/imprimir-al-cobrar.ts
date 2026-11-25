@@ -3,11 +3,11 @@
  * nueva, sin la hoja «Venta registrada» ni el segundo toque de «Imprimir y nueva venta». Es el primer paso de que la venta se cierre sola
  * (lo que sigue es que la confirme el aviso de Izipay).
  *
- * Es una preferencia de ESTE equipo, no de la cuenta. Desde el 2026-11-25 arranca ENCENDIDA en un computador y APAGADA en un teléfono o
- * una tablet (el puntero principal es un dedo, `(pointer: coarse)`, el mismo criterio de ADR-0674): el piso no tiene impresora, y ahí la
- * hoja sigue como siempre (o la boleta va a la cola de la caja). Lo que un equipo ya eligió a mano se respeta. En un computador sin
- * impresión directa (Chrome sin `--kiosk-printing` ni el ayudante de la Mac, `docs/OPERACION-IMPRESORA-TERMICA.md`) se abre el cuadro
- * de impresión del navegador: un clic en vez de los dos de antes.
+ * Es una preferencia de ESTE equipo, no de la cuenta. Desde el 2026-11-25 arranca ENCENDIDA en la computadora y APAGADA en el celular o
+ * la tablet (el aparato sin mouse, `MQ_SIN_IMPRESORA`): ahí no hay impresora, y desde el 2026-11-24 la boleta va sola a la cola de la caja
+ * («Imprimir en la caja», abajo). Lo que un equipo ya eligió a mano se respeta. En una computadora sin impresión directa (Chrome sin
+ * `--kiosk-printing` ni el ayudante de la Mac, `docs/OPERACION-IMPRESORA-TERMICA.md`) se abre el cuadro de impresión del navegador: un
+ * clic en vez de los dos de antes.
  *
  * La hoja sigue apareciendo cuando hay algo que ver o hacer con ella: sin conexión o sin comprobante (no hay qué imprimir), «Imprimir en la
  * caja» (dice cómo va la cola), el WhatsApp de la boleta que se le ofrece al cliente, o la boleta que no salió (`noSeImprimio`).
@@ -19,27 +19,44 @@ import { preferenciaLocal } from "./preferencia-local";
 
 const VALORES = ["si", "no"] as const;
 
-/** El valor de fábrica de «Imprimir solo al cobrar»: encendido en un computador, apagado si el puntero principal es un dedo. */
-export function imprimirAlCobrarDeFabrica(tactil: boolean): (typeof VALORES)[number] {
-  return tactil ? "no" : "si";
-}
+/**
+ * El aparato que se maneja con el dedo y sin mouse: un celular o una tablet. Ninguno tiene la ticketera conectada (ADR-0670). La Mac y la
+ * PC de la caja tienen mouse, así que no entran, aunque su pantalla sea táctil.
+ */
+export const MQ_SIN_IMPRESORA = "(pointer: coarse) and (hover: none)";
 
-/** ¿El puntero principal de este equipo es un dedo? Sin `matchMedia` (un navegador raro) se toma como computador. */
-function equipoTactil(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+/** ¿Este aparato es de los que no tienen impresora? Sin `matchMedia` (un navegador raro) se toma como computadora. */
+const aparatoSinMouse = () => window.matchMedia?.(MQ_SIN_IMPRESORA).matches === true;
+
+/** Cómo arranca «Imprimir solo al cobrar» donde nadie lo tocó (2026-11-25): encendido en la computadora, apagado sin mouse. */
+export function imprimirAlCobrarDeFabrica(sinMouse: boolean): (typeof VALORES)[number] {
+  return sinMouse ? "no" : "si";
 }
 
 /** La preferencia del equipo (`localStorage`). Úsala con `useSyncExternalStore(p.suscribir, p.leer, p.leerEnServidor)`. */
 export const imprimirAlCobrar = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-al-cobrar", VALORES, "no", () =>
-  imprimirAlCobrarDeFabrica(equipoTactil()),
+  imprimirAlCobrarDeFabrica(aparatoSinMouse()),
 );
 
 /**
- * «Imprimir en la caja» (Felipe, 2026-11-16): el celular o la tablet del piso no tiene impresora; al cobrar, la boleta se pide a
- * la cola de la caja de la sede (`retail.impresiones`) y la imprime la ventana «CAYLA Caja». Del equipo y apagado de fábrica:
- * cuando el piso tenga su impresora inalámbrica, se apaga en ese equipo y vuelve a imprimir donde se cobra.
+ * Cómo arranca «Imprimir en la caja» en un aparato donde nadie lo tocó todavía (Felipe, 2026-11-24): encendido en el celular y la tablet, y
+ * apagado en la computadora, que imprime donde cobra.
  */
-export const imprimirEnLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-en-la-caja", VALORES, "no");
+export function enLaCajaDeFabrica(sinMouse: boolean): (typeof VALORES)[number] {
+  return sinMouse ? "si" : "no";
+}
+
+/**
+ * «Imprimir en la caja» (Felipe, 2026-11-16): el celular o la tablet del piso no tiene impresora; al cobrar, la boleta se pide a
+ * la cola de la caja de la sede (`retail.impresiones`) y la imprime la caja (la estación, `lib/estacion-de-impresion.ts`). Es del equipo.
+ * **Desde el 2026-11-24 viene encendido en el celular y la tablet** (Felipe: «debe estar marcado por defecto e imprimir de manera
+ * automática»): apagado de fábrica, nadie lo encendió y en ocho días no salió ni una boleta del piso (0 filas en `retail.impresiones`).
+ * Lo que alguien eligió a mano se respeta: cuando el piso tenga su impresora inalámbrica, se apaga en ese equipo y vuelve a imprimir
+ * donde se cobra. En el servidor (que no sabe qué aparato es) sigue en «no».
+ */
+export const imprimirEnLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-imprimir-en-la-caja", VALORES, "no", () =>
+  enLaCajaDeFabrica(aparatoSinMouse()),
+);
 
 /** Lo que pasa apenas se registra la venta. */
 export type AlRegistrar =

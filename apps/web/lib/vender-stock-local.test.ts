@@ -21,7 +21,9 @@ import {
   descontarVendido,
   motivoNoCobrable,
   quedoEnAlmacen,
+  stockDeBajada,
   textoStockDeFila,
+  textosHojaBajada,
   tooltipTallaSinPiso,
 } from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
@@ -343,5 +345,44 @@ describe("el aviso de que una prenda entró al ticket (avisoAgregada)", () => {
 
   it("el título es el mismo para cualquier prenda: `avisar` no apila dos con el mismo texto, así que quedan de a uno", () => {
     expect(avisoAgregada({ nombre: "A", cantidad: 1 }).titulo).toBe(avisoAgregada({ nombre: "B", cantidad: 3 }).titulo);
+  });
+});
+
+describe("la hoja de la bajada en el celular (textosHojaBajada, stockDeBajada)", () => {
+  it("una prenda: la pregunta que decide la colaboradora, qué pasa al confirmar y el botón corto", () => {
+    expect(textosHojaBajada(1)).toEqual({
+      titulo: "¿La tienes en la mano?",
+      subtitulo: "Entra al ticket y la bajada queda registrada.",
+      boton: "Agregar y registrar",
+    });
+  });
+
+  it("varias (lo que quedó fuera al cerrar la cámara): en plural y con cuántas, también en el botón", () => {
+    expect(textosHojaBajada(3)).toEqual({
+      titulo: "¿Tienes las 3 en la mano?",
+      subtitulo: "Entran al ticket y la bajada queda registrada.",
+      boton: "Agregar las 3 y registrar",
+    });
+  });
+
+  it("poco texto: la frase de abajo del título no pasa de 8 palabras (regla «Poco texto a la vista»)", () => {
+    for (const n of [1, 2, 5]) expect(textosHojaBajada(n).subtitulo.split(/\s+/).length).toBeLessThanOrEqual(8);
+  });
+
+  it("con el piso en 0 dice «0 en el piso» y cuántas hay en el almacén", () => {
+    expect(stockDeBajada({ piso: 0, almacen: 5, enTicket: 0 })).toBe("0 en el piso · 5 en el almacén");
+  });
+
+  it("el tope: las del piso ya están en el ticket (en singular y en plural)", () => {
+    expect(stockDeBajada({ piso: 1, almacen: 3, enTicket: 1 })).toBe("La del piso ya está en el ticket · 3 en el almacén");
+    expect(stockDeBajada({ piso: 2, almacen: 4, enTicket: 2 })).toBe("Las 2 del piso ya están en el ticket · 4 en el almacén");
+  });
+
+  it("con piso libre todavía (la hoja se abrió y otra caja bajó mientras tanto) dice lo que hay, sin inventar un tope", () => {
+    expect(stockDeBajada({ piso: 2, almacen: 1, enTicket: 1 })).toBe("2 en el piso · 1 en el almacén");
+  });
+
+  it("nunca un número negativo: un almacén mal releído se dice 0", () => {
+    expect(stockDeBajada({ piso: 0, almacen: -1, enTicket: 0 })).toBe("0 en el piso · 0 en el almacén");
   });
 });

@@ -108,3 +108,36 @@ su propio 0320. Este pasó a **0321** con todas sus referencias, y el comentario
   El stock local quedó como estaba al empezar.
 - **No se pudo probar en el navegador:** la cámara (el panel la bloquea; el camino es el mismo `agregar` y el aviso al cerrarla) ni la hoja con una
   cuenta sin responsable elegido de verdad (Terminal o integrante).
+
+## Actualización 2026-11-25 · En el celular, la bajada se ofrece en una hoja abajo, no en el aviso de arriba
+
+**Qué pasaba (medido a 375 × 812, cuenta de integrante en Tienda Trujillo, base local).** La talla del almacén se toca abajo, con el pulgar (la casilla
+punteada de la grilla, a 680 px). El aviso salía **arriba**, de 16 a 204 px, tapando la cabecera con cuatro líneas; su botón era un enlace en
+versalitas de 13 px partido en dos líneas («AGREGAR Y REGISTRAR LA / BAJADA», a 142 px); se iba solo a los 15 s; y como la cuenta de tienda llega
+sin responsable elegido (modo «atención»), al tocarlo abría **otra** hoja para elegir quién atiende, con su botón apagado. Desde la ventana «Todo de
+la prenda», además, tocar la talla cerraba esa ventana para no tapar el aviso. Tres saltos de un extremo al otro de la pantalla para una sola acción.
+
+**Decidí.**
+1. **Donde el ticket ya vive en su hoja (`apilado`, bajo 1024 px), tocar una talla del almacén abre UNA hoja abajo** (`RegistrarBajadaModal`):
+   «¿La tienes en la mano?», la prenda con su foto, color y talla, la línea «0 en el piso · 5 en el almacén» (o «La del piso ya está en el ticket ·
+   3 en el almacén» en el tope), quién atiende (el mismo combo del ticket) y «Agregar y registrar» a 44 px, en la zona del pulgar (743 de 812 px).
+   Los textos y la línea de stock son puros (`textosHojaBajada`, `stockDeBajada` en `lib/vender-stock-local.ts`, con su prueba). Lo decide
+   `bajadaEnHoja` en `PuntoDeVenta.tsx`: misma condición que el botón del aviso (`quedoEnAlmacen`), más `apilado`.
+2. **En el escritorio no cambia nada:** sigue el aviso con su botón, porque no le quita el foco al lector de códigos y un clic registra. La hoja sale
+   ahí solo si falta quién atiende, como antes, ahora con la prenda a la vista.
+3. **La ventana «Todo de la prenda» ya no se cierra en el celular** (`bajadaEnHoja` en `OpcionesDePrendaModal`): la hoja de la bajada va encima y,
+   al confirmar, se vuelve a las tallas con el visto dibujado cuando la base responde (no al tocar).
+4. **La cámara del teléfono**, al cerrarse con prendas que quedaron fuera por el almacén, abre la misma hoja con todas («¿Tienes las 3 en la mano?»).
+5. **La hoja tiene guía de foco** (`lib/bajada-desde-vender-guia.ts`, de «no-aplica» a «aplicada») y su botón ya **no se apaga** por falta de
+   responsable (ADR-0611, mejora 4): al tocarlo, el combo dice qué falta. **Espera a la base** con «Agregando…» (`<Boton cargando>`) y recién
+   entonces se cierra: un doble toque caía en el «Listo» de la ventana de tallas, que está en el mismo lugar, y la cerraba. Lleva la guardia del
+   Enter (`enterNoGuarda`).
+6. El error de red decía «Vuelve a escanearla»; en el celular se toca, no se escanea: ahora dice «Vuelve a agregarla».
+
+**Descarté.** *Llevar el aviso abajo en el celular*: seguiría yéndose solo y abriendo una segunda hoja para el responsable. *Usar la hoja también en
+el escritorio*: le quitaría el foco al lector entre una lectura y la siguiente. *Lo que se paga:* dos caras para la misma acción según el ancho,
+la misma división que ya tiene el ticket (columna en escritorio, hoja en el celular).
+
+**No cambia:** la base (`bajar_al_piso_desde_vender` y su contrato), qué prendas se ofrecen, ni el aviso de éxito. Verificado en el navegador
+(Playwright, 375 × 812 con dedo, claro y oscuro; 1440 × 900): grilla, ventana de tallas, tope, Cancelar, «atrás», doble toque (una sola fila en
+`movimientos`, firmada por quien atiende) y red caída (aviso, 0 filas). La cámara no se pudo abrir en el navegador de prueba.

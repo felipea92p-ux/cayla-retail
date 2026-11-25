@@ -178,7 +178,7 @@ import { candidatosParaPedir, type CandidatoPedir, type TiendaParaPedir } from "
 import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
-import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
+import { RegistrarBajadaModal, type PrendaDeLaBajada } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -739,6 +739,29 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
   const carritoConPiso = useMemo(() => conPisoAlDia(carrito, variantesVisibles), [carrito, variantesVisibles]);
+  // Lo que muestra la hoja de la bajada (`RegistrarBajadaModal`): cada prenda con su foto y lo que hay en el piso y en el almacén
+  // AHORA (el stock en vivo), así la hoja dice por qué no entró sola. Una prenda que ya no está en el catálogo de la caja no se lista.
+  const prendasDeLaBajada = useMemo<PrendaDeLaBajada[]>(
+    () =>
+      (bajadaPorConfirmar ?? []).flatMap((id) => {
+        const v = variantesConOverlay.find((x) => x.varianteId === id);
+        if (!v) return [];
+        return [
+          {
+            varianteId: id,
+            referencia: v.referencia,
+            detalle: [v.color, v.talla].filter(Boolean).join(" · "),
+            fotoUrl: v.fotoUrl,
+            colorHex: v.colorHex ?? null,
+            categoria: { prefijo: v.categoriaPrefijo, familia: v.categoriaFamilia, categoria: v.categoria },
+            piso: v.stockAqui,
+            almacen: v.almacenAqui ?? 0,
+            enTicket: carrito.find((it) => it.claveLinea === id)?.cantidad ?? 0,
+          },
+        ];
+      }),
+    [bajadaPorConfirmar, variantesConOverlay, carrito],
+  );
   const insigniaPorVariante = useMemo(() => new Map(variantes.map((v) => [v.varianteId, v.empresa])), [variantes]);
   // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
   // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
@@ -1151,6 +1174,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // `lib/vender-stock-local.ts`).
     const motivo = motivoNoCobrable(v);
     if (motivo !== "cobrable") {
+      // En el celular y la tablet, la del almacén se ofrece en una hoja abajo, junto al dedo que tocó la talla (`bajadaEnHoja`). No
+      // se vuelve al buscador: la hoja toma el foco y, al cerrarse, lo devuelve a la talla tocada.
+      if (!silencioso && bajadaEnHoja(motivo, v)) {
+        setBajadaPorConfirmar([v.varianteId]);
+        setAviso(null);
+        setQ("");
+        setActivo(0);
+        return motivo;
+      }
       if (!silencioso) {
         const { titulo, detalle } = avisoSinPiso(datosAviso);
         // ADR-0321: si el sistema la tiene en el almacén de esta tienda, lo que falta es el registro de la bajada (la
@@ -1204,9 +1236,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       const { titulo, detalle } = avisoAgregada({ nombre: [v.referencia, v.color, v.talla].filter(Boolean).join(" · "), cantidad: (existente?.cantidad ?? 0) + 1 });
       avisar.exito(titulo, { detalle });
     }
+    // Todas las del piso ya están en el ticket y hay más en el almacén: en el celular, la misma hoja de la bajada.
+    const hojaDelTope = tope && !silencioso && bajadaEnHoja("tope", v);
     if (tope) {
       resaltarTope(v.varianteId);
-      if (!silencioso) {
+      if (hojaDelTope) setBajadaPorConfirmar([v.varianteId]);
+      else if (!silencioso) {
         const { titulo, detalle } = avisoTope(datosAviso);
         avisar.aviso(titulo, { detalle, ...accionDeBajada("tope", v) });
       }
@@ -1214,7 +1249,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setAviso(null);
     setQ("");
     setActivo(0);
-    volverAlCampo();
+    if (!hojaDelTope) volverAlCampo();
     return tope ? "tope" : "agregada";
   }
 
@@ -1222,6 +1257,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Colgaron la prenda sin registrar la bajada y en el sistema el piso está en 0: el aviso ofrece agregarla registrando la
   // bajada (`bajar_al_piso_desde_vender`, que pide Vender y firma quien atiende). La venta no se corta por un error de
   // registro (D-40). Si todavía no se eligió quién atiende, primero se pregunta (`RegistrarBajadaModal`).
+
+  /** ¿La bajada se ofrece en la hoja y no en el aviso? En el celular y la tablet (`apilado`: el ticket ya vive en su hoja), sí: el
+   *  aviso salía arriba, lejos del pulgar, con el botón partido en dos líneas y se iba solo (`textosHojaBajada`). En el escritorio
+   *  sigue el aviso: no le quita el foco al lector de códigos. Solo si lo que la frena es el almacén de ESTA tienda. */
+  function bajadaEnHoja(estado: string, v: VarianteBusqueda): boolean {
+    return apilado && quedoEnAlmacen(estado, v.almacenAqui);
+  }
 
   /** El aviso de una prenda frenada lleva botón solo si lo que la frena es el almacén de ESTA tienda (`quedoEnAlmacen`).
    *  El botón dura más (15 s): hay que leer y decidir con la clienta delante. */
@@ -1350,6 +1392,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const fuera = [...quedaronEnAlmacen.current.keys()];
     const aviso = avisoQuedaronEnAlmacen([...quedaronEnAlmacen.current.values()], ubicacionEtiqueta);
     quedaronEnAlmacen.current.clear();
+    // En el celular, lo que quedó fuera se ofrece en la hoja de la bajada, todas juntas (ya sin la cámara encima).
+    if (aviso && apilado && !bloqueado) {
+      setBajadaPorConfirmar(fuera);
+      return;
+    }
     // ADR-0321: el mismo botón que en el lector, para todas las que quedaron fuera de una vez.
     if (aviso) {
       avisar.aviso(aviso.titulo, {
@@ -2797,6 +2844,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onQuitar={quitar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
+          bajadaEnHoja={apilado}
           pie={(color) => {
             // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
             const candidatos = pedirAOtraSede
@@ -2869,15 +2917,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
-      {bajadaPorConfirmar && (
+      {prendasDeLaBajada.length > 0 && bajadaPorConfirmar && (
         <RegistrarBajadaModal
-          nombres={bajadaPorConfirmar.map((id) => {
-            const v = variantesConOverlay.find((x) => x.varianteId === id);
-            return v ? [v.referencia, v.talla].filter(Boolean).join(" · ") : "La prenda";
-          })}
-          sede={ubicacionEtiqueta}
+          prendas={prendasDeLaBajada}
           responsable={responsable}
-          onConfirmar={() => void registrarBajadas(bajadaPorConfirmar)}
+          onConfirmar={() => registrarBajadas(bajadaPorConfirmar)}
           onClose={() => setBajadaPorConfirmar(null)}
         />
       )}

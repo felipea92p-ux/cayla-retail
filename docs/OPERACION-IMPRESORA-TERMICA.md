@@ -87,7 +87,8 @@ Vender vuelve solo a una venta nueva, sin la hoja «Venta registrada». Un aviso
 solo aparece si la boleta no salió, si la venta quedó sin conexión o sin comprobante, si se manda a la caja o si hay un WhatsApp que
 enviarle al cliente; en ella sigue el interruptor **«Imprimir solo al cobrar»** para apagarlo en ese equipo (ADR-0670, act. 2026-11-25).
 Donde la boleta todavía abre el cuadro (Windows sin `--kiosk-printing`, Mac sin el ayudante), el cuadro se abre solo en cada venta:
-configura la impresión directa de arriba.
+configura la impresión directa de arriba. Para llegar a los interruptores de la hoja en una computadora (este y los de la caja, abajo):
+cobra una venta en la que el cliente dejó su celular, y la hoja se abre para ofrecer el WhatsApp.
 
 ## La ventana sabe qué es (ADR-0670)
 
@@ -97,11 +98,16 @@ la marca de una ventana: abrir cualquier pantalla con `?ventana=normal`.
 
 ## Vender en el piso: la boleta sale en la caja (ADR-0670)
 
-- **En el celular o la tablet del piso:** en «Venta registrada», encender **«Imprimir en la caja»**. Desde la venta siguiente, la boleta se
-  manda a la cola de la caja y la hoja dice «En la cola de la caja» → «Impresa en la caja». Cuando el piso tenga su impresora, se apaga.
-- **En la caja** (la Mac con el ayudante y la ticketera, o la ventana «CAYLA Caja» en Windows): en «Venta registrada», encender **«Imprimir lo que se vende en el piso»** (y, si se quiere, «Avisar con voz»).
-  Abajo al centro aparece «Caja imprime el piso» y cuántas faltan. Si la caja estaba apagada, al volver imprime lo pedido en las últimas
-  12 horas, en orden.
+Desde el 2026-11-24 no hay que encender nada: los dos interruptores vienen **encendidos de fábrica** donde les toca (Felipe: «debe estar
+marcado por defecto e imprimir de manera automática»). Lo que alguien apagó a mano en un equipo sigue apagado.
+
+- **En el celular o la tablet del piso:** «Imprimir en la caja» ya viene marcado en «Venta registrada». Al cobrar, la boleta se manda
+  sola a la cola de la caja y la hoja dice «En la cola de la caja» → «Impresa en la caja». Cuando el piso tenga su impresora, se apaga
+  en ese equipo. En una computadora (con mouse) viene apagado: imprime donde cobra.
+- **En la caja** (la Mac con el ayudante y la ticketera, o la ventana «CAYLA Caja» en Windows): «Imprimir lo que se vende en el piso» y
+  «Avisar con voz» ya vienen encendidos. Abajo al centro aparece «Caja imprime el piso» y cuántas faltan. Si la caja estaba apagada, al
+  volver imprime lo pedido en las últimas 12 horas, en orden. Si no aparece esa insignia: o alguien la apagó en «Venta registrada» (se
+  vuelve a encender ahí), o la Mac no tiene el ayudante con la ticketera (la estación solo trabaja donde se imprime sin cuadro).
 - Necesita la migración `20261116204000_cola_de_impresion.sql` en producción.
 
 ## Cosas a saber
