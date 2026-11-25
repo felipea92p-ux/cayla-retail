@@ -143,7 +143,8 @@ export async function crearLector(): Promise<Lector> {
 }
 
 const moverse = () => !prefiereQuieto();
-const soles = (n: number) => `S/${n.toFixed(2)}`;
+// «S/ 79.00» con el espacio que no se parte (ADR-0413): el monto nunca se corta entre «S/» y la cifra.
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 const iniciales = (referencia: string) =>
   referencia
     .split(/\s+/)
