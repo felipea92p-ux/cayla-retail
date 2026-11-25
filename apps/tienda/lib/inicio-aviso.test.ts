@@ -71,7 +71,7 @@ describe("lo que está a favor de la persona", () => {
     const [cumple, cupon] = avisosDelClub(SIN_TALLAS, USUARIO, HOY, PUNTOS)!;
     expect(cumple.titulo).toBe("Es tu mes: +100 puntos de regalo");
     expect(cumple.texto).toBe("Se suman con tu primera compra de este mes, en tienda o en la web.");
-    expect(cupon.titulo).toBe("Tu cupón de S/\u00a010: vence el 16 de octubre · te quedan 2 días");
+    expect(cupon.titulo).toBe("Tu cupón de S/\u00a010: vence el 16 de octubre, en 2 días");
     expect(cupon.texto).toMatch(/tus puntos vuelven/);
   });
 
@@ -102,8 +102,8 @@ describe("lo que está a favor de la persona", () => {
   it("lo que llegó: qué prenda, su color y talla, y dónde hay (la tienda que esperaba o, si le daba igual, todas las que tienen)", () => {
     const [enTrujillo, enCualquiera] = avisosDelClub(RESPUESTA, USUARIO, HOY)!;
     expect(enTrujillo.titulo).toBe("Blusa 1 ya llegó");
-    expect(enTrujillo.texto).toBe("Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.");
-    expect(enCualquiera.texto).toBe("Negro · Talla M. Hay en Lima y Trujillo: sepárala antes de que se acabe.");
+    expect(enTrujillo.texto).toBe("Negro, talla M. Hay en Trujillo: sepárala antes de que se acabe.");
+    expect(enCualquiera.texto).toBe("Negro, talla M. Hay en Lima y Trujillo: sepárala antes de que se acabe.");
     const [sinDatos] = avisosDelClub({ llegaron: [llego(3, { color: null, talla: null, sede: null, hay_en: [] })] }, USUARIO, HOY)!;
     expect(sinDatos.texto).toBe("Sepárala antes de que se acabe.");
   });
@@ -240,7 +240,7 @@ describe("«CAYLA te respondió» (hoja nueva de Recomendaciones, decisión #8 A
     const club = avisosDelClub(RESPUESTA, USUARIO, HOY)!;
     const respuestas = avisosDeRespuestas([mia(1)], USUARIO, HOY);
     expect(presentacionDelAviso(avisoAlEntrar(club, new Set())!)).toEqual({
-      ceja: "Club CAYLA · Para ti",
+      ceja: "Del Club CAYLA para ti",
       enlace: { texto: "Ver en Mi perfil", href: "/cuenta" },
       enlaceEnCadaLinea: false,
     });

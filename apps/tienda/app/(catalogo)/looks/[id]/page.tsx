@@ -31,7 +31,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const sedes = sedesEnOrden(await leerSedes());
   const lectura = await leerLook(id, sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
   return {
-    title: lectura?.look ? `${lectura.look.nombre} · Outfits listos` : "Outfits listos",
+    title: lectura?.look ? `${lectura.look.nombre} | Outfits listos` : "Outfits listos",
     description: lectura?.look ? DESCRIPCIONES.look(lectura.look.nombre, lectura.look.frase) : DESCRIPCIONES.looks,
     alternates: { canonical: canonicalDe(`/looks/${id}`, {}, claveCanonica(sedes)) },
   };

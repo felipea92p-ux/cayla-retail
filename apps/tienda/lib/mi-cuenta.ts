@@ -337,14 +337,14 @@ export function queHacerConElPedido(p: PedidoQueFrena): QueHacer {
   const tienda = enLaTienda(p.tienda);
   if (p.estado === "pagado") {
     return {
-      titulo: `Pedido ${p.codigo} · pagado`,
+      titulo: `Pedido ${p.codigo} pagado`,
       texto: `Recógelo en ${tienda} con tu código. Cuando lo recojas, puedes eliminar tu cuenta.`,
       enlace: { texto: "Ver mi pedido", href: `/cuenta/pedidos/${p.codigo}`, externo: false },
     };
   }
   const porConfirmar = p.estado === "por_confirmar";
   return {
-    titulo: `Pedido ${p.codigo} · ${porConfirmar ? "por confirmar" : "confirmado"}`,
+    titulo: `Pedido ${p.codigo} ${porConfirmar ? "por confirmar" : "confirmado"}`,
     // Uno por confirmar todavía no se recoge (antes decía «Recógelo»): o la tienda lo anula, o se cierra solo si nadie lo confirma.
     texto: porConfirmar
       ? `${tienda} todavía no lo confirma. Si ya no lo quieres, escríbele para que lo anule; si nadie lo confirma, se cierra solo.`

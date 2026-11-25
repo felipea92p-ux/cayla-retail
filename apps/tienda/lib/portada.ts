@@ -60,5 +60,5 @@ export function anuncios(campana: Campana | null, diasParaCambiar: number | null
   ];
   if (!campana) return frases;
   const hasta = campana.hasta ? ` hasta el ${fechaCorta(campana.hasta)}` : "";
-  return [{ texto: `${campana.nombre} · −${pctTexto(campana.pct)}\u00a0%${hasta}`, icono: "chispa" }, ...frases];
+  return [{ texto: `${campana.nombre}: −${pctTexto(campana.pct)}\u00a0%${hasta}`, icono: "chispa" }, ...frases];
 }

@@ -57,8 +57,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     title: ficha.nombre,
     description: descripcion,
     alternates: { canonical },
-    openGraph: conBase({ title: `${ficha.nombre} · CAYLA`, description: descripcion, url: canonical }),
-    twitter: { card: "summary_large_image", title: `${ficha.nombre} · CAYLA`, description: descripcion },
+    openGraph: conBase({ title: `${ficha.nombre} | CAYLA`, description: descripcion, url: canonical }),
+    twitter: { card: "summary_large_image", title: `${ficha.nombre} | CAYLA`, description: descripcion },
   };
 }
 

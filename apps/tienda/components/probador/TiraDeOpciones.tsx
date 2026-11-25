@@ -135,7 +135,7 @@ export function TiraDeOpciones({
           <span className="pb-tira-num">{numero[zona] ?? <Icono nombre="mas" />}</span>
           {NOMBRE_ZONA[zona]}
           <span className="pb-tira-ayuda">
-            · <span className="pb-solo-celular">Desliza o </span>elige
+            <span className="pb-solo-celular">Desliza o </span>elige
           </span>
         </p>
         <button type="button" className="pb-tira-todas" onClick={() => onBuscar(zona)} aria-label={`Ver todas las de ${nombre}`}>

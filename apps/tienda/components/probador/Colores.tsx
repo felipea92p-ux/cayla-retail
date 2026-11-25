@@ -28,10 +28,10 @@ export function Colores({ prenda, color, onElegir }: { prenda: PrendaDelProbador
       <div className="pb-colores-txt">
         <span className="pb-colores-nombre">
           {color.nombre}
-          {color.nota && <span className={`pb-nota ${color.nota.tono}`}> · {color.nota.texto}</span>}
+          {color.nota && <span className={`pb-nota ${color.nota.tono}`}> ({color.nota.texto})</span>}
         </span>
         <span className={`pb-colores-ayuda${deLaFoto ? " sin-foto" : ""}`}>
-          {deLaFoto ?? (prenda.colores.length === 1 ? "Único color" : `${prenda.colores.length} colores · toca uno para elegirlo`)}
+          {deLaFoto ?? (prenda.colores.length === 1 ? "Único color" : `${prenda.colores.length} colores: toca uno para elegirlo`)}
         </span>
       </div>
     </div>

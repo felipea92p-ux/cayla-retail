@@ -96,7 +96,7 @@ export function coincidenciaDe(filtros: FiltrosDeLaLista, prenda: Pick<Prenda, "
   return {
     color: primera.codigo,
     talla: elegido.talla.length > 0 ? primera.tallas.find((t) => elegido.talla.includes(t)) ?? null : null,
-    texto: `En ${partes.join(" · ")}`,
+    texto: `En ${partes.join(", ")}`,
     codigos: sinRepetir(vs.flatMap((v) => (v.codigo ? [v.codigo] : []))),
   };
 }

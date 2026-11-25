@@ -398,10 +398,10 @@ export function hrefLista({
 export const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
 
 /**
- * La línea de cuántas hay (maqueta, `vLista`): «12 prendas», «12 prendas en Faldas», «5 prendas en Trujillo · 3 más en otras
+ * La línea de cuántas hay (maqueta, `vLista`): «12 prendas», «12 prendas en Faldas», «5 prendas en Trujillo y 3 más en otras
  * tiendas», «2 prendas de Faldas en Trujillo». `enOtras`: las que se ven con «Todas» y no están en la tienda elegida.
  */
 export function conteoDeLista(n: number, { categoria, tienda, enOtras }: { categoria: string | null; tienda: string | null; enOtras: number }): string {
   const donde = tienda ? `${categoria ? ` de ${categoria}` : ""} en ${tienda}` : categoria ? ` en ${categoria}` : "";
-  return `${cuantasPrendas(n)}${donde}${tienda && enOtras > 0 ? ` · ${enOtras} más en otras tiendas` : ""}`;
+  return `${cuantasPrendas(n)}${donde}${tienda && enOtras > 0 ? ` y ${enOtras} más en otras tiendas` : ""}`;
 }

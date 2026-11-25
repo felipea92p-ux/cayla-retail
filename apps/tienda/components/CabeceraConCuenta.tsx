@@ -907,7 +907,7 @@ function ResultadoBuscador({ item: i, partes, cerrar }: { item: ItemBusqueda; pa
         </span>
         <small>
           {i.categoria ?? "CAYLA"}
-          {i.oferta ? ` · ${i.oferta}` : ""}
+          {i.oferta ? ` con ${i.oferta}` : ""}
         </small>
         {i.nota && <span className={`t-card-nota ${i.nota.tono}`}>{i.nota.texto}</span>}
       </span>

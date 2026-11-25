@@ -183,7 +183,7 @@ function Escenario({ piezas, modo, ceja, titulo, boton, enEspera = false }: Prop
             // Lo mismo con la leyenda: su precio y su nombre ocupan su renglón aunque aún no haya prenda.
             <>
               <span className="t-cap t-leyenda-precio" aria-hidden="true" style={{ visibility: "hidden" }}>
-                Salida 01 · S/ 0.00
+                <span className="t-leyenda-salida">Salida 01</span>S/ 0.00
               </span>
               <span className="t-leyenda-nombre" aria-hidden="true" style={{ visibility: "hidden" }}>
                 Prenda
@@ -193,7 +193,8 @@ function Escenario({ piezas, modo, ceja, titulo, boton, enEspera = false }: Prop
           {en && (
             <>
               <span className="t-cap t-leyenda-precio">
-                Salida {en.salida} · {en.anterior && <s>{en.anterior}</s>}
+                <span className="t-leyenda-salida">Salida {en.salida}</span>
+                {en.anterior && <s>{en.anterior}</s>}
                 <b className="num">{en.precio}</b>
               </span>
               <Link

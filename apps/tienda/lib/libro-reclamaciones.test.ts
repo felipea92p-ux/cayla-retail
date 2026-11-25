@@ -276,7 +276,7 @@ describe("la copia al correo", () => {
   it("el correo trae el número, los datos, el apoderado, el enlace y la nota legal; lo escrito va escapado en el HTML", () => {
     const enlace = enlaceDeLaHoja("https://t.pe", HOJA.id, MARCA);
     const c = correoDeLaHoja(leerHoja(HOJA)!, enlace);
-    expect(c.asunto).toBe("Tu hoja de reclamación N.° 000007-2026 · CAYLA");
+    expect(c.asunto).toBe("CAYLA: tu hoja de reclamación N.° 000007-2026");
     expect(c.texto).toContain("Padre, madre o apoderado: María Prueba");
     expect(c.texto).toContain("Monto reclamado: S/\u00a089.90");
     expect(c.texto).toContain(enlace);
@@ -302,7 +302,7 @@ describe("la respuesta por correo", () => {
     const [c] = leerCopias({ respuestas: [{ marca, intentos: 1, hoja }] }, "respuestas")!;
     expect(c!.hoja.respuesta).toBe("Lo sentimos <mucho>.");
     const correo = correoDeLaRespuesta(c!.hoja, "https://t.pe/x");
-    expect(correo.asunto).toBe("Respuesta a tu hoja de reclamación N.° 000007-2026 · CAYLA");
+    expect(correo.asunto).toBe("CAYLA: respuesta a tu hoja de reclamación N.° 000007-2026");
     expect(correo.texto).toContain("Lo sentimos <mucho>.");
     expect(correo.texto).toContain("Indecopi");
     expect(correo.html).toContain("Lo sentimos &lt;mucho&gt;.");

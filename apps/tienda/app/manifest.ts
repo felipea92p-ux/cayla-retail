@@ -7,7 +7,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "CAYLA · Tienda online",
+    name: "CAYLA Tienda online",
     short_name: "CAYLA",
     description: "Separa tus prendas de CAYLA y recógelas en tu tienda.",
     lang: "es-PE",

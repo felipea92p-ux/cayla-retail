@@ -45,7 +45,7 @@ export function InvitacionClub({ nombre, desde }: { nombre: string | null; desde
             </>
           )}
         </span>
-        <span className="t-ceja t-invitacion-gris">Miembro del Club · {desde}</span>
+        <span className="t-ceja t-invitacion-gris">Miembro del Club desde {desde}</span>
       </div>
     </div>
   );
