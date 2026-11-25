@@ -118,6 +118,31 @@ export function accionBajarYAgregar(n: number): string {
   return n > 1 ? `Agregar las ${n} y registrar la bajada` : ACCION_BAJAR_Y_AGREGAR;
 }
 
+// --- La hoja de la bajada, en el celular y la tablet ----------------------------------------------------------------
+// En el escritorio la bajada se ofrece en el aviso de arriba a la derecha: no le quita el foco al lector de códigos y un clic la
+// registra. En el celular ese aviso salía ARRIBA, lejos del pulgar que acababa de tocar la talla abajo, tapaba la cabecera con
+// cuatro líneas, su botón era un enlace en versalitas partido en dos líneas y se iba solo a los 15 s; después abría OTRA hoja para
+// elegir quién atiende. Donde el ticket ya vive en su propia hoja (`apilado`, bajo 1024 px), tocar una talla del almacén abre
+// UNA hoja abajo (`RegistrarBajadaModal`): la prenda, lo que hay en el piso y en el almacén, quién atiende y el botón.
+
+/** Lo que dice la hoja de la bajada: la pregunta que decide la colaboradora (el sistema dice «almacén»; ella la tiene en la mano
+ *  o no), qué pasa al confirmar y el botón. Corto a propósito: la fila de cada prenda ya dice cuántas hay y dónde. */
+export function textosHojaBajada(n: number): { titulo: string; subtitulo: string; boton: string } {
+  if (n > 1) {
+    return { titulo: `¿Tienes las ${n} en la mano?`, subtitulo: "Entran al ticket y la bajada queda registrada.", boton: `Agregar las ${n} y registrar` };
+  }
+  return { titulo: "¿La tienes en la mano?", subtitulo: "Entra al ticket y la bajada queda registrada.", boton: "Agregar y registrar" };
+}
+
+/** La línea de stock de una prenda en la hoja de la bajada: por qué no entró sola. Con el piso en 0, «0 en el piso»; con todas
+ *  las del piso ya en el ticket (el tope), eso; y siempre cuántas hay en el almacén, que es de donde sale la que tiene en la mano. */
+export function stockDeBajada({ piso, almacen, enTicket }: { piso: number; almacen: number; enTicket: number }): string {
+  const enAlmacen = `${Math.max(0, almacen)} en el almacén`;
+  if (piso <= 0) return `0 en el piso · ${enAlmacen}`;
+  if (enTicket >= piso) return `${piso === 1 ? "La del piso ya está" : `Las ${piso} del piso ya están`} en el ticket · ${enAlmacen}`;
+  return `${piso} en el piso · ${enAlmacen}`;
+}
+
 /** El aviso cuando la bajada se registró desde la caja y la prenda entró al ticket. `bajadas` 0: otra persona ya la había
  *  registrado mientras tanto (no se bajó nada) y solo se dice que entró. Títulos distintos a propósito: `avisar` no apila
  *  dos avisos con el mismo texto. */
