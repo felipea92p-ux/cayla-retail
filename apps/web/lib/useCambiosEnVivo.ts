@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { crearJuntador, ESPERA_JUNTAR_MS, filtroDeUbicacion, sePuedeEscuchar } from "@/lib/cambios-en-vivo-reglas";
+import { crearJuntador, ESPERA_JUNTAR_MS, filtroDeUbicacion, nombreDeCanal, sePuedeEscuchar } from "@/lib/cambios-en-vivo-reglas";
 
 /**
  * Escucha por WebSocket (Supabase Realtime, ADR-0603) los cambios de una tabla y avisa a la pantalla, que sigue leyendo
@@ -31,6 +31,8 @@ export function useCambiosEnVivo({
   alCambiar: () => void;
 }): boolean {
   const [conectado, setConectado] = useState(false);
+  // Cada oyente, su propio canal (ver `nombreDeCanal`): dos piezas que escuchan lo mismo ya no comparten ni se cierran el canal.
+  const oyente = useId();
   const alCambiarRef = useRef(alCambiar);
   useEffect(() => {
     alCambiarRef.current = alCambiar;
@@ -48,7 +50,7 @@ export function useCambiosEnVivo({
     const juntador = crearJuntador(esperaMs, () => alCambiarRef.current());
     let estabaConectado = false;
     const canal = supabase
-      .channel(`en-vivo:${tabla}:${ubicacionId ?? "todas"}`)
+      .channel(nombreDeCanal(tabla, ubicacionId, oyente))
       .on("postgres_changes", { event: "*", schema: "retail", table: tabla, ...(filtro ? { filter: filtro } : {}) }, () => juntador.avisar())
       .subscribe((estado) => {
         const ahora = estado === "SUBSCRIBED";
@@ -61,7 +63,7 @@ export function useCambiosEnVivo({
       setConectado(false);
       void supabase.removeChannel(canal);
     };
-  }, [tabla, ubicacionId, activo, esperaMs]);
+  }, [tabla, ubicacionId, activo, esperaMs, oyente]);
 
   return conectado;
 }
