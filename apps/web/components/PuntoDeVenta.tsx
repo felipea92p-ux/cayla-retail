@@ -176,6 +176,8 @@ import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal, type PrendaDeLaBajada } from "@/components/punto-de-venta/RegistrarBajadaModal";
+import { declararPila, decidirLectura, soltarPila } from "@/lib/lectura-repetida";
+import { avisarLectura } from "@/lib/sonido-conteo";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -1350,10 +1352,42 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // `agregar` del render más reciente: el ticket pudo cambiar mientras la base respondía.
     const estado = alDia.current.agregar({ ...v, stockAqui: Math.max(0, r.piso - comprometidoEnCola), almacenAqui: r.almacen });
     if (estado === "agregada") {
-      const { titulo, detalle } = avisoBajadaRegistrada({ nombre, sede: ubicacionEtiqueta, bajadas: r.bajadas });
-      avisar.exito(titulo, { detalle });
+      bajadasQueEntraron.current.set(varianteId, enTicket + 1);
+      // Con la cámara abierta lo dice su propia fila (pasa a «entró»): el aviso de arriba le taparía la ✕.
+      if (!camaraAbierta) {
+        const { titulo, detalle } = avisoBajadaRegistrada({ nombre, sede: ubicacionEtiqueta, bajadas: r.bajadas });
+        avisar.exito(titulo, { detalle });
+      }
     }
     return true;
+  }
+
+  /** Las bajadas de la última hoja que terminaron en el ticket, con cuántas van de esa prenda: lo que la cámara necesita saber al
+   *  cerrarse la hoja que abrió su «Agregar» (`bajarDesdeCamara`). */
+  const bajadasQueEntraron = useRef<Map<string, number>>(new Map());
+  /** La hoja de la bajada abierta desde una fila de la cámara: a quién avisarle cuando se cierre (con cuántas van, o `null`). */
+  const bajadaDeLaCamara = useRef<{ varianteId: string; responder: (lleva: number | null) => void } | null>(null);
+
+  /** «Agregar» de una fila de la cámara que frenó el almacén: abre la hoja de la bajada encima de la cámara (que deja de leer) y
+   *  responde cuando se cierra. Si entró, ya no queda «en el almacén» para la hoja de al cerrar la cámara. */
+  function bajarDesdeCamara(codigo: string): Promise<number | null> {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v || bloqueado || bajadaDeLaCamara.current) return Promise.resolve(null);
+    return new Promise((responder) => {
+      bajadasQueEntraron.current.clear();
+      bajadaDeLaCamara.current = { varianteId: v.varianteId, responder };
+      setBajadaPorConfirmar([v.varianteId]);
+    });
+  }
+
+  function alCerrarHojaDeBajada() {
+    setBajadaPorConfirmar(null);
+    const pendiente = bajadaDeLaCamara.current;
+    if (!pendiente) return;
+    bajadaDeLaCamara.current = null;
+    const lleva = bajadasQueEntraron.current.get(pendiente.varianteId) ?? null;
+    if (lleva !== null) quedaronEnAlmacen.current.delete(pendiente.varianteId);
+    pendiente.responder(lleva);
   }
 
   /** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (por prenda, sin repetir).
@@ -1361,22 +1395,50 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  (`cerrarCamara`). Una lectura posterior de la misma prenda que sí entra (la bajaron mientras tanto) la saca. */
   const quedaronEnAlmacen = useRef<Map<string, string>>(new Map());
 
+  /** Las prendas que con «Cambiar cantidad» se declararon varias iguales: la cámara ya no pregunta por ellas mientras sigan en el
+   *  ticket (ADR-0562, «pilas»; viven en la pantalla, no en la base). */
+  const pilasDeLaCamara = useRef<string[]>([]);
+
   /** Una lectura de la cámara: el mismo camino que el Enter del lector (`alTeclado`), sin la lista de resultados —
-   *  un QR es un código exacto o no es nada. */
-  function alEscanear(codigo: string): ResultadoEscaneo {
+   *  un QR es un código exacto o no es nada—. La prenda que YA está en el ticket no se suma sola: vuelve `repetida` y la cámara
+   *  pregunta «¿Sumar otra?» (ADR-0562, act. 2026-11-25; la regla es `decidirLectura`, la misma de Bajar al piso). La cámara deja
+   *  de leer mientras pregunta, así que aquí nunca hay una pregunta abierta. `sinPreguntar`: la respuesta «Sumar». */
+  function alEscanear(codigo: string, { sinPreguntar = false }: { sinPreguntar?: boolean } = {}): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) {
       return { estado: "no-encontrada", codigo };
     }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    // Cuántas llevaba el ticket antes: si entra, la bandeja dice «van 2» desde la segunda (ya estaba en el ticket).
+    const antes = carrito.find((it) => it.claveLinea === v.varianteId)?.cantidad ?? 0;
+    // Una prenda que salió del ticket vuelve a preguntar («Preguntar de nuevo» de Bajar al piso es quitarla).
+    if (antes === 0) pilasDeLaCamara.current = soltarPila(pilasDeLaCamara.current, v.varianteId);
+    // ¿La sumaría por su cuenta? Solo si se cobra y el piso alcanza para una más: lo que no, se lee como siempre (su fila dice por qué).
+    const sumaria = !sinPrecioParaVender(v) && motivoNoCobrable(v) === "cobrable" && antes < v.stockAqui;
+    if (!sinPreguntar && decidirLectura(v.varianteId, antes, sumaria, { pregunta: null, pilas: pilasDeLaCamara.current }).tipo === "pregunta") {
+      // «Ya la escaneaste» suena distinto de «no entró» (ADR-0690): el doble toque de Bajar al piso. La cámara no suena otra vez.
+      avisarLectura("repetida");
+      return { estado: "repetida", codigo, nombre, prenda, almacen: v.almacenAqui, lleva: antes, tope: v.stockAqui };
+    }
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
     // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
     // apartada o agotada) la saca: si no, al cerrar la cámara diría «está en el almacén, que la bajen» de una prenda que
     // ya no está en el almacén (la apartó otra caja entre dos lecturas).
     if (quedoEnAlmacen(estado, v.almacenAqui)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
     else quedaronEnAlmacen.current.delete(v.varianteId);
-    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
+    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui, ...(estado === "agregada" ? { lleva: antes + 1 } : {}) };
+  }
+
+  /** «Cambiar cantidad» de la pregunta de la cámara: deja esa prenda con ese total en el ticket y la declara «varias iguales». */
+  function cantidadDesdeCamara(codigo: string, total: number): ResultadoEscaneo {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v) return { estado: "no-encontrada", codigo };
+    pilasDeLaCamara.current = declararPila(pilasDeLaCamara.current, v.varianteId);
+    const lleva = Math.max(1, Math.min(total, v.stockAqui));
+    cambiarCantidad(v.varianteId, lleva);
+    const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    return { estado: "agregada", codigo, nombre: [v.referencia, v.talla].filter(Boolean).join(" · "), prenda, almacen: v.almacenAqui, lleva };
   }
 
   /** Cierra la cámara y, si algo quedó fuera por estar en el almacén, lo dice una sola vez (ya sin la hoja encima). */
@@ -2863,6 +2925,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          // «Ya está en el ticket · ¿Sumar otra?»: Sumar la agrega sin volver a preguntar; Cambiar cantidad pone el total.
+          onSumarOtra={(codigo) => alEscanear(codigo, { sinPreguntar: true })}
+          onCantidad={cantidadDesdeCamara}
+          // Lo del almacén de esta tienda se agrega desde su fila: la hoja de la bajada sale encima y la cámara no lee mientras tanto.
+          onBajar={bajarDesdeCamara}
+          pausada={bajadaPorConfirmar !== null}
           // El interruptor «Al ticket / Existencias» (Felipe 2026-10-28): en «Existencias» la cámara lee la etiqueta y dice cuántas hay de
           // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
           consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
@@ -2884,7 +2952,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           prendas={prendasDeLaBajada}
           responsable={responsable}
           onConfirmar={() => registrarBajadas(bajadaPorConfirmar)}
-          onClose={() => setBajadaPorConfirmar(null)}
+          onClose={alCerrarHojaDeBajada}
         />
       )}
 
