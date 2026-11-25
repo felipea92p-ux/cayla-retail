@@ -9,6 +9,7 @@ import {
   imprimirEnLaCaja,
   MQ_SIN_IMPRESORA,
   queHacerAlRegistrar,
+  textoEnCola,
 } from "./imprimir-al-cobrar";
 
 const base = { encendido: true, hayComprobante: true, sinConexion: false };
@@ -208,5 +209,13 @@ describe("caraDelAviso (el aviso que reemplaza a «Venta registrada»)", () => {
     expect(cola).toMatchObject({ titulo: "Sigue en la cola de la caja", tono: "cola", principal: "nueva-venta", reimprimir: false });
     expect(caraDelAviso({ donde: "caja", fase: "impresa", esperaLarga: true }).titulo).toBe("Boleta impresa en la caja");
     expect(caraDelAviso({ donde: "caja", fase: "error", esperaLarga: false })).toMatchObject({ tono: "mal", principal: "reintentar" });
+  });
+});
+
+describe("textoEnCola (lo que dice la tuerca, /formidable 2026-11-25)", () => {
+  it("dice que son de este equipo, en singular y en plural; sin ninguna, nada", () => {
+    expect(textoEnCola(0)).toBeNull();
+    expect(textoEnCola(1)).toBe("1 tuya en cola");
+    expect(textoEnCola(3)).toBe("3 tuyas en cola");
   });
 });

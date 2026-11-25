@@ -6,5 +6,6 @@
 - [x] Cobro de punta a punta en `/vender` en un banco propio, computadora y 375 px (arreglado el foco tras «Reimprimir»).
 - [ ] **Probar en Trujillo:** una venta desde el celular con la Mac encendida y otra con la Mac dormida.
 - [x] `/milimetro`, `/formidable` (8,0 · 8), `/chaos` (resiste) y `tema:auditar` (0 solo en oscuro).
-- [ ] **Los 3 cambios de texto de `/formidable`** («tuerca» fuera del aviso, «Imprimir otra copia», «1 tuya en cola»): esperan el OK de Felipe.
+- [x] Los 3 cambios de texto de `/formidable` («tuerca» fuera del aviso, «Imprimir otra copia», «1 tuya en cola»), con el OK de Felipe.
+- [ ] Repetir la prueba ciega con los textos nuevos.
 - [ ] Cerrar el PR #2011 si se fusiona este (lo incluye entero).

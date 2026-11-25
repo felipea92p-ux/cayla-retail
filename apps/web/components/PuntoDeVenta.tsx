@@ -2479,7 +2479,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
 
   /** La boleta que salió sola al cobrar ya se mandó (o no): el aviso al cobrar lo dice. Si la cajera ya lo cerró con «Nueva venta» y la
-   *  boleta no salió, un aviso de esquina lo dice con «Reimprimir»: no se le abre una hoja encima de la venta que está armando. */
+   *  boleta no salió, un aviso de esquina lo dice con «Reintentar»: no se le abre una hoja encima de la venta que está armando. */
   function terminoLaImpresion(actual: { venta: VentaOk & { recibo: ReciboVenta }; vez: number }, fin: FinBoleta) {
     // Solo si sigue siendo la de ahora: una impresión que termina tarde no se lleva la de la venta siguiente.
     setImpresion((enCurso) => (enCurso === actual ? null : enCurso));
@@ -2488,12 +2488,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAvisoCobro((a) => (a && a.venta === actual.venta ? { ...a, fase: salio ? "impresa" : "fallo" } : a));
     } else if (!salio) {
       avisar.error(`La boleta ${textoNumeroRecibo(actual.venta.recibo)} no salió`, {
-        accion: { texto: "Reimprimir", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
+        accion: { texto: "Reintentar", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
       });
     }
   }
 
-  /** «Reimprimir» (o «Reintentar», si no salió) desde el aviso al cobrar: otra impresión de la misma boleta. */
+  /** «Imprimir otra copia» (o «Reintentar», si no salió) desde el aviso al cobrar: otra impresión de la misma boleta. */
   function reimprimirDelAviso() {
     if (!avisoCobro) return;
     const venta = avisoCobro.venta;

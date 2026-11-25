@@ -63,7 +63,7 @@ export type AlRegistrar =
   | "esperar"
   /** Imprime sola y la hoja se queda abierta: hay un WhatsApp que ofrecerle al cliente. */
   | "imprimir-y-quedarse"
-  /** Imprime sola y Vender vuelve a una venta nueva, sin hoja: un aviso dice el número, el vuelto y «Reimprimir». */
+  /** Imprime sola y Vender vuelve a una venta nueva, sin hoja: un aviso dice el número, el vuelto e «Imprimir otra copia». */
   | "imprimir-sin-hoja"
   /** No imprime aquí: pide la boleta a la cola de la caja y la hoja se queda abierta (hay un WhatsApp que ofrecer). */
   | "mandar-a-la-caja"
@@ -111,6 +111,15 @@ export function fraseDelDestino(destino: ReturnType<typeof destinoDelEquipo>, en
   if (destino === "caja") return "Esta computadora imprime sus ventas y las del piso.";
   const equipo = enCelular ? "este celular" : "esta computadora";
   return destino === "a-la-caja" ? `Las boletas de ${equipo} salen en la caja de la tienda.` : `Las boletas de ${equipo} salen aquí.`;
+}
+
+/**
+ * Lo que dice la tuerca de las boletas de ESTE equipo que esperan a la caja: «1 tuya en cola», «2 tuyas en cola» (/formidable 2026-11-25: con
+ * «1 en cola» la lectora no supo si era su boleta o la de otra persona). Sin ninguna, nada.
+ */
+export function textoEnCola(n: number): string | null {
+  if (n <= 0) return null;
+  return n === 1 ? "1 tuya en cola" : `${n} tuyas en cola`;
 }
 
 /** Cuánto se espera a que la caja tome la boleta antes de decir «Sigue en la cola de la caja» (y dejar de parecer que imprime). */

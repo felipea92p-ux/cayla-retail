@@ -178,7 +178,7 @@
       "button «Reintentar»",
       "button «Nueva venta»",
       "button «Nueva venta» #2",
-      "BotonImprimir «Reimprimir»"
+      "BotonImprimir «Imprimir otra copia»"
     ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
       "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",

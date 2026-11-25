@@ -22,7 +22,7 @@ const ICONO: Record<CaraDelAviso["tono"], { Icono: typeof Check; clase: string }
 /**
  * El aviso que reemplaza a la hoja «Venta registrada» al cobrar (maqueta `docs/maquetas/impresion-vender-2026-11/`, aprobada por Felipe el
  * 2026-11-25): dice si la boleta salió, su número, el vuelto que hay que entregar y deja dos botones, «Nueva venta» (con Enter) y
- * «Reimprimir». En el celular la boleta va a la cola de la caja: dice «Enviando a la caja», «Boleta impresa en la caja» o, si la caja tarda
+ * «Imprimir otra copia». En el celular la boleta va a la cola de la caja: dice «Enviando a la caja», «Boleta impresa en la caja» o, si la caja tarda
  * más de 15 s, «Sigue en la cola de la caja»; nunca frena la venta siguiente y no ofrece imprimir aquí (el celular no tiene impresora).
  *
  * No imprime: quien imprime aquí es `ImpresionAlCobrar` (Vender lo deja montado hasta que la boleta se mandó, aunque este aviso ya se haya
@@ -41,7 +41,7 @@ export function AvisoAlCobrar({
   donde: "aqui" | "caja";
   /** Cómo va la impresión en este equipo (solo con `donde="aqui"`). */
   faseAqui: "imprimiendo" | "impresa" | "fallo";
-  /** Manda la boleta otra vez a la impresora de este equipo (Reimprimir, o Reintentar si no salió). */
+  /** Manda la boleta otra vez a la impresora de este equipo («Imprimir otra copia», o «Reintentar» si no salió). */
   onReimprimir: () => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
@@ -66,7 +66,7 @@ export function AvisoAlCobrar({
     principal.current = el;
     el?.focus({ preventScroll: true });
   }, []);
-  // Al cambiar de estado, un botón puede desaparecer con el foco adentro («Reimprimir» se va mientras imprime): el foco quedaba suelto en la
+  // Al cambiar de estado, un botón puede desaparecer con el foco adentro («Imprimir otra copia» se va mientras imprime): el foco quedaba suelto en la
   // hoja y Enter ya no abría la venta nueva (medido en el banco, 2026-11-25). Si el foco no está en un botón, vuelve al principal.
   useEffect(() => {
     if (!(document.activeElement instanceof HTMLButtonElement)) principal.current?.focus({ preventScroll: true });
@@ -116,7 +116,7 @@ export function AvisoAlCobrar({
                 </button>
                 {cara.reimprimir && (
                   <BotonImprimir onClick={onReimprimir} className="w-full whitespace-nowrap">
-                    Reimprimir
+                    Imprimir otra copia
                   </BotonImprimir>
                 )}
               </>
@@ -124,7 +124,7 @@ export function AvisoAlCobrar({
           </div>
           {/* Con «Reintentar» como principal, Enter reintenta: la línea no promete una venta nueva. En el celular (la caja) no hay Enter. */}
           {cara.tono === "cola" ? (
-            <p className="text-center text-sm text-tenue">La tuerca de Vender avisa cuando salga</p>
+            <p className="text-center text-sm text-tenue">Arriba verás «1 tuya en cola» hasta que salga</p>
           ) : (
             cara.principal === "nueva-venta" && donde === "aqui" && <p className="text-center text-sm text-tenue">Enter abre una venta nueva</p>
           )}

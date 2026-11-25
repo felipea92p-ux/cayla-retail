@@ -7,7 +7,7 @@ import { Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { BOTON_ACCESO } from "@/components/punto-de-venta/AccesosVenta";
 import { boletasEsperandoALaCaja, suscribirALaCola } from "@/components/impresion/colaDeLaCaja";
-import { destinoDelEquipo, fraseDelDestino, imprimirAlCobrar, imprimirEnLaCaja, MQ_SIN_IMPRESORA, TEXTO_DESTINO } from "@/lib/imprimir-al-cobrar";
+import { destinoDelEquipo, fraseDelDestino, textoEnCola, imprimirAlCobrar, imprimirEnLaCaja, MQ_SIN_IMPRESORA, TEXTO_DESTINO } from "@/lib/imprimir-al-cobrar";
 import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
@@ -24,7 +24,7 @@ function suscribirAparato(avisar: () => void) {
 /**
  * La tuerca de Vender (maqueta `docs/maquetas/impresion-vender-2026-11/`, aprobada por Felipe el 2026-11-25): los interruptores de impresión
  * dejaron de vivir al pie de «Venta registrada» (nadie los encontraba: el 2026-11-24 Felipe no sabía que existían) y viven aquí, junto a
- * «Más». Al lado del ícono dice a dónde va la boleta de este equipo y, si hay boletas esperando a la caja, cuántas («1 en cola»).
+ * «Más». Al lado del ícono dice a dónde va la boleta de este equipo y, si hay boletas esperando a la caja, cuántas («1 tuya en cola»).
  *
  * Son LAS MISMAS preferencias de siempre (mismo nombre guardado, mismo valor de fábrica, `lib/imprimir-al-cobrar.ts` y
  * `lib/estacion-de-impresion.ts`): moverlas de lugar no cambia cómo imprime ningún equipo. Lo vigila la prueba «la tuerca no cambia cómo
@@ -57,12 +57,12 @@ export function ImpresionDelEquipo() {
         onClick={() => setAbierto(true)}
         className={BOTON_ACCESO}
         aria-haspopup="dialog"
-        aria-label={`Impresión de este equipo: ${TEXTO_DESTINO[destino]}${enCola ? `, ${enCola} en cola` : ""}`}
+        aria-label={`Impresión de este equipo: ${TEXTO_DESTINO[destino]}${enCola ? `, ${textoEnCola(enCola)}` : ""}`}
       >
         <Settings className="h-4 w-4" aria-hidden />
         <span className="text-secundario">{TEXTO_DESTINO[destino]}</span>
         {enCola > 0 && (
-          <Chip tono="ambar">{enCola} en cola</Chip>
+          <Chip tono="ambar">{textoEnCola(enCola)}</Chip>
         )}
       </button>
 

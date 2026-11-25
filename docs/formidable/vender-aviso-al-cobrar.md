@@ -37,7 +37,7 @@ código y con el banco (columna «Veredicto»).
 | H7 | «Nada con stock en Tienda Trujillo» confunde | REFUTADO | dato del banco (stock de prueba agotado), no de la pieza |
 | H8 | La ventanita «Primera vez aquí» tapa Cobrar | REFUTADO para este PR | es la invitación a la guía de Vender, de antes |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (hechos con el OK de Felipe, 2026-11-25)
 1. **«La tuerca de Vender avisa cuando salga» → «Arriba verás "1 en cola" hasta que salga».** Ley 4 (H1). Se verifica repitiendo la ciega sobre la
    captura del celular. Esfuerzo S. Decide Felipe (presentación).
 2. **«Reimprimir» → «Imprimir otra copia».** Ley 4 (H2) y la regla `accion.imprimir` («Imprimir» + qué). Se verifica con la ciega y con
@@ -59,3 +59,4 @@ minutos el 2026-11-24, y la ciega no supo cuánto esperar.
 | Fecha | SHA | Leyes | Oficio | Qué cambió |
 |---|---|---|---|---|
 | 2026-11-25 | `ae90beb1b` | 8,0 | 8 | primera medición, en el banco propio |
+| 2026-11-25 | (este commit) | 8,0 (sin repetir la ciega) | 8 | los 3 cambios de texto hechos con el OK de Felipe: «Arriba verás "1 tuya en cola" hasta que salga», «Imprimir otra copia» y «1 tuya en cola»; vistos en el navegador a 1440 y 375 px (`docs/maquetas/impresion-vender-2026-11/implementado/7` a `9`). La guía de Vender tampoco dice «tuerca» |

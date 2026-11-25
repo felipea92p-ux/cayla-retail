@@ -350,7 +350,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "escape" }],
       titulo: "A dónde va la boleta",
-      texto: "La tuerca dice dónde sale la boleta de este equipo: aquí, en la caja de la tienda o, en la caja, también las del piso. Si una espera a la caja, lo dice en ámbar.",
+      texto: "Este botón dice dónde sale la boleta de este equipo: aquí, en la caja de la tienda o, en la caja, también las del piso. Si una tuya espera a la caja, lo dice en ámbar.",
     },
     {
       id: "impresion-panel",
