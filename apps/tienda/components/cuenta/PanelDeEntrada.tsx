@@ -1,18 +1,10 @@
 import type { ReactNode } from "react";
-import {
-  BENEFICIOS_DE_ENTRADA,
-  CONFIANZA_ACCESO,
-  PASOS_DE_ACCESO,
-  PROMESA_ACCESO,
-  PROMESA_CLUB,
-  type CaminoDeAcceso,
-} from "@/lib/panel-entrada";
+import { CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
-import { TarjetaClub } from "../TarjetaClub";
-import { EntradaViva, PasosDeAcceso, TarjetaConTuNombre } from "./EntradaViva";
+import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
 
-// La pantalla partida de «Entrar», «Crear cuenta» y las páginas para volver a entrar (revisión «a nivel mundial», Felipe 2026-10-16):
+// La pantalla partida de las páginas para volver a entrar («Entrar» y «Crear cuenta» pasaron a `PantallaDeCuenta`, 2026-11-25) (revisión «a nivel mundial», Felipe 2026-10-16):
 // desde 960 px, el panel de marca a la izquierda (los colores de la campaña de la portada, el colibrí, la promesa) y el formulario a la
 // derecha; en el celular, el formulario primero y el panel debajo, para que nada lo empuje fuera de la primera pantalla. En el código
 // el formulario va primero: un lector de pantalla y el teclado llegan antes a lo que hay que hacer. Estilos: app/estilos/entrada.css.
@@ -59,35 +51,6 @@ function Promesa({ id, ceja, linea, cursiva }: { id: string; ceja: string; linea
         {linea} <em>{cursiva}</em>
       </h2>
     </div>
-  );
-}
-
-/**
- * El panel del Club, al lado de «Entrar» y «Crear cuenta»: la promesa, los tres beneficios y la tarjeta del Club. En «Crear cuenta»
- * (`nombreVivo`) la tarjeta lleva el nombre de quien la crea apenas el formulario lo sabe.
- */
-export function PanelDelClub({ desde, nombreVivo = false }: { desde: number; nombreVivo?: boolean }) {
-  return (
-    <aside className="en-panel" data-panel="club" aria-labelledby="en-panel-club">
-      <div className="en-panel-in">
-        <Promesa id="en-panel-club" {...PROMESA_CLUB} />
-        <ul className="en-beneficios">
-          {BENEFICIOS_DE_ENTRADA.map((b) => (
-            <li key={b.titulo}>
-              <span className="en-beneficio-ic">
-                <Icono nombre={b.icono} />
-              </span>
-              <span>
-                <b>{b.titulo}</b>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="en-tarjeta">
-          {nombreVivo ? <TarjetaConTuNombre desde={desde} /> : <TarjetaClub nombre="Tu nombre aquí" desde={desde} />}
-        </div>
-      </div>
-    </aside>
   );
 }
 
