@@ -18,3 +18,9 @@ Resumen: **0 graves · 0 medias · 0 leves**.
 
 - El rojo queda donde se vendió y ya no hay; las casillas con algo se leen en tinta y la de «nunca» queda tenue: se distingue de un vistazo qué falta.
 - En oscuro, el mismo reparto con los tokens del tema.
+
+## La clave, corregida (rama `claude/clave-dos-pisos`)
+
+- La muestra («1 / 2») lleva el piso de arriba en tinta, sin tinte: dice lo mismo que una casilla con algo.
+- El rojo tiene su propia muestra de un piso (44 × 32 px, «0» de 16 px en rojo profundo sobre su tinte: 6,99) y su frase de 8 palabras.
+- A 375 px los dos pares de la clave van uno debajo del otro (8 px entre ellos); en escritorio, también (no caben lado a lado sin apretar).

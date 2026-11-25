@@ -307,14 +307,25 @@ function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
   return (
     <div className="h-sec" data-guia="analisis.ficha-tallas">
       <TituloGrupo nota={tabla.nota}>{tabla.titulo}</TituloGrupo>
+      {/* La clave: qué es cada piso (la muestra, con el piso de arriba como cuando te queda algo) y, aparte, qué dice el rojo, que no es el
+          piso de arriba sino lo que se vendió y ya no hay (Felipe 2026-11-25: «en la leyenda dice que arriba será rojo, pero cuando hay data
+          es blanco»). */}
       <div className="pisos-clave" aria-hidden>
-        <span className="pisos-casilla">
-          <span className="pisos-q">0</span>
-          <span className="pisos-v">2</span>
+        <span className="pisos-clave-par">
+          <span className="pisos-casilla">
+            <span className="pisos-q hay">1</span>
+            <span className="pisos-v">2</span>
+          </span>
+          <span className="pisos-clave-txt">
+            <span>Arriba: te quedan</span>
+            <span>Abajo: vendiste en 8 semanas</span>
+          </span>
         </span>
-        <span className="pisos-clave-txt">
-          <span className="pisos-q">Arriba: te quedan</span>
-          <span>Abajo: vendiste en 8 semanas</span>
+        <span className="pisos-clave-par">
+          <span className="pisos-casilla pisos-mini">
+            <span className="pisos-q">0</span>
+          </span>
+          <span>En rojo: se vendió y ya no te queda</span>
         </span>
       </div>
       <div className="m-tabla pisos">
