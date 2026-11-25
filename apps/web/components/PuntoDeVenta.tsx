@@ -80,7 +80,7 @@ import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
 import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
-import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { MQ_TELEFONO, type LineaEscaneada, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { consultarExistencias } from "@/lib/escaner-existencias";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
@@ -1434,7 +1434,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (!sinPreguntar && decidirLectura(v.varianteId, antes, sumaria, { pregunta: null, pilas: pilasDeLaCamara.current }).tipo === "pregunta") {
       // «Ya la escaneaste» suena distinto de «no entró» (ADR-0690): el doble toque de Bajar al piso. La cámara no suena otra vez.
       avisarLectura("repetida");
-      return { estado: "repetida", codigo, nombre, prenda, almacen: v.almacenAqui, lleva: antes, tope: v.stockAqui };
+      return { estado: "repetida", codigo, nombre, prenda, almacen: v.almacenAqui, lleva: antes, tope: v.stockAqui, clave: v.varianteId };
     }
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
     // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
@@ -1442,7 +1442,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // ya no está en el almacén (la apartó otra caja entre dos lecturas).
     if (quedoEnAlmacen(estado, v.almacenAqui)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
     else quedaronEnAlmacen.current.delete(v.varianteId);
-    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui, ...(estado === "agregada" ? { lleva: antes + 1 } : {}) };
+    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui, clave: v.varianteId, ...(estado === "agregada" ? { lleva: antes + 1 } : {}) };
   }
 
   /** «Cambiar cantidad» de la pregunta de la cámara: deja esa prenda con ese total en el ticket y la declara «varias iguales». */
@@ -1453,7 +1453,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const lleva = Math.max(1, Math.min(total, v.stockAqui));
     cambiarCantidad(v.varianteId, lleva);
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
-    return { estado: "agregada", codigo, nombre: [v.referencia, v.talla].filter(Boolean).join(" · "), prenda, almacen: v.almacenAqui, lleva };
+    return { estado: "agregada", codigo, nombre: [v.referencia, v.talla].filter(Boolean).join(" · "), prenda, almacen: v.almacenAqui, lleva, clave: v.varianteId };
+  }
+
+  /** El tacho de una fila de la bandeja de la cámara: quita UNA de esa prenda (la línea entera si era la única). Sin confirmación:
+   *  sumar al ticket es estado local, no dinero ni stock (como «Quitar del ticket» de la hoja de la prenda). */
+  function quitarUnaDesdeCamara(claveLinea: string) {
+    const item = carrito.find((it) => it.claveLinea === claveLinea);
+    if (!item) return;
+    if (item.cantidad > 1) cambiarCantidad(claveLinea, item.cantidad - 1);
+    else quitar(claveLinea);
   }
 
   /** Cierra la cámara y, si algo quedó fuera por estar en el almacén, lo dice una sola vez (ya sin la hoja encima). */
@@ -1869,6 +1878,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const conVentajaDelClub = valeDelTicket !== null;
   const total = valeDelTicket ? conVale.total : totalDeLineas(grupos.lineas);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
+  // La bandeja de la cámara: cada línea del ticket con su foto, color y talla (del catálogo de la caja; un monto manual va sin ellos).
+  const lineasDeLaCamara: LineaEscaneada[] = camaraAbierta
+    ? carrito.map((it) => {
+        const v = variantesVisibles.find((x) => x.varianteId === it.varianteId);
+        return {
+          clave: it.claveLinea,
+          referencia: it.referencia,
+          detalle: v ? [v.color, v.talla].filter(Boolean).join(" · ") : "",
+          fotoUrl: v?.fotoUrl ?? null,
+          cantidad: it.cantidad,
+          importe: totalDeLineas([it]),
+        };
+      })
+    : [];
   // Lo que gana la miembro con esta compra (programa de puntos): lo que PAGA (ya con el cupón) por los puntos por sol de hoy, más el
   // regalo de cumpleaños si le toca. Solo se dice; quien suma es la base al cobrar (`fn_club_puntos_por_venta`).
   const puntosDelTicket = cuponClub.puntos;
@@ -2991,6 +3014,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
           consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
           ticket={{ prendas, total }}
+          // La bandeja «Escaneadas» es el ticket: una fila por prenda con su cantidad, y su tacho quita de a una.
+          lineas={lineasDeLaCamara}
+          onQuitar={quitarUnaDesdeCamara}
           onBuscarPorNombre={() => {
             cerrarCamara();
             setBuscarPorTexto(true);

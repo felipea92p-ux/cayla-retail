@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 209,
+  "total": 210,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -43,11 +43,12 @@
       "BotonEnlace «Pagar a CLAURE»"
     ],
     "components/EscanerCamara.tsx": [
+      "button «{`Agregar ${lectura.prenda?.referencia ?? lectura.codigo}»",
       "button «Cerrar la cámara»",
       "SegmentoDeslizante «Qué hace la cámara con lo que lee»",
       "button «{linterna.encendida ? \"Apagar la linterna\" : \"Encender la linterna\"}»",
       "button «Buscar por nombre»",
-      "button «{`Agregar ${l.prenda?.referencia ?? l.codigo}»",
+      "button «{l.cantidad > 1 ? `Quitar una ${l.referencia}»",
       "button «Ver ticket»"
     ],
     "components/ExistenciasEnCamara.tsx": [
