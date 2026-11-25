@@ -269,7 +269,7 @@
     "components/punto-de-venta/RegistrarBajadaModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/punto-de-venta/ResumenDeHoy.tsx": [
       "button «{r.pctMeta !== null ? `${r.pctMeta}»",
