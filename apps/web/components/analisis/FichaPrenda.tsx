@@ -26,7 +26,7 @@ import {
   veredictoDe,
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
-import { type CasillaDosPisos, fichaDePedir, textoCasillaDosPisos, textoCeldaQueda, type TablaFichaPedir } from "@/lib/analisis-ficha-pedir";
+import { type CasillaDosPisos, fichaDePedir, textoCasillaDosPisos, type TablaFichaPedir } from "@/lib/analisis-ficha-pedir";
 import { Chip } from "@/components/ui/Chip";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonEnlace } from "@/components/ui/campos";
@@ -281,84 +281,17 @@ function useTipDeLaFicha(raiz: HTMLElement | null, tip: HTMLElement | null) {
   }, [raiz, tip]);
 }
 
-/** Una celda de número no necesita los 82 px de las celdas con palabras: con cuatro tallas, la tabla cabe en la hoja sin correr. */
-const ANGOSTA = { minWidth: 44 } as const;
-
 /**
- * La tabla de la ficha de «Qué pedir»: lo agotado, por talla y color en casillas de dos pisos (`TablaDosPisos`); lo que se acaba, cuántas te
- * quedan de cada talla y color (0 en rojo donde se vendió y ya no hay; «—» donde nunca hubo). Usa la caja de la tabla de siempre.
+ * Una casilla de dos pisos: arriba cuántas te quedan, abajo cuántas vendiste («—» si ninguna). El 0 de arriba va en rojo solo donde se vendió y
+ * ya no hay; donde no se vendió ni queda, es un 0 tenue (no falta nada).
  */
-function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
-  if (tabla.tipo === "dosPisos") return <TablaDosPisos tabla={tabla} />;
-  return (
-    <div className="h-sec" data-guia="analisis.ficha-tallas">
-      <TituloGrupo nota={tabla.nota}>{tabla.titulo}</TituloGrupo>
-      <div className="m-tabla">
-        <table>
-          <thead>
-            <tr>
-              <th className="col-color" scope="col">
-                Color
-              </th>
-              {tabla.encabezados.map((t) => (
-                <th key={t} scope="col">
-                  {t}
-                </th>
-              ))}
-              <th scope="col">Vendiste</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tabla.filas.map((f) => (
-              <tr key={f.color}>
-                {/* El nombre baja de renglón si falta ancho (el celular): así entran todas las tallas sin correr la tabla. */}
-                <th className="color" scope="row" style={{ whiteSpace: "normal" }}>
-                  <span className="inline-flex items-baseline">
-                    <span className="pt shrink-0" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
-                    <span>{f.color || "Sin color"}</span>
-                  </span>
-                </th>
-                {f.celdas.map((c) => {
-                  const tip = textoCeldaQueda(f.color, c);
-                  return (
-                    <td
-                      key={c.talla}
-                      tabIndex={0}
-                      data-tip={tip}
-                      aria-label={tip}
-                      className={c.estado === "agotada" ? "text-lg font-semibold text-rojo-profundo" : c.estado === "nunca" ? "text-tenue" : "text-lg font-semibold"}
-                      style={ANGOSTA}
-                    >
-                      {c.estado === "nunca" ? "—" : c.quedan}
-                    </td>
-                  );
-                })}
-                <td className="total" style={ANGOSTA}>
-                  {f.vendio}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-secundario">
-        <span>
-          <b className="text-rojo-profundo">0</b> se vendió y ya no te queda
-        </span>
-        <span>— nunca hubo</span>
-        <span>Vendiste: en 30 días</span>
-      </div>
-    </div>
-  );
-}
-
-/** Una casilla de dos pisos: arriba cuántas te quedan (0 en rojo), abajo cuántas vendiste («—» si ninguna). */
 function CasillaDos({ color, talla, c, total = false }: { color: string; talla: string | null; c: CasillaDosPisos; total?: boolean }) {
   const tip = textoCasillaDosPisos(color, talla, c);
+  const arriba = c.quedan > 0 ? "pisos-q hay" : c.vendidas > 0 ? "pisos-q" : "pisos-q nada";
   return (
     <td className={total ? "pisos-td pisos-total" : "pisos-td"} tabIndex={0} data-tip={tip} aria-label={tip}>
       <span className="pisos-casilla">
-        <span className={c.quedan > 0 ? "pisos-q hay" : "pisos-q"}>{c.quedan}</span>
+        <span className={arriba}>{c.quedan}</span>
         <span className={c.vendidas > 0 ? "pisos-v" : "pisos-v nada"}>{c.vendidas > 0 ? c.vendidas : "—"}</span>
       </span>
     </td>
@@ -366,11 +299,11 @@ function CasillaDos({ color, talla, c, total = false }: { color: string; talla: 
 }
 
 /**
- * Lo agotado, por talla y color (Felipe 2026-11-25 eligió la «B2» de `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`): una
- * fila por color, una casilla de dos pisos por talla y la del total, con su clave arriba; lo que tiene la otra tienda, color por talla, en su
- * propio bloque, para que no se confunda con lo que te queda a ti.
+ * La tabla de la ficha de «Qué pedir», la misma en lo agotado y en lo que se acaba (Felipe 2026-11-25 eligió la «B2» de
+ * `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`): una fila por color, una casilla de dos pisos por talla y la del total, con
+ * su clave arriba; lo que tiene la otra tienda, color por talla, en su propio bloque, para que no se confunda con lo que te queda a ti.
  */
-function TablaDosPisos({ tabla }: { tabla: Extract<TablaFichaPedir, { tipo: "dosPisos" }> }) {
+function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
   return (
     <div className="h-sec" data-guia="analisis.ficha-tallas">
       <TituloGrupo nota={tabla.nota}>{tabla.titulo}</TituloGrupo>
