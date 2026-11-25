@@ -3,7 +3,7 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Globito } from "@/components/ui/Globito";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
+import { Check, Flashlight, FlashlightOff, Minus, ShoppingBag, Trash2, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -13,15 +13,19 @@ import type { ResultadoConsulta } from "@/lib/escaner-existencias";
 import {
   MS_AVISO,
   MS_VUELO,
+  avisoDeLectura,
   detalleDeLectura,
   estadoCorto,
+  filasDeLaBandeja,
   keyframesAviso,
   keyframesVuelo,
   mensajeEscaneo,
+  msDelAvisoDeLectura,
   normalizarLectura,
   sePuedeBajar,
   sonidoDeLecturaCamara,
   yaEstabaEnElTicket,
+  type LineaEscaneada,
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
 import { debeContarLectura } from "@/lib/conteo-conectado";
@@ -50,6 +54,14 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
        doble toque de «ya la escaneaste» y la cámara se tapa con «Ya está en el ticket · ¿Sumar otra?» (`AvisoRepetida`, la misma de
        Bajar al piso): Sumar, No o Cambiar cantidad (`onSumarOtra`, `onCantidad`). Mientras se pregunta, no se lee.
 
+   La bandeja «Escaneadas» y el aviso de arriba (2026-11-25, pedido de Felipe desde el celular):
+     · la bandeja es el TICKET, no un historial de lecturas: una fila por prenda con su cantidad («×2», nunca dos filas de la misma),
+       la más nueva arriba, con scroll para ver todas y su tacho para quitar una (con varias, quita de a una). La arma la pantalla
+       (`lineas`, `filasDeLaBandeja`); la fila que se acaba de leer queda marcada en verde con su ✓ y se trae a la vista;
+     · lo que pasó con cada lectura sale en un aviso sobre la cámara que se va solo (`avisoDeLectura`, `msDelAvisoDeLectura`):
+       «Entró al ticket» en verde, o «Sin más stock», «Agotada aquí»… en ámbar. Lo que no entró ya no se queda en la bandeja.
+       Lo del almacén trae ahí su «Agregar» (y si no se toca, igual se ofrece al cerrar la cámara).
+
    Lo que se ve aunque las animaciones estén apagadas (2026-11-25; vienen apagadas, ADR-0625, y sin ellas no había vuelo ni
    destello: lo único que cambiaba era una fila chica abajo): las esquinas del visor se pintan del tono de la lectura un momento
    (color, no movimiento) y la fila más nueva queda marcada con su ✓ o su «!».
@@ -58,8 +70,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
    nunca vuelve a entrar sola; para la segunda prenda igual, la etiqueta sale del cuadro y entra otra. Antes bastaba con dejarla
    2 s: medido, una etiqueta sostenida 2,5 s entraba dos veces al ticket.
 
-   Lo del almacén de la tienda (`sePuedeBajar`) trae «Agregar» en su fila (`onBajar`): abre la hoja de la bajada encima de la
-   cámara, que deja de leer mientras tanto (`pausada`), y si se registra la fila pasa a «entró».
+   Lo del almacén de la tienda (`sePuedeBajar`) trae «Agregar» en su aviso (`onBajar`): abre la hoja de la bajada encima de la
+   cámara, que deja de leer mientras tanto (`pausada`), y si se registra el aviso pasa a «entró».
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Dos modos (2026-10-28, pedido de Felipe), con un interruptor arriba cuando la pantalla pasa `consulta`:
@@ -151,6 +163,39 @@ function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado:
 
 type Lectura = ResultadoEscaneo & { id: number };
 
+/** El aviso de una lectura sobre la cámara: el punto y el motivo en su tono, la prenda debajo y, si está en el almacén, «Agregar».
+ *  Lo quita la cámara a su tiempo (`msDelAvisoDeLectura`); va con `key` por lectura, así cada una entra de nuevo. */
+function AvisoSobreLaCamara({ lectura, bajable, bajando, onAgregar }: { lectura: Lectura; bajable: boolean; bajando: boolean; onAgregar: () => void }) {
+  const { tono, titulo: motivo, nombre } = avisoDeLectura(lectura);
+  // Con «Agregar» al lado, «No entró · en almacén» no cabe a 375 px: el botón ya dice qué falta.
+  const titulo = bajable ? "En el almacén" : motivo;
+  return (
+    <div role="status" className="anim-revelar absolute inset-x-3 top-1 z-20 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-crema p-2.5 pr-3 shadow-[0_8px_24px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)]">
+      <Miniatura prenda={lectura.prenda} lado={40} />
+      <span className="min-w-0 flex-1">
+        <span className={`flex items-center gap-1.5 text-sm font-medium ${tono === "verde" ? "text-tinta" : "text-ambar-profundo"}`}>
+          {tono === "verde" ? (
+            <span aria-hidden className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-verde text-crema">
+              <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3 w-3" strokeWidth={3} />
+            </span>
+          ) : (
+            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-ambar" />
+          )}
+          <span className="truncate">{titulo}</span>
+        </span>
+        <span className="block truncate text-detalle text-secundario">{nombre}</span>
+      </span>
+      {bajable ? (
+        <button type="button" onClick={onAgregar} disabled={bajando} aria-label={`Agregar ${lectura.prenda?.referencia ?? lectura.codigo}: está en el almacén, se registra la bajada`} className="btn-cayla btn-secundario shrink-0">
+          Agregar
+        </button>
+      ) : tono === "verde" && lectura.prenda ? (
+        <span className="shrink-0 text-sm tabular-nums text-tinta">{soles(lectura.prenda.precio)}</span>
+      ) : null}
+    </div>
+  );
+}
+
 
 type ModoCamara = "ticket" | "existencias";
 
@@ -171,6 +216,8 @@ export function EscanerCamara({
   pausada = false,
   consulta,
   ticket,
+  lineas,
+  onQuitar,
   onBuscarPorNombre,
   onVerTicket,
   onClose,
@@ -190,6 +237,10 @@ export function EscanerCamara({
   consulta?: ConsultaDeExistencias;
   /** El ticket de Vender tal cual está: la bandeja lo muestra (cuando termina el vuelo). */
   ticket: { prendas: number; total: number };
+  /** Las líneas del ticket, para la bandeja «Escaneadas» (una por prenda, con su cantidad). */
+  lineas: LineaEscaneada[];
+  /** El tacho de una fila: quita UNA de esa prenda del ticket (la línea entera si era la única). Sin él, la fila no lo ofrece. */
+  onQuitar?: (clave: string) => void;
   /** Sin cámara: cerrar y dejar el campo de búsqueda listo. */
   onBuscarPorNombre: () => void;
   /** «Ver ticket»: además de cerrar, abre el ticket (en el celular vive en una hoja aparte). Corre después de `onClose`. */
@@ -207,7 +258,11 @@ export function EscanerCamara({
   const irAlTicket = useRef(false);
 
   const [estado, setEstado] = useState<Estado>("abriendo");
-  const [historial, setHistorial] = useState<Lectura[]>([]);
+  // El aviso sobre la cámara de la última lectura: se va solo (`msDelAvisoDeLectura`); una lectura nueva lo reemplaza.
+  const [aviso, setAviso] = useState<Lectura | null>(null);
+  // La fila de la bandeja que se acaba de leer (la clave de su línea): queda marcada hasta la siguiente lectura que entre.
+  const [ultimaClave, setUltimaClave] = useState<string | null>(null);
+  const bandejaRef = useRef<HTMLUListElement | null>(null);
   // La lectura en pantalla: la tarjeta que vuela (o se apaga) y el destello del visor. `id` re-monta las animaciones.
   const [vuelo, setVuelo] = useState<Lectura | null>(null);
   const [destello, setDestello] = useState<{ id: number; tono: "verde" | "ambar" } | null>(null);
@@ -219,8 +274,20 @@ export function EscanerCamara({
     const t = window.setTimeout(() => setMarca((m) => (m?.id === marca.id ? null : m)), 1600);
     return () => window.clearTimeout(t);
   }, [marca]);
-  // La fila que está registrando su bajada (su «Agregar» espera a la hoja de encima).
+  // El aviso que está registrando su bajada (su «Agregar» espera a la hoja de encima): mientras tanto no se va.
   const [bajando, setBajando] = useState<number | null>(null);
+  useEffect(() => {
+    if (!aviso || bajando === aviso.id) return;
+    const ms = msDelAvisoDeLectura(aviso, { conAgregar: onBajar !== undefined });
+    const t = window.setTimeout(() => setAviso((a) => (a?.id === aviso.id ? null : a)), ms);
+    return () => window.clearTimeout(t);
+  }, [aviso, bajando, onBajar]);
+  // La fila recién leída se trae a la vista dentro de la bandeja (puede estar más abajo si se volvió a leer una prenda anterior).
+  useEffect(() => {
+    if (!ultimaClave) return;
+    const fila = bandejaRef.current?.querySelector<HTMLElement>(`[data-clave="${CSS.escape(ultimaClave)}"]`);
+    fila?.scrollIntoView({ block: "nearest", behavior: prefiereQuieto() ? "auto" : "smooth" });
+  }, [ultimaClave, lineas]);
   // La pregunta por una prenda que ya está en el ticket: tapa el visor y la cámara no lee hasta que se responda.
   const [pregunta, setPregunta] = useState<Lectura | null>(null);
   const pausadaRef = useRef(pausada);
@@ -299,16 +366,20 @@ export function EscanerCamara({
         return;
       }
       const tono = mensajeEscaneo(r).tono;
-      setHistorial((h) => [lectura, ...h].slice(0, 3));
+      setAviso(lectura);
+      if (r.estado === "agregada" && r.clave) setUltimaClave(r.clave);
       setDestello({ id: n, tono });
       setMarca({ id: n, tono });
       // Suena y vibra en cada lectura (el bip de Conteo): quien vende mira la prenda y al cliente, no la pantalla.
       avisarLectura(sonidoDeLecturaCamara(tono, { yaEstaba: yaEstabaEnElTicket(r) }));
-      if (moverse()) {
-        setVuelo(lectura);
-        if (r.estado === "agregada") setEnVuelo(true);
-      } else if (r.estado === "agregada") {
-        setLatidoBolsa((x) => x + 1);
+      // Solo lo que entró vuela a la bolsa: lo que no, ya lo dice el aviso de arriba.
+      if (r.estado === "agregada") {
+        if (moverse()) {
+          setVuelo(lectura);
+          setEnVuelo(true);
+        } else {
+          setLatidoBolsa((x) => x + 1);
+        }
       }
     };
 
@@ -415,14 +486,15 @@ export function EscanerCamara({
     idRespuesta.current += 1;
     const lectura: Lectura = { ...r, id: idRespuesta.current };
     const tono = mensajeEscaneo(r).tono;
-    setHistorial((h) => [lectura, ...h].slice(0, 3));
+    setAviso(lectura);
+    if (r.estado === "agregada" && r.clave) setUltimaClave(r.clave);
     setMarca({ id: lectura.id, tono });
     // Ya se avisó que estaba (la pregunta): ahora solo «entró» o «no entró».
     avisarLectura(sonidoDeLecturaCamara(tono));
     if (r.estado === "agregada") setLatidoBolsa((x) => x + 1);
   }
 
-  /** «Agregar» de una fila del almacén: la pantalla abre su hoja (encima) y, si la bajada se registró, la fila pasa a «entró». */
+  /** «Agregar» del aviso de lo que está en el almacén: la pantalla abre su hoja (encima) y, si la bajada se registró, el aviso pasa a «entró». */
   async function bajar(l: Lectura) {
     if (!onBajar || bajando !== null) return;
     setBajando(l.id);
@@ -434,7 +506,8 @@ export function EscanerCamara({
     }
     if (lleva === null) return;
     const entro: Lectura = { ...l, estado: "agregada", lleva };
-    setHistorial((h) => h.map((x) => (x.id === l.id ? entro : x)));
+    setAviso((a) => (a?.id === l.id ? entro : a));
+    if (l.clave) setUltimaClave(l.clave);
     setMarca({ id: l.id, tono: "verde" });
     setLatidoBolsa((x) => x + 1);
     avisarLectura(sonidoDeLecturaCamara("verde", { yaEstaba: yaEstabaEnElTicket(entro) }));
@@ -462,6 +535,7 @@ export function EscanerCamara({
   // mientras la hoja está abierta, la matriz lo cuenta sin volver a escanear.
   const resultado = consultando && consulta && consultado ? consulta.leer(consultado.codigo) : null;
   const claveColor = colorTocado && colorTocado.id === consultado?.id ? colorTocado.clave : null;
+  const filas = filasDeLaBandeja(lineas);
 
   return (
     <Modal
@@ -586,6 +660,9 @@ export function EscanerCamara({
                 </p>
               </>
             )}
+            {/* El aviso de la última lectura, sobre la cámara: qué pasó y con qué prenda, y se va solo. Lo que no entró («Sin más
+                stock») se dice aquí y no se queda en la bandeja. Lo del almacén trae su «Agregar». */}
+            {aviso && !pregunta && !sinCamara && !consultando && <AvisoSobreLaCamara key={aviso.id} lectura={aviso} bajable={onBajar !== undefined && sePuedeBajar(aviso)} bajando={bajando !== null} onAgregar={() => void bajar(aviso)} />}
           </div>
 
           {/* La bandeja: lo que ya se leyó y el ticket. Alto fijo para las filas (ADR-0185): la hoja no salta al llegar la
@@ -610,55 +687,51 @@ export function EscanerCamara({
             ) : (
               <>
                 <p className="label-cayla text-xs text-taupe">Escaneadas</p>
-                <ul aria-live="polite" className="mt-1 h-[6.5rem] overflow-hidden [@media(min-height:700px)]:h-[9.75rem]">
+                {/* El ticket, una fila por prenda con su cantidad y la más nueva arriba. Alto fijo (ADR-0185: la hoja no salta al llegar la
+                    primera prenda) y con scroll: se ven todas, no solo las últimas. */}
+                <ul ref={bandejaRef} aria-live="polite" className="-mx-2 mt-1 h-[6.5rem] overflow-y-auto overscroll-contain px-2 [@media(min-height:700px)]:h-[9.75rem]">
                   {pregunta ? (
-                    // Con la pregunta abierta la bandeja no se toca (su «Agregar» abriría otra hoja sin responder), como en Bajar al piso.
+                    // Con la pregunta abierta la bandeja no se toca (su tacho cambiaría el ticket sin responder), como en Bajar al piso.
                     <li className="grid h-full place-items-center text-center text-sm text-tenue">Responde arriba para seguir.</li>
-                  ) : historial.length === 0 ? (
-                    <li className="grid h-full place-items-center text-center text-xs text-tinta/55">Las prendas que escanees aparecen aquí.</li>
+                  ) : filas.length === 0 ? (
+                    <li className="grid h-full place-items-center text-center text-xs text-tenue">Las prendas que escanees aparecen aquí.</li>
                   ) : (
-                    historial.map((l, i) => {
-                      const { tono } = mensajeEscaneo(l);
-                      // La más nueva queda marcada con su ✓ o su «!»: se ve que se leyó aunque las animaciones estén apagadas.
-                      const nueva = i === 0;
-                      const bajable = onBajar !== undefined && sePuedeBajar(l);
+                    filas.map((l) => {
+                      // La que se acaba de leer queda marcada con su ✓: se ve que entró aunque las animaciones estén apagadas.
+                      const nueva = l.clave === ultimaClave;
                       return (
                         <li
-                          key={l.id}
+                          key={l.clave}
+                          data-clave={l.clave}
                           aria-current={nueva ? "true" : undefined}
-                          className={`anim-asentar -mx-2 flex h-[3.25rem] items-center gap-3 rounded-xl px-2 ${nueva ? (tono === "verde" ? "bg-verde/10" : "bg-ambar/10") : ""}`}
+                          className={`-mx-2 flex h-[3.25rem] items-center gap-3 rounded-xl px-2 transition-colors duration-200 ${nueva ? "bg-verde/10" : ""}`}
                         >
-                          <Miniatura prenda={l.prenda} lado={40} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm text-tinta">{l.prenda?.referencia ?? l.codigo}</span>
-                            <span className={`block truncate text-detalle ${tono === "verde" ? "text-secundario" : "text-ambar-profundo"}`}>
-                              {tono === "verde" ? detalleDeLectura(l) : bajable ? `En el almacén · ${detalleDeLectura(l)}` : detalleDeLectura(l)}
-                            </span>
+                          <span className="relative shrink-0">
+                            <Miniatura prenda={{ referencia: l.referencia, detalle: l.detalle, precio: 0, fotoUrl: l.fotoUrl }} lado={40} />
+                            {nueva && (
+                              <span aria-label="Recién escaneada" className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-verde text-crema ring-2 ring-crema">
+                                <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3 w-3" strokeWidth={3} />
+                              </span>
+                            )}
                           </span>
-                          {tono === "verde" ? (
-                            <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-tinta">
-                              {soles(l.prenda?.precio ?? 0)}
-                              {nueva && (
-                                <span aria-label="Entró al ticket" className="grid h-6 w-6 place-items-center rounded-full bg-verde text-crema">
-                                  <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
-                                </span>
-                              )}
-                            </span>
-                          ) : bajable ? (
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm text-tinta">{l.referencia}</span>
+                            <span className="block truncate text-detalle text-secundario">{l.detalle}</span>
+                          </span>
+                          <span className="flex shrink-0 flex-col items-end">
+                            <span className="text-sm tabular-nums text-tinta">{soles(l.importe)}</span>
+                            {l.cantidad > 1 && <span className="text-xs tabular-nums text-secundario">× {l.cantidad}</span>}
+                          </span>
+                          {onQuitar && (
                             <button
                               type="button"
-                              onClick={() => void bajar(l)}
-                              disabled={bajando !== null}
-                              aria-label={`Agregar ${l.prenda?.referencia ?? l.codigo}: está en el almacén, se registra la bajada`}
-                              className="btn-cayla btn-secundario shrink-0"
+                              onClick={() => onQuitar(l.clave)}
+                              aria-label={l.cantidad > 1 ? `Quitar una ${l.referencia} del ticket (quedan ${l.cantidad - 1})` : `Quitar ${l.referencia} del ticket`}
+                              title={l.cantidad > 1 ? "Quitar una" : "Quitar del ticket"}
+                              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
                             >
-                              Agregar
+                              {l.cantidad > 1 ? <Minus aria-hidden className="h-4 w-4" /> : <Trash2 aria-hidden className="h-4 w-4" />}
                             </button>
-                          ) : (
-                            <span className="flex shrink-0 items-center gap-1.5 text-xs text-ambar-profundo">
-                              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />
-                              {estadoCorto(l)}
-                            </span>
                           )}
                         </li>
                       );

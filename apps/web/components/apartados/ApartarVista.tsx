@@ -464,10 +464,13 @@ export function ApartarVista({
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, prendas);
     if (!v) return { estado: "no-encontrada", codigo };
+    const antes = lineas.find((l) => l.varianteId === v.varianteId)?.cantidad ?? 0;
     const estado = agregar(v.varianteId, { silencioso: true });
     return {
       estado,
       codigo,
+      clave: v.varianteId,
+      ...(estado === "agregada" ? { lleva: antes + 1 } : {}),
       nombre: [v.referencia, v.talla].filter(Boolean).join(" · "),
       prenda: { referencia: v.referencia, detalle: variante(v), precio: precioFinal(v), fotoUrl: v.fotoUrl },
       almacen: v.almacenAqui,
@@ -1403,6 +1406,17 @@ export function ApartarVista({
         <EscanerCamara
           onCodigo={alEscanear}
           ticket={{ prendas: prendasEnTicket, total }}
+          // La bandeja «Escaneadas» es lo que se aparta: una fila por prenda con su cantidad, y su tacho quita de a una.
+          lineas={lineas.flatMap((l) => {
+            const p = porId.get(l.varianteId);
+            const d = descuentoDe.get(l.varianteId);
+            return p ? [{ clave: l.varianteId, referencia: p.referencia, detalle: variante(p), fotoUrl: p.fotoUrl, cantidad: l.cantidad, importe: d ? totalDeLineas([d]) : l.cantidad * p.precio }] : [];
+          })}
+          onQuitar={(clave) => {
+            const enTicket = lineas.find((l) => l.varianteId === clave)?.cantidad ?? 0;
+            if (enTicket > 1) setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: x.cantidad - 1 } : x)));
+            else quitarPrenda(clave);
+          }}
           onBuscarPorNombre={() => {
             setCamaraAbierta(false);
             escaner.current?.focus();

@@ -1,0 +1,4 @@
+## 2026-11-25 (La cámara del celular avisa cada prenda y «Escaneadas» es el ticket)
+Qué hice: cada lectura de la cámara sale en un aviso arriba del cuadro que se va solo («Entró al ticket», «Sin más stock», «En el almacén» con «Agregar»), y la bandeja «Escaneadas» pasó a ser el ticket: una fila por prenda con su cantidad («× 2»), scroll para verlas todas y un botón para quitar de a una. Vale para Vender y Apartados.
+Por qué así: Felipe vio en el celular que lo que no entraba se quedaba en «Escaneadas», que solo se veían las tres últimas y que la misma prenda dos veces salía en dos filas; la bandeja ahora sale del ticket, que es la única fuente de verdad.
+Felipe se lleva: al escanear desde el celular se ve en el momento qué pasó con cada prenda, y desde la misma cámara se corrige el ticket sin cerrarla.
