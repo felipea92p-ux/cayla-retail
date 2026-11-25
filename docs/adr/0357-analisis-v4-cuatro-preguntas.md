@@ -553,3 +553,16 @@ placa, con el piso de arriba teñido del rojo del dato). Sin migración.
 **Cómo se verificó.** Pruebas de Análisis (483); en el navegador, con las cifras reales de TRU de Capa de Encaje (2 tallas), Pantalon Zenit
 (3 tallas), Blusa Alba (Arequipa tiene) y Top Tokio (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores y sin que nada se salga
 de la hoja; `docs/milimetro/auditorias/2026-11-25-analisis-agotado-dos-pisos.md`.
+
+### Act. 2026-11-25 (c) — Lo que se acaba, también en casillas de dos pisos
+
+**Problema.** Felipe abrió la ficha de un modelo que se acaba (Chaleco Cecia, «Se acaba el 2 dic.») y no vio las casillas de dos pisos: solo
+se habían puesto en lo agotado. Pidió «igual que lo agotado».
+
+**Decisión.** Las dos fichas de «Qué pedir» usan la misma tabla (`tablaDosPisos`): filas, los colores que se vendieron en las 8 semanas **o
+que todavía tienen algo**, del que más se vendió al que menos; columnas, las tallas que se vendieron o que tienen algo. Arriba lo que te queda,
+abajo lo vendido en 8 semanas (antes, lo que se acaba contaba 30 días). **El 0 de arriba va en rojo solo donde se vendió y ya no hay**; donde
+no se vendió ni queda, es un 0 tenue (no falta nada). La tabla vieja de lo que se acaba (`tablaQuedan`, `textoCeldaQueda`) se borró.
+
+**Cómo se verificó.** Pruebas de `lib/analisis-ficha-pedir.test.ts`; en el navegador, con las cifras reales de TRU del Chaleco Cecia (3 tallas,
+7 colores), Blusa Alba (agotado, Arequipa tiene) y Polo Basico Manga Corta (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores.

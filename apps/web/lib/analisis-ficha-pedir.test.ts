@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import { armarModelos } from "./analisis-modelo";
-import { fichaDePedir, precioDeLaFicha, textoCasillaDosPisos, textoCeldaQueda } from "./analisis-ficha-pedir";
+import { fichaDePedir, precioDeLaFicha, textoCasillaDosPisos } from "./analisis-ficha-pedir";
 
 // Datos inventados (el repo es público): modelos, colores, tiendas y cifras de mentira.
 let n = 0;
@@ -83,8 +83,6 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
 
   it("lo agotado de una sola talla: una casilla por color (te quedan 0, vendiste) sin columnas de talla; lo de la otra tienda, aparte", () => {
     const t = fichaDePedir(de("Top Prueba"), ctx())!.tabla;
-    expect(t.tipo).toBe("dosPisos");
-    if (t.tipo !== "dosPisos") return;
     expect(t.titulo).toBe("Por color");
     expect(t.tallas).toEqual([]);
     // Del que más se vendió al que menos; Perla no se vendió en 8 semanas y no tiene fila.
@@ -97,8 +95,6 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
 
   it("lo agotado por talla y color (la «B2», Felipe 2026-11-25): arriba te quedan, abajo vendiste; sin la talla que nunca se vendió", () => {
     const t = fichaDePedir(de("Capa Prueba"), ctx())!.tabla;
-    expect(t.tipo).toBe("dosPisos");
-    if (t.tipo !== "dosPisos") return;
     expect(t.titulo).toBe("Por talla y color");
     expect(t.nota).toBe("en Ciudad Uno");
     expect(t.tallas).toEqual(["S", "M"]);
@@ -116,7 +112,7 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
   it("lo agotado que nadie más tiene: sin bloque de la otra tienda", () => {
     const sola = armarModelos([prenda({ productoId: "sl", nombre: "Falda Sola", talla: "S", semanas: [0, 0, 0, 0, 0, 3, 0, 0], vendidas30: 3 })], HOY)[0]!;
     const t = fichaDePedir(sola, ctx())!.tabla;
-    expect(t.tipo === "dosPisos" && t.otra).toBeNull();
+    expect(t.otra).toBeNull();
   });
 
   it("lo que se acaba: hasta cuándo, cuánto tienes y vendes, y cuántos de los que te faltan tiene la otra tienda", () => {
@@ -128,23 +124,21 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
     expect(f.cifras[2]).toEqual({ etiqueta: "Ciudad Dos tiene", valor: "1", detalle: "y el que te falta" });
   });
 
-  it("te quedan por talla y color: el número que queda, 0 donde se vendió y ya no hay, «nunca» donde no hubo", () => {
+  it("lo que se acaba, en la misma tabla de dos pisos (Felipe 2026-11-25): también los colores que no se vendieron pero tienen algo", () => {
     const t = fichaDePedir(de("Polo Prueba"), ctx())!.tabla;
-    expect(t.tipo).toBe("quedan");
-    if (t.tipo !== "quedan") return;
+    expect(t.titulo).toBe("Por talla y color");
+    expect(t.nota).toBe("en Ciudad Uno");
     expect(t.tallas).toEqual(["S", "M"]);
-    expect(t.encabezados).toEqual(["S", "M"]);
-    expect(t.titulo).toBe("Te quedan por talla y color");
-    expect(t.filas.map((f) => [f.color, f.vendio, f.celdas.map((c) => `${c.estado}:${c.quedan}`)])).toEqual([
-      ["Negro", 12, ["agotada:0", "queda:4"]],
-      ["Blanco", 0, ["nunca:0", "queda:1"]],
+    // Negro S se vendió y ya no hay (0 arriba); Blanco no se vendió en 8 semanas pero le queda 1 en M: tiene su fila.
+    expect(t.filas.map((f) => [f.color, f.casillas.map((c) => `${c.quedan}/${c.vendidas}`), `${f.total.quedan}/${f.total.vendidas}`])).toEqual([
+      ["Negro", ["0/6", "4/6"], "4/12"],
+      ["Blanco", ["0/0", "1/0"], "1/0"],
     ]);
-    expect(textoCeldaQueda("Negro", t.filas[0]!.celdas[0]!)).toBe("Negro S: se vendió y ya no hay");
-    expect(textoCeldaQueda("Blanco", t.filas[1]!.celdas[1]!)).toBe("Blanco M: queda 1");
-    expect(textoCeldaQueda("Blanco", t.filas[1]!.celdas[0]!)).toBe("Blanco S: nunca hubo");
+    expect(t.otra?.piezas.map((p) => `${p.color} ${p.talla} ${p.cantidad}`)).toEqual(["Negro S 1"]);
+    expect(textoCasillaDosPisos("Blanco", "M", t.filas[1]!.casillas[1]!)).toBe("Blanco M: te queda 1, vendiste 0");
   });
 
-  it("con una sola talla, la columna se llama «Te quedan» (la talla única no dice nada)", () => {
+  it("lo que se acaba con una sola talla: una casilla por color, sin columnas de talla", () => {
     const unica = armarModelos(
       [
         prenda({ productoId: "un", nombre: "Blusa Prueba", color: "Negro", piso: 2, vendidas30: 9, semanas: [0, 0, 0, 0, 0, 0, 4, 5] }),
@@ -153,13 +147,11 @@ describe("ficha de «Qué pedir» (Felipe 2026-11-24): cuenta lo mismo que su ta
       HOY,
     )[0]!;
     const t = fichaDePedir(unica, ctx())!.tabla;
-    expect(t.tipo).toBe("quedan");
-    if (t.tipo !== "quedan") return;
-    expect(t.titulo).toBe("Te quedan por color");
-    expect(t.encabezados).toEqual(["Te quedan"]);
-    expect(t.filas.map((f) => [f.color, f.celdas[0]!.quedan, f.celdas[0]!.estado])).toEqual([
-      ["Negro", 2, "queda"],
-      ["Rojo", 0, "agotada"],
+    expect(t.titulo).toBe("Por color");
+    expect(t.tallas).toEqual([]);
+    expect(t.filas.map((f) => [f.color, f.total.quedan, f.total.vendidas])).toEqual([
+      ["Negro", 2, 9],
+      ["Rojo", 0, 4],
     ]);
   });
 
