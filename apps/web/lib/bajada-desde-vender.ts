@@ -68,7 +68,7 @@ export function textoErrorBajadaDesdeCaja(error: ErrorEscritura, nombre: string)
     return `Registrar la bajada desde Vender todavía no está activo. Regístrala en ${DONDE_SE_BAJA} y vuelve a escanear ${nombre}.`;
   }
   if (esRespuestaIncierta(error)) {
-    return `Se cortó la conexión y no sabemos si la bajada de ${nombre} se registró. Vuelve a escanearla: si ya estaba registrada, no se repite.`;
+    return `Se cortó la conexión y no sabemos si la bajada de ${nombre} se registró. Vuelve a agregarla: si ya estaba registrada, no se repite.`;
   }
   return traducirError(error, `registrar la bajada de ${nombre}`);
 }

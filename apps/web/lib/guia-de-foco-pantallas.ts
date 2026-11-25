@@ -285,7 +285,7 @@ export const MODALES_PENDIENTES_HOY = 43;
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
   "components/AjustarInventarioModal.tsx": { estado: "aplicada", evidencia: ["components/AjustarInventarioModal.tsx"] },
-  "components/VentaRegistradaModal.tsx": { estado: "no-aplica", motivo: "«Venta registrada»: la venta ya se guardó y no hay nada que llenar. Sus únicos controles son dos interruptores del equipo, «Imprimir en la caja» e «Imprimir solo al cobrar», que se encienden una vez (lib/imprimir-al-cobrar.ts); no hay camino que indicar." },
+  "components/VentaRegistradaModal.tsx": { estado: "no-aplica", motivo: "«Venta registrada»: la venta ya se guardó y no hay nada que llenar. Sus únicos controles son dos interruptores del equipo, «Imprimir en la caja» (encendido de fábrica en el celular) e «Imprimir solo al cobrar», que se tocan una vez (lib/imprimir-al-cobrar.ts); no hay camino que indicar." },
   "components/MarcasLista.tsx": { estado: "no-aplica", motivo: "El modal que dibuja es la hoja «Resumen» de Marcas (Felipe 2026-11-17): cuatro cifras que se tocan para filtrar la lista, sin campos que llenar ni pasos. El buscador de este archivo vive en la pantalla, no en la hoja; crear y editar una marca son sus propios modales (NuevaMarcaForm, EditarMarcaModal), con su guía." },
   "components/existencias/BuscarPrendaParaAjustar.tsx": { estado: "no-aplica", motivo: "«¿Qué prenda vas a ajustar?» (ADR-0494): un solo campo, el buscador, y su único paso es elegir la prenda; lo que se llena (la planilla, el motivo y quién) vive en el modal de la prenda, con su guía." },
   "components/asistente/CajonAsistente.tsx": { estado: "no-aplica", motivo: "«Pregúntale a CAYLA» (ADR-0536): un solo campo obligatorio, la pregunta, que busca mientras se escribe; su único paso es elegir la demo que arranca. Tras un «No» a «¿Te sirvió?» aparece una caja opcional («¿Qué buscabas?») que no bloquea nada. Lo que se llena de verdad vive en la pantalla a la que lleva, con su propia guía." },
@@ -563,7 +563,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Programa de puntos (actividad 5): «Usar puntos» es un stepper (un solo control: cuántos canjear, con el rango que la base aceptaría)
   // y «Código de cupón» es un campo con su resultado al instante (se pregunta solo al completar el código): ninguno lleva pasos.
   "components/punto-de-venta/PuntosYCuponModales.tsx": { estado: "no-aplica", motivo: "Dos hojas de UN solo control cada una: el stepper de puntos a canjear y el campo del código del cupón, con su resultado a la vista al instante." },
-  "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
+  "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/RegistrarBajadaModal.tsx"] },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/fondos/AccionesFondos.tsx": { estado: "aplicada", evidencia: ["components/fondos/AccionesFondos.tsx"] },
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»

@@ -506,6 +506,14 @@ llevan datos reales):
    fecha lleva el color de su urgencia; nada de «·» entre datos. Se fueron el número grande en serif y las líneas sueltas. `<TarjetaPrenda cifras
    marca>` (las otras pestañas siguen con su número); la etiqueta es `<Chip versalitas={false}>` con su ícono (camión o tienda), nunca roja: en
    una grilla de 10 pasaría el tope de rojos por pantalla.
+8. **La ficha de lo que está en «Qué pedir» cuenta lo mismo que su tarjeta** (Felipe: «¿el modal está correcto?»; eligió la propuesta de
+   `docs/maquetas/analisis-pedir-sin-comprar-2026-11/ficha.html` mirando Top Tokio y Polo Básico Cayla con datos de TRU). Antes decía «Vendiste 13
+   en 30 días» donde la tarjeta decía «23 en 37 días», «Ya no hay.» sin fecha, «EN LIM» y una tabla que repetía tres veces «sin stock», con
+   «Comprar» al pie. Ahora, para lo agotado o lo que se acaba antes de Navidad (`fichaDePedir`, `lib/analisis-ficha-pedir.ts`): la bajada es solo el
+   precio; la frase dice la fecha («Se agotó el 20 nov.», «Se acaba el 6 dic.»); las tres cifras son las de la tarjeta (VENDISTE en 8 semanas,
+   TIENES, y «LIMA TIENE 2» con sus colores o «y los 6 que te faltan»; lo que viene en camino va antes); la tabla es limpia (lo agotado, por color
+   con lo que tiene la otra tienda; lo que se acaba, cuántas te quedan por talla y color, con 0 en rojo donde se vendió y ya no hay); y el botón es
+   «Pedir a Lima», negro, sin «Comprar». Lo que no está en «Qué pedir» sigue con su ficha de siempre. Sin migración.
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su

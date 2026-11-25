@@ -1444,6 +1444,11 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_rasgos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_taller": {
   "forzado": false,
   "relkind": "r",
@@ -1495,6 +1500,11 @@
   "rls": true
  },
  "recomendaciones_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "reglas_de_precio": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1675,6 +1685,11 @@
   "rls": true
  },
  "tickets_abiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tickets_compartidos": {
   "forzado": false,
   "relkind": "r",
   "rls": true

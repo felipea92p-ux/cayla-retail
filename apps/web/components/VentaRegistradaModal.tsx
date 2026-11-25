@@ -22,7 +22,8 @@ import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/useP
 import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
 import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
-import { boletasPorAyudante, imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
 
 type Props = {
   ok: VentaOk;
@@ -51,6 +52,9 @@ type Props = {
  * Con «Imprimir solo al cobrar» encendido en este equipo (`lib/imprimir-al-cobrar.ts`), la hoja
  * imprime apenas se abre: sin vuelto vuelve sola a una venta nueva; con vuelto se queda para que
  * la cajera vea cuánto entregar, y Enter abre la siguiente.
+ *
+ * En el celular y la tablet, «Imprimir en la caja» viene encendido (Felipe, 2026-11-24): la hoja pide la boleta a la cola de la caja
+ * apenas se abre y dice cómo va; el botón principal es «Nueva venta», no «Imprimir y nueva venta» (el teléfono no tiene impresora).
  */
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
   // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
@@ -278,7 +282,8 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             </button>
           )}
 
-          {/* Es del equipo, no de la venta: se enciende una vez en la Mac de caja que imprime sin diálogo. */}
+          {/* Son del equipo, no de la venta. «Imprimir en la caja» (celular) y la estación (caja) vienen encendidos de fábrica donde les
+              toca (lib/imprimir-al-cobrar.ts, lib/estacion-de-impresion.ts); «Imprimir solo al cobrar» se enciende una vez en la caja. */}
           {r && (
             <div className="border-t border-sand pt-3">
               <div className="space-y-3">

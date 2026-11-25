@@ -105,14 +105,14 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.ficha-tallas",
       opcional: true,
       titulo: "Qué talla y qué color",
-      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Lo marcado con «!» se vendió y ya no tienes: es lo primero que falta.",
+      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Si hay que pedirla, cada celda dice cuántas te quedan: un 0 en rojo se vendió y ya no tienes.",
     },
     {
       id: "ficha-acciones",
       ancla: "analisis.ficha-acciones",
       opcional: true,
       titulo: "Qué puedes hacer",
-      texto: "Comprar, pedir a otra sede o verla en Existencias: cada botón te lleva a su pantalla. Desde la ficha no se guarda nada.",
+      texto: "Pedir a otra sede o verla en Existencias: cada botón te lleva a su pantalla. Desde la ficha no se guarda nada.",
     },
     {
       id: "nose",
