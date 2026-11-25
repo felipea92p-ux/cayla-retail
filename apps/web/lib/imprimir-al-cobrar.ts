@@ -14,7 +14,6 @@
  *
  * La regla pura (`queHacerAlRegistrar`) decide; Vender y la hoja solo la obedecen.
  */
-import { money } from "./money";
 import { preferenciaLocal } from "./preferencia-local";
 
 const VALORES = ["si", "no"] as const;
@@ -66,8 +65,10 @@ export type AlRegistrar =
   | "imprimir-y-quedarse"
   /** Imprime sola y Vender vuelve a una venta nueva, sin hoja: un aviso dice el número, el vuelto y «Reimprimir». */
   | "imprimir-sin-hoja"
-  /** No imprime aquí: pide la boleta a la cola de la caja y la hoja muestra cómo va. */
-  | "mandar-a-la-caja";
+  /** No imprime aquí: pide la boleta a la cola de la caja y la hoja se queda abierta (hay un WhatsApp que ofrecer). */
+  | "mandar-a-la-caja"
+  /** No imprime aquí: pide la boleta a la cola de la caja y Vender vuelve a una venta nueva, sin hoja: el aviso dice cómo va (2026-11-25). */
+  | "mandar-sin-hoja";
 
 export function queHacerAlRegistrar(p: {
   /** ¿Este equipo manda sus boletas a la caja? Gana sobre «Imprimir solo al cobrar». */
@@ -84,15 +85,64 @@ export function queHacerAlRegistrar(p: {
   conWhatsapp?: boolean;
 }): AlRegistrar {
   if (!p.hayComprobante || p.sinConexion) return "esperar";
-  if (p.enLaCaja && p.ventaId) return "mandar-a-la-caja";
+  if (p.enLaCaja && p.ventaId) return p.conWhatsapp ? "mandar-a-la-caja" : "mandar-sin-hoja";
   if (!p.encendido) return "esperar";
   return p.conWhatsapp ? "imprimir-y-quedarse" : "imprimir-sin-hoja";
 }
 
 /**
- * La segunda línea del aviso de una venta que se imprimió sin hoja: el comprobante y, si hubo, el vuelto (la cajera ya lo vio en la hoja
- * de cobro; aquí queda a mano mientras lo entrega). «Boleta B001-000123 · Vuelto S/30.20».
+ * A dónde va la boleta de este equipo: lo que dice la tuerca de Vender al lado de su ícono (maqueta `docs/maquetas/impresion-vender-2026-11/`,
+ * Felipe 2026-11-25). La caja es la ventana «CAYLA Caja» o la Mac con la ticketera en su ayudante; «a la caja», el equipo con «Imprimir en
+ * la caja» encendido (de fábrica, el celular y la tablet). Se calcula con las MISMAS preferencias de siempre: no decide nada nuevo.
  */
-export function detalleDelAvisoAlCobrar(p: { comprobante: string; vuelto: number }): string {
-  return p.vuelto > 0 ? `${p.comprobante} · Vuelto ${money(p.vuelto)}` : p.comprobante;
+export function destinoDelEquipo(p: { esCaja: boolean; enLaCaja: boolean }): "caja" | "a-la-caja" | "aqui" {
+  if (p.esCaja) return "caja";
+  return p.enLaCaja ? "a-la-caja" : "aqui";
+}
+
+export const TEXTO_DESTINO: Record<ReturnType<typeof destinoDelEquipo>, string> = {
+  caja: "Esta es la caja",
+  "a-la-caja": "Va a la caja",
+  aqui: "Imprime aquí",
+};
+
+/** Lo que dice la hoja «Impresión de este equipo» en su primera línea, según a dónde va la boleta. */
+export function fraseDelDestino(destino: ReturnType<typeof destinoDelEquipo>, enCelular: boolean): string {
+  if (destino === "caja") return "Esta computadora imprime sus ventas y las del piso.";
+  const equipo = enCelular ? "este celular" : "esta computadora";
+  return destino === "a-la-caja" ? `Las boletas de ${equipo} salen en la caja de la tienda.` : `Las boletas de ${equipo} salen aquí.`;
+}
+
+/** Cuánto se espera a que la caja tome la boleta antes de decir «Sigue en la cola de la caja» (y dejar de parecer que imprime). */
+export const ESPERA_LARGA_MS = 15_000;
+
+/** En qué va la boleta del aviso al cobrar: impresa aquí (`aqui`) o pedida a la cola de la caja (`caja`). */
+export type FaseDelAviso =
+  | { donde: "aqui"; fase: "imprimiendo" | "impresa" | "fallo" }
+  | { donde: "caja"; fase: "pidiendo" | "en-cola" | "impresa" | "error"; esperaLarga: boolean };
+
+/** Lo que muestra el aviso que reemplaza a «Venta registrada» (maqueta aprobada el 2026-11-25). Sin «Imprimir aquí» en el celular. */
+export type CaraDelAviso = {
+  titulo: string;
+  /** Una línea debajo del número, solo cuando hay algo que explicar. */
+  nota: string | null;
+  tono: "espera" | "ok" | "cola" | "mal";
+  /** El botón principal (con Enter): seguir vendiendo, o reintentar lo que falló. */
+  principal: "nueva-venta" | "reintentar";
+  reimprimir: boolean;
+};
+
+export function caraDelAviso(f: FaseDelAviso): CaraDelAviso {
+  if (f.donde === "aqui") {
+    if (f.fase === "impresa") return { titulo: "Boleta impresa", nota: null, tono: "ok", principal: "nueva-venta", reimprimir: true };
+    if (f.fase === "fallo")
+      return { titulo: "La boleta no salió", nota: "Revisa que la ticketera esté prendida y con papel.", tono: "mal", principal: "reintentar", reimprimir: false };
+    return { titulo: "Imprimiendo boleta", nota: null, tono: "espera", principal: "nueva-venta", reimprimir: false };
+  }
+  if (f.fase === "impresa") return { titulo: "Boleta impresa en la caja", nota: null, tono: "ok", principal: "nueva-venta", reimprimir: false };
+  if (f.fase === "error")
+    return { titulo: "No se pudo mandar a la caja", nota: "Revisa la conexión.", tono: "mal", principal: "reintentar", reimprimir: false };
+  if (f.esperaLarga)
+    return { titulo: "Sigue en la cola de la caja", nota: "Sale apenas la computadora de la caja esté prendida.", tono: "cola", principal: "nueva-venta", reimprimir: false };
+  return { titulo: "Enviando a la caja", nota: null, tono: "espera", principal: "nueva-venta", reimprimir: false };
 }

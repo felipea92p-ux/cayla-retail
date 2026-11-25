@@ -179,3 +179,39 @@ SE ROMPE SI:
    WhatsApp o con «Imprimir en la caja»; si pasa seguido, el interruptor necesita otro lugar (pendiente en el backlog).
 3. **Una caja táctil sin mouse** (un todo en uno que el navegador ve como `(pointer: coarse) and (hover: none)`): arranca como un
    celular, mandando a la caja; se cambia una vez en su hoja.
+
+## Actualización 2026-11-25 (b): el aviso al cobrar en vez de la hoja, también en el celular, y la tuerca de Vender
+
+Felipe, al revisar el PR anterior: «La idea es que se imprima de manera automática, entonces ese modal se hace innecesario, y las opciones
+para hacer un punto de impresión quizás colocarlas en otro lado, tanto para PC y móvil, pero ojo sin afectar lo actual, ya que Trujillo ya
+está usando el móvil para imprimir». Aprobó la maqueta `docs/maquetas/impresion-vender-2026-11/` (con la tuerca con texto y sin «Imprimir
+aquí» en el celular). En producción, el 2026-11-24, el celular de Trujillo mandó 10 boletas a la caja: 7 salieron en 2 a 5 s y 3 esperaron
+entre 40 y 53 minutos a que la Mac de la caja despertara. Cambian los puntos 2 y 3 de la actualización anterior y su «SE ROMPE SI» 2.
+
+1. **Al cobrar, un aviso reemplaza a la hoja «Venta registrada»** (`components/punto-de-venta/AvisoAlCobrar.tsx`, `<Modal>` angosta): dice
+   si la boleta salió, su número, el vuelto en grande y dos botones, «Nueva venta» (con Enter) y «Reimprimir». Si no salió: «La boleta no
+   salió» con «Reintentar». Lo que dice sale de la regla pura `caraDelAviso` (`lib/imprimir-al-cobrar.ts`). Se quitó de la hoja lo que no se
+   necesita al cobrar (subtotal, IGV, pagos, líneas, cliente, estado SUNAT): sale impreso y queda en «Ventas de hoy».
+2. **En el celular también va sin hoja** (`queHacerAlRegistrar` → `mandar-sin-hoja`): «Enviando a la caja», «Boleta impresa en la caja»
+   y, si la caja tarda más de 15 s (`ESPERA_LARGA_MS`), «Sigue en la cola de la caja», sin frenar la venta siguiente y sin «Imprimir aquí»
+   (el celular no tiene impresora). Con un WhatsApp que ofrecer, la hoja sigue (`mandar-a-la-caja`).
+3. **La cola del equipo vive fuera de la pantalla** (`components/impresion/colaDeLaCaja.ts`): pide una vez por venta y pregunta cada 3 s
+   los primeros 3 minutos y después cada 20 s hasta 3 horas. `usePedidaALaCaja` la usa. Al recargar la página la lista se pierde, no la
+   boleta: sigue en `retail.impresiones` y la caja la imprime igual.
+4. **Los interruptores salen de la hoja y viven en la tuerca de Vender** (`components/punto-de-venta/ImpresionDelEquipo.tsx`, junto a
+   «Más»): dice a dónde va la boleta de este equipo («Imprime aquí», «Va a la caja», «Esta es la caja», `destinoDelEquipo`) y cuántas
+   esperan a la caja («1 en cola», ámbar). Son las MISMAS preferencias, con el mismo nombre guardado y el mismo valor de fábrica: no cambia
+   cómo imprime ningún equipo. Abrir la tuerca no guarda nada. Lo vigila la prueba «la tuerca no cambia cómo imprime ningún equipo (foto
+   de Trujillo)». Su hoja no guarda nada: sale con la × (regla «Las hojas»), no con el «Listo» de la maqueta.
+
+DESCARTÉ:
+- **Un aviso de esquina (toast) en vez del aviso al centro:** el vuelto se pierde de vista justo cuando hay que entregarlo.
+- **«Imprimir aquí» en el celular cuando la caja tarda:** abriría el cuadro de imprimir o guardar PDF; Felipe lo quitó en la maqueta.
+- **Esperar en el aviso hasta que la caja imprima:** con la Mac dormida, la vendedora quedaba bloqueada hasta 53 minutos.
+
+SE ROMPE SI:
+1. **Se renombra una preferencia** (`cayla-imprimir-en-la-caja`, `cayla-imprimir-al-cobrar`, `cayla-estacion-de-la-caja`) o cambia su
+   valor de fábrica: los equipos que nunca la tocaron cambian solos. La prueba de la foto de Trujillo lo frena.
+2. **El celular recarga la página con boletas en la cola:** la tuerca deja de contarlas (la caja las imprime igual).
+3. **El título del aviso va a la izquierda**, no al centro como en la maqueta: `<Modal>` no centra su cabecera y no se le agregó una
+   opción para esto.

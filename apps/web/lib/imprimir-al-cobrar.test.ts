@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  detalleDelAvisoAlCobrar,
+  caraDelAviso,
+  destinoDelEquipo,
+  fraseDelDestino,
   enLaCajaDeFabrica,
   imprimirAlCobrar,
   imprimirAlCobrarDeFabrica,
@@ -34,9 +36,13 @@ describe("queHacerAlRegistrar", () => {
 });
 
 describe("queHacerAlRegistrar con «Imprimir en la caja»", () => {
-  it("manda la boleta a la caja, aunque también esté encendido «Imprimir solo al cobrar»", () => {
-    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1" })).toBe("mandar-a-la-caja");
-    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: true, ventaId: "v1" })).toBe("mandar-a-la-caja");
+  it("manda la boleta a la caja sin hoja, aunque también esté encendido «Imprimir solo al cobrar» (2026-11-25: el aviso dice cómo va)", () => {
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1" })).toBe("mandar-sin-hoja");
+    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: true, ventaId: "v1" })).toBe("mandar-sin-hoja");
+  });
+
+  it("con un WhatsApp que ofrecer, la manda a la caja y la hoja se queda abierta para enviarlo", () => {
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1", conWhatsapp: true })).toBe("mandar-a-la-caja");
   });
 
   it("sin venta guardada en el servidor no hay qué pedir: sigue como si no estuviera", () => {
@@ -47,13 +53,6 @@ describe("queHacerAlRegistrar con «Imprimir en la caja»", () => {
   it("sin comprobante o sin conexión, tampoco se manda nada a la caja", () => {
     expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1", hayComprobante: false })).toBe("esperar");
     expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1", sinConexion: true })).toBe("esperar");
-  });
-});
-
-describe("detalleDelAvisoAlCobrar", () => {
-  it("el comprobante y, si hubo, el vuelto", () => {
-    expect(detalleDelAvisoAlCobrar({ comprobante: "Boleta B001-000123", vuelto: 30.2 })).toBe("Boleta B001-000123 · Vuelto S/30.20");
-    expect(detalleDelAvisoAlCobrar({ comprobante: "Factura F001-000007", vuelto: 0 })).toBe("Factura F001-000007");
   });
 });
 
@@ -87,8 +86,8 @@ describe("imprimirEnLaCaja (Felipe, 2026-11-24: marcado por defecto en el celula
     const preguntas = aparato({ sinMouse: true });
     expect(imprimirEnLaCaja.leer()).toBe("si");
     expect(preguntas).toContain(MQ_SIN_IMPRESORA);
-    // Y la hoja «Venta registrada» la manda a la cola, sin ningún toque.
-    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: imprimirEnLaCaja.leer() === "si", ventaId: "v1" })).toBe("mandar-a-la-caja");
+    // Y la venta la manda a la cola, sin ningún toque y sin la hoja «Venta registrada».
+    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: imprimirEnLaCaja.leer() === "si", ventaId: "v1" })).toBe("mandar-sin-hoja");
   });
 
   it("en la computadora de la caja, viene apagado: imprime donde cobra, como siempre", () => {
@@ -138,7 +137,7 @@ describe("imprimirAlCobrar (2026-11-25: encendido de fábrica en la computadora)
     aparato({ sinMouse: true });
     expect(imprimirAlCobrar.leer()).toBe("no");
     expect(queHacerAlRegistrar({ ...base, encendido: imprimirAlCobrar.leer() === "si", enLaCaja: imprimirEnLaCaja.leer() === "si", ventaId: "v1" })).toBe(
-      "mandar-a-la-caja",
+      "mandar-sin-hoja",
     );
   });
 
@@ -149,5 +148,65 @@ describe("imprimirAlCobrar (2026-11-25: encendido de fábrica en la computadora)
 
   it("en el servidor no se sabe qué equipo es: arranca apagado y el navegador lo corrige al hidratar", () => {
     expect(imprimirAlCobrar.leerEnServidor()).toBe("no");
+  });
+});
+
+/**
+ * La foto de los equipos de Trujillo (2026-11-25): el celular del piso, donde nadie tocó nada, manda la boleta a la caja (10 boletas el
+ * 2026-11-24 en `retail.impresiones`), y la Mac de la caja las imprime. Mover los interruptores a la tuerca de Vender no puede cambiar eso:
+ * si esta prueba falla, algún equipo de la tienda cambió de comportamiento solo.
+ */
+describe("la tuerca no cambia cómo imprime ningún equipo (foto de Trujillo)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("el celular del piso sin nada guardado: va a la caja, sin hoja", () => {
+    aparato({ sinMouse: true });
+    const enLaCaja = imprimirEnLaCaja.leer() === "si";
+    expect(enLaCaja).toBe(true);
+    expect(imprimirAlCobrar.leer()).toBe("no");
+    expect(destinoDelEquipo({ esCaja: false, enLaCaja })).toBe("a-la-caja");
+    expect(queHacerAlRegistrar({ ...base, encendido: imprimirAlCobrar.leer() === "si", enLaCaja, ventaId: "v1" })).toBe("mandar-sin-hoja");
+  });
+
+  it("la Mac de la caja (la ticketera en su ayudante): imprime aquí y sigue siendo la caja", () => {
+    aparato({ sinMouse: false });
+    // En la caja `enLaCaja` nunca vale (`queHacerEnEsteEquipo` lo apaga en la ventana «CAYLA Caja» o con el ayudante).
+    expect(destinoDelEquipo({ esCaja: true, enLaCaja: imprimirEnLaCaja.leer() === "si" })).toBe("caja");
+    expect(queHacerAlRegistrar({ ...base, encendido: imprimirAlCobrar.leer() === "si", enLaCaja: false, ventaId: "v1" })).toBe("imprimir-sin-hoja");
+  });
+
+  it("un celular donde alguien apagó «Imprimir en la caja» a mano: sigue apagado y la tuerca lo dice", () => {
+    aparato({ sinMouse: true, guardado: { "cayla-imprimir-en-la-caja": "no" } });
+    expect(destinoDelEquipo({ esCaja: false, enLaCaja: imprimirEnLaCaja.leer() === "si" })).toBe("aqui");
+  });
+});
+
+describe("destinoDelEquipo y fraseDelDestino (lo que dice la tuerca)", () => {
+  it("la caja gana sobre «Imprimir en la caja»: la caja no se manda a sí misma", () => {
+    expect(destinoDelEquipo({ esCaja: true, enLaCaja: true })).toBe("caja");
+    expect(destinoDelEquipo({ esCaja: false, enLaCaja: true })).toBe("a-la-caja");
+    expect(destinoDelEquipo({ esCaja: false, enLaCaja: false })).toBe("aqui");
+  });
+
+  it("la frase nombra el equipo que se tiene en la mano", () => {
+    expect(fraseDelDestino("a-la-caja", true)).toBe("Las boletas de este celular salen en la caja de la tienda.");
+    expect(fraseDelDestino("aqui", false)).toBe("Las boletas de esta computadora salen aquí.");
+    expect(fraseDelDestino("caja", false)).toMatch(/del piso/);
+  });
+});
+
+describe("caraDelAviso (el aviso que reemplaza a «Venta registrada»)", () => {
+  it("aquí: imprimiendo, impresa (con Reimprimir) o no salió (Reintentar manda)", () => {
+    expect(caraDelAviso({ donde: "aqui", fase: "imprimiendo" })).toMatchObject({ titulo: "Imprimiendo boleta", principal: "nueva-venta", reimprimir: false });
+    expect(caraDelAviso({ donde: "aqui", fase: "impresa" })).toMatchObject({ titulo: "Boleta impresa", tono: "ok", reimprimir: true });
+    expect(caraDelAviso({ donde: "aqui", fase: "fallo" })).toMatchObject({ tono: "mal", principal: "reintentar" });
+  });
+
+  it("en la caja: enviando, y si tarda, «Sigue en la cola» sin frenar la venta siguiente ni ofrecer imprimir aquí", () => {
+    expect(caraDelAviso({ donde: "caja", fase: "en-cola", esperaLarga: false }).titulo).toBe("Enviando a la caja");
+    const cola = caraDelAviso({ donde: "caja", fase: "en-cola", esperaLarga: true });
+    expect(cola).toMatchObject({ titulo: "Sigue en la cola de la caja", tono: "cola", principal: "nueva-venta", reimprimir: false });
+    expect(caraDelAviso({ donde: "caja", fase: "impresa", esperaLarga: true }).titulo).toBe("Boleta impresa en la caja");
+    expect(caraDelAviso({ donde: "caja", fase: "error", esperaLarga: false })).toMatchObject({ tono: "mal", principal: "reintentar" });
   });
 });

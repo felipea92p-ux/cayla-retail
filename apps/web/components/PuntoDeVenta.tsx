@@ -70,7 +70,8 @@ import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-r
 import { VentaRegistradaModal, queHacerEnEsteEquipo } from "@/components/VentaRegistradaModal";
 import { ImpresionAlCobrar } from "@/components/punto-de-venta/ImpresionAlCobrar";
 import type { FinBoleta } from "@/components/impresion/imprimirBoleta";
-import { detalleDelAvisoAlCobrar } from "@/lib/imprimir-al-cobrar";
+import { AvisoAlCobrar } from "@/components/punto-de-venta/AvisoAlCobrar";
+import { ImpresionDelEquipo } from "@/components/punto-de-venta/ImpresionDelEquipo";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
@@ -366,8 +367,6 @@ export type VentaOk = {
   celular?: string | null;
   /** Qué pasó al guardar ese celular en la ficha (`agregar_celular_clienta`, ADR-0288 act. o): `null` = no se intentó o ya tenía uno. */
   celularEnFicha?: CelularEnFicha | null;
-  /** Se mandó a imprimir sola al cobrar, sin hoja, y no salió: «Venta registrada» se abre para imprimirla desde ahí. */
-  noSeImprimio?: boolean;
 };
 
 const MAX_RESULTADOS = 6;
@@ -676,6 +675,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [ok, setOk] = useState<VentaOk | null>(null);
   // La boleta que sale sola al cobrar, sin hoja (`lib/imprimir-al-cobrar.ts`): la venta, y cuál impresión es (una nueva al reimprimir).
   const [impresion, setImpresion] = useState<{ venta: VentaOk & { recibo: ReciboVenta }; vez: number } | null>(null);
+  // El aviso al cobrar, que reemplaza a «Venta registrada» (maqueta impresion-vender-2026-11, Felipe 2026-11-25): impresa aquí o en la caja.
+  const [avisoCobro, setAvisoCobro] = useState<{
+    venta: VentaOk & { recibo: ReciboVenta };
+    donde: "aqui" | "caja";
+    fase: "imprimiendo" | "impresa" | "fallo";
+  } | null>(null);
+  // Lo que se ve AHORA del aviso al cobrar, para la impresión que termina tarde: saber si la cajera ya lo cerró con «Nueva venta».
+  const avisoCobroAhora = useRef(avisoCobro);
+  avisoCobroAhora.current = avisoCobro;
   const [manualAbierto, setManualAbierto] = useState(false);
   // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
   const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
@@ -2393,9 +2401,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       celularEnFicha,
     };
     // «Imprimir solo al cobrar» (de fábrica en un computador, `lib/imprimir-al-cobrar.ts`): la boleta sale sola y Vender vuelve a una
-    // venta nueva sin la hoja; el aviso de la venta sale cuando la boleta ya se mandó (`terminoLaImpresion`). Si no, la hoja como siempre.
-    if (venta.recibo && queHacerEnEsteEquipo(venta) === "imprimir-sin-hoja") {
-      setImpresion({ venta: { ...venta, recibo: venta.recibo }, vez: 1 });
+    // venta nueva sin la hoja; el aviso al cobrar dice cómo va (`AvisoAlCobrar`). En el celular la boleta va a la caja, también sin hoja
+    // (2026-11-25). La hoja sigue para lo que tiene algo que ver o hacer: el WhatsApp, sin conexión o sin comprobante.
+    const queHacer = queHacerEnEsteEquipo(venta);
+    if (venta.recibo && (queHacer === "imprimir-sin-hoja" || queHacer === "mandar-sin-hoja")) {
+      const conRecibo = { ...venta, recibo: venta.recibo };
+      // Aquí imprime `ImpresionAlCobrar`; en el celular, la pide a la caja el aviso (`colaDeLaCaja.ts`) y la tuerca cuenta las que esperan.
+      if (queHacer === "imprimir-sin-hoja") setImpresion({ venta: conRecibo, vez: 1 });
+      setAvisoCobro({ venta: conRecibo, donde: queHacer === "imprimir-sin-hoja" ? "aqui" : "caja", fase: "imprimiendo" });
       volverAArmar();
     } else {
       avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
@@ -2432,23 +2445,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     volverAArmar();
   }
 
-  /** La boleta que salió sola al cobrar ya se mandó (o no). Si no salió, se abre «Venta registrada» para imprimirla desde ahí. Si salió,
-   *  el aviso de la venta dice su número y el vuelto, con «Reimprimir» por si se atascó el papel. Una reimpresión no repite ese aviso. */
+  /** La boleta que salió sola al cobrar ya se mandó (o no): el aviso al cobrar lo dice. Si la cajera ya lo cerró con «Nueva venta» y la
+   *  boleta no salió, un aviso de esquina lo dice con «Reimprimir»: no se le abre una hoja encima de la venta que está armando. */
   function terminoLaImpresion(actual: { venta: VentaOk & { recibo: ReciboVenta }; vez: number }, fin: FinBoleta) {
     // Solo si sigue siendo la de ahora: una impresión que termina tarde no se lleva la de la venta siguiente.
     setImpresion((enCurso) => (enCurso === actual ? null : enCurso));
-    if (fin === "frenada" || fin === "fallo") {
-      setOk({ ...actual.venta, noSeImprimio: true });
-      return;
+    const salio = fin !== "frenada" && fin !== "fallo";
+    if (avisoCobroAhora.current?.venta === actual.venta) {
+      setAvisoCobro((a) => (a && a.venta === actual.venta ? { ...a, fase: salio ? "impresa" : "fallo" } : a));
+    } else if (!salio) {
+      avisar.error(`La boleta ${textoNumeroRecibo(actual.venta.recibo)} no salió`, {
+        accion: { texto: "Reimprimir", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
+      });
     }
-    if (actual.vez > 1) return;
-    const r = actual.venta.recibo;
-    avisar.exito(`Venta de ${money(actual.venta.total)} registrada`, {
-      detalle: detalleDelAvisoAlCobrar({ comprobante: `${ETIQUETA_TIPO[r.tipo]} ${textoNumeroRecibo(r)}`, vuelto: r.vueltoTotal }),
-      accion: { texto: "Reimprimir", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
-    });
-    // El cuadro de impresión se llevó el foco: vuelve al buscador para escanear la siguiente prenda, sin mover la pantalla.
-    buscador.current?.focus({ preventScroll: true });
+  }
+
+  /** «Reimprimir» (o «Reintentar», si no salió) desde el aviso al cobrar: otra impresión de la misma boleta. */
+  function reimprimirDelAviso() {
+    if (!avisoCobro) return;
+    const venta = avisoCobro.venta;
+    setImpresion((enCurso) => ({ venta, vez: (enCurso?.vez ?? 1) + 1 }));
+    setAvisoCobro({ ...avisoCobro, fase: "imprimiendo" });
   }
 
   // La hoja de cobro (Felipe, 2026-10-02): en escritorio entra sobre el catálogo y confirma el formulario del ticket desde
@@ -2671,6 +2688,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
+            <ImpresionDelEquipo />
             <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
@@ -3084,11 +3102,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+      {avisoCobro && (
+        <AvisoAlCobrar
+          key={avisoCobro.venta.ventaId ?? textoNumeroRecibo(avisoCobro.venta.recibo)}
+          venta={avisoCobro.venta}
+          donde={avisoCobro.donde}
+          faseAqui={avisoCobro.fase}
+          onReimprimir={reimprimirDelAviso}
+          onClose={() => setAvisoCobro(null)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
       {impresion && (
         <ImpresionAlCobrar
           key={`${impresion.venta.ventaId ?? textoNumeroRecibo(impresion.venta.recibo)}-${impresion.vez}`}
           recibo={impresion.venta.recibo}
-          conAviso={impresion.vez > 1}
+          // Con el aviso al cobrar abierto, él dice cómo salió; sin él (una reimpresión desde la esquina), el aviso de siempre.
+          conAviso={impresion.vez > 1 && !avisoCobro}
           alTerminar={(fin) => terminoLaImpresion(impresion, fin)}
         />
       )}

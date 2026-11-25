@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 204,
+  "total": 209,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -172,6 +172,12 @@
       "button «{t}»",
       "ComboResponsable «{responsable}»"
     ],
+    "components/punto-de-venta/AvisoAlCobrar.tsx": [
+      "button «Reintentar»",
+      "button «Nueva venta»",
+      "button «Nueva venta» #2",
+      "BotonImprimir «Reimprimir»"
+    ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
       "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",
       "Boton «vender.bolsas»",
@@ -228,6 +234,9 @@
     "components/punto-de-venta/HojaDeDescuento.tsx": [
       "Boton «Aplicar descuento»",
       "Boton «Quitar descuento»"
+    ],
+    "components/punto-de-venta/ImpresionDelEquipo.tsx": [
+      "button «vender.impresion»"
     ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",

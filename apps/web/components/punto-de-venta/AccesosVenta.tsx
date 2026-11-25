@@ -17,7 +17,7 @@ const ICONO: Record<IconoAcceso, LucideIcon> = {
   danada: Bandage,
 };
 
-const BOTON =
+export const BOTON_ACCESO =
   "area-dedo inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-sm text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
 
 /**
@@ -32,7 +32,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
 
   return (
     <>
-      <button type="button" data-guia="vender.mas" onClick={() => setAbierto(true)} className={BOTON} aria-haspopup="dialog">
+      <button type="button" data-guia="vender.mas" onClick={() => setAbierto(true)} className={BOTON_ACCESO} aria-haspopup="dialog">
         <LayoutGrid className="h-4 w-4" aria-hidden />
         Más
       </button>
@@ -75,7 +75,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
  */
 export function BotonSepararDanada({ href }: { href: string }) {
   return (
-    <Link href={href} data-guia="vender.danada" className={BOTON}>
+    <Link href={href} data-guia="vender.danada" className={BOTON_ACCESO}>
       <Bandage className="h-4 w-4" aria-hidden />
       Separé una dañada
     </Link>
@@ -105,7 +105,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
     );
   }
   return (
-    <Link href="/vender/apartados" data-guia="vender.apartados" className={BOTON}>
+    <Link href="/vender/apartados" data-guia="vender.apartados" className={BOTON_ACCESO}>
       <Bookmark className="h-4 w-4" aria-hidden />
       Apartados
     </Link>
