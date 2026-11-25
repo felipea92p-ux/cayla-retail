@@ -67,7 +67,11 @@ import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
-import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
+import { VentaRegistradaModal, queHacerEnEsteEquipo } from "@/components/VentaRegistradaModal";
+import { ImpresionAlCobrar } from "@/components/punto-de-venta/ImpresionAlCobrar";
+import type { FinBoleta } from "@/components/impresion/imprimirBoleta";
+import { AvisoAlCobrar } from "@/components/punto-de-venta/AvisoAlCobrar";
+import { ImpresionDelEquipo } from "@/components/punto-de-venta/ImpresionDelEquipo";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
@@ -670,6 +674,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     return () => window.removeEventListener("online", alVolver);
   });
   const [ok, setOk] = useState<VentaOk | null>(null);
+  // La boleta que sale sola al cobrar, sin hoja (`lib/imprimir-al-cobrar.ts`): la venta, y cuál impresión es (una nueva al reimprimir).
+  const [impresion, setImpresion] = useState<{ venta: VentaOk & { recibo: ReciboVenta }; vez: number } | null>(null);
+  // El aviso al cobrar, que reemplaza a «Venta registrada» (maqueta impresion-vender-2026-11, Felipe 2026-11-25): impresa aquí o en la caja.
+  const [avisoCobro, setAvisoCobro] = useState<{
+    venta: VentaOk & { recibo: ReciboVenta };
+    donde: "aqui" | "caja";
+    fase: "imprimiendo" | "impresa" | "fallo";
+  } | null>(null);
+  // Lo que se ve AHORA del aviso al cobrar, para la impresión que termina tarde: saber si la cajera ya lo cerró con «Nueva venta».
+  const avisoCobroAhora = useRef(avisoCobro);
+  avisoCobroAhora.current = avisoCobro;
   const [manualAbierto, setManualAbierto] = useState(false);
   // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
   const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
@@ -2405,9 +2420,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     setLoading(false);
     responsable.despues(null);
-    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
-    setOk({
+    const venta: VentaOk = {
       total,
       prendas,
       recibo,
@@ -2418,7 +2432,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
       celularEnFicha,
-    });
+    };
+    // «Imprimir solo al cobrar» (de fábrica en un computador, `lib/imprimir-al-cobrar.ts`): la boleta sale sola y Vender vuelve a una
+    // venta nueva sin la hoja; el aviso al cobrar dice cómo va (`AvisoAlCobrar`). En el celular la boleta va a la caja, también sin hoja
+    // (2026-11-25). La hoja sigue para lo que tiene algo que ver o hacer: el WhatsApp, sin conexión o sin comprobante.
+    const queHacer = queHacerEnEsteEquipo(venta);
+    if (venta.recibo && (queHacer === "imprimir-sin-hoja" || queHacer === "mandar-sin-hoja")) {
+      const conRecibo = { ...venta, recibo: venta.recibo };
+      // Aquí imprime `ImpresionAlCobrar`; en el celular, la pide a la caja el aviso (`colaDeLaCaja.ts`) y la tuerca cuenta las que esperan.
+      if (queHacer === "imprimir-sin-hoja") setImpresion({ venta: conRecibo, vez: 1 });
+      setAvisoCobro({ venta: conRecibo, donde: queHacer === "imprimir-sin-hoja" ? "aqui" : "caja", fase: "imprimiendo" });
+      volverAArmar();
+    } else {
+      avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
+      setOk(venta);
+    }
     // El cupón se gastó con esta venta (o no se usó): la próxima empieza sin él, y los puntos de la clienta se leen de nuevo.
     cuponClub.quitar();
     cuponClub.recargar();
@@ -2434,16 +2462,43 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     } else trasVender(vendidas);
   }
 
-  // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
-  // arranca por las prendas, no por el cobro.
-  function cerrarVentaRegistrada() {
-    setOk(null);
+  // Al cerrar «Venta registrada» (o al cobrar sin ella) el ticket vuelve a «armar»: la venta
+  // siguiente arranca por las prendas, no por el cobro.
+  function volverAArmar() {
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
     setNota("");
     responsable.limpiar();
     setMomento("armar");
+  }
+
+  function cerrarVentaRegistrada() {
+    setOk(null);
+    volverAArmar();
+  }
+
+  /** La boleta que salió sola al cobrar ya se mandó (o no): el aviso al cobrar lo dice. Si la cajera ya lo cerró con «Nueva venta» y la
+   *  boleta no salió, un aviso de esquina lo dice con «Reintentar»: no se le abre una hoja encima de la venta que está armando. */
+  function terminoLaImpresion(actual: { venta: VentaOk & { recibo: ReciboVenta }; vez: number }, fin: FinBoleta) {
+    // Solo si sigue siendo la de ahora: una impresión que termina tarde no se lleva la de la venta siguiente.
+    setImpresion((enCurso) => (enCurso === actual ? null : enCurso));
+    const salio = fin !== "frenada" && fin !== "fallo";
+    if (avisoCobroAhora.current?.venta === actual.venta) {
+      setAvisoCobro((a) => (a && a.venta === actual.venta ? { ...a, fase: salio ? "impresa" : "fallo" } : a));
+    } else if (!salio) {
+      avisar.error(`La boleta ${textoNumeroRecibo(actual.venta.recibo)} no salió`, {
+        accion: { texto: "Reintentar", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
+      });
+    }
+  }
+
+  /** «Imprimir otra copia» (o «Reintentar», si no salió) desde el aviso al cobrar: otra impresión de la misma boleta. */
+  function reimprimirDelAviso() {
+    if (!avisoCobro) return;
+    const venta = avisoCobro.venta;
+    setImpresion((enCurso) => ({ venta, vez: (enCurso?.vez ?? 1) + 1 }));
+    setAvisoCobro({ ...avisoCobro, fase: "imprimiendo" });
   }
 
   // La hoja de cobro (Felipe, 2026-10-02): en escritorio entra sobre el catálogo y confirma el formulario del ticket desde
@@ -2668,6 +2723,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
+            <ImpresionDelEquipo />
             <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
@@ -3084,6 +3140,26 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+      {avisoCobro && (
+        <AvisoAlCobrar
+          key={avisoCobro.venta.ventaId ?? textoNumeroRecibo(avisoCobro.venta.recibo)}
+          venta={avisoCobro.venta}
+          donde={avisoCobro.donde}
+          faseAqui={avisoCobro.fase}
+          onReimprimir={reimprimirDelAviso}
+          onClose={() => setAvisoCobro(null)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
+      {impresion && (
+        <ImpresionAlCobrar
+          key={`${impresion.venta.ventaId ?? textoNumeroRecibo(impresion.venta.recibo)}-${impresion.vez}`}
+          recibo={impresion.venta.recibo}
+          // Con el aviso al cobrar abierto, él dice cómo salió; sin él (una reimpresión desde la esquina), el aviso de siempre.
+          conAviso={impresion.vez > 1 && !avisoCobro}
+          alTerminar={(fin) => terminoLaImpresion(impresion, fin)}
+        />
+      )}
 
       {envio.incierto && (
         <CobroEnDuda

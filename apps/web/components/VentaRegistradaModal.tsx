@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Ticket } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
@@ -16,11 +16,9 @@ import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
-import { Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/usePedidaALaCaja";
 import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
-import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 import { imprimirBoleta, useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
@@ -49,36 +47,18 @@ type Props = {
  * Una venta guardada sin conexión no tiene comprobante todavía (no hay serie ni número hasta
  * que suba): ahí no hay nada que imprimir y se conserva el mensaje de siempre.
  *
- * Con «Imprimir solo al cobrar» encendido en este equipo (`lib/imprimir-al-cobrar.ts`), la hoja
- * imprime apenas se abre: sin vuelto vuelve sola a una venta nueva; con vuelto se queda para que
- * la cajera vea cuánto entregar, y Enter abre la siguiente.
- *
- * En el celular y la tablet, «Imprimir en la caja» viene encendido (Felipe, 2026-11-24): la hoja pide la boleta a la cola de la caja
- * apenas se abre y dice cómo va; el botón principal es «Nueva venta», no «Imprimir y nueva venta» (el teléfono no tiene impresora).
+ * Desde el 2026-11-25 (maqueta `docs/maquetas/impresion-vender-2026-11/`, Felipe) Vender casi nunca abre esta hoja: con «Imprimir solo
+ * al cobrar» (de fábrica en la computadora) o «Imprimir en la caja» (de fábrica en el celular) la boleta sale sola y lo dice el aviso al
+ * cobrar (`punto-de-venta/AvisoAlCobrar.tsx`). Se abre solo si hay algo que ver o hacer aquí: el WhatsApp de la boleta (la hoja imprime o
+ * la manda a la caja apenas se abre, y se queda), una venta sin comprobante o sin conexión, o un equipo con los dos apagados. Los
+ * interruptores de impresión ya no viven aquí: están en la tuerca de Vender (`punto-de-venta/ImpresionDelEquipo.tsx`).
  */
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
   // Despierta al ayudante de la Mac: al imprimir, la boleta sale en 0,5 s y no en 1,1 (ADR-0670).
   useDespertarAyudante();
   const r = ok.recibo;
-  const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
-  const mandaALaCaja = useSyncExternalStore(imprimirEnLaCaja.suscribir, imprimirEnLaCaja.leer, imprimirEnLaCaja.leerEnServidor) === "si";
-  // En la ventana «CAYLA Caja» la hoja ofrece la estación (imprimir lo del piso) en vez de mandar a la caja: la caja no se manda a sí misma.
-  // En la Mac del piso con la ticketera en su ayudante, la caja es esta Mac (la boleta sale sin cuadro desde el Chrome de siempre).
-  const esVentanaCaja = useSyncExternalStore(ventanaDelEquipo.suscribir, ventanaDelEquipo.leer, ventanaDelEquipo.leerEnServidor) === "caja";
-  const esCaja = useSyncExternalStore(boletasPorAyudante.suscribir, boletasPorAyudante.leer, boletasPorAyudante.leerEnServidor) || esVentanaCaja;
-  const esEstacion = useSyncExternalStore(estacionDeLaCaja.suscribir, estacionDeLaCaja.leer, estacionDeLaCaja.leerEnServidor) === "si";
-  const conVoz = useSyncExternalStore(vozDeLaEstacion.suscribir, vozDeLaEstacion.leer, vozDeLaEstacion.leerEnServidor) === "si";
-  // Se decide UNA vez, al abrir: prender el interruptor en esta hoja vale desde la próxima venta, no imprime esta de golpe.
-  const [alRegistrar] = useState<AlRegistrar>(() =>
-    queHacerAlRegistrar({
-      enLaCaja: imprimirEnLaCaja.leer() === "si" && ventanaDelEquipo.leer() !== "caja" && !boletasPorAyudante.leer(),
-      ventaId: ok.ventaId ?? null,
-      encendido: imprimirAlCobrar.leer() === "si",
-      hayComprobante: r !== null,
-      sinConexion: ok.offline,
-      vuelto: r?.vueltoTotal ?? 0,
-    }),
-  );
+  // Se decide UNA vez, al abrir: tocar la tuerca de Vender con la hoja abierta vale desde la próxima venta, no imprime esta de golpe.
+  const [alRegistrar] = useState<AlRegistrar>(() => queHacerEnEsteEquipo(ok));
   const enLaCaja = alRegistrar === "mandar-a-la-caja";
   const pedida = usePedidaALaCaja(ok.ventaId ?? null, enLaCaja);
   // El PDF sale con el número del comprobante como nombre («B004-000004.pdf»), no «Retail - CAYLA.pdf».
@@ -282,45 +262,8 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             </button>
           )}
 
-          {/* Son del equipo, no de la venta. «Imprimir en la caja» (celular) y la estación (caja) vienen encendidos de fábrica donde les
-              toca (lib/imprimir-al-cobrar.ts, lib/estacion-de-impresion.ts); «Imprimir solo al cobrar» se enciende una vez en la caja. */}
-          {r && (
-            <div className="border-t border-sand pt-3">
-              <div className="space-y-3">
-                {esCaja ? (
-                  <>
-                    <Interruptor
-                      activo={esEstacion}
-                      onActivo={(v) => estacionDeLaCaja.fijar(v ? "si" : "no")}
-                      etiqueta="Imprimir lo que se vende en el piso"
-                    />
-                    {esEstacion && (
-                      <Interruptor activo={conVoz} onActivo={(v) => vozDeLaEstacion.fijar(v ? "si" : "no")} etiqueta="Avisar con voz" />
-                    )}
-                  </>
-                ) : (
-                  <Interruptor
-                    activo={mandaALaCaja}
-                    onActivo={(v) => imprimirEnLaCaja.fijar(v ? "si" : "no")}
-                    etiqueta="Imprimir en la caja"
-                  />
-                )}
-                {/* Mandar a la caja gana: con él encendido, «Imprimir solo al cobrar» no tiene qué hacer aquí. */}
-                {(esCaja || !mandaALaCaja) && (
-                  <Interruptor
-                    activo={imprimeSolo}
-                    onActivo={(v) => imprimirAlCobrar.fijar(v ? "si" : "no")}
-                    etiqueta="Imprimir solo al cobrar"
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
           {r && createPortal(<ReciboTermico recibo={r} emisor={emisor} />, document.body)}
-          {r && alRegistrar !== "esperar" && !enLaCaja && (
-            <ImprimirAlAbrir seguir={alRegistrar === "imprimir-y-seguir"} imprimirYSeguir={() => imprimirYSeguir(cerrar)} />
-          )}
+          {r && alRegistrar !== "esperar" && !enLaCaja && <ImprimirAlAbrir />}
         </div>
       )}
     </Modal>
@@ -348,14 +291,29 @@ function EstadoEnLaCaja({ estado, reintentar }: { estado: EstadoPedida; reintent
 }
 
 /** Imprime una sola vez al montarse, cuando el recibo ya está en el `<body>` (su portal se monta en el mismo
- *  render). El `ref` evita la segunda impresión del doble efecto de React en desarrollo. */
-function ImprimirAlAbrir({ seguir, imprimirYSeguir }: { seguir: boolean; imprimirYSeguir: () => void }) {
+ *  render), y la hoja se queda abierta. El `ref` evita la segunda impresión del doble efecto de React en desarrollo. */
+function ImprimirAlAbrir() {
   const hecho = useRef(false);
   useEffect(() => {
     if (hecho.current) return;
     hecho.current = true;
-    if (seguir) imprimirYSeguir();
-    else void imprimirBoleta();
-  }, [seguir, imprimirYSeguir]);
+    void imprimirBoleta();
+  }, []);
   return null;
+}
+
+/**
+ * Qué hacer con ESTA venta en ESTE equipo, apenas se registra (`queHacerAlRegistrar` con las preferencias del equipo). Vender la pregunta
+ * para saber si abre esta hoja o imprime sin ella; la hoja, para saber si imprime al abrirse.
+ */
+export function queHacerEnEsteEquipo(ok: VentaOk): AlRegistrar {
+  return queHacerAlRegistrar({
+    enLaCaja: imprimirEnLaCaja.leer() === "si" && ventanaDelEquipo.leer() !== "caja" && !boletasPorAyudante.leer(),
+    ventaId: ok.ventaId ?? null,
+    encendido: imprimirAlCobrar.leer() === "si",
+    hayComprobante: ok.recibo !== null,
+    sinConexion: ok.offline,
+    // La hoja ofrece «Enviar por WhatsApp» solo con celular y boleta o factura (`envioDeLaBoleta`).
+    conWhatsapp: Boolean(ok.celular) && ok.recibo !== null && ok.recibo.tipo !== "nota_venta",
+  });
 }

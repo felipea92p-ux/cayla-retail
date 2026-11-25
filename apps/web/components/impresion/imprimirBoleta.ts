@@ -178,14 +178,15 @@ const porElCuadro = () =>
 
 /**
  * Imprime la boleta montada. Por el ayudante avisa «Ticket enviado a la ticketera». `conCuadro: false` (la estación de la caja) no avisa ni cae nunca al cuadro: en una ventana minimizada el cuadro
- * se quedaría abierto sin que nadie lo vea, y la boleta vuelve a la cola.
+ * se quedaría abierto sin que nadie lo vea, y la boleta vuelve a la cola. `conAviso: false` (Vender al cobrar sin hoja): quien llama ya
+ * avisa de la venta y dice ahí que se imprimió; dos avisos para lo mismo serían ruido.
  */
-export async function imprimirBoleta({ conCuadro = true }: { conCuadro?: boolean } = {}): Promise<FinBoleta> {
+export async function imprimirBoleta({ conCuadro = true, conAviso = conCuadro }: { conCuadro?: boolean; conAviso?: boolean } = {}): Promise<FinBoleta> {
   const nodo = document.getElementById(ID);
   if (nodo && (await comprobarBoletasPorAyudante())) {
     if (await porElAyudante(nodo)) {
       // Sin cuadro no hay nada que diga que salió: el aviso lo dice (la estación, que imprime sola, no avisa).
-      if (conCuadro) avisar.exito("Ticket enviado a la ticketera");
+      if (conAviso) avisar.exito("Ticket enviado a la ticketera");
       return "impresa";
     }
     if (!conCuadro) return "fallo";
