@@ -39,7 +39,52 @@ export type ResultadoEscaneo = {
   lleva?: number;
   /** Solo en `repetida`: hasta cuántas admite el ticket de esa prenda (lo libre en el piso), para «Cambiar cantidad». */
   tope?: number | null;
+  /** La línea del ticket de esta prenda (su `varianteId`): con ella la bandeja marca la fila que se acaba de leer. */
+  clave?: string;
 };
+
+/** Una línea del ticket tal como la muestra la bandeja «Escaneadas» de la cámara (2026-11-25, Felipe): UNA fila por prenda con su
+ *  cantidad, nunca dos filas de la misma. La arma la pantalla desde su ticket, que es la única fuente de verdad. */
+export type LineaEscaneada = {
+  clave: string;
+  referencia: string;
+  /** Color · talla. */
+  detalle: string;
+  fotoUrl: string | null;
+  cantidad: number;
+  /** Lo que suma la línea al ticket (cantidad × precio, ya con su descuento). */
+  importe: number;
+};
+
+/** Las filas de la bandeja: la más nueva arriba (el ticket guarda el orden en que entraron), sin repetir una prenda. */
+export function filasDeLaBandeja(lineas: readonly LineaEscaneada[]): LineaEscaneada[] {
+  const vistas = new Set<string>();
+  const filas: LineaEscaneada[] = [];
+  for (let i = lineas.length - 1; i >= 0; i--) {
+    const l = lineas[i];
+    if (l.cantidad <= 0 || vistas.has(l.clave)) continue;
+    vistas.add(l.clave);
+    filas.push(l);
+  }
+  return filas;
+}
+
+/** El aviso que sale sobre la cámara después de cada lectura y se va solo (2026-11-25, Felipe: «sin más stock» no se queda en la
+ *  bandeja). `titulo` es qué pasó en dos o tres palabras; `nombre`, qué prenda. */
+export function avisoDeLectura(r: ResultadoEscaneo): { tono: "verde" | "ambar"; titulo: string; nombre: string } {
+  const nombre = r.prenda ? [r.prenda.referencia, r.prenda.detalle].filter(Boolean).join(" · ") : `Código ${r.codigo}`;
+  if (r.estado === "agregada") {
+    return { tono: "verde", titulo: yaEstabaEnElTicket(r) ? `Entró · van ${r.lleva}` : "Entró al ticket", nombre };
+  }
+  return { tono: "ambar", titulo: estadoCorto(r) ?? "No entró", nombre };
+}
+
+/** Cuánto se queda el aviso sobre la cámara: lo que entró se confirma rápido; lo que no, se deja leer; lo que se puede bajar del
+ *  almacén trae su botón «Agregar» y espera más (si no se toca, igual se ofrece al cerrar la cámara). */
+export function msDelAvisoDeLectura(r: Pick<ResultadoEscaneo, "estado" | "almacen">, { conAgregar = false }: { conAgregar?: boolean } = {}): number {
+  if (r.estado === "agregada") return 1800;
+  return conAgregar && sePuedeBajar(r) ? 6000 : 3200;
+}
 
 /** Cuánto dura el vuelo de la tarjeta al ticket, de que aparece a que entra en la bolsa. Son tres tramos, cada uno dentro
  *  del rango de ADR-0136: aparece (≈200 ms), se deja leer (≈240 ms) y viaja (≈460 ms). */
