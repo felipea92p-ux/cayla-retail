@@ -71,7 +71,7 @@ describe("ninguna hoja que guarda se envía con un Enter de costumbre", () => {
   // La deuda de antes de la regla. Son 146 formularios y repartirlos es un despliegue módulo por módulo, no un PR:
   // este cierra las hojas de Insumos y Compras que `/chaos` señaló, y deja contadas las demás. **Una hoja NUEVA no
   // puede nacer aquí**: el número solo baja, y si sube, esta prueba se pone en rojo y dice cuál se coló.
-  const PENDIENTES_HOY = 124;
+  const PENDIENTES_HOY = 121;
 
   it("una hoja nueva que guarda no puede nacer sin la guardia", () => {
     const sinGuardia = CON_FORM.filter((a) => !a.fuente.includes("enterNoGuarda") && !(a.ruta in FUERA)).map((a) => a.ruta);
@@ -89,7 +89,6 @@ describe("ninguna hoja que guarda se envía con un Enter de costumbre", () => {
       "components/insumos-taller/NuevaTelaModal.tsx",
       "components/insumos-taller/EditarTelaModal.tsx",
       "components/ordenes-compra/NuevaOrdenCompra.tsx",
-      "components/ordenes-insumo/NuevaOrdenInsumo.tsx",
       "components/ordenes-compra/GastoDelViaje.tsx",
       "components/mi-plata/PapelesPorCompletar.tsx",
       "components/RolesModales.tsx",
@@ -103,13 +102,12 @@ describe("ninguna hoja que guarda se envía con un Enter de costumbre", () => {
     }
   });
 
-  it("y las seis que ya lo hacían a mano usan la pieza, no su copia", () => {
+  it("y las cinco que ya lo hacían a mano usan la pieza, no su copia", () => {
     // ADR-0358, «una función, una pieza»: el mismo gesto copiado seis veces era seis sitios donde se podía quedar atrás.
     for (const ruta of [
       "components/ProductoForm.tsx",
       "components/NuevoProductoForm.tsx",
       "components/ordenes-compra/RegistrarComprobanteOrden.tsx",
-      "components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx",
       "components/recepcion-envio/FormularioRecepcion.tsx",
       "components/recepcion-envio/HojaPrenda.tsx",
     ]) {

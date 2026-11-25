@@ -18,7 +18,6 @@ const ARCHIVOS = [
   "components/InsumoModales.tsx",
   "components/ProveedoresProduccionPanel.tsx",
   "components/ComprobantesProduccionPanel.tsx",
-  "components/RecibirProduccionPanel.tsx",
   "components/PorPagarProduccionPanel.tsx",
   "components/EficienciaTallerPanel.tsx",
   "components/CotizacionesMaquilaPanel.tsx",

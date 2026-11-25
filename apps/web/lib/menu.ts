@@ -119,7 +119,7 @@ export type ClaveIcono =
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
   | "recomendaciones" | "libroReclamaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico" | "reportesVentas";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -256,35 +256,18 @@ export const ARBOL: readonly Nodo[] = [
       { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "verDinero" },
       { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "ordenes", pajaro: "10 Gallito" },
       { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
-      // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
-      // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
-      // que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito, es el mismo concepto (abastecerse
-      // de un proveedor) aplicado al Taller en vez de a la tienda. `raiz` reutiliza la ruta de su primera hija (Proveedores):
-      // el subgrupo no tiene pantalla propia, así como la `raiz` de Producción reutiliza la de Resumen y la de Catálogo la de
-      // Productos. Proveedores, Comprobantes y Por pagar solo para quien ve el dinero (D-G): llevan datos bancarios de terceros
-      // y montos comprados. Recibir NO exige dinero: lo usa también quien trabaja en el Taller — por eso, para quien no ve el
-      // dinero, `menuPara` deshace el subgrupo solo (le queda una única hija visible, «Recibir») y sube esa hija con SU propio
-      // nombre, no con «Abastecimiento»: el subgrupo es una etiqueta de organización para quien ve varias pantallas, no una que
-      // valga la pena imponerle a quien solo necesita recibir tela. El id de cada hija termina en «Produccion» a propósito: es
-      // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
-      // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
-      // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
-      // Órdenes de insumos (ADR-0362 fase 7, decisión 47; Felipe 2026-10-12) va PRIMERA: el trabajo empieza al pedir (pedir → factura →
-      // recibir → pagar). Sin `exige`: el módulo es la llave (decisiones 40 y 47) y trae sus precios sin abrir la plata del Taller. Su ruta
-      // NO cuelga de `/produccion` a propósito: ese layout pide el módulo de producción, y quien tiene solo «Órdenes de insumos» no lo
-      // necesita. Aterrizar en `/ordenes-insumos` abre igual el grupo de Producción (`grupoDe` mira las rutas de las hijas, no solo la
-      // `raiz`). Para quien la ve junto a Recibir (sin el dinero del Taller), Abastecimiento ya no se disuelve en «Recibir»: tiene dos.
-      // La `raiz` del subgrupo sigue siendo la de Proveedores: el subgrupo no tiene pantalla propia y esa ruta solo dice de qué grupo es.
-      // [provisional, revisar con Felipe: el lugar (Producción ▸ Abastecimiento) es la opción (a) de la pregunta 1 del contrato]
+      // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, facturas y deuda de tela, avíos y servicios, APARTE de los de
+      // Compras (D-H). SUBGRUPO (D-84), igual que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito. `raiz`
+      // reutiliza la ruta de su primera hija (Proveedores): el subgrupo no tiene pantalla propia. Las tres solo para quien ve el dinero
+      // (D-G): llevan datos bancarios de terceros y montos comprados; quien no ve el dinero no ve el subgrupo. El id de cada hija termina en
+      // «Produccion» a propósito: es la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras.
+      // El 2026-11-25 (ADR-0702, Felipe) salieron «Órdenes de insumos» y «Recibir»: 0 órdenes en producción, y la tela se compra y se
+      // recibe en un paso en Insumos ▸ «Llegó una compra». Las facturas nacen ahí y en Por pagar ▸ «Pagar servicio».
       {
         id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
         hijos: [
-          { id: "produccion.ordenesInsumos", modulo: "ordenes_insumos", etiqueta: "Órdenes de insumos", estado: "viva", ruta: "/ordenes-insumos", icono: "ordenesInsumos", pajaro: "10 Gallito" },
           { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
           { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
-          // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
-          // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
-          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibirInsumos", pajaro: "10 Gallito" },
           { id: "produccion.porPagarProduccion", modulo: "produccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
         ],
       },

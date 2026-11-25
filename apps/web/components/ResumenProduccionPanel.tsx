@@ -9,7 +9,6 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { textoDePedido } from "@/lib/orden-pagina-reglas";
-import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 import { PorQue } from "@/components/produccion-resumen/PorQue";
 import type { CifraDeFase } from "@/lib/ordenes-lista-reglas";
 import { Aviso } from "@/components/ui/Aviso";
@@ -382,22 +381,11 @@ export function ResumenProduccionPanel({
                   ) : t.estado === "alcanza" ? (
                     <Chip tono="verde">Alcanza</Chip>
                   ) : t.estado === "alcanza_si_llega" ? (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 @min-[36rem]:justify-end">
-                      <Chip tono="ambar">Alcanza si llega</Chip>
-                      {t.pedidos.length > 0 && (
-                        <BotonEnlace href="/ordenes-insumos" peso="discreto">
-                          Ver los pedidos
-                        </BotonEnlace>
-                      )}
-                    </span>
+                    <Chip tono="ambar">Alcanza si llega</Chip>
                   ) : (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 @min-[36rem]:justify-end">
-                      <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
-                      {/* La salida de «faltan» es PEDIR lo que queda; con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor). Nunca registrar una factura que todavía no existe. */}
-                      <BotonEnlace href={t.atrasado > 0 ? "/ordenes-insumos" : urlPedirInsumo(t.insumoId, t.faltan)} peso="discreto">
-                        {t.atrasado > 0 ? "Ver los pedidos" : "Pedir"}
-                      </BotonEnlace>
-                    </span>
+                    // Sin «Pedir» ni «Ver los pedidos» desde el 2026-11-25 (ADR-0702): Órdenes de insumos se retiró sin uso. La tela se
+                    // compra y se recibe en un paso en Insumos ▸ «Llegó una compra».
+                    <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
                   )}
                 </span>
               </li>
@@ -406,7 +394,7 @@ export function ResumenProduccionPanel({
         )}
         <PorQue
           guia="prod-resumen.tela-porque"
-          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «En camino» es lo que falta recibir de cada pedido —lo mismo que ves en Recibir— y se suma a lo que hay; un pedido cuya fecha de entrega ya pasó no se cuenta y sale aparte como atrasado."
+          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «En camino» es lo que falta recibir de cada pedido y se suma a lo que hay; un pedido cuya fecha de entrega ya pasó no se cuenta y sale aparte como atrasado."
         />
       </section>
     </div>

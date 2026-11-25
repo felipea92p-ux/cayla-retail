@@ -9,7 +9,6 @@ import { traducirError } from "./error-escritura";
 const PANTALLAS: [archivo: string, contexto: string][] = [
   ["InsumoModales.tsx", "ingresar el insumo"],
   ["PagarComprobanteProduccionModal.tsx", "registrar el pago"],
-  ["RecibirComprobanteModal.tsx", "registrar la recepción"],
   ["NuevaOrdenProduccionForm.tsx", "abrir la orden"],
 ];
 

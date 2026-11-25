@@ -17,7 +17,6 @@ import { Vacio } from "@/components/ui/Vacio";
 import { corteTerminado, filasDeTela, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import type { DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
 import { pendientesDeAnotar, telasDeLaOrden } from "@/lib/orden-tela-usada-reglas";
-import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 
 // La tela de la orden (ADR-0400, decisión 6; vista D): por tela y color, lo que pide el plan, lo que ya se usó y si lo que queda en el estante alcanza para lo que falta. «Alcanza» y
 // «Faltan N m» salen del mismo veredicto de la hoja de Nueva orden (`filasDeTela` → `veredictoTela`). Una orden sin tela declarada lo dice, no se dibuja vacía.
@@ -32,7 +31,7 @@ import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 const PLANTILLA = "@min-[28rem]:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[28rem]:block";
 
-export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, edicionFalla = false }: { datos: OrdenPagina; /** La cuenta ve el módulo «Órdenes de insumos»: puede pedir lo que falta. */ puedePedir?: boolean; /** Lo que la hoja «Editar tela y avíos» necesita; null si la cuenta no puede operar la orden o la orden ya no está en proceso. */ edicion?: DatosEditarTela | null; /** No se pudo preparar la edición (no se leyó el estante de Insumos): se dice, en vez de esconder el botón. */ edicionFalla?: boolean }) {
+export function TelaDeLaOrdenVista({ datos, edicion = null, edicionFalla = false }: { datos: OrdenPagina; /** Lo que la hoja «Editar tela y avíos» necesita; null si la cuenta no puede operar la orden o la orden ya no está en proceso. */ edicion?: DatosEditarTela | null; /** No se pudo preparar la edición (no se leyó el estante de Insumos): se dice, en vez de esconder el botón. */ edicionFalla?: boolean }) {
   const filas = filasDeTela(datos.insumos, corteTerminado(datos));
   const [hoja, setHoja] = useState<"usar" | "devolver" | "encontre" | null>(null);
   const [editando, setEditando] = useState(false);
@@ -94,7 +93,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
           <div className={EN_COLUMNAS}>
             <Encabezado plantilla={PLANTILLA} visible="grid" columnas={[{ titulo: "Tela" }, { titulo: "Plan", alinear: "der" }, { titulo: "Usado", alinear: "der" }, { titulo: "En el estante", alinear: "der" }]} />
           </div>
-          {filas.map((f, i) => (
+          {filas.map((f) => (
             <div key={f.id} className={fila(PLANTILLA)}>
               <span className={celda("izq", "whitespace-normal")}>
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-tinta">
@@ -132,11 +131,6 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
                     <Chip tono="neutro" versalitas={false}>
                       Alcanza
                     </Chip>
-                  )}
-                  {!f.alcanza && puedePedir && datos.orden.estado === "en_proceso" && (
-                    <BotonEnlace href={urlPedirInsumo(f.id, f.faltanNumero)} peso="discreto" data-guia={i === 0 ? "prod-orden.pedir-tela" : undefined}>
-                      Pedir {f.faltan}
-                    </BotonEnlace>
                   )}
                 </span>
                 {f.reservadoPorOtras && <span className="op-sub">{f.reservadoPorOtras}</span>}
