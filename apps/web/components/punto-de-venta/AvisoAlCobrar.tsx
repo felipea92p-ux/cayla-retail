@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { Check, Clock, Printer, TriangleAlert } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
@@ -61,7 +61,16 @@ export function AvisoAlCobrar({
   const { Icono, clase } = ICONO[cara.tono];
 
   /** El botón principal se lleva el foco (Enter) sin mover la hoja, como en «Venta registrada». */
-  const enfocar = useCallback((el: HTMLButtonElement | null) => el?.focus({ preventScroll: true }), []);
+  const principal = useRef<HTMLButtonElement | null>(null);
+  const enfocar = useCallback((el: HTMLButtonElement | null) => {
+    principal.current = el;
+    el?.focus({ preventScroll: true });
+  }, []);
+  // Al cambiar de estado, un botón puede desaparecer con el foco adentro («Reimprimir» se va mientras imprime): el foco quedaba suelto en la
+  // hoja y Enter ya no abría la venta nueva (medido en el banco, 2026-11-25). Si el foco no está en un botón, vuelve al principal.
+  useEffect(() => {
+    if (!(document.activeElement instanceof HTMLButtonElement)) principal.current?.focus({ preventScroll: true });
+  }, [cara.titulo]);
   const reintentar = donde === "caja" ? pedida.reintentar : onReimprimir;
 
   return (

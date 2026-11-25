@@ -610,6 +610,18 @@ ESCENARIOS.push(
       await pagina.getByRole("button", { name: /^Más/ }).first().click();
       await esperar(pagina, 900);
     },
+  },  {
+    // La tuerca (ADR-0670 act. 2026-11-25 b): la hoja «Impresión de este equipo» con sus interruptores. Solo lee: no toca ninguno.
+    id: "vender.impresion",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[data-guia='vender.impresion-panel']",
+    nombre: "Vender · la tuerca: «Impresión de este equipo»",
+    async preparar(pagina) {
+      await pagina.locator("[data-guia='vender.impresion']").first().click();
+      await esperar(pagina, 900);
+    },
   },
 );
 
