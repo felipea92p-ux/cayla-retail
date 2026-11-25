@@ -299,6 +299,7 @@ function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
                 <th className="col-color" scope="col">
                   Color
                 </th>
+                <th scope="col">Te quedan</th>
                 <th scope="col">Vendiste</th>
                 {tabla.ciudadAlla && <th scope="col">En {tabla.ciudadAlla}</th>}
               </tr>
@@ -310,6 +311,10 @@ function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
                     <span className="pt" data-color-dato style={{ ["--prenda" as string]: f.punto ?? "var(--color-grafico-neutro)" }} />
                     {f.color || "Sin color"}
                   </th>
+                  {/* Cuántas te quedan de este color (Felipe 2026-11-25); en lo agotado, 0 en rojo, como en «Te quedan». */}
+                  <td className={f.quedan > 0 ? "text-lg font-semibold" : "text-lg font-semibold text-rojo-profundo"} style={ANGOSTA}>
+                    {f.quedan}
+                  </td>
                   <td className="text-lg font-semibold">{f.vendidas}</td>
                   {tabla.ciudadAlla && <td className={f.alla ? "text-lg font-semibold" : "text-tenue"}>{f.alla ? f.alla : "—"}</td>}
                 </tr>
@@ -320,6 +325,7 @@ function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
                 <th className="color" scope="row">
                   Total
                 </th>
+                <td className="total">{tabla.filas.reduce((s, f) => s + f.quedan, 0)}</td>
                 <td className="total">{tabla.total}</td>
                 {tabla.ciudadAlla && <td className="total">{tabla.totalAlla}</td>}
               </tr>
@@ -332,7 +338,7 @@ function TablaDePedir({ tabla }: { tabla: TablaFichaPedir }) {
                 <th className="col-color" scope="col">
                   Color
                 </th>
-                {tabla.tallas.map((t) => (
+                {tabla.encabezados.map((t) => (
                   <th key={t} scope="col">
                     {t}
                   </th>

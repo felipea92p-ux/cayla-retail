@@ -20,8 +20,11 @@ import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { fechaCorta } from "./motor-demanda-reglas";
 import { compararTallas } from "./tallas";
 
-/** Una fila de la tabla de lo agotado: un color, lo que vendió en 8 semanas y lo que tiene la otra tienda (null si no se muestra). */
-export type FilaColorAgotado = { color: string; punto: string | null; vendidas: number; alla: number | null };
+/**
+ * Una fila de la tabla de lo agotado: un color, cuántas te quedan aquí (Felipe 2026-11-25: «no indica cuánto me queda de cada color»; en
+ * lo agotado es 0, y se dice), lo que vendió en 8 semanas y lo que tiene la otra tienda (null si no se muestra).
+ */
+export type FilaColorAgotado = { color: string; punto: string | null; quedan: number; vendidas: number; alla: number | null };
 
 /** Una celda de «Te quedan»: cuántas quedan (`queda`), 0 donde se vendió y ya no hay (`agotada`) o «—» donde nunca hubo (`nunca`). */
 export type CeldaQueda = { talla: string; quedan: number; estado: "queda" | "agotada" | "nunca" };
@@ -29,7 +32,15 @@ export type FilaQueda = { color: string; punto: string | null; vendio: number; c
 
 export type TablaFichaPedir =
   | { tipo: "colores"; titulo: string; nota: string; ciudadAlla: string | null; filas: FilaColorAgotado[]; total: number; totalAlla: number }
-  | { tipo: "quedan"; titulo: string; nota: string; tallas: string[]; filas: FilaQueda[] };
+  | {
+      tipo: "quedan";
+      titulo: string;
+      nota: string;
+      tallas: string[];
+      /** El título de cada columna de talla: la talla, o «Te quedan» si el modelo tiene una sola (la talla única no dice nada). */
+      encabezados: string[];
+      filas: FilaQueda[];
+    };
 
 export type FichaPedir = {
   tipo: "agotado" | "seAcaba";
@@ -115,6 +126,7 @@ function tablaColores(m: ModeloAnalisis, ctx: Contexto): TablaFichaPedir {
       return {
         color,
         punto: puntoDe(vs),
+        quedan: vs.reduce((s, v) => s + totalEnTienda(v), 0),
         vendidas: vs.reduce((s, v) => s + v.semanas.reduce((t, n) => t + Math.max(0, n), 0), 0),
         alla: sede ? vs.reduce((s, v) => s + (v.otras.find((o) => o.sedeId === sede.id)?.stock ?? 0), 0) : null,
       };
@@ -154,7 +166,16 @@ function tablaQuedan(m: ModeloAnalisis, ctx: Contexto): TablaFichaPedir {
       };
     })
     .sort((a, b) => b.vendio - a.vendio || a.color.localeCompare(b.color, "es"));
-  return { tipo: "quedan", titulo: "Te quedan por talla y color", nota: `en ${ctx.miSede.ciudad}`, tallas, filas };
+  // Con una sola talla («Estándar», «Única»), la columna se llama por lo que dice: cuántas te quedan de cada color.
+  const unaSola = tallas.length === 1;
+  return {
+    tipo: "quedan",
+    titulo: unaSola ? "Te quedan por color" : "Te quedan por talla y color",
+    nota: `en ${ctx.miSede.ciudad}`,
+    tallas,
+    encabezados: unaSola ? ["Te quedan"] : tallas,
+    filas,
+  };
 }
 
 /**
