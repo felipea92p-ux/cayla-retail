@@ -118,8 +118,8 @@
     .mini-al .al .v{text-align:right;font-weight:600;white-space:nowrap;color:var(--color-ambar);font-variant-numeric:tabular-nums}
     .mini-al .navidad{position:absolute;top:14px;bottom:-4px;left:calc(82px + (100% - 156px) * var(--n));border-left:1.5px dashed var(--color-tinta);pointer-events:none}
     .mini-al .navidad span{position:absolute;bottom:100%;left:0;transform:translateX(-50%);font-size:var(--text-xs);font-weight:600;color:var(--color-tinta);white-space:nowrap}
-    /* La ficha de lo agotado, por talla y color (Felipe 2026-11-25 eligió la «B2», `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`):
-       cada casilla tiene dos pisos, arriba cuántas te quedan (0 en rojo) y abajo cuántas vendiste; la clave de arriba dice qué es cada piso.
+    /* La ficha de «Qué pedir» (lo agotado y lo que se acaba), por talla y color (Felipe 2026-11-25 eligió la «B2», `docs/maquetas/analisis-pedir-sin-comprar-2026-11/mejor-b.html`):
+       cada casilla tiene dos pisos, arriba cuántas te quedan (0 en rojo si se vendió y ya no hay) y abajo cuántas vendiste; la clave de arriba dice qué es cada piso.
        La casilla es la placa (vidrio que explica, sin desenfoque); el piso de arriba se tiñe del rojo del dato. Va con `:is(…)` para ganarle a
        `.m-tabla td span` (analisis.css), que la volvería un bloque sin pisos. */
     .pisos-clave{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:var(--text-detalle);color:var(--color-secundario)}
@@ -132,6 +132,8 @@
     :is(.pisos-clave,.m-tabla td) .pisos-casilla > span{display:grid;place-items:center}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q{background:color-mix(in srgb,var(--color-rojo-profundo) 9%,transparent);color:var(--color-rojo-profundo);font-weight:600;font-size:var(--text-sm)}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q.hay{background:transparent;color:var(--color-tinta)}
+    /* Donde no se vendió ni queda: un 0 tenue, sin el tinte rojo (no falta nada). */
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q.nada{background:transparent;color:var(--color-tenue);font-weight:400}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v{font-size:var(--text-detalle);color:var(--color-tinta)}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v.nada{color:var(--color-tenue)}
     .m-tabla.pisos td.pisos-td{padding:0;min-width:52px;border-radius:12px}

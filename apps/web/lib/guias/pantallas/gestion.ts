@@ -105,7 +105,7 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.ficha-tallas",
       opcional: true,
       titulo: "Qué talla y qué color",
-      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Si se agotó, cada casilla tiene dos pisos: arriba cuántas te quedan (0 en rojo) y abajo cuántas vendiste.",
+      texto: "Cuántas vendiste de cada talla y color, y cuántas te quedan. Si hay que pedirla, cada casilla tiene dos pisos: arriba cuántas te quedan (0 en rojo si se vendió y ya no hay) y abajo cuántas vendiste.",
     },
     {
       id: "ficha-acciones",
