@@ -32,8 +32,9 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
    `cajaDeAbajoUnida` con `porElPecho`) y la blusa cuelga encima, como en una persona. Sin esto no alcanzaba (Felipe, 2026-11-26: «lo sigo viendo igual»): la
    blusa se achicaba, pero el bajo angosto del nudo arrastraba la pretina del jean al mínimo (30,6 cm) y el jean se achicaba con ella; la proporción pasaba de
    1,70 a 1,53 nada más. Con la cintura del cuerpo pasa a 1,31 (un cuerpo real anda en 1,2–1,3).
-   **Una falda, igual: su tamaño real «como en una persona»** (Felipe, 2026-11-26), y además **arranca donde termina la blusa** (en su bajo más alto, con el solape
-   de 3 px), sin quedar tapada: se ve su pretina o su cinturón. Probado antes y descartado: que la falda siguiera al bajo de la blusa salía angosta y, como su
+   **Una falda, igual: su tamaño real «como en una persona»** (Felipe, 2026-11-26), pero **nunca más ancha que el 90 % del pecho de la blusa**
+   (`FALDA_SOBRE_EL_PECHO`; Felipe eligió 90 % mirando 90 y 80: a la par se veía como una caja), y **arranca bajo el punto más bajo de la blusa** (con el
+   solape de 3 px), sin quedar tapada: se ve su pretina o su cinturón, también bajo el nudo de la Camisa Dalia. Probado antes y descartado: que la falda siguiera al bajo de la blusa salía angosta y, como su
    largo sale de su ancho, también corta; y tapada bajo la blusa quedaba como un bloque y el conjunto parecía una túnica.
 2. **Las axilas las dice una IA, una vez por recorte, sola.** `GET /api/fotos/medir-recortes` (cron cada 10 min, `CRON_SECRET`, llave de servicio) toma hasta 12
    recortes sin medida (`retail.recortes_sin_medida_ia`), le manda a OpenAI la URL pública del recorte en baja resolución y guarda lo que responde

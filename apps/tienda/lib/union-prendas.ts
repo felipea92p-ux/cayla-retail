@@ -122,6 +122,13 @@ export const FACTOR_MAXIMO_DEL_PECHO = 1.45;
  * importa el bajo: un nudo, un fruncido o un corte cruzado ya no la agrandan. Crece o se encoge desde el centro de los hombros, sin subir, como `cajaDeArribaAjustada`.
  * `null`: sin la medida de la IA, una prenda sin mangas o sin el ancho fila por fila (entonces manda la regla del bajo). Ya en su medida, devuelve la misma caja.
  */
+/** El ancho del pecho (px de la escena) de una prenda ya dimensionada por su pecho: lo que la falda no puede pasar. */
+export function pechoEnPx(caja: Caja, medida: MedidaDelRecorte | null | undefined, ia: MedidaDeLaIA | null | undefined): number | null {
+  if (!ia || ia.axila === null || !medida) return null;
+  const f = anchoDelPecho(medida.anchos, ia.axila);
+  return f === null ? null : caja.w * f;
+}
+
 export function cajaPorElPecho(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; ia: MedidaDeLaIA | null | undefined }): Caja | null {
   const { caja: c, medida: m, ia } = arriba;
   if (!ia || ia.axila === null || !TIPOS_POR_EL_PECHO.includes(ia.tipo) || !m || !(c.w > 0) || !(c.h > 0)) return null;
@@ -372,6 +379,8 @@ export const ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA = 1.05;
 /** Hasta dónde puede ese tope encoger la pretina de una falda: nunca por debajo del 92 % del bajo de la blusa (Felipe eligió mirando, 2026-11-09:
  *  sin tope la falda del peplum se ve muy grande; con el tope entero, la pretina queda 11 cm más angosta que el bajo y se ve el escalón). */
 export const PRETINA_MINIMA_DE_LA_FALDA = 0.92;
+/** ADR-0705: lo más ancha que se ve una falda (su parte más ancha) junto al pecho de la blusa medida por su pecho. */
+export const FALDA_SOBRE_EL_PECHO = 0.9;
 /** Cuánto entra la pretina bajo el borde del torso (px de la escena), para que no quede una línea de aire entre las dos. */
 export const SOLAPE_DE_LA_UNION = 3;
 /** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
@@ -439,7 +448,7 @@ export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelReco
  * (`falda`) además no se ve más de ×1,05 el ancho de la blusa, sin que su pretina baje del 92 % de ese bajo.
  */
 export function cajaDeAbajoUnida(
-  arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean; porElPecho?: boolean },
+  arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean; pechoPx?: number | null },
   abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined; falda?: boolean },
 ): Caja | null {
   const a = arriba.medida;
@@ -454,11 +463,15 @@ export function cajaDeAbajoUnida(
   // angosta ese bajo y arrastraba al pantalón: la blusa se achicaba y el jean con ella, y la proporción no cambiaba). La blusa cuelga encima, como en una persona.
   //    Lo mismo una falda: su tamaño real (cintura de cuerpo y su propio largo), «como en una persona» (Felipe, 2026-11-26). Siguiendo al bajo angosto de una
   //    blusa corta o anudada salía angosta y, como su largo sale de su ancho, también corta: parecía una túnica.
-  const pretinaSegunElBorde = arriba.porElPecho
-    ? estandar
+  const porElPecho = typeof arriba.pechoPx === "number" && arriba.pechoPx > 0;
+  const pretinaSegunElBorde = porElPecho
+    ? abajo.falda
+      ? // La falda, además, nunca más ancha que el pecho de la blusa (por su parte más ancha): a la par se veía como una caja (Felipe, 2026-11-26, top de encaje).
+        Math.min(estandar, arriba.pechoPx! * FALDA_SOBRE_EL_PECHO * b.pretina)
+      : estandar
     : Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
   // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
-  const pretinaPx = abajo.falda && !arriba.porElPecho
+  const pretinaPx = abajo.falda && !porElPecho
     ? Math.max(
         pretinaMinima,
         Math.min(pretinaSegunElBorde, Math.max(arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina, pretinaSegunElBorde * PRETINA_MINIMA_DE_LA_FALDA)),
@@ -474,9 +487,14 @@ export function cajaDeAbajoUnida(
   const yEstimada = arriba.caja.y + arriba.caja.h * filaDelBorde - SOLAPE_DE_LA_UNION;
   // Con el contorno fino de las dos prendas la posición no se estima: se CALCULA la que deja el bajo de arriba cubriendo la pretina en cada columna.
   const yCubierta = alturaQueCubreLaPretina(arriba.caja, a.contorno, a.filaDelBorde, { x, w, h }, b.contorno);
-  // ADR-0705: con la blusa medida por su pecho, una FALDA no se esconde bajo la blusa: arranca donde la blusa termina más arriba y solo se solapa un poco, así se ve
-  // dónde empieza la falda (su pretina o su cinturón), como en una persona. Taparla entera la dejaba como un bloque y el conjunto parecía una túnica.
-  if (abajo.falda && arriba.porElPecho) return { x, y: Math.round(yEstimada), w: Math.round(w), h: Math.round(h) };
+  // ADR-0705: con la blusa medida por su pecho, una FALDA no se esconde bajo la blusa: solo se solapa un poco, así se ve dónde empieza (su pretina o su
+  // cinturón), como en una persona. Taparla entera la dejaba como un bloque y el conjunto parecía una túnica.
+  //    Arranca bajo el punto MÁS BAJO del torso (un nudo o un cruce en el centro), no en sus costados: así el nudo no tapa la pretina ni el cinturón (Felipe,
+  //    2026-11-26, Camisa Dalia). Los costados que quedan más arriba los cubren las mangas o quedan a la altura de la cintura, como en una persona.
+  if (abajo.falda && porElPecho) {
+    const yBajoElNudo = arriba.caja.y + arriba.caja.h * a.filaDelBorde - SOLAPE_DE_LA_UNION;
+    return { x, y: Math.round(yBajoElNudo), w: Math.round(w), h: Math.round(h) };
+  }
   return { x, y: Math.round(yCubierta ?? yEstimada), w: Math.round(w), h: Math.round(h) };
 }
 

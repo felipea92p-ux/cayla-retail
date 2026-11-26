@@ -7,6 +7,7 @@ import {
   cajaDeAbajoUnida,
   cajaDeArribaAjustada,
   cajaPorElPecho,
+  pechoEnPx,
   direccionDeLaMedida,
   hiloDeLaEspera,
   type HiloDeLaEspera,
@@ -226,7 +227,7 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   const unida =
     arribaFinal && abajo && urlArriba && urlAbajo && completa
       ? cajaDeAbajoUnida(
-          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida, porElPecho: porElPecho !== null },
+          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida, pechoPx: porElPecho !== null ? pechoEnPx(porElPecho, medidas.get(urlArriba), arriba!.c.foto.ia) : null },
           { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo), falda: abajo.p.falda },
         )
       : null;
