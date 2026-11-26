@@ -14,15 +14,20 @@ import { BotonCrearCuenta } from "./BotonCrearCuenta";
 
 /**
  * El marco. `forma`: «entrar» (dos columnas iguales con una raya entre las dos), «crear» (el formulario y su lado, que se queda quieto;
- * en el celular, sin lado) o «acceso» (como «crear», pero en el celular el lado va debajo: los pasos dicen qué toca).
+ * en el celular, sin lado), «acceso» (como «crear», pero en el celular el lado va debajo: los pasos dicen qué toca) o «sola» (una columna
+ * sin lado: «Cambiar mi correo» y «Eliminar mi cuenta», 2026-11-26).
  */
-export function PantallaDeCuenta({ forma, lado, children }: { forma: "entrar" | "crear" | "acceso"; lado: ReactNode; children: ReactNode }) {
+export function PantallaDeCuenta({ forma, lado, children }: { forma: "entrar" | "crear" | "acceso" | "sola"; lado?: ReactNode; children: ReactNode }) {
   return (
     <EntradaViva>
       <div className="cu-pantalla" data-forma={forma}>
         <div className="cu-form">{children}</div>
-        <div className="cu-raya" aria-hidden="true" />
-        {lado}
+        {lado && (
+          <>
+            <div className="cu-raya" aria-hidden="true" />
+            {lado}
+          </>
+        )}
       </div>
     </EntradaViva>
   );
