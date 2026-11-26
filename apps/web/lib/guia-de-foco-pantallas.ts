@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 46;
+export const PENDIENTES_HOY = 45;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -56,7 +56,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/comercial": PENDIENTE,
   "/comercial/calidad": PENDIENTE,
   // ---- compras ----
-  "/compras": PENDIENTE,
+  // Todas las compras (ADR-0704): una lista que solo se lee; su único campo es el buscador.
+  "/compras": { estado: "no-aplica", motivo: "Todas las compras: una lista que solo se lee; su único campo es el buscador y no hay nada que llenar ni pasos que seguir." },
   "/compras/@modal/(.)factura/[compraId]": PENDIENTE,
   "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra abierta sobre la lista (ADR-0362): se lee, no se llena. Editarla y anularla llegan con su propia guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },

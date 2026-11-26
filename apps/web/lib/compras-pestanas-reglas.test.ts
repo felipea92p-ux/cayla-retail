@@ -88,10 +88,10 @@ describe("coherencia con el resto del sistema (si una cambia sin la otra, esto a
     expect(rutas).not.toContain("/compras/por-pagar");
   });
 
-  it("cada pestaña tiene su puerta: la de Revisar y la de Por pagar piden su módulo, y la entrada acepta los tres", () => {
+  it("cada pestaña tiene su puerta: la de Revisar y la de Por pagar piden su módulo, y Todas las compras acepta el suyo o Por pagar (ADR-0704)", () => {
     const leer = (ruta: string) => readFileSync(new URL(ruta, import.meta.url), "utf8");
     expect(leer("../app/(app)/compras/fondos/layout.tsx")).toContain('exigirModulo("fondos")');
     expect(leer("../app/(app)/compras/por-pagar/page.tsx")).toContain('exigirModulo("por_pagar")');
-    expect(leer("../app/(app)/compras/page.tsx")).toContain('exigirModulo("facturas_compra", "fondos", "por_pagar")');
+    expect(leer("../app/(app)/compras/page.tsx")).toContain('exigirModulo("facturas_compra", "por_pagar")');
   });
 });
