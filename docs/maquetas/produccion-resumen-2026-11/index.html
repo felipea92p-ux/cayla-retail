@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Producción, más clara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA: Producción ▸ Resumen, más claro (2026-11-26)
+   Qué se elige: la DISTRIBUCIÓN del Resumen (A · dos columnas, B · una columna) y sus textos.
+   Reglas de esta maqueta (Felipe 2026-11-26): se entiende sin saber nada, poco texto a la vista, y NINGÚN punto medio
+   como separador: cada dato es su pieza (rótulo arriba y valor abajo, o una insignia).
+   Datos inventados (el repo es público): ningún modelo, proveedor ni monto es real. Solo tokens.
+   ==================================================================== */
+.placa{border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 68%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -26px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .placa{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+
+/* el alto del aparato: la pantalla entera a la vista, para verla de un golpe */
+
+/* C: solo lo que pide acción */
+@container disp (min-width:1181px){[data-dist="accion"] .cuerpo{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr)}}
+[data-dist="accion"] .fab-f{gap:8px 16px;padding:16px 18px}
+[data-dist="accion"] .asunto{padding:14px 18px 14px 16px}
+@container disp (min-width:641px){[data-dist="accion"] .pares{flex-wrap:nowrap;gap:6px 22px}}
+.bien{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.bien a{display:flex;align-items:center;gap:12px;padding:14px 18px;color:inherit;text-decoration:none}
+.bien .ok{width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.bien b{white-space:nowrap;display:block;font-size:16px;font-weight:600;line-height:1.3}
+.bien span span{font-size:14px;color:var(--t65)}
+.bien .va{margin-left:auto;color:var(--t50)}
+@container disp (max-width:1180px){.bien{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container disp (max-width:640px){.bien{grid-template-columns:1fr}}
+
+/* ---------- cabecera de la pantalla: sede y fecha en dos piezas, sin punto ---------- */
+.ep-sede .raya{display:block;width:1px;height:12px;background:color-mix(in srgb,var(--taupe) 55%,transparent)}
+.pest{display:inline-flex;gap:4px;padding:4px;border-radius:999px;margin-top:24px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.pest button{height:36px;padding:0 18px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pest button.on{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));border:1px solid var(--borde)}
+
+/* ---------- cifras ---------- */
+.cifras4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0 0}
+.tc-nom{font-size:13px}.tc-ctx{font-size:14px}.tc-val .num{font-size:30px}
+.tc-nom .pto.verde{background:var(--verde)}.tc-nom .pto.ambar{background:var(--ambar)}.tc-nom .pto.rojo{background:var(--rojo)}
+.tc-ctx.rojo{color:var(--rojo-p)}
+
+/* ---------- distribución ---------- */
+.cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 23rem;gap:28px;align-items:start;margin-top:8px}
+[data-dist="una"] .cuerpo{grid-template-columns:minmax(0,1fr)}
+.col{display:flex;flex-direction:column;min-width:0}
+.sec-t{display:flex;align-items:center;gap:10px;margin:30px 0 12px;min-height:32px}
+.sec-t h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.1}
+.sec-t .cuenta{font-size:13px;font-weight:600;min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:inline-grid;place-items:center;background:var(--t12);color:var(--t80)}
+.sec-t .q,.paso-t .q{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1px solid var(--borde);font-size:13px;font-weight:700;color:var(--taupe);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+.sec-t .der{margin-left:auto}
+.ver{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo-p)}
+.ver svg{width:14px;height:14px;stroke-width:2}
+
+/* el par «rótulo arriba, valor abajo»: reemplaza a «dato · dato · dato» */
+.pares{display:flex;flex-wrap:wrap;gap:6px 26px}
+.par small{white-space:nowrap;display:block;font-size:13px;line-height:1.3;color:var(--t65)}
+.par b{display:block;font-size:16px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+.par.ambar b{color:var(--ambar)}.par.rojo b{color:var(--rojo-p)}.par.verde b{color:var(--verde)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:999px;font-size:13px;font-weight:600;
+  border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);color:var(--t80);background:color-mix(in srgb,var(--vidrio) 55%,transparent);white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);border-color:color-mix(in srgb,var(--verde) 40%,transparent)}
+.chip.ambar{color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.chip.pizarra{color:var(--pizarra);border-color:color-mix(in srgb,var(--pizarra) 40%,transparent)}
+.chip.lleno{color:var(--crema);background:var(--ambar);border-color:transparent}
+
+.foto{flex:none;border-radius:12px;display:grid;place-items:center;aspect-ratio:3/4;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 12%,transparent)}
+.foto svg{width:46%;height:46%;stroke:color-mix(in srgb,var(--crema-fija) 85%,transparent);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- 1 · Qué fabricar primero ---------- */
+.fab{overflow:hidden}
+.fab-f{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px 22px;padding:18px 22px;border-bottom:1px solid var(--t12)}
+.fab-f:last-child{border-bottom:0}
+.fab-f.una{background:color-mix(in srgb,var(--ambar) 7%,transparent)}
+.fab-f .foto{width:64px}
+.fab-f h3{font-size:18px;font-weight:600;line-height:1.25}
+.fab-f .arr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:8px}
+.cuanto{text-align:right;padding-right:6px}
+.cuanto small{display:block;font-size:13px;color:var(--t65)}
+.cuanto b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.vigilar{display:flex;align-items:center;gap:14px;padding:14px 22px;margin-top:12px}
+.vigilar .lente{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 4px 12px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.vigilar b{display:block;font-size:16px;font-weight:600}
+.vigilar span{font-size:14px;color:var(--t65)}
+.vigilar .btn{margin-left:auto}
+
+/* ---------- 2 · Otras cosas por resolver ---------- */
+.asuntos{display:flex;flex-direction:column;gap:10px}
+.asunto{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px 18px;padding:16px 22px 16px 18px;border-left:4px solid var(--ambar)}
+.asunto.medio{border-left-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.asunto .lente{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 4px 12px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.asunto .lente svg{width:20px;height:20px}
+.asunto h3{font-size:18px;font-weight:600;line-height:1.25}
+.asunto .de{font-size:14px;color:var(--t65);margin:1px 0 8px}
+
+/* ---------- columna derecha ---------- */
+.lista{overflow:hidden}
+.fase{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--t12)}
+.fase:last-child{border-bottom:0}
+.fase .n{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:22px;font-weight:500;font-variant-numeric:lining-nums;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.fase .n.cero{color:var(--t50)}
+.fase b{display:block;font-size:16px;font-weight:600;line-height:1.3}
+.fase span{font-size:14px;color:var(--t65)}
+.fase .chip{margin-left:auto}
+.tela{padding:14px 20px;border-bottom:1px solid var(--t12)}
+.tela:last-child{border-bottom:0}
+.tela .arr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tela .arr b{font-size:16px;font-weight:600;min-width:0}
+[data-dist="una"] .lado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;align-items:start}
+
+/* ---------- los demás modelos ---------- */
+.tabla{overflow:hidden;margin-top:0}
+.t-cab,.t-fila{display:grid;grid-template-columns:minmax(0,1.6fr) 7rem 9rem minmax(10rem,1.3fr) 8rem 12.5rem;gap:0 18px;align-items:center;padding:0 22px}
+.t-cab{height:44px;border-bottom:1px solid var(--t12);font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.t-fila{padding-top:13px;padding-bottom:13px;border-bottom:1px solid var(--t12);font-size:16px}
+.t-fila:last-child{border-bottom:0}
+.t-fila .mod{display:flex;align-items:center;gap:12px;min-width:0}
+.t-fila .mod .foto{width:36px;border-radius:8px}
+.t-fila .mod b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num-d{text-align:right;font-variant-numeric:tabular-nums}
+.t-cab .num-d{text-align:right}
+.nada{color:var(--t50)}
+.dura{display:flex;flex-direction:column;gap:6px}
+.dura span{font-size:14px;color:var(--t80)}
+.pista{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.pista i{display:block;height:100%;border-radius:inherit;background:var(--tinta)}
+.t-fila .movil{display:none}
+
+.rotulo-ej{margin:26px 0 0;font-size:13px;color:var(--t65);display:flex;align-items:center;gap:8px}
+.rotulo-ej svg{width:14px;height:14px}
+
+/* ================= EFICIENCIA ================= */
+.pildoras{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.pildora{height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent))}
+.pildora.on{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.heroe{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:28px 48px;align-items:center;padding:30px 34px;margin-top:22px}
+.heroe .rot{font-size:16px;color:var(--t80)}
+.heroe .grande{font-family:'EB Garamond',serif;font-weight:500;font-size:72px;line-height:1.05;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.heroe .chip{margin-top:10px;height:30px;font-size:14px}
+.forma h3,.sub-h{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin-bottom:12px}
+.barra-f{display:grid;grid-template-columns:13rem minmax(0,1fr) 6.5rem;align-items:center;gap:14px;padding:7px 0;font-size:16px}
+.barra-f b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.barra-f .pista{height:10px}
+.barra-f .pista i.suave{background:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.heroe .pares{margin-top:18px;padding-top:18px;border-top:1px solid var(--t12);gap:8px 26px}
+.heroe .par b{font-size:18px}
+.dos{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start}
+.gasto{padding:8px 24px 14px}
+.gasto .barra-f{grid-template-columns:12rem minmax(0,1fr) 7rem 3.5rem;padding:12px 0;border-bottom:1px solid var(--t12)}
+.gasto .barra-f:last-child{border-bottom:0}
+.gasto .barra-f small{font-size:14px;color:var(--t65);text-align:right;font-variant-numeric:tabular-nums}
+.total-d{font-size:16px;color:var(--t80)}.total-d b{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;color:var(--tinta);margin-left:8px;font-variant-numeric:lining-nums}
+.meses{padding:22px 24px 18px}
+.meses .cols{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;align-items:end;height:210px}
+.mes{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.mes b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--t65)}
+.mes.on b{color:var(--tinta);font-size:16px}
+.mes .col-b{width:100%;max-width:44px;border-radius:8px 8px 3px 3px;overflow:hidden;display:flex;flex-direction:column}
+.mes .col-b i{display:block;background:var(--sand)}
+.mes .col-b i+i{background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+.mes.on .col-b i{background:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.mes.on .col-b i+i{background:var(--tinta)}
+.mes span{font-size:13px;color:var(--t65)}
+.mes.on span{color:var(--tinta);font-weight:600}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:16px;padding-top:14px;border-top:1px solid var(--t12);font-size:14px;color:var(--t80)}
+.leyenda span{display:inline-flex;align-items:center;gap:8px}
+.leyenda i{width:10px;height:10px;border-radius:3px;background:var(--tinta)}
+.leyenda i.suave{background:color-mix(in srgb,var(--tinta) 45%,transparent)}
+
+/* ================= NUEVA ORDEN ================= */
+.orden{display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:28px;align-items:start;margin-top:26px}
+.paso{padding:22px 24px;margin-bottom:14px}
+.paso-t{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.paso-t .n{width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--crema);background:var(--tinta)}
+.paso-t .n.hecho{background:var(--verde)}
+.paso-t .n.luego{color:var(--t80);background:var(--t12)}
+.paso-t h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.1}
+.paso-t .der{margin-left:auto}
+.modelo-e{display:flex;align-items:center;gap:16px}
+.modelo-e .foto{width:56px}
+.modelo-e b{display:block;font-size:18px;font-weight:600}
+.modelo-e span span{font-size:14px;color:var(--t65)}
+.seg2{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.seg2 button{height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--t65)}
+.seg2 button.on{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));border:1px solid var(--borde)}
+.sugerido{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-radius:16px;margin-bottom:16px;background:color-mix(in srgb,var(--verde) 9%,transparent)}
+.sugerido svg{color:var(--verde)}
+.sugerido b{font-size:16px;font-weight:600}
+.sugerido .btn{margin-left:auto;height:36px}
+.matriz{display:grid;grid-template-columns:minmax(8rem,1.2fr) repeat(4,minmax(0,1fr)) 5rem;gap:10px 12px;align-items:center}
+.matriz .cab-m{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);text-align:center}
+.matriz .cab-m.izq{text-align:left}.matriz .cab-m.der{text-align:right}
+.matriz .color{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600}
+.matriz .color i{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.matriz .celda{height:44px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;border:1px solid var(--borde);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.matriz .celda.cero{color:var(--t50);font-weight:500}
+.matriz .tot{text-align:right;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.matriz .linea{grid-column:1/-1;height:1px;background:var(--t12)}
+.matriz .pie-m{font-size:14px;color:var(--t65)}
+.matriz .pie-n{text-align:center;font-size:14px;color:var(--t80);font-variant-numeric:tabular-nums}
+.plegado{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.plegado .btn{margin-left:auto;height:38px}
+.ficha{padding:22px;position:sticky;top:0}
+.ficha .arr{display:flex;align-items:center;gap:14px}
+.ficha .foto{width:64px}
+.ficha h3{font-size:18px;font-weight:600;line-height:1.2;margin-bottom:6px}
+.ficha .cuantas{margin:18px 0 6px}
+.ficha .cuantas b{font-family:'EB Garamond',serif;font-weight:500;font-size:52px;line-height:1;font-variant-numeric:lining-nums}
+.ficha .cuantas span{font-size:16px;color:var(--t80);margin-left:8px}
+.ficha dl{margin:16px 0;padding:14px 0;border-top:1px solid var(--t12);border-bottom:1px solid var(--t12);display:grid;grid-template-columns:1fr auto;gap:10px 12px;font-size:16px}
+.ficha dt{color:var(--t80)}.ficha dd{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.ficha .campo-e{display:block;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin-bottom:8px}
+.ficha .combo{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:14px;border:1px solid var(--borde);font-size:16px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.ficha .combo .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:13px;background:var(--sand)}
+.ficha .combo svg{margin-left:auto;color:var(--t65)}
+.ficha .listo{display:flex;align-items:center;gap:8px;margin:14px 0;font-size:14px;color:var(--verde)}
+.ficha .pie-b{display:flex;gap:10px}.ficha .pie-b .btn.pri{flex:1}
+
+@container disp (max-width:1180px){
+  .heroe,.dos,.orden{grid-template-columns:minmax(0,1fr)}
+  .ficha{position:static}
+}
+@container disp (max-width:640px){
+  .heroe{padding:22px 18px}.heroe .grande{font-size:54px}
+  .barra-f,.gasto .barra-f{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}
+  .barra-f .pista{grid-column:1/-1;order:3}
+  .gasto .barra-f small{display:none}
+  .gasto{padding:6px 16px 10px}.meses{padding:18px 14px}.meses .cols{gap:8px}
+  .paso{padding:18px 16px}
+  .matriz{grid-template-columns:minmax(4.6rem,1fr) repeat(4,minmax(0,1fr));gap:8px 6px}
+  .matriz .tot,.matriz .cab-m.der,.matriz .solo-ancha{display:none}
+  .matriz .color{font-size:14px;gap:6px}.matriz .color i{width:14px;height:14px}
+  .sugerido .btn,.plegado .btn{margin-left:0;width:100%}
+  .paso-t .der{margin-left:0;width:100%}.paso-t{flex-wrap:wrap}
+}
+
+/* ================= ÓRDENES ================= */
+.camino{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));margin-top:24px;overflow:hidden}
+.tramo{position:relative;display:flex;align-items:center;gap:14px;padding:18px 22px;text-align:left;border-left:1px solid var(--t12)}
+.tramo:first-child{border-left:0;padding-right:30px}
+.tramo .n{font-family:'EB Garamond',serif;font-weight:500;font-size:40px;line-height:1;font-variant-numeric:lining-nums;min-width:28px}
+.tramo.cero .n{color:var(--t50)}
+.tramo b{display:block;font-size:16px;font-weight:600;line-height:1.3}
+.tramo span span{font-size:14px;color:var(--t65)}
+.tramo .punto{position:absolute;top:14px;right:16px;width:8px;height:8px;border-radius:50%;background:var(--ambar)}
+.tramo.on{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 -3px 0 var(--tinta)}
+.tramo .flecha{position:absolute;left:-11px;top:50%;width:22px;height:22px;margin-top:-11px;border-radius:50%;display:grid;place-items:center;color:var(--t65);background:var(--papel);border:1px solid var(--t12)}
+.tramo .flecha svg{width:12px;height:12px}
+.o-tabla{margin-top:24px;overflow:hidden}
+.o-barra{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:16px 22px}
+.o-barra .pest{margin-top:0}
+.o-barra .pest button{white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:8px}
+.o-barra .pest i{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;font-size:13px;letter-spacing:0;background:var(--t12);color:var(--t80)}
+.o-barra .pest .on i{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.o-barra .pildora{display:inline-flex;align-items:center;gap:8px}
+.o-barra .pildora i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ambar)}
+.busca{margin-left:auto;display:flex;align-items:center;gap:10px;width:18rem;max-width:100%;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:14px;color:var(--t50);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.o-cab,.o-fila{display:grid;grid-template-columns:minmax(0,1.5fr) 5.5rem minmax(0,1.15fr) 6.5rem 8.5rem minmax(0,1.35fr) 1.25rem;gap:0 18px;align-items:center;padding:0 22px}
+.o-cab{height:44px;border-top:1px solid var(--t12);border-bottom:1px solid var(--t12);font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.o-fila{color:inherit;text-decoration:none;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--t12);font-size:16px}
+.o-fila .mod{display:flex;align-items:center;gap:14px;min-width:0}
+.o-fila .mod .foto{width:44px;border-radius:10px}
+.o-fila .nom{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.o-fila .nom b{font-weight:600}
+.o-fila .num{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--t65);font-variant-numeric:tabular-nums}
+.o-fila .num i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:-4px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.o-fila .sub{display:block;font-size:14px;color:var(--t65);margin-top:3px}
+.o-fila .sub.rojo{color:var(--rojo-p)}.o-fila .sub.ambar{color:var(--ambar)}
+.o-fila .va{color:var(--t50)}
+.o-fila .bien{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--t65)}
+.o-fila .bien svg{color:var(--verde);width:14px;height:14px}
+.chip.tinta{color:var(--crema);background:var(--tinta);border-color:transparent}
+.o-pie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding:12px 22px;font-size:14px;color:var(--t65)}
+.o-fila .movil-o{display:none}
+@container disp (max-width:1180px){
+  .camino{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tramo:first-child{grid-column:1/-1;border-bottom:1px solid var(--t12)}
+  .tramo{border-left:0;border-bottom:1px solid var(--t12)}.tramo .flecha{display:none}
+  .o-cab{display:none}
+  .o-barra{border-bottom:1px solid var(--t12)}
+  .o-fila{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 1.25rem;gap:10px 16px}
+  .o-fila .c-pr,.o-fila .c-dias{display:none}
+  .o-fila .mod{grid-column:1/3}.o-fila .c-at{grid-column:1/-1}
+  .busca{margin-left:0;width:100%}
+}
+@container disp (max-width:640px){
+  .tramo{padding:14px 16px}.tramo .n{font-size:32px}
+  .o-barra{padding:14px 16px}.o-barra .pest{width:100%;overflow:auto}
+  .o-fila{padding:14px 16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .o-fila .mod{grid-column:1/-1}.o-fila .va{display:none}
+  .o-pie{padding:12px 16px}
+}
+
+/* ================= INSUMOS ================= */
+.acabarse{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.i-barra{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;margin:30px 0 16px}
+.i-barra .pest{margin-top:0}
+.i-barra .pest button{white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:8px}
+.i-barra .pest i{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;font-size:13px;letter-spacing:0;background:var(--t12);color:var(--t80)}
+.i-barra .pest .on i{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.i-barra .vale{margin-left:auto;text-align:right}
+.i-barra .busca{margin-left:0}
+.tela-g{overflow:hidden;margin-bottom:16px}
+.tela-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:18px 22px 14px}
+.tela-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1}
+.tela-cab .der{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tela-cab .btn{height:36px;padding:0 14px;font-size:14px}
+.i-cab,.i-fila{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) 7rem 9.5rem 9.5rem 1.25rem;gap:0 22px;align-items:center;padding:0 22px}
+.i-cab{height:38px;border-top:1px solid var(--t12);font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.i-fila{padding-top:14px;padding-bottom:14px;border-top:1px solid var(--t12);font-size:16px;text-align:left;width:100%}
+.i-fila .color{display:flex;align-items:center;gap:12px;font-weight:600;min-width:0}
+.i-fila .color i{width:22px;height:22px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.i-fila .queda{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1;text-align:right;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.i-fila .queda small{font-family:'DM Sans';font-size:14px;color:var(--t65);margin-left:4px}
+.i-fila .va{color:var(--t50);transition:transform .3s var(--ease)}
+.i-fila.abierta .va{transform:rotate(90deg)}
+.nivel{display:block;position:relative;height:10px;border-radius:99px;background:var(--sand)}
+.nivel i{display:block;height:100%;border-radius:inherit;background:var(--tinta)}
+.nivel i.ambar{background:var(--ambar)}
+.nivel em{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:2px;background:var(--tinta)}
+.nivel-t{display:block;font-size:13px;color:var(--t65);margin-top:6px}
+.lotes{padding:4px 22px 18px 56px;background:color-mix(in srgb,var(--tinta) 3%,transparent);border-top:1px solid var(--t12)}
+.lotes h4{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:14px 0 4px}
+.lote{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto auto;gap:6px 26px;align-items:center;padding:12px 0;border-bottom:1px solid var(--t12)}
+.lote>b{font-size:16px;font-weight:600}.lote>.chip,.lote>.enlace{justify-self:start}
+.lote>b small{display:block;font-size:14px;font-weight:400;color:var(--t65)}
+.lotes .acc{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.lotes .acc .btn{height:36px;padding:0 14px;font-size:14px}
+.btn.pel{color:var(--rojo-p);border-color:color-mix(in srgb,var(--rojo) 35%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent))}
+@container disp (max-width:1180px){
+  .acabarse{grid-template-columns:minmax(0,1fr)}
+  .i-cab{display:none}
+  .i-fila{grid-template-columns:minmax(0,1fr) auto;gap:10px 14px}
+  .i-fila .c-nivel{grid-column:1/-1;order:3}
+  .i-fila .c-alc{order:4}.i-fila .c-est{order:2}.i-fila .queda{order:5;text-align:right}
+  .i-fila .va{display:none}
+  .i-barra .vale{margin-left:0;text-align:left}
+  .i-barra .busca{width:100%}
+  .lotes{padding-left:22px}
+  .lote{grid-template-columns:minmax(0,1fr) auto}
+}
+@container disp (max-width:640px){
+  .tela-cab{padding:16px}.i-fila{padding:14px 16px}.lotes{padding:4px 16px 16px}
+  .i-barra .pest{width:100%;overflow:auto}
+  .tela-cab .der{margin-left:0;width:100%}
+  .lote{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ================= HOJAS DE INSUMOS ================= */
+.capa .velo{background:color-mix(in srgb,var(--sombra) 28%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.capa .hoja{background:color-mix(in srgb,var(--vidrio) 92%,transparent);padding:30px 32px 26px}
+.capa .hoja.ancha{width:min(768px,100%)}
+.hoja h2{font-size:30px}
+.hoja .bajada{font-size:16px;color:var(--t80);margin:6px 0 4px}
+.h-paso{margin-top:26px}
+.h-paso-t{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.h-paso-t .n{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--crema);background:var(--tinta)}
+.h-paso-t h3{font-size:18px;font-weight:600}
+.h-paso-t .cuenta{font-size:13px;font-weight:600;min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:inline-grid;place-items:center;background:var(--t12);color:var(--t80)}
+.h-paso-t .q{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--borde);font-size:13px;font-weight:700;color:var(--taupe)}
+.h-fila{display:grid;gap:14px;margin-bottom:14px}
+.h-fila.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.h-fila.c3{grid-template-columns:9rem minmax(0,1fr) minmax(0,1.3fr)}
+.h-fila.c21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.cmp{display:block;min-width:0}
+.cmp .rot{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);margin-bottom:7px}
+.cmp .rot em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--t50)}
+.cmp .cj{display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;border-radius:14px;border:1px solid var(--borde);font-size:16px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);white-space:nowrap;overflow:hidden}
+.cmp .cj.vacia{color:var(--t50)}
+.cmp .cj .suf{margin-left:auto;font-size:14px;color:var(--t65)}
+.cmp .cj svg{margin-left:auto;color:var(--t65)}
+.cmp .cj svg.izq{margin-left:0}
+.cmp .linea{display:block;font-size:14px;color:var(--t65);margin-top:6px}
+.h-seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.h-seg button{height:38px;padding:0 18px;border-radius:999px;font-size:14px;font-weight:600;color:var(--t65);white-space:nowrap}
+.h-seg button.on{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent))}
+.carta{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 14px}
+.carta i{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.carta i.on{outline:2px solid var(--tinta);outline-offset:2px}
+.h-tabla{border:1px solid var(--t12);border-radius:16px;overflow:hidden}
+.h-tabla .f{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr)) 2rem;gap:10px;align-items:center;padding:8px 12px 8px 16px;border-top:1px solid var(--t12)}
+.h-tabla .f.enc-t{border-top:0;padding-top:10px;padding-bottom:10px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe);background:color-mix(in srgb,var(--tinta) 3%,transparent)}
+.h-tabla.compra .f{grid-template-columns:minmax(0,2.1fr) minmax(0,.9fr) minmax(0,.9fr) 6.5rem 2rem}
+.h-tabla .h-col{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;min-width:0}
+.h-tabla .h-col i{width:18px;height:18px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.h-tabla .cj{display:flex;align-items:center;height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--borde);font-size:16px;font-variant-numeric:tabular-nums;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);white-space:nowrap;overflow:hidden}
+.h-tabla .cj.vacia{color:var(--t50)}
+.h-tabla .cj .suf{margin-left:auto;font-size:13px;color:var(--t65)}
+.h-tabla .cj svg{margin-left:auto;color:var(--t65)}
+.h-tabla .x{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+.h-tabla .sub-t{text-align:right;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.h-tabla .bajo{grid-column:1/-1;display:flex;align-items:center;gap:12px;font-size:14px;color:var(--t80);margin-top:-2px}
+.h-tabla .bajo .h-seg button{height:30px;padding:0 12px;font-size:13px}
+.h-mas{display:inline-flex;align-items:center;gap:8px;margin-top:12px;height:38px;padding:0 16px;border-radius:999px;border:1px dashed var(--borde);font-size:14px;font-weight:600;color:var(--t80)}
+.h-inter{display:flex;align-items:center;gap:12px;font-size:16px}
+.h-inter .pista-i{width:44px;height:26px;border-radius:99px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 6%,transparent);position:relative}
+.h-inter .pista-i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.h-plegado{display:flex;align-items:center;justify-content:space-between;gap:12px;height:46px;padding:0 16px;border-radius:14px;border:1px dashed var(--borde);font-size:16px;color:var(--t80);margin-bottom:14px}
+.h-cierre{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 28px;align-items:end;margin-top:26px;padding-top:20px;border-top:1px solid var(--t12)}
+.h-cierre .total{text-align:right}
+.h-cierre .total small{display:block;font-size:13px;color:var(--t65)}
+.h-cierre .total b{font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.h-listo{display:flex;align-items:center;gap:8px;margin:14px 0 0;font-size:14px;color:var(--verde)}
+.h-pie{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.cj .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:12px;background:var(--sand);flex:none}
+@container disp (max-width:640px){
+  .capa{padding:24px 10px 10px}
+  .capa .hoja{padding:24px 18px 20px;border-radius:26px}
+  .h-fila.c2,.h-fila.c3,.h-fila.c21{grid-template-columns:minmax(0,1fr)}
+  .h-seg{display:flex;flex-wrap:wrap;border-radius:20px}
+  .h-tabla .f.enc-t{display:none}
+  .h-tabla .f,.h-tabla.compra .f{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .h-tabla .f .h-col{grid-column:1/3}.h-tabla .f .x{grid-column:3;justify-self:end;grid-row:1}
+  .h-tabla.compra .f .col-c{grid-column:1/3}.h-tabla.compra .sub-t{grid-column:1/-1}
+  .h-tabla .cj{font-size:14px;padding:0 8px}
+  .h-cierre{grid-template-columns:minmax(0,1fr)}.h-cierre .total{text-align:left}
+  .h-pie .btn{flex:1}
+}
+
+/* ---------- anchos ---------- */
+@container disp (max-width:1180px){
+  .cuerpo{grid-template-columns:minmax(0,1fr)}
+  .lado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;align-items:start}
+  .cifras4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .t-cab,.t-fila{grid-template-columns:minmax(0,1.4fr) 6rem minmax(9rem,1fr) 11.5rem}
+  .t-cab .c3,.t-fila .c3,.t-cab .c5,.t-fila .c5{display:none}
+}
+@container disp (max-width:640px){
+  .cifras4{grid-template-columns:1fr}
+  .lado,[data-dist="una"] .lado{grid-template-columns:1fr}
+  .fab-f{grid-template-columns:auto minmax(0,1fr);padding:16px}
+  .fab-f .cuanto{grid-column:1/-1;text-align:left;display:flex;align-items:baseline;gap:8px;padding:0}
+  .fab-f .cuanto b{font-size:28px}
+  .fab-f .btn{grid-column:1/-1;width:100%}
+  .asunto{grid-template-columns:auto minmax(0,1fr);padding:16px}
+  .asunto .btn{grid-column:1/-1;width:100%}
+  .vigilar{flex-wrap:wrap;padding:14px 16px}.vigilar .btn{margin-left:0;width:100%}
+  .t-cab{display:none}
+  .t-fila{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding:14px 16px}
+  .t-fila .c2,.t-fila .c3,.t-fila .c5{display:none}
+  .t-fila .c4{grid-column:1/-1;order:3}
+  .t-fila .movil{display:flex;grid-column:1/-1;order:2}
+  .t-fila{grid-template-columns:minmax(0,1fr)}.t-fila .mod b{white-space:normal}
+  .ep-acc{width:100%;flex-wrap:wrap}.ep-acc .btn{flex:1 1 auto;white-space:nowrap}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Producción, más clara</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="resumen">Resumen</button><button data-v="eficiencia">Eficiencia</button><button data-v="orden">Nueva orden</button><button data-v="ordenes">Órdenes</button><button data-v="insumos">Insumos</button></div>
+  <span class="tag">Hoja de Insumos</span><div class="seg-m" data-ctl="hoja"><button data-v="ninguna">Ninguna</button><button data-v="tela">Nueva tela</button><button data-v="avio">Nuevo avío</button><button data-v="saldo">Saldo inicial</button><button data-v="compra">Llegó una compra</button></div>
+  <span class="tag">Distribución del Resumen</span><div class="seg-m" data-ctl="dist"><button data-v="accion">C: solo lo que pide acción (recomendada)</button><button data-v="dos">A: dos columnas</button><button data-v="una">B: una columna</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1440">1440</button><button data-v="escritorio">Escritorio</button></div>
+  <span class="tag">Alto</span><div class="seg-m" data-ctl="alto"><button data-v="completa">Toda la pantalla</button><button data-v="ahora">Como un monitor</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="capa" id="capa"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué cambia frente a la pantalla de hoy</h2>
+    <ul>
+      <li><b>Un orden que se lee solo.</b> Arriba el dinero, después lo que hay que fabricar, después lo demás que hay que resolver. A la derecha, lo que solo se consulta: qué hay en el Taller y si alcanza la tela.</li>
+      <li><b>Sin punto medio.</b> Cada dato es una pieza: un rótulo chico arriba y su valor abajo, o una insignia.</li>
+      <li><b>Nada repetido.</b> «Lo que ya se está fabricando» deja de ser otra fila de tarjetas iguales a las de Órdenes: es una lista corta. La tela que falta se avisa una vez, con su botón.</li>
+      <li><b>Lo que explica va detrás del «?».</b> A la vista queda el nombre y, como mucho, una línea.</li>
+      <li><b>Un solo nombre para cada botón:</b> «Preparar orden» siempre.</li>
+    </ul>
+    <p>Todos los modelos, proveedores y montos de esta maqueta son inventados.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+const I = {
+  flecha: 'M5 12h14M13 6l6 6-6 6', mas: 'M12 5v14M5 12h14', ojo: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  tela: 'M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8', reloj: 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', pago: 'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  camisa: 'M8 3 3 6l2 4 2-1v11h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z', info: 'M12 16v-4M12 8h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z',
+};
+const ic = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const foto = (hex) => `<span class="foto" style="background:${hex}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${I.camisa}"/></svg></span>`;
+const par = (r, v, tono = '') => `<span class="par ${tono}"><small>${r}</small><b>${v}</b></span>`;
+const chip = (t, tono = '') => `<span class="chip ${tono}"><i></i>${t}</span>`;
+const titulo = (t, { cuenta, ayuda = true, der = '' } = {}) => `<div class="sec-t"><h2>${t}</h2>${cuenta ? `<span class="cuenta">${cuenta}</span>` : ''}${ayuda ? '<button class="q" aria-label="Qué es esto">?</button>' : ''}${der ? `<span class="der">${der}</span>` : ''}</div>`;
+const ver = (t) => `<a class="ver" href="#">${t}${ic(I.flecha)}</a>`;
+
+// ---- datos inventados ----
+const FABRICAR = [
+  { n: 'Blusa Emma', hex: '#7a2e2a', quedan: '4', semana: '6', unas: 24 },
+  { n: 'Vestido Ara', hex: '#2f4a3a', quedan: '2', semana: '3', unas: 12 },
+  { n: 'Polo Nube', hex: '#b9a886', quedan: 'Agotado', semana: '5', unas: 20 },
+];
+const ASUNTOS = [
+  { ic: I.tela, t: 'Falta tela para cortar', de: 'Lino crudo', pares: [['Faltan', '12 m', 'ambar'], ['Pedido en camino', 'Ninguno']], btn: 'Comprar tela' },
+  { ic: I.reloj, t: 'Una orden está atrasada', de: 'Casaca Lía, orden OP-000031', pares: [['Debía entregarse', 'Hace 2 días', 'ambar'], ['Está en', 'Costura'], ['Son', '40 prendas']], btn: 'Ver la orden' },
+  { ic: I.pago, t: 'Un pago está vencido', de: 'Textiles del Sur', pares: [['Monto', 'S/ 1,150.00', 'rojo'], ['Venció', 'Hace 5 días']], btn: 'Ir a Por pagar', medio: true },
+];
+const FASES = [['Por cortar', 2, '70 prendas', 'Falta tela', 'ambar'], ['En costura', 3, '120 prendas', '1 atrasada', 'ambar'], ['En acabado', 1, '30 prendas'], ['Listas para el stock', 0, '']];
+const TELAS = [
+  { n: 'Lino crudo', chip: ['Faltan 12 m', 'ambar'], pares: [['Hay', '30 m'], ['Se necesitan', '42 m']] },
+  { n: 'Denim azul', chip: ['Alcanza si llega', 'ambar'], pares: [['Hay', '10 m'], ['Se necesitan', '25 m'], ['En camino', '20 m']] },
+  { n: 'Algodón pima blanco', chip: ['Alcanza', 'verde'], pares: [['Hay', '85 m'], ['Se necesitan', '40 m']] },
+  { n: 'Gabardina beige', chip: ['Nadie la pide', ''], pares: [['Hay', '60 m']] },
+];
+const MODELOS = [
+  { n: 'Casaca Lía', hex: '#c9a27e', tiendas: 18, semana: '4', dura: 'Alcanza para 4 semanas', pct: 52, fab: '40', chip: ['Ya se está fabricando', 'pizarra'] },
+  { n: 'Falda Sol', hex: '#b5651d', tiendas: 9, semana: '3', dura: 'Alcanza para 3 semanas', pct: 38, fab: '', chip: ['Llevar 12 a tienda', 'ambar'] },
+  { n: 'Pantalón Río', hex: '#3b4a5a', tiendas: 52, semana: '2', dura: 'Alcanza para 6 meses', pct: 100, fab: '', chip: ['Hay de sobra', ''] },
+  { n: 'Chaleco Brisa', hex: '#8a8f6a', tiendas: 7, semana: '', dura: 'Todavía sin ventas', pct: 0, fab: '', chip: ['Sin ventas todavía', ''] },
+];
+
+function pantalla(e) {
+  const cab = `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea"><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Taller</span><span class="raya" aria-hidden="true"></span><span>jueves, 26 de noviembre</span></p></div>
+      <h1 class="ep-titulo">Resumen</h1></div>
+      <div class="ep-acc"><button class="btn sec">Ver órdenes</button><button class="btn pri">${ic(I.mas, 'ic mas')}Nueva orden</button></div></header>
+    <div class="pest" role="tablist"><button class="on">Hoy</button><button>Eficiencia</button></div>`;
+
+  const tc = (nom, pto, num, ctx, tono = '') => `<div class="tc"><span class="tc-nom"><span class="pto ${pto}"></span>${nom}</span><span class="tc-val"><span class="num">${num}</span></span><span class="tc-ctx ${tono}">${ctx}</span></div>`;
+  const cifras = `<div class="cifras4">
+    ${tc('Dinero en tela y avíos', 'ambar', 'S/ 18,420', '2 insumos por acabarse', 'ambar')}
+    ${tc('Dinero en órdenes abiertas', 'verde', 'S/ 6,310', '6 órdenes abiertas')}
+    ${tc('Por pagar a proveedores', 'rojo', 'S/ 4,200', 'S/ 1,150 ya vencidos', 'rojo')}
+    ${tc('Entregas por atender', 'ambar', '1', 'Atrasada o por vencer', 'ambar')}
+  </div>`;
+
+  const fabricar = titulo('Qué fabricar primero', { cuenta: FABRICAR.length }) + `<div class="placa fab">${FABRICAR.map((f, i) => `
+      <div class="fab-f${i === 0 ? ' una' : ''}">${foto(f.hex)}
+        <div><div class="arr"><h3>${f.n}</h3>${i === 0 ? '<span class="chip lleno">Empieza por aquí</span>' : ''}</div>
+          <div class="pares">${par(e.dist === 'accion' ? 'En tiendas' : 'Quedan en tiendas', f.quedan, f.quedan === 'Agotado' ? 'ambar' : '')}${par(e.dist === 'accion' ? 'Venta por semana' : 'Se venden por semana', f.semana)}</div></div>
+        <div class="cuanto"><small>Fabricar unas</small><b>${f.unas}</b><small>prendas</small></div>
+        <button class="btn ${i === 0 ? 'pri' : 'sec'}">Preparar orden</button>
+      </div>`).join('')}</div>
+    <div class="placa vigilar"><span class="lente">${ic(I.ojo)}</span><div><b>2 modelos para vigilar</b><span>Vendieron poco: todavía no conviene fabricarlos.</span></div><button class="btn sec">Ver los 2</button></div>`;
+
+  const lista = e.dist === 'accion' ? [ASUNTOS[0], { ...ASUNTOS[1], pares: ASUNTOS[1].pares.slice(0, 2) }, { ic: I.flecha, t: 'Prendas listas sin llevar a tienda', de: 'Falda Sol', pares: [['En el Taller', '12 prendas'], ['En tiendas', '9']], btn: 'Llevar a tienda' }, ASUNTOS[2]] : ASUNTOS;
+  const asuntos = titulo(e.dist === 'accion' ? 'Por resolver' : 'Otras cosas por resolver', { cuenta: lista.length }) + `<div class="asuntos">${lista.map((a) => `
+      <div class="placa asunto${a.medio ? ' medio' : ''}"><span class="lente">${ic(a.ic)}</span>
+        <div><h3>${a.t}</h3><p class="de">${a.de}</p><div class="pares">${a.pares.map((p) => par(...p)).join('')}</div></div>
+        <button class="btn sec">${a.btn}</button></div>`).join('')}</div>`;
+
+  const taller = titulo('En el Taller ahora', { ayuda: false, der: ver('Ver órdenes') }) + `<div class="placa lista">${FASES.map(([t, n, prendas, aviso, tono]) => `
+      <div class="fase"><span class="n${n === 0 ? ' cero' : ''}">${n}</span><div><b>${t}</b><span>${n === 0 ? 'Ninguna orden' : prendas}</span></div>${aviso ? chip(aviso, tono) : ''}</div>`).join('')}</div>`;
+
+  const telas = titulo('¿Alcanza la tela?') + `<div class="placa lista">${TELAS.map((t) => `
+      <div class="tela"><div class="arr"><b>${t.n}</b>${chip(...t.chip)}</div><div class="pares">${t.pares.map((p) => par(...p)).join('')}</div></div>`).join('')}</div>`;
+
+  const modelos = titulo('Los demás modelos', { cuenta: MODELOS.length }) + `<div class="placa tabla">
+    <div class="t-cab"><span>Modelo</span><span class="num-d c2">En tiendas</span><span class="num-d c3">Se venden por semana</span><span class="c4">Cuánto dura</span><span class="num-d c5">Fabricándose</span><span>Qué hacer</span></div>
+    ${MODELOS.map((m) => `<div class="t-fila"><span class="mod">${foto(m.hex)}<b>${m.n}</b></span>
+      <span class="num-d c2">${m.tiendas}</span><span class="num-d c3">${m.semana || '<span class="nada">Sin ventas</span>'}</span>
+      <span class="dura c4">${m.pct ? `<span class="pista"><i style="width:${m.pct}%"></i></span>` : ''}<span>${m.dura}</span></span>
+      <span class="num-d c5">${m.fab || '<span class="nada">Nada</span>'}</span><span>${chip(...m.chip)}</span>
+      <span class="pares movil">${par('En tiendas', m.tiendas)}${par('Por semana', m.semana || 'Sin ventas')}</span></div>`).join('')}</div>`;
+
+  if (e.dist === 'accion') {
+    const bien = [['6 órdenes en curso', 'Sin más atrasos', 'Ver órdenes'], ['3 telas alcanzan', 'Para los cortes', 'Ver insumos'], ['5 modelos con stock', 'No hay que fabricar', 'Ver modelos'], ['Sin más pagos', 'Por vencer esta semana', 'Ver Por pagar']];
+    const soloFab = fabricar.split('<div class="placa vigilar">')[0];
+    return cab + `<div class="cuerpo"><div class="col">${soloFab}</div><div class="col">${asuntos}</div></div>` +
+      titulo('Lo demás está en orden', { ayuda: false }) + `<div class="bien">${bien.map(([t, d, a]) => `<a class="placa" href="#" aria-label="${a}"><span class="ok">${ic('M20 6 9 17l-5-5')}</span><span><b>${t}</b><span>${d}</span></span><span class="va">${ic('M9 6l6 6-6 6')}</span></a>`).join('')}</div>` +
+      `<p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ningún modelo, proveedor ni monto es real.</p>`;
+  }
+  return cab + cifras + `<div class="cuerpo"><div class="col">${fabricar}${asuntos}</div><div class="col lado"><div>${taller}</div><div>${telas}</div></div></div>` + modelos +
+    `<p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ningún modelo, proveedor ni monto es real.</p>`;
+}
+
+// ================= EFICIENCIA =================
+function pantallaEficiencia() {
+  const cab = `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea"><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Taller</span><span class="raya" aria-hidden="true"></span><span>jueves, 26 de noviembre</span></p></div>
+      <h1 class="ep-titulo">Eficiencia</h1></div></header>
+    <div class="pest" role="tablist"><button>Hoy</button><button class="on">Eficiencia</button></div>
+    <div class="pildoras" role="group" aria-label="Mes">${['Noviembre', 'Octubre', 'Setiembre', 'Agosto'].map((m, i) => `<button class="pildora${i === 0 ? ' on' : ''}">${m}</button>`).join('')}</div>`;
+  const heroe = `<section class="placa heroe">
+      <div><p class="rot">En noviembre, hacer una prenda costó</p><p class="grande">S/ 38.40</p>${chip('S/ 2.10 menos que en octubre', 'verde')}</div>
+      <div class="forma"><h3>De qué se forma</h3>
+        <div class="barra-f"><span>Materiales</span><span class="pista"><i style="width:55%"></i></span><b>S/ 21.30</b></div>
+        <div class="barra-f"><span>Mano de obra y gastos</span><span class="pista"><i class="suave" style="width:45%"></i></span><b>S/ 17.10</b></div>
+        <div class="pares">${par('Prendas buenas', '412')}${par('Órdenes cerradas', '9')}${par('Salieron buenas', '97 de cada 100')}${par('Entregas a tiempo', '7 de 9', 'ambar')}</div>
+      </div></section>`;
+  const GASTO = [['Planilla', 6900, 44], ['Materiales', 5480, 35], ['Servicios de afuera', 2140, 13], ['Alquiler y servicios', 1300, 8]];
+  const gasto = titulo('En qué se fue la plata', { der: `<span class="total-d">Total<b>S/ 15,820</b></span>` }) + `<div class="placa gasto">${GASTO.map(([n, m, p]) => `
+      <div class="barra-f"><span>${n}</span><span class="pista"><i style="width:${Math.round(p / 44 * 100)}%"></i></span><b>S/ ${m.toLocaleString('en-US')}</b><small>${p} %</small></div>`).join('')}</div>`;
+  const MESES = [['Jun', 22.4, 18.8], ['Jul', 22.0, 18.1], ['Ago', 23.1, 19.5], ['Set', 21.6, 18.2], ['Oct', 22.2, 18.3], ['Nov', 21.3, 17.1]];
+  const meses = titulo('Costo por prenda, mes a mes') + `<div class="placa meses"><div class="cols">${MESES.map(([m, a, b], i) => `
+      <div class="mes${i === 5 ? ' on' : ''}"><b>${(a + b).toFixed(2)}</b><span class="col-b"><i style="height:${Math.round(b * 3.6)}px"></i><i style="height:${Math.round(a * 3.6)}px"></i></span><span>${m}</span></div>`).join('')}</div>
+      <div class="leyenda"><span><i></i>Materiales</span><span><i class="suave"></i>Mano de obra y gastos</span></div></div>`;
+  return cab + heroe + `<div class="dos"><div>${gasto}</div><div>${meses}</div></div>` + `<p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ningún monto es real.</p>`;
+}
+
+// ================= NUEVA ORDEN =================
+function pantallaOrden() {
+  const cab = `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea"><a class="volver" href="#" aria-label="Volver a Órdenes">${ic('M19 12H5M11 6l-6 6 6 6')}</a><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Taller</span><span class="raya" aria-hidden="true"></span><span>jueves, 26 de noviembre</span></p></div>
+      <h1 class="ep-titulo">Nueva orden</h1></div></header>`;
+  const TALLAS = ['S', 'M', 'L', 'XL'];
+  const COLORES = [['Vino', '#7a2e2a', [2, 4, 4, 2]], ['Negro', '#1f1f1f', [1, 3, 3, 1]], ['Crudo', '#e7dcc6', [0, 2, 2, 0]]];
+  const porTalla = TALLAS.map((_, i) => COLORES.reduce((a, c) => a + c[2][i], 0));
+  const matriz = `<div class="matriz"><span class="cab-m izq">Color</span>${TALLAS.map((t) => `<span class="cab-m">${t}</span>`).join('')}<span class="cab-m der">Total</span>
+    ${COLORES.map(([n, hex, q]) => `<span class="color"><i style="background:${hex}"></i>${n}</span>${q.map((x) => `<span class="celda${x === 0 ? ' cero' : ''}">${x}</span>`).join('')}<span class="tot">${q.reduce((a, b) => a + b, 0)}</span>`).join('')}
+    <span class="linea"></span><span class="pie-m">Por talla</span>${porTalla.map((x) => `<span class="pie-n">${x}</span>`).join('')}<span class="tot solo-ancha">24</span></div>`;
+  const izq = `
+    <section class="placa paso"><div class="paso-t"><span class="n hecho">${ic('M20 6 9 17l-5-5')}</span><h2>Qué se fabrica</h2></div>
+      <div class="plegado"><span class="modelo-e">${foto('#7a2e2a')}<span><b>Blusa Emma</b><span>Se vende a S/ 89.00</span></span></span>
+        <span class="seg2" role="group" aria-label="Tipo de orden"><button class="on">Para vender</button><button>Muestra</button></span>
+        <button class="btn sec">Cambiar modelo</button></div></section>
+    <section class="placa paso"><div class="paso-t"><span class="n">2</span><h2>Cuántas, por talla y color</h2><span class="der">${chip('Sigue', '')}</span></div>
+      <div class="sugerido">${ic('M3 17l6-6 4 4 8-8M15 7h6v6')}<span><b>Las ventas piden unas 24 prendas</b></span><button class="btn sec">Usar lo sugerido</button></div>
+      ${matriz}</section>
+    <section class="placa paso"><div class="paso-t"><span class="n luego">3</span><h2>Fases, tela y entrega</h2><button class="q" aria-label="Qué es esto">?</button></div>
+      <div class="plegado"><div class="pares">${par('Fases', 'Las de siempre')}${par('Tela', 'Lino crudo')}${par('Entrega', 'Sin fecha')}</div><button class="btn sec">Ver y cambiar</button></div></section>`;
+  const ficha = `<aside class="placa ficha" aria-label="La orden, tal como va a quedar">
+      <div class="arr">${foto('#7a2e2a')}<div><h3>Blusa Emma</h3>${chip('Para vender', 'pizarra')}</div></div>
+      <p class="cuantas"><b>24</b><span>prendas</span></p>
+      <div class="pares">${par('Colores', '3')}${par('Tallas', '4')}</div>
+      <dl><dt>Cuesta hacerla</dt><dd>S/ 38.40</dd><dt>Se vende a</dt><dd>S/ 89.00</dd><dt>Ganancia por prenda</dt><dd style="color:var(--verde)">S/ 50.60</dd></dl>
+      <span class="campo-e">Quién abre la orden</span>
+      <div class="combo"><span class="av">LR</span>Lucía Ramos${ic('M6 9l6 6 6-6')}</div>
+      <p class="listo">${ic('M20 6 9 17l-5-5')}Todo listo para abrir la orden.</p>
+      <div class="pie-b"><button class="btn sec">Cancelar</button><button class="btn pri">Abrir orden</button></div></aside>`;
+  return cab + `<div class="orden"><div>${izq}</div>${ficha}</div><p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ningún modelo ni monto es real.</p>`;
+}
+
+// ================= ÓRDENES =================
+function pantallaOrdenes() {
+  const cab = `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea"><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Taller</span><span class="raya" aria-hidden="true"></span><span>jueves, 26 de noviembre</span></p></div>
+      <h1 class="ep-titulo">Órdenes</h1></div>
+      <div class="ep-acc"><button class="btn pri">${ic(I.mas, 'ic mas')}Nueva orden</button></div></header>`;
+  const TRAMOS = [['Todas', 6, '220 prendas', false, true], ['Por cortar', 2, '70 prendas', true], ['En costura', 3, '120 prendas', true], ['En acabado', 1, '30 prendas'], ['Listas para el stock', 0, 'Ninguna']];
+  const camino = `<div class="placa camino" role="group" aria-label="Dónde está cada orden">${TRAMOS.map(([t, n, p, aviso, on], i) => `
+      <button class="tramo${on ? ' on' : ''}${n === 0 ? ' cero' : ''}">${i > 1 ? `<span class="flecha">${ic('M9 6l6 6-6 6')}</span>` : ''}<span class="n">${n}</span><span><b>${t}</b><span>${p}</span></span>${aviso ? '<span class="punto" title="Hay algo por atender"></span>' : ''}</button>`).join('')}</div>`;
+  const O = [
+    { n: 'Casaca Lía', hex: '#c9a27e', op: 'OP-000031', cols: ['#c9a27e', '#1f1f1f'], pr: 40, fase: 'En costura', quien: 'Afuera, con Confecciones Rosa', dias: '12 días', ent: '24 nov', rel: 'Hace 2 días', relT: 'rojo', at: ['Atrasada', 'Debía entregarse el 24 de noviembre'] },
+    { n: 'Blusa Emma', hex: '#7a2e2a', op: 'OP-000034', cols: ['#7a2e2a', '#1f1f1f', '#e7dcc6'], pr: 30, fase: 'Por cortar', quien: 'En el Taller', dias: '3 días', ent: '30 nov', rel: 'En 4 días', at: ['Falta tela', 'Faltan 12 m de Lino crudo'] },
+    { n: 'Falda Sol', hex: '#b5651d', op: 'OP-000029', cols: ['#b5651d'], pr: 20, fase: 'En costura', quien: 'Marta Quispe', dias: '9 días', ent: '', rel: '', at: ['Sin moverse', '9 días en la misma fase'] },
+    { n: 'Pantalón Río', hex: '#3b4a5a', op: 'OP-000028', cols: ['#3b4a5a'], pr: 30, fase: 'En acabado', quien: 'En el Taller', dias: '2 días', ent: '28 nov', rel: 'En 2 días', urgente: true },
+    { n: 'Vestido Ara', hex: '#2f4a3a', op: 'OP-000033', cols: ['#2f4a3a', '#7a2e2a'], pr: 40, fase: 'Por cortar', quien: 'En el Taller', dias: '1 día', ent: '3 dic', rel: 'En 7 días' },
+    { n: 'Polo Nube', hex: '#b9a886', op: 'OP-000030', cols: ['#b9a886', '#ffffff'], pr: 60, fase: 'En costura', quien: 'Rosa Paredes', dias: '5 días', ent: '5 dic', rel: 'En 9 días' },
+  ];
+  const porEntrega = ['OP-000031', 'OP-000028', 'OP-000034', 'OP-000033', 'OP-000030', 'OP-000029'];
+  O.sort((x, y) => porEntrega.indexOf(x.op) - porEntrega.indexOf(y.op));
+  const fila = (o) => `<a class="o-fila" href="#"><span class="mod">${foto(o.hex)}<span><span class="nom"><b>${o.n}</b>${o.urgente ? chip('Urgente', 'ambar') : ''}</span><span class="num">${o.op}<span>${o.cols.map((c) => `<i style="background:${c}"></i>`).join('')}</span></span></span></span>
+      <span class="num-d c-pr">${o.pr}</span>
+      <span>${chip(o.fase, o.at ? 'ambar' : 'pizarra')}<span class="sub">${o.quien}</span></span>
+      <span class="c-dias">${o.dias}</span>
+      <span>${o.ent ? `${o.ent}<span class="sub ${o.relT || ''}">${o.rel}</span>` : '<span class="nada">Sin fecha</span>'}</span>
+      <span class="c-at">${o.at ? `${chip(o.at[0], 'lleno')}<span class="sub ambar">${o.at[1]}</span>` : `<span class="bien">${ic('M20 6 9 17l-5-5')}Va bien</span>`}</span>
+      <span class="va">${ic('M9 6l6 6-6 6')}</span></a>`;
+  const tabla = `<div class="placa o-tabla">
+      <div class="o-barra"><div class="pest" role="tablist"><button class="on">En curso<i>6</i></button><button>Muestras<i>1</i></button><button>Terminadas<i>14</i></button></div>
+        <button class="pildora">Piden atención<i>3</i></button>
+        <span class="busca">${ic('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z')}Buscar por modelo o número</span></div>
+      <div class="o-cab"><span>Orden</span><span class="num-d">Prendas</span><span>Dónde está</span><span>Lleva ahí</span><span>Entrega</span><span>Atención</span><span></span></div>
+      ${O.map(fila).join('')}
+      <div class="o-pie"><span>6 órdenes en curso</span><span>Primero la entrega más cercana</span></div></div>`;
+  return cab + camino + tabla + `<p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ningún modelo, persona ni proveedor es real.</p>`;
+}
+
+// ================= INSUMOS =================
+function pantallaInsumos() {
+  const cab = `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea"><p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>Taller</span><span class="raya" aria-hidden="true"></span><span>jueves, 26 de noviembre</span></p></div>
+      <h1 class="ep-titulo">Insumos</h1></div>
+      <div class="ep-acc"><button class="btn sec">Más${ic('M6 9l6 6 6-6')}</button><button class="btn sec">${ic(I.mas, 'ic mas')}Nueva tela o avío</button><button class="btn pri">Llegó una compra</button></div></header>`;
+  const AC = [
+    { ic: I.tela, t: 'Lino, color Crudo', pares: [['Quedan', '30 m', 'ambar'], ['Se necesitan', '42 m'], ['Pedido en camino', 'Ninguno']] },
+    { ic: I.tela, t: 'Botón nácar de 18 mm', pares: [['Quedan', '120', 'ambar'], ['Lo mínimo es', '200'], ['Pedido en camino', 'Ninguno']] },
+  ];
+  const acabarse = titulo('Por acabarse', { cuenta: AC.length, ayuda: false }) + `<div class="acabarse">${AC.map((a) => `
+      <div class="placa asunto"><span class="lente">${ic(a.ic)}</span><div><h3>${a.t}</h3><div class="pares" style="margin-top:8px">${a.pares.map((p) => par(...p)).join('')}</div></div><button class="btn sec">Anotar compra</button></div>`).join('')}</div>`;
+  const barra = `<div class="i-barra"><div class="pest" role="tablist"><button class="on">Telas<i>5</i></button><button>Avíos<i>6</i></button><button>Movimientos</button></div>
+      <span class="busca">${ic('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z')}Buscar una tela o un color</span>
+      <span class="par vale"><small>Valor de lo guardado</small><b>S/ 18,420</b></span></div>`;
+  const fila = (c) => `<button class="i-fila${c.abierta ? ' abierta' : ''}" aria-expanded="${c.abierta ? 'true' : 'false'}"><span class="color"><i style="background:${c.hex}"></i>${c.n}</span>
+      <span class="c-nivel"><span class="nivel"><i class="${c.tono === 'ambar' ? 'ambar' : ''}" style="width:${c.pct}%"></i><em style="left:${c.min}%"></em></span><span class="nivel-t">Mínimo ${c.minT}</span></span>
+      <span class="queda">${c.q}<small>${c.u}</small></span>
+      <span class="c-alc">${c.alc}</span>
+      <span class="c-est">${chip(c.est, c.tono)}</span><span class="va">${ic('M9 6l6 6-6 6')}</span></button>`;
+  const lotes = `<div class="lotes"><h4>De dónde viene lo que queda</h4>
+      <div class="lote"><b>Compra del 12 de noviembre<small>Textiles del Sur, factura F001-2231</small></b><div class="pares">${par('Quedan', '18 m')}${par('Entraron', '50 m')}${par('Costó', 'S/ 14.50 el metro')}</div>${chip('Se usa primero', 'pizarra')}<button class="enlace">Corregir</button></div>
+      <div class="lote"><b>Compra del 20 de noviembre<small>Textiles del Sur, factura F001-2260</small></b><div class="pares">${par('Quedan', '12 m')}${par('Entraron', '12 m')}${par('Costó', 'S/ 15.00 el metro')}</div><span></span><button class="enlace">Corregir</button></div>
+      <div class="acc"><button class="btn sec">${ic(I.mas, 'ic mas')}Llegó más de este color</button><button class="btn pel">Retirar color</button></div></div>`;
+  const grupo = (g) => `<section class="placa tela-g"><div class="tela-cab"><h3>${g.n}</h3>${g.chips.map((c) => chip(c, '')).join('')}<span class="der"><button class="btn sec">${ic(I.mas, 'ic mas')}Agregar colores</button></span></div>
+      <div class="i-cab"><span>Color</span><span>Cuánto queda</span><span class="num-d">Quedan</span><span>Alcanza para</span><span>Estado</span><span></span></div>
+      ${g.colores.map((c) => fila(c) + (c.abierta ? lotes : '')).join('')}</section>`;
+  const TELAS = [
+    { n: 'Lino', chips: ['100 % lino', 'Se compra por metro'], colores: [
+      { n: 'Crudo', hex: '#e7dcc6', q: '30', u: 'm', pct: 30, min: 40, minT: '40 m', alc: '1 semana', est: 'Por acabarse', tono: 'ambar', abierta: true },
+      { n: 'Negro', hex: '#1f1f1f', q: '85', u: 'm', pct: 85, min: 40, minT: '40 m', alc: '6 semanas', est: 'Bien', tono: 'verde' },
+      { n: 'Vino', hex: '#7a2e2a', q: '52', u: 'm', pct: 52, min: 40, minT: '40 m', alc: '4 semanas', est: 'Bien', tono: 'verde' }] },
+    { n: 'Algodón pima', chips: ['100 % algodón', 'Se compra por kilo'], colores: [
+      { n: 'Blanco', hex: '#ffffff', q: '24', u: 'kg', pct: 80, min: 33, minT: '10 kg', alc: '5 semanas', est: 'Bien', tono: 'verde' },
+      { n: 'Negro', hex: '#1f1f1f', q: '0', u: 'kg', pct: 0, min: 33, minT: '10 kg', alc: 'Nada', est: 'Agotado', tono: 'ambar' }] },
+  ];
+  return cab + acabarse + barra + TELAS.map(grupo).join('') + `<p class="rotulo-ej">${ic(I.info)}Ejemplo inventado: ninguna tela, proveedor ni monto es real. La primera fila está abierta para mostrar su detalle; las demás se abren al tocarlas.</p>`;
+}
+
+// ================= HOJAS DE INSUMOS =================
+const FLECHA_ABAJO = 'M6 9l6 6 6-6';
+const cmp = (rot, valor, o = {}) => `<label class="cmp"><span class="rot">${rot}${o.opcional ? '<em>Opcional</em>' : ''}</span><span class="cj${o.vacia ? ' vacia' : ''}">${o.lupa ? ic('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'ic izq') : ''}${o.av ? `<span class="av">${o.av}</span>` : ''}${valor}${o.suf ? `<span class="suf">${o.suf}</span>` : ''}${o.combo ? ic(FLECHA_ABAJO) : ''}</span>${o.linea ? `<span class="linea">${o.linea}</span>` : ''}</label>`;
+const seg = (ops, on = 0) => `<span class="h-seg" role="group">${ops.map((t, i) => `<button class="${i === on ? 'on' : ''}">${t}</button>`).join('')}</span>`;
+const hPaso = (n, t, o = {}) => `<div class="h-paso-t"><span class="n">${n}</span><h3>${t}</h3>${o.cuenta ? `<span class="cuenta">${o.cuenta}</span>` : ''}${o.ayuda ? '<button class="q" aria-label="Qué es esto">?</button>' : ''}</div>`;
+const cj = (v, o = {}) => `<span class="cj${o.vacia ? ' vacia' : ''}">${v}${o.suf ? `<span class="suf">${o.suf}</span>` : ''}${o.combo ? ic(FLECHA_ABAJO) : ''}</span>`;
+const quien = () => cmp('Quién lo anota', 'Lucía Ramos', { av: 'LR', combo: true });
+const cierre = (listo, boton, total) => `<div class="h-cierre"${total ? '' : ' style="grid-template-columns:minmax(0,1fr)"'}>${quien()}${total ? `<div class="total"><small>${total[0]}</small><b>${total[1]}</b></div>` : ''}</div>
+    <p class="h-listo">${ic('M20 6 9 17l-5-5')}${listo}</p><div class="h-pie"><button class="btn sec">Cancelar</button><button class="btn pri">${boton}</button></div>`;
+const CARTA = ['#ffffff', '#e7dcc6', '#d8cbb3', '#c9a27e', '#b5651d', '#7a2e2a', '#b8412d', '#2f4a3a', '#8a8f6a', '#3b4a5a', '#4c5d6e', '#1f1f1f'];
+const colores = (filas, u, costoDe, elegidos) => `
+    ${cmp('Busca un color o tócalo abajo', 'Escribe el nombre del color', { vacia: true, lupa: true })}
+    <div class="carta">${CARTA.map((h) => `<i style="background:${h}" class="${elegidos.includes(h) ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="h-tabla"><div class="f enc-t"><span>Color</span><span>Ya tengo</span><span>${costoDe}</span><span>Avísame si baja de</span><span></span></div>
+      ${filas.map(([n, hex, ya, costo, min]) => `<div class="f"><span class="h-col"><i style="background:${hex}"></i>${n}</span>${cj(ya || '0', { vacia: !ya, suf: u })}${cj(costo ? 'S/ ' + costo : 'S/ 0.00', { vacia: !costo })}${cj(min, { suf: u })}<button class="x" aria-label="Quitar ${n}">${ic('M18 6 6 18M6 6l12 12')}</button></div>`).join('')}</div>`;
+
+function hojaTela() {
+  return `<div class="hoja ancha" role="dialog" aria-label="Nueva tela"><h2>Nueva tela</h2>
+    <section class="h-paso">${hPaso(1, 'Qué tela es')}
+      <div class="h-fila c21">${cmp('Nombre de la tela', 'Lino lavado')}${cmp('Tejido', 'Lino', { combo: true })}</div>
+      <div class="h-fila">${cmp('De qué está hecha', '100 % lino', { linea: 'Sale en la etiqueta de la prenda.' })}</div></section>
+    <section class="h-paso">${hPaso(2, 'Cómo la compras', { ayuda: true })}
+      <div class="h-fila c21"><div class="cmp"><span class="rot">Se compra</span>${seg(['Por metro', 'Por kilo', 'Por rollo'])}</div>${cmp('Se pierde al cortar', '3', { suf: '%', opcional: true })}</div></section>
+    <section class="h-paso">${hPaso(3, 'Qué colores tiene', { cuenta: 3, ayuda: true })}
+      ${colores([['Crudo', '#e7dcc6', '30', '14.50', '40'], ['Negro', '#1f1f1f', '85', '14.50', '40'], ['Vino', '#7a2e2a', '', '', '40']], 'm', 'Me costó el metro', ['#e7dcc6', '#1f1f1f', '#7a2e2a'])}</section>
+    ${cierre('Todo listo para crear la tela.', 'Crear la tela con 3 colores')}</div>`;
+}
+function hojaAvio() {
+  return `<div class="hoja ancha" role="dialog" aria-label="Nuevo avío"><h2>Nuevo avío</h2>
+    <section class="h-paso">${hPaso(1, 'Qué avío es', { ayuda: true })}
+      <div class="h-fila c2">${cmp('Clase', 'Botón', { combo: true })}${cmp('Nombre', 'Nácar')}</div>
+      <div class="h-fila c2">${cmp('Diámetro', '18')}${cmp('En qué se mide', 'Milímetros', { combo: true })}</div>
+      <p class="bajada" style="font-size:14px;color:var(--t65);margin:-4px 0 0">Se va a llamar «Botón nácar 18 mm».</p></section>
+    <section class="h-paso">${hPaso(2, 'Cómo lo cuentas')}
+      <div class="h-fila"><div class="cmp"><span class="rot">Se cuenta en</span>${seg(['Unidades', 'Metros', 'Conos'])}</div></div></section>
+    <section class="h-paso">${hPaso(3, 'Qué colores tiene', { cuenta: 2, ayuda: true })}
+      ${colores([['Blanco', '#ffffff', '120', '0.35', '200'], ['Negro', '#1f1f1f', '', '', '200']], 'un.', 'Me costó cada uno', ['#ffffff', '#1f1f1f'])}</section>
+    ${cierre('Todo listo para crear el avío.', 'Crear el avío con 2 colores')}</div>`;
+}
+function hojaSaldo() {
+  return `<div class="hoja" role="dialog" aria-label="Saldo inicial"><h2>Lo que ya tenías</h2><p class="bajada">Tela o avío que ya había antes de usar el sistema.</p>
+    <div style="margin-top:22px">
+      <div class="h-fila">${cmp('Qué tela o avío', 'Lino, color Negro', { combo: true, lupa: true, linea: 'Hoy figuran 85 m.' })}</div>
+      <div class="h-fila c2">${cmp('Cuánto había', '20', { suf: 'm' })}${cmp('Costó el metro', 'S/ 14.50', { linea: 'Sin IGV.' })}</div>
+      <button class="h-plegado" style="width:100%"><span>Código de lote, documento o nota</span>${ic(FLECHA_ABAJO)}</button></div>
+    ${cierre('Todo listo para guardar.', 'Guardar', ['Vale', 'S/ 290.00'])}</div>`;
+}
+function hojaCompra() {
+  const L = [['Lino, color Crudo', '#e7dcc6', '50', 'm', '14.50', '725.00', true], ['Botón nácar 18 mm, Blanco', '#ffffff', '500', 'un.', '0.35', '175.00', false]];
+  return `<div class="hoja ancha" role="dialog" aria-label="Llegó una compra"><h2>Llegó una compra</h2>
+    <section class="h-paso">${hPaso(1, 'Qué llegó', { cuenta: 2 })}
+      <div class="h-tabla compra"><div class="f enc-t"><span>Tela o avío</span><span>Cantidad</span><span>Precio</span><span style="text-align:right">Subtotal</span><span></span></div>
+        ${L.map(([n, hex, q, u, p, s, tela]) => `<div class="f"><span class="h-col col-c">${cj(`<i style="background:${hex};width:16px;height:16px;border-radius:50%;flex:none;margin-right:8px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)"></i>${n}`, { combo: true }).replace('class="cj"', 'class="cj" style="width:100%;font-weight:500"')}</span>${cj(q, { suf: u })}${cj('S/ ' + p)}<span class="sub-t">S/ ${s}</span><button class="x" aria-label="Quitar">${ic('M18 6 6 18M6 6l12 12')}</button>
+          ${tela ? `<span class="bajo">Se compró ${seg(['Por metro', 'Por kilo', 'Por rollo'])}</span>` : ''}</div>`).join('')}</div>
+      <button class="h-mas">${ic(I.mas)}Agregar otra tela o avío</button></section>
+    <section class="h-paso">${hPaso(2, 'A quién se lo compraste')}
+      <div class="h-fila">${cmp('Proveedor', 'Textiles del Sur', { combo: true, lupa: true })}</div>
+      <div class="h-fila c3">${cmp('Papel', 'Factura', { combo: true })}${cmp('Serie', 'F001')}${cmp('Número', '2290')}</div>
+      <label class="h-inter"><span class="pista-i"></span>Todavía no tengo la factura</label></section>
+    <section class="h-paso">${hPaso(3, 'Cómo se paga')}
+      <div class="h-fila c21"><div class="cmp"><span class="rot">¿Ya la pagaste?</span>${seg(['Queda por pagar', 'Ya la pagué'])}</div>${cmp('Vence el', '26 dic 2026', { combo: true })}</div></section>
+    ${cierre('Todo listo para registrar la compra.', 'Registrar la compra', ['Total con IGV', 'S/ 1,062.00'])}</div>`;
+}
+let pantallaPrevia = 'resumen';
+function pintarHojaDeInsumos(e) {
+  const capa = document.getElementById('capa'), d = document.getElementById('disp');
+  if (e.pantalla !== pantallaPrevia && e.pantalla !== 'insumos') e.hoja = 'ninguna';
+  if (e.hoja && e.hoja !== 'ninguna') e.pantalla = 'insumos';
+  pantallaPrevia = e.pantalla;
+  document.querySelectorAll('.seg-m').forEach((s) => s.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === e[s.dataset.ctl])));
+  const h = { tela: hojaTela, avio: hojaAvio, saldo: hojaSaldo, compra: hojaCompra }[e.hoja];
+  if (!h) { capa.innerHTML = ''; d.removeAttribute('data-hoja'); return; }
+  d.setAttribute('data-hoja', ''); capa.innerHTML = '<div class="velo"></div>' + h();
+}
+
+function ajustarAlto(e) {
+  const d = document.getElementById('disp'), c = document.getElementById('cont');
+  d.style.height = '';
+  if (e.alto !== 'completa') return;
+  d.style.height = '400px';
+  const marco = e.ancho === 'movil' || e.ancho === 'tablet' ? 22 : 2;
+  const hoja = document.querySelector('#capa .hoja');
+  const altoHoja = hoja ? hoja.offsetTop + hoja.offsetHeight + 48 : 0;
+  d.style.height = Math.max(620, c.scrollHeight + marco, altoHoja) + 'px';
+}
+
+activa = 'produccion.resumenProduccion';
+abiertos.clear(); abiertos.add('produccion'); estadoCombos.sede = 'tal';
+Marco.iniciar({ estado: { pantalla: 'resumen', hoja: 'ninguna', dist: 'accion', alto: 'completa', fondo: 'crema' }, alPintar: (e) => { pintarHojaDeInsumos(e); document.getElementById('cont').innerHTML = e.pantalla === 'eficiencia' ? pantallaEficiencia() : e.pantalla === 'orden' ? pantallaOrden() : e.pantalla === 'ordenes' ? pantallaOrdenes() : e.pantalla === 'insumos' ? pantallaInsumos() : pantalla(e); const fila = e.pantalla === 'insumos' ? 'produccion.insumos' : e.pantalla === 'ordenes' || e.pantalla === 'orden' ? 'produccion.ordenes' : 'produccion.resumenProduccion'; if (activa !== fila) { activa = fila; pintarLateral(); moverMarca(false); } ajustarAlto(e); document.fonts.ready.then(() => ajustarAlto(e)); setTimeout(() => ajustarAlto(e), 500); } });
+</script>
+</body>
+</html>
