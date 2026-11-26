@@ -89,7 +89,7 @@ export function useIdDelTaller(activo = true): { id: string | null; listo: boole
 
 /** Las cuentas que esta cuenta puede elegir, con la propuesta de cada medio para esa tienda. La lectura es `fn_`: el
  *  loader general no bloquea la pantalla mientras llega. Sin permiso o sin cuentas, lista vacía (el combo lo dice).
- *  Con `conMiFondo` (solo los pagos de Compras: el comprobante de una orden al contado y Por pagar, ADR-0362 fase 6), suma
+ *  Con `conMiFondo` (los pagos de Compras —ADR-0362 fase 6— y, desde ADR-0702, «Llegó una compra» y «Pagar servicio» del Taller), suma
  *  «Mi fondo» primero si la persona tiene uno. */
 export function useCuentasParaElegir(
   clase: ClaseMovimiento,

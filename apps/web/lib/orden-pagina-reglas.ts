@@ -1093,8 +1093,6 @@ export type FilaDeTela = {
   saldo: string;
   alcanza: boolean;
   faltan: string | null;
-  /** Cuánto falta, como número y en su unidad (para llevar a pedirlo). `null` si alcanza. */
-  faltanNumero: number | null;
   /** «Otras órdenes ya reservan 20 m», o `null` si ninguna reserva nada. */
   reservadoPorOtras: string | null;
   /** «35 m»: lo que viene en camino y cuenta para «alcanza» (lo que falta recibir de los pedidos, sin los atrasados), o `null` si nada viene. */
@@ -1155,7 +1153,6 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
       saldo: cantidadConUnidad(base.saldo, base.unidad),
       alcanza: v.alcanza,
       faltan: v.alcanza ? null : cantidadConUnidad(cantidadAPedir(v.faltan, base.unidad), base.unidad),
-      faltanNumero: v.alcanza ? null : cantidadAPedir(v.faltan, base.unidad),
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
       enCamino: enCamino > 0 ? cantidadConUnidad(enCamino, base.unidad) : null,
       atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,

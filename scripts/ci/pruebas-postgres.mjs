@@ -1935,19 +1935,10 @@ export const PRUEBAS = [
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
   "pruebas:nos-debe",
 
-  // Órdenes de insumos del Taller (ADR-0362, fase 7): el módulo nace en Producción sin rol (solo el líder); OI- con su propio contador;
-  // proveedor del Taller, destino un taller activo, la línea «insumo + cantidad con hasta 3 decimales» con la unidad copiada; doble clic,
-  // reintento con otro pedido, versión vieja (PT409 con la frase que dice qué pasó), sin cambios, lo que no se tocó no se vuelve a juzgar;
-  // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
-  // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
-  "pruebas:ordenes-insumo",
-  // El comprobante de la orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1): solo con el módulo; los cuatro tipos (el SC- de la
-  // secuencia de la empresa), el IGV de la factura de 0 % a 18 %, 3 decimales de cantidad y 4 de costo; de más y fuera de la orden se
-  // aceptan y se avisan; el doble envío; el papel único entre los vigentes; la orden con papel no se edita (ni se anula con papel
-  // vigente); la recepción de siempre no recibe el papel de una orden. ROLLBACK.
-  "pruebas:comprobante-orden-insumo",
-  // ADR-0362 fase 7 parte 2, actividad 3: recibir en el Taller contra la orden de insumos (con un caso de dos sesiones que hace COMMIT).
-  "pruebas:recepcion-orden-insumo",
+  // Órdenes de insumos retirada (ADR-0702, retira la fase 7 de ADR-0362): el módulo no está en el catálogo ni en un rol, la web no puede
+  // llamar a sus nueve funciones, las tablas siguen ahí, el aviso de faltantes pide Producción y «Llegó una compra» / «Pagar servicio»
+  // siguen abiertos. Reemplaza a pruebas:ordenes-insumo, pruebas:comprobante-orden-insumo y pruebas:recepcion-orden-insumo. ROLLBACK.
+  "pruebas:ordenes-insumo-retirada",
 
   // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
   // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder

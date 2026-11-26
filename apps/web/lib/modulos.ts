@@ -18,7 +18,7 @@ export const CLAVES_MODULO = [
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "campanas",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
-  "produccion", "ordenes_insumos",
+  "produccion",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
@@ -141,11 +141,7 @@ export const MODULOS: readonly Modulo[] = [
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
-  // Órdenes de insumos (ADR-0362 fase 7, decisión 47; 20261013035000): lo que el Taller le pide a cada proveedor de tela y avíos, aparte
-  // de la orden de tienda (decisiones 25 y 28). Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo y nada más.
-  // Quien lo tiene ve y hace todo en esas órdenes, con sus precios, sin ver el resto de la plata del Taller; no necesita «Órdenes de
-  // producción» (la pantalla vive en /ordenes-insumos, fuera del layout de /produccion).
-  { clave: "ordenes_insumos", grupo: "Producción", nombre: "Órdenes de insumos", incluye: "Crear, ver, editar y anular las órdenes de compra de insumos del Taller, con sus precios, y descargar su PDF" },
+  // Órdenes de insumos (ADR-0362 fase 7) se retiró el 2026-11-25 sin haberse usado (ADR-0702, 20261125231000).
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   // Frescura del piso y Plan del piso viven en «Gestión» desde ADR-0392 (2026-10-13, migración 20261013134000: orden 212 y 214,
   // justo después de Análisis). Nacieron en «Inventario» (20260929100000 y 20261006100000); el lateral los muestra en «Gestión».
