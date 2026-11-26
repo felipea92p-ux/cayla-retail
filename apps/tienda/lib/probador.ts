@@ -33,6 +33,8 @@ const esquemaRecorte = z.object({
       holgura: z.enum(["ajustada", "normal", "holgada"]),
       metida: z.boolean(),
       axila: z.number().min(0).max(0.8).nullable(),
+      // Para qué ocasión es (2026-11-26, «Sorpréndeme»). Un estilo raro o ausente: null, que combina con todos.
+      estilo: z.string().min(1).nullable().optional().catch(null),
     })
     .nullable()
     .optional()
@@ -366,6 +368,15 @@ export function vecinasDe(prendas: readonly PrendaDelProbador[], zona: Zona, act
 export const combinan = (a: string, b: string, combina: Readonly<Record<string, readonly string[]>>): boolean =>
   a !== b && Boolean(combina[a]?.includes(b) || combina[b]?.includes(a));
 
+/** El estilo que «combina con todo»: un jean clásico, un polo liso, una cartera negra. */
+const ESTILO_BASICO = "basico";
+
+/** El estilo de una prenda en un color, según la IA (el de la foto que se ve en ese color). null: todavía no lo dijo. */
+export const estiloDe = (c: ColorDelProbador): string | null => c.foto.ia?.estilo ?? null;
+
+/** ¿Van juntos dos estilos? Iguales, o uno «básico», o uno que la IA todavía no dijo (no se castiga lo que falta). */
+export const estilosVanJuntos = (a: string | null, b: string | null): boolean => !a || !b || a === b || a === ESTILO_BASICO || b === ESTILO_BASICO;
+
 /** Un número al azar repetible, de 0 a 1 (mulberry32): «Sorpréndeme» se prueba con una semilla fija. */
 export function azarDesde(semilla: number): () => number {
   let s = Math.floor(semilla * 4294967296) >>> 0;
@@ -379,9 +390,10 @@ export function azarDesde(semilla: number): () => number {
 }
 
 /**
- * «Sorpréndeme»: cambia, en cada zona con algo puesto y sin candado, la prenda y su color. Prefiere lo que hay (siempre), con foto
- * propia, y los colores que combinan con lo que se queda: lo fijo y lo que ya eligió en esta misma vuelta (ADR-0434). Entre las que
- * empatan, al azar. Lo que tiene candado no se toca.
+ * «Sorpréndeme»: cambia, en cada zona con algo puesto y sin candado, la prenda y su color. Solo lo que hay. En orden de peso: que su
+ * ESTILO vaya con todo lo que se queda (lo fijo y lo que ya eligió en esta misma vuelta; lo dice la IA, ADR-0705 act. 2026-11-26: una
+ * blusa de fiesta no va con un jean deportivo), que tenga foto propia, y cuántos de los colores que se quedan combinan con el suyo
+ * (Colores ▸ «combina con», ADR-0434). Entre las que empatan, al azar. Lo que tiene candado no se toca.
  */
 export function sorprender(
   look: Look,
@@ -391,7 +403,14 @@ export function sorprender(
   azar: () => number,
 ): Look {
   const nuevo: Look = { ...look };
-  const decididos = ZONAS.flatMap((z) => (look[z] && fijos[z] ? [look[z]!.color] : []));
+  // Lo que se queda: su color y su estilo (el de la foto que se ve en ese color).
+  const decididos = ZONAS.flatMap((z) => {
+    const pieza = look[z];
+    if (!pieza || !fijos[z]) return [];
+    const p = prendas.find((x) => x.id === pieza.id);
+    const c = p ? colorDeLaPieza(p, pieza) : null;
+    return [{ color: pieza.color, estilo: c ? estiloDe(c) : null }];
+  });
   for (const z of ZONAS) {
     const actual = nuevo[z];
     if (!actual || fijos[z]) continue;
@@ -400,7 +419,15 @@ export function sorprender(
     const pares = lista.flatMap((p) =>
       p.colores
         .filter((c) => c.hay)
-        .map((c) => ({ p, c, puntos: (c.foto.propia ? 4 : 0) + decididos.filter((d) => combinan(c.codigo, d, combina)).length })),
+        .map((c) => ({
+          p,
+          c,
+          // El estilo manda (10, más que la foto y todos los colores juntos); después la foto propia (4); después cada color que combina (1).
+          puntos:
+            (decididos.every((d) => estilosVanJuntos(estiloDe(c), d.estilo)) ? 10 : 0) +
+            (c.foto.propia ? 4 : 0) +
+            decididos.filter((d) => combinan(c.codigo, d.color, combina)).length,
+        })),
     );
     const sinRepetir = pares.filter((x) => !(x.p.id === actual.id && x.c.codigo === actual.color));
     const candidatos = sinRepetir.length > 0 ? sinRepetir : pares;
@@ -409,7 +436,7 @@ export function sorprender(
     const empatados = candidatos.filter((x) => x.puntos === mejor);
     const elegido = empatados[Math.min(empatados.length - 1, Math.floor(azar() * empatados.length))];
     nuevo[z] = { id: elegido.p.id, color: elegido.c.codigo };
-    decididos.push(elegido.c.codigo);
+    decididos.push({ color: elegido.c.codigo, estilo: estiloDe(elegido.c) });
   }
   return nuevo;
 }
