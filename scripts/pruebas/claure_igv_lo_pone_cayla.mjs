@@ -39,7 +39,11 @@ const REEMPLAZOS = [...MIGRACION.matchAll(/select pg_temp\.reemplazar\('([^']+)'
   nuevo: m[3],
 }));
 if (REEMPLAZOS.length !== 8) throw new Error(`La migración debería tener 8 reemplazos (5 del Diario, 2 del cierre, 1 de la proyección) y la prueba leyó ${REEMPLAZOS.length}: revisa el formato.`);
-const DESHACER = [...REEMPLAZOS]
+// ADR-0683 (20261121160000), posterior a esta migración: el Diario lee lo de todas las aliadas. Se devuelve a leer lo de CLAURE (sus envolturas dan lo
+// mismo) antes de deshacer los reemplazos de esta, que esperan el texto con `fn_claure_ventas` / `fn_claure_cambios`.
+const DESHACER_ALIADAS = `do $deshacer$ begin execute replace(replace(pg_get_functiondef('retail.fn_asientos_claure(date, date, boolean, uuid[])'::regprocedure),
+  'retail.fn_aliadas_ventas(', 'retail.fn_claure_ventas('), 'retail.fn_aliadas_cambios(', 'retail.fn_claure_cambios('); end $deshacer$;`;
+const DESHACER = DESHACER_ALIADAS + "\n" + [...REEMPLAZOS]
   .reverse()
   .map(
     (r) =>

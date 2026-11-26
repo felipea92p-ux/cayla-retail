@@ -64,8 +64,8 @@ function Cambio({ c }: { c: number | null }) {
 const Rotulo = ({ children }: { children: string }) => <span className="mr-1 text-taupe sm:hidden">{children}</span>;
 
 /** `claure`: cuánto de lo vendido es de CLAURE; si es mayor que cero, una línea bajo la tabla lo dice (tarea 77). No cambia ninguna cifra. */
-export function TablaCortes({ r, cortes, corte, hrefDe, claure = null }: { r: ReporteMes; cortes: CortesMes; corte: CorteDeTabla; hrefDe: (c: CorteDeTabla) => string; claure?: number | null }) {
-  const deClaure = lineaClaure(claure ?? 0);
+export function TablaCortes({ r, cortes, corte, hrefDe, claure = null }: { r: ReporteMes; cortes: CortesMes; corte: CorteDeTabla; hrefDe: (c: CorteDeTabla) => string; claure?: { monto: number; nombre: string } | null }) {
+  const deClaure = lineaClaure(claure?.monto ?? 0, claure?.nombre);
   const ofrecidos = cortesOfrecidos(cortes);
   const porTienda = corte === "tienda";
   const filas: FilaDeTabla[] = filasDeTabla(porTienda ? cortes.tiendas : agruparCola(cortes.categorias), r);

@@ -41,7 +41,7 @@ import {
 
 type EstadoLista = { tipo: "cerrada" } | { tipo: "cargando" } | { tipo: "error" } | { tipo: "lista"; lista: ListaSinCosto };
 
-export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veComprobacion }: { vista: VistaValor; puedeEditarCatalogo: boolean; /** Tiene el módulo de reportes financieros: a los roles de Compras el enlace los llevaría a «Sin acceso». */ veComprobacion: boolean }) {
+export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veComprobacion, aliadas = "CLAURE" }: { vista: VistaValor; puedeEditarCatalogo: boolean; /** Cómo se nombra a las aliadas de la sede (ADR-0683): la única, o «las empresas aliadas». */ aliadas?: string; /** Tiene el módulo de reportes financieros: a los roles de Compras el enlace los llevaría a «Sin acceso». */ veComprobacion: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const [porQue, setPorQue] = useState(false);
   const [cuales, setCuales] = useState<EstadoLista>({ tipo: "cerrada" });
@@ -70,7 +70,7 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veCompr
 
   const sinCosto = fraseSinCosto(sede.unidadesSinCosto, sede.tallasSinCosto);
   const origen = fraseOrigenDelCosto(sede.valor, sede.valorConCostoDeCompra);
-  const aparte = [lineaAparte("Dañadas, aparte", sede.unidadesDanadas, sede.valorDanadas), lineaAparte("De CLAURE, aparte", sede.unidadesClaure, sede.valorClaure)].filter(
+  const aparte = [lineaAparte("Dañadas, aparte", sede.unidadesDanadas, sede.valorDanadas), lineaAparte(`De ${aliadas}, aparte`, sede.unidadesClaure, sede.valorClaure)].filter(
     (l): l is string => l !== null,
   );
 

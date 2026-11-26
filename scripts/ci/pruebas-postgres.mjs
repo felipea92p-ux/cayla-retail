@@ -962,6 +962,20 @@ export const PRUEBAS = [
   // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
+  "pruebas:empresas-aliadas",
+  // ADR-0683: la llave de Lucode de una aliada va cifrada al Vault, nunca vuelve a la pantalla y solo el servidor la lee. ROLLBACK.
+  "pruebas:empresas-aliadas-lucode",
+  "pruebas:aliadas-balance",
+  "pruebas:aliadas-cuenta",
+  "pruebas:aliadas-cobro",
+  // ADR-0683, actividad 5: una aliada nueva queda fuera de las campañas hasta que el Admin la enciende, y el reparto de gastos (Diario, cuenta y «lo que
+  // falta del mes») vale para cualquier aliada, sin pasar de 100 % por tienda. ROLLBACK.
+  "pruebas:aliadas-campanas-gastos",
+  // ADR-0683, actividad 6: una línea de cualquier aliada (activa o dada de baja, desde su arranque) sale de las cifras de CAYLA: la regla de una línea,
+  // la de lote, lo que el Inicio deja fuera de «Hoy» y lo vendido en un período. ROLLBACK.
+  "pruebas:aliadas-cifras",
+  // ADR-0683, actividad 7: las unidades de cada dueña por lugar (Existencias) y de qué empresas es cada venta (Historial), solo donde conviven dos. ROLLBACK.
+  "pruebas:aliadas-filtros",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.

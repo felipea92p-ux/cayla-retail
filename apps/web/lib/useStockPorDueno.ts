@@ -12,12 +12,15 @@ export function useStockPorDueno(sedeId: string | null | undefined): Record<stri
   useEffect(() => {
     if (!sedeId) return;
     let vivo = true;
-    void Promise.resolve(createClient().rpc("fn_stock_por_dueno", { p_ubicacion_id: sedeId })).then(
-      ({ data, error }) => {
+    const supabase = createClient();
+    // El nombre de cada empresa sale de la base (ADR-0683): una aliada nueva se llama como se registró, no como su clave en mayúsculas.
+    void Promise.all([supabase.rpc("fn_stock_por_dueno", { p_ubicacion_id: sedeId }), supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId })]).then(
+      ([{ data, error }, empresas]) => {
         if (!vivo || error || !data) return;
+        const nombres = new Map((empresas.data ?? []).map((e) => [e.id, e.nombre]));
         const por: Record<string, UnidadesDeDueno[]> = {};
         for (const f of data) {
-          const nombre = f.clave === "cayla" ? "CAYLA" : f.clave.toUpperCase();
+          const nombre = nombres.get(f.empresa_id) ?? f.clave.toUpperCase();
           (por[f.variante_id] ??= []).push({ empresaId: f.empresa_id, clave: f.clave, nombre, cantidad: f.cantidad, cantidadApartada: f.cantidad_apartada });
         }
         setReparto(por);

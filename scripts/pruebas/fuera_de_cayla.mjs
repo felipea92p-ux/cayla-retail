@@ -17,6 +17,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -360,7 +361,8 @@ const CLASES = [
   ["cobro", "yape", TRUJILLO, "cuenta_ajena"],
   ["cobro", "tarjeta", LIMA, "cuenta_ajena"],
   ["cobro", "qr", LIMA, "cuenta_ajena"],
-  ["cobro", "transferencia", LIMA, "cuenta_ajena"],
+  // ADR-0683 (20261121164000): la cuenta de una aliada también recibe transferencias (sus cuentas bancarias); un pago, un reembolso o una tarjeta, no.
+  ["cobro", "transferencia", LIMA, "paso"],
   ["cobro", "deposito", LIMA, "cuenta_ajena"],
   ["pago", "yape", LIMA, "cuenta_ajena"],
   ["pago", "plin", LIMA, "cuenta_ajena"],
@@ -370,7 +372,7 @@ const CLASES = [
   ["reembolso", "transferencia", LIMA, "cuenta_ajena"],
 ];
 
-caso("fn_cuenta_sellada: solo un cobro Yape o Plin en una sede de su empresa", () =>
+caso("fn_cuenta_sellada: solo un cobro Yape, Plin o transferencia en una sede de su empresa", () =>
   igual(
     dentro(
       CLASES.map(([cl, me, se]) => `select pg_temp.intento($$select retail.fn_cuenta_sellada('${cl}', '${me}', ${se}, ${HOY}, ${YAPE})$$);`).join("\n"),
@@ -469,7 +471,7 @@ caso("CONTROL: sin el filtro del libro, la línea sigue en el libro", () => {
 
 caso("CONTROL: sin el candado, un gasto sí se paga con ella", () =>
   igual(
-    dentro(`\\o /dev/null\n${sqlDeshacer(M1, ["retail.fn_cuenta_sellada(text, text, uuid, date, uuid)"])}\\o\nselect pg_temp.intento($$select retail.fn_cuenta_sellada('pago', 'yape', ${LIMA}, ${HOY}, ${YAPE})$$);`),
+    dentro(`\\o /dev/null\n${SQL_DESHACER_ALIADAS}${sqlDeshacer(M1, ["retail.fn_cuenta_sellada(text, text, uuid, date, uuid)"])}\\o\nselect pg_temp.intento($$select retail.fn_cuenta_sellada('pago', 'yape', ${LIMA}, ${HOY}, ${YAPE})$$);`),
     "paso",
   ));
 

@@ -56,6 +56,7 @@ describe("vercel.json y las rutas del cron dicen lo mismo", () => {
     expect(diarios.map((c) => c.path).sort()).toEqual([
       "/api/apartados/vencer",
       "/api/club/conservacion",
+      "/api/empresas/bajas",
       "/api/finanzas/foto-diario/todas",
       "/api/inventario/frescura-vara-cayla",
       "/api/salud/invariantes",

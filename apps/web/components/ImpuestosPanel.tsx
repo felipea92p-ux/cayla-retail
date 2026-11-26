@@ -193,7 +193,7 @@ function Pantalla({ panel, claure, sire, renta }: { panel: PanelImpuestos } & Co
           guia="fin-impuestos.claure"
           accion={
             <Link href="/finanzas/dinero/claure" className="btn-cayla btn-enlace">
-              Ver la cuenta con CLAURE
+              {claure?.quien && claure.quien.nombre !== "CLAURE" ? (claure.quien.nombre.startsWith("las ") ? "Ver las cuentas con las aliadas" : `Ver la cuenta con ${claure.quien.nombre}`) : "Ver la cuenta con CLAURE"}
             </Link>
           }
         >

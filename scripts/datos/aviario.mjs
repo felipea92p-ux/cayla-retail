@@ -449,8 +449,8 @@ export const AVIARIO = [
       // ADR-0560: qué parte de cada categoría de gasto de una sede donde opera CLAURE es de CLAURE (alquiler 50 %, limpieza 100 %…). Es lo que se hace con un gasto, como
       // `categorias_gasto`: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-29.
       "gasto_reparto_claure",
-      // Lo mismo que `gasto_reparto_claure`, para todas las empresas aliadas: está en producción y su migración aún no está en main. Asignada en el
-      // refresco del volcado del 2026-11-24; Finanzas (Felipe) confirma la asignación.
+      // ADR-0683: lo mismo que `gasto_reparto_claure`, para todas las empresas aliadas (la de CLAURE queda como respaldo). Asignada en los
+      // refrescos del volcado del 2026-11-23 y 2026-11-24; Finanzas (Felipe) confirma la asignación.
       "gasto_reparto_aliadas",
       // La cuenta donde se le paga a cada persona de la planilla y las salidas de planilla que se registran (`guardar_cuenta_planilla`, `registrar_salidas_planilla`). Están en
       // producción (sus migraciones aún no están en main) y las asignó el refresco del volcado del 2026-10-29, junto a `planilla_por_sede`. Finanzas (Felipe) confirma la asignación.

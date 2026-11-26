@@ -214,8 +214,9 @@ function baseUrl(): string {
 
 type LlamadaCruda = { ok: true; json: Record<string, unknown> } | { ok: false; motivo: MotivoErrorLucode; detalle: string };
 
-async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
-  const token = process.env.LUCODE_TOKEN;
+/** `llave`: la de una empresa aliada (ADR-0683, del Vault); sin ella, la de CAYLA (`LUCODE_TOKEN`). */
+async function llamar(ruta: string, body: unknown, llave?: string): Promise<LlamadaCruda> {
+  const token = llave ?? process.env.LUCODE_TOKEN;
   if (!token) {
     return { ok: false, motivo: "sin_credenciales", detalle: "Falta LUCODE_TOKEN en el entorno" };
   }
@@ -340,6 +341,18 @@ export async function consultarEstadoLucode(tipo: TipoDocumentoLucode, serie: st
   const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
   if (!r.ok) return r;
   return traducirEstado(r.json);
+}
+
+/** Prueba la llave de Lucode de una empresa aliada (ADR-0683) sin emitir nada: pregunta el estado de una boleta que no existe
+ *  (B999-1). Lucode solo rechaza con 401/403 una llave mala; cualquier otra respuesta (aunque diga «no encontrado») prueba que la
+ *  aceptó. Si no responde, no se sabe: `null`, y la conexión se queda como estaba (principio 9). */
+export async function probarLlaveLucode(llave: string): Promise<{ aceptada: boolean | null; entorno: EntornoLucode }> {
+  const r = await llamar("/api/v3/status", { documento: "boleta", serie: "B999", numero: 1 }, llave);
+  const entorno = entornoLucode();
+  if (r.ok) return { aceptada: true, entorno };
+  if (r.motivo === "credenciales_invalidas") return { aceptada: false, entorno };
+  if (r.motivo === "rechazado_por_lucode") return { aceptada: true, entorno };
+  return { aceptada: null, entorno };
 }
 
 /** Si una dirección que vino en una respuesta de Lucode es de Lucode: `https` en `apisunat.pe` (así salen las de producción

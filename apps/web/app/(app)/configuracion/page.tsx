@@ -18,8 +18,9 @@ import { getPanelImpuestos, getParametrosTributarios } from "@/lib/impuestos";
 import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
-import { getRepartoClaure } from "@/lib/reparto-claure";
+import { getRepartoAliadas } from "@/lib/reparto-claure";
 import { getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
+import { getEmpresasAliadas } from "@/lib/empresas-aliadas";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
@@ -76,12 +77,13 @@ function FallaDeSeccion({ falla }: { falla: string }) {
 // Empresa y tiendas, «Las vitrinas»: el carnet de la empresa, que solo se lee, y una tarjeta por sede. Si una lectura falla, lo demás se sigue viendo: las tiendas
 // avisan (es lo único que se cambia a mano aquí), y la carga inicial o Preguntar simplemente no se dibujan si la base todavía no las tiene.
 async function SeccionEmpresa({ esLider, esAdmin, puedeHorario }: { esLider: boolean; esAdmin: boolean; puedeHorario: boolean }) {
-  const [empresa, tiendas, carga, asistente, ubicaciones] = await Promise.all([
+  const [empresa, tiendas, carga, asistente, ubicaciones, aliadas] = await Promise.all([
     getDatosEmpresa(),
     getConfiguracionTiendas().catch((e: Error) => e),
     getCargaInicial(),
     getAsistenteSedes(),
     getUbicaciones().catch(() => null),
+    getEmpresasAliadas(),
   ]);
   const falla = tiendas instanceof Error;
   const hoy = falla ? hoyLima() : tiendas.hoy;
@@ -91,7 +93,7 @@ async function SeccionEmpresa({ esLider, esAdmin, puedeHorario }: { esLider: boo
   return (
     <>
       {falla && <FallaDeSeccion falla={tiendas.message} />}
-      <VistaEmpresaTiendas datos={empresa} vitrinas={vitrinas} gastado={asistente?.gastado ?? null} carga={carga} esLider={esLider} esAdmin={esAdmin} puedeHorario={puedeHorario} />
+      <VistaEmpresaTiendas datos={empresa} vitrinas={vitrinas} gastado={asistente?.gastado ?? null} carga={carga} esLider={esLider} esAdmin={esAdmin} puedeHorario={puedeHorario} aliadas={aliadas} />
     </>
   );
 }
@@ -131,7 +133,7 @@ async function SeccionGastos({ mes, esLider }: { mes: string | undefined; esLide
     getFijosMes(desde, { clave: "todas", ubicacionId: null, soloEmpresa: false }),
     getFichasDeFijos(),
     getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy)),
-    esLider ? getRepartoClaure() : null,
+    esLider ? getRepartoAliadas() : null,
   ]);
   return (
     <>

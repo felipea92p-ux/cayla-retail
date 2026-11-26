@@ -259,7 +259,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "¿A qué número paga?",
-      texto: "Donde conviven dos marcas, si paga con Yape o Plin aquí sale a qué número mandarlo: lo de CLAURE va al número de Claudia y lo de CAYLA, al QR o a su número.",
+      texto: "Donde hay una empresa aliada, aquí sale a qué número mandar el Yape o Plin: lo de la aliada, al de su dueña; lo de CAYLA, al QR o a su número. Si pagó a otro, toca el número correcto.",
     },
     {
       id: "cobro-recibe",
@@ -637,7 +637,7 @@ export const GUIA_HISTORIAL: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "historial.filtros" }],
       titulo: "Todos los filtros",
-      texto: "Tienda y vendedor (para el líder), cómo pagaron, si la venta está completada o anulada y qué comprobante tiene. «Con datos de prueba» suma las ventas de prueba. Cada filtro puesto aparece debajo con su ✕ para quitarlo.",
+      texto: "Tienda y vendedor (para el líder), cómo pagaron, si la venta está completada o anulada y qué comprobante tiene. Donde venden dos empresas, «Empresa» deja las ventas con prendas de una. Cada filtro puesto aparece debajo con su ✕ para quitarlo.",
     },
     {
       id: "fin",
