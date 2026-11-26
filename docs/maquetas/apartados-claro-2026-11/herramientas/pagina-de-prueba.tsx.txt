@@ -1,0 +1,174 @@
+// HERRAMIENTA DE LA MAQUETA — NO es parte del ERP. Para usarla: copiar a `apps/web/app/auth/prueba-apartados/page.tsx`
+// (ruta pública: no pide sesión), levantar la web contra la base de mentira (`base-de-mentira.mjs`) y abrir
+// http://apartados.localhost:3083/auth/prueba-apartados  ·  NUNCA se commitea en `apps/web`: se borra al terminar.
+// Dibuja Apartados con DATOS INVENTADOS. Parámetros: ?rol=integrante · ?gestiona=0 · ?caja=cerrada · ?vacio=1 · ?marco=no
+import { AppShell } from "@/components/AppShell";
+import { SedeActivaProveedor } from "@/components/SedeActiva";
+import { ReglasDePrecioProveedor } from "@/components/ReglasDePrecio";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
+import type { Apartado, PrendaApartada, PedidoApartado } from "@/lib/separaciones-reglas";
+import { REGLAS_DE_FABRICA } from "@/lib/margen-por-rasgos";
+import { CLAVES_MODULO } from "@/lib/modulos";
+
+const HOY = "2026-11-26";
+const SEDE = "11111111-1111-4111-8111-000000000001";
+
+const prenda = (n: number, referencia: string, talla: string, color: string, colorHex: string, categoria: string, prefijo: string, precio: number, stockAqui: number, extra: Partial<PrendaApartable> = {}): PrendaApartable => ({
+  varianteId: `v-${n}`,
+  sku: `${prefijo}-${String(n).padStart(4, "0")}`,
+  codigo: `${prefijo}-${String(n).padStart(4, "0")}`,
+  referencia,
+  talla,
+  color,
+  colorHex,
+  categoria,
+  categoriaPrefijo: prefijo,
+  categoriaFamilia: "ROPA",
+  marca: "CAYLA",
+  precio,
+  campana: null,
+  ofertaGrupo: null,
+  fotoUrl: null,
+  codigosBarras: [`77500000${String(n).padStart(4, "0")}`],
+  stockAqui,
+  almacenAqui: 2,
+  stockOtrasSedes: stockAqui === 0 ? [{ sede: "AQP", cantidad: 3 }] : [],
+  ...extra,
+});
+
+const PRENDAS: PrendaApartable[] = [
+  prenda(1, "Blusa Emma", "S", "Hueso", "#efe7d8", "Blusas", "BLU", 89.9, 4),
+  prenda(2, "Blusa Emma", "M", "Hueso", "#efe7d8", "Blusas", "BLU", 89.9, 2),
+  prenda(3, "Blusa Emma", "M", "Negro", "#1f1d1b", "Blusas", "BLU", 89.9, 0),
+  prenda(4, "Pantalón Lía", "28", "Camel", "#b98a5a", "Pantalones", "PAN", 129.9, 3),
+  prenda(5, "Pantalón Lía", "30", "Camel", "#b98a5a", "Pantalones", "PAN", 129.9, 1),
+  prenda(6, "Vestido Aurora", "M", "Verde olivo", "#6f7550", "Vestidos", "VES", 159.9, 2, { campana: { etiquetaId: "c1", nombre: "Navidad", pct: 10 } as never }),
+  prenda(7, "Casaca Nube", "L", "Azul noche", "#27324a", "Casacas", "CAS", 219.9, 1),
+  prenda(8, "Falda Sol", "S", "Terracota", "#b4583c", "Faldas", "FAL", 99.9, 5),
+  prenda(9, "Chompa Alma", "M", "Crudo", "#e6dcc6", "Chompas", "CHO", 139.9, 2),
+  prenda(10, "Polo Río", "M", "Blanco", "#f4f1ea", "Polos", "POL", 49.9, 8),
+];
+
+const item = (n: number, cantidad = 1, descuento = 0, extra: Partial<PrendaApartada> = {}): PrendaApartada => {
+  const p = PRENDAS[n - 1];
+  return { itemId: `i-${n}-${Math.round(descuento * 100)}`, varianteId: p.varianteId, sku: p.sku, referencia: p.referencia, cantidad, precioUnitario: p.precio, descuentoUnitario: descuento, motivoDescuento: null, motivoDescuentoDetalle: null, argumentoDescuento: null, descuentoGrupoUnitario: 0, ofertaGrupo: null, ...extra };
+};
+
+const apartado = (n: number, nombres: string, apellidos: string, estado: Apartado["estado"], venceEl: string, creadaEn: string, prendas: PrendaApartada[], adelanto: number, extra: Partial<Apartado> = {}): Apartado => {
+  const total = Math.round(prendas.reduce((s, p) => s + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0) * 100) / 100;
+  return {
+    id: `a-${n}`,
+    codigo: `APT-TRU-${String(n).padStart(4, "0")}`,
+    estado,
+    nombres,
+    apellidos,
+    celular: `9${String(87000000 + n * 1111).padStart(8, "0")}`,
+    dni: n % 3 === 0 ? null : String(40000000 + n * 12345),
+    asesora: n % 2 ? "Micaela" : "Rosa",
+    total,
+    adelanto,
+    saldo: Math.round((total - adelanto) * 100) / 100,
+    venceEl,
+    extensiones: 0,
+    creadaEn: `${creadaEn}T16:20:00Z`,
+    devolucionMedio: "yape",
+    devolucionNumero: `9${String(87000000 + n * 1111).padStart(8, "0")}`,
+    devolucionCciFinal: null,
+    liberadaSola: false,
+    comprobanteAnticipo: null,
+    comprobanteFinal: null,
+    notaCredito: null,
+    prendas,
+    pagos: [{ metodo: "efectivo", monto: adelanto, fecha: `${creadaEn}T16:20:00Z`, abono: false }],
+    estante: estado === "abierta" ? `A-${String(n).padStart(2, "0")}` : null,
+    canal: "tienda",
+    modoEntrega: "recojo",
+    direccionEnvio: null,
+    enviadoEn: null,
+    guiaEnvio: null,
+    ...extra,
+  };
+};
+
+const APARTADOS: Apartado[] = [
+  apartado(41, "María", "Quispe Rojas", "abierta", "2026-12-02", "2026-11-25", [item(1), item(4)], 70),
+  apartado(40, "Lucía", "Fernández Soto", "abierta", "2026-11-27", "2026-11-20", [item(6, 1, 15.99)], 50),
+  apartado(39, "Carmen", "Huamán Díaz", "abierta", "2026-11-26", "2026-11-19", [item(7)], 100, {
+    pagos: [
+      { metodo: "yape", monto: 70, fecha: "2026-11-19T15:00:00Z", abono: false },
+      { metodo: "efectivo", monto: 30, fecha: "2026-11-23T17:10:00Z", abono: true },
+    ],
+  }),
+  apartado(38, "Rosa", "Mendoza Paz", "abierta", "2026-11-25", "2026-11-18", [item(8), item(10, 2)], 60, { extensiones: 1 }),
+  apartado(37, "Ana", "Torres Luna", "liberada", "2026-11-22", "2026-11-15", [item(9)], 45, { liberadaSola: true }),
+  apartado(36, "Julia", "Castro Vega", "entregada", "2026-11-24", "2026-11-17", [item(2), item(5)], 70, { comprobanteFinal: "B001-00001284" }),
+  apartado(35, "Paola", "Ríos Campos", "devuelta", "2026-11-20", "2026-11-13", [item(4)], 40),
+  apartado(34, "Elena", "Vargas Pinto", "abierta", "2026-12-01", "2026-11-24", [item(9), item(1, 1, 10, { motivoDescuento: "Cliente frecuente" })], 80),
+  apartado(33, "Sofía", "Ramos Tello", "entregada", "2026-11-18", "2026-11-11", [item(10, 3)], 50, { comprobanteFinal: "B001-00001251" }),
+];
+
+const PEDIDOS: PedidoApartado[] = [
+  { id: "p-1", direccion: "pedi", otraSede: "AQP", varianteId: "v-3", cantidad: 1, nombres: "Diana", apellidos: "Salas", celular: "987111222", nota: null, estado: "en_camino", creadoEn: "2026-11-24T15:00:00Z", guardadaHasta: null, trasladoNumero: 212, canceladoMotivo: null, reservaEn: null },
+  { id: "p-2", direccion: "me_piden", otraSede: "LIM", varianteId: "v-8", cantidad: 1, nombres: "Karla", apellidos: "Núñez", celular: "987333444", nota: "La recoge el sábado", estado: "pedido", creadoEn: "2026-11-25T18:00:00Z", guardadaHasta: null, trasladoNumero: null, canceladoMotivo: null, reservaEn: "piso" },
+];
+
+export default async function PruebaApartados({ searchParams }: { searchParams: Promise<{ rol?: string; gestiona?: string; caja?: string; vacio?: string; marco?: string }> }) {
+  const q = await searchParams;
+  const lider = q.rol !== "integrante";
+  const vacio = q.vacio === "1";
+  const apartados = vacio ? [] : APARTADOS;
+  const abiertos = apartados.filter((a) => a.estado === "abierta");
+  const resumen = {
+    porRecoger: abiertos.length,
+    prendasGuardadas: abiertos.reduce((s, a) => s + a.prendas.reduce((t, p) => t + p.cantidad, 0), 0),
+    enCustodia: abiertos.reduce((s, a) => s + a.adelanto, 0),
+    enCustodiaEfectivo: abiertos.reduce((s, a) => s + a.pagos.filter((p) => p.metodo === "efectivo").reduce((t, p) => t + p.monto, 0), 0),
+    porDevolver: apartados.filter((a) => a.estado === "liberada").length,
+    montoPorDevolver: apartados.filter((a) => a.estado === "liberada").reduce((s, a) => s + a.adelanto, 0),
+    vencenPronto: 2,
+    vencidos: 1,
+  };
+  const panel = (
+    <SedeActivaProveedor ubicacionId={SEDE} etiqueta="Trujillo" personaSesionId={null} esAdmin={lider} nombreSesion="Prueba">
+      <ReglasDePrecioProveedor valor={{ reglas: REGLAS_DE_FABRICA, marcasConocidas: [], tejidosQueSeNotan: [] }}>
+        <TrabajoPorSede key="apartados" ubicacionId={SEDE}>
+          <ApartadosPanel
+            ubicacionId={SEDE}
+            ubicacionEtiqueta="Trujillo"
+            abrir={null}
+            hoy={HOY}
+            cajaAbierta={q.caja !== "cerrada"}
+            puedeGestionar={q.gestiona !== "0"}
+            prendas={PRENDAS}
+            filasMonto={[]}
+            apartados={apartados}
+            resumen={resumen}
+            liberadosAhora={vacio ? 0 : 1}
+            hayMas={false}
+            avisos={{}}
+            apagadas={[]}
+            veClientas
+            pedidos={vacio ? [] : PEDIDOS}
+            tiendas={[{ id: "t-aqp", nombre: "AQP" }, { id: "t-lim", nombre: "LIM" }]}
+            esLider={lider}
+            lineasDesdeTicket={[]}
+            redondeoEfectivo
+            canales={[]}
+          />
+        </TrabajoPorSede>
+      </ReglasDePrecioProveedor>
+    </SedeActivaProveedor>
+  );
+  if (q.marco === "no") return <main className="p-6">{panel}</main>;
+  return (
+    <AppShell
+      persona={{ nombre: "Prueba", personaId: null, rol: lider ? "lider" : "integrante", ubicacionId: SEDE, ubicacionEtiqueta: "Trujillo", ubicacionTipo: "tienda", puedeCambiarUbicacion: false, modulos: [...CLAVES_MODULO] }}
+      ubicaciones={[{ id: SEDE, nombre: "Trujillo" }]}
+      trasladosPorAtender={0}
+    >
+      {panel}
+    </AppShell>
+  );
+}
