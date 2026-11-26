@@ -3,7 +3,6 @@ import { CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso 
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
-import { BotonCrearCuenta } from "./BotonCrearCuenta";
 
 // «Entrar» y «Crear cuenta» en la dirección «A · Mostrador» (Felipe 2026-11-25, maqueta docs/maquetas/cuenta-profesional-2026-11): la
 // pantalla marfil y tranquila de las tiendas de moda grandes, sin el rojo de fondo ni la tarjeta flotando. Desde el 2026-11-26, como Zara
@@ -57,21 +56,6 @@ export function PantallaDeCuenta({
         )}
       </div>
     </EntradaViva>
-  );
-}
-
-/**
- * La otra puerta de «Entrar»: una pregunta y el botón para crear la cuenta. Sin la ceja del Club, la línea ni los tres beneficios
- * (Felipe 2026-11-26: «¿no basta con un registrarse?»).
- */
-export function LadoPrimeraVez() {
-  return (
-    <section className="cu-lado cu-lado-primera" aria-labelledby="cu-primera-vez">
-      <h2 id="cu-primera-vez" className="cu-lado-t">
-        ¿Primera vez en CAYLA?
-      </h2>
-      <BotonCrearCuenta />
-    </section>
   );
 }
 

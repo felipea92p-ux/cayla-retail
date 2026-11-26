@@ -28,10 +28,11 @@
 /* En el celular, el pie fijo («Falta: …» y el botón) llega a los dos bordes de la pantalla. */
 .cu-form .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 
-/* ---- El lado: «¿Primera vez?» ---- */
+/* ---- El lado de las páginas para volver a entrar: su título ---- */
 .cu-lado-t { margin: 0; text-wrap: balance; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
-/* «¿Primera vez?» de «Entrar»: la pregunta y el botón, nada más (2026-11-26). */
-.cu-lado-primera .cu-lado-t { margin-bottom: 20px; }
+/* «¿Primera vez en CAYLA? Crear cuenta»: una línea bajo «Entrar», en el gris de lectura, con el enlace en tinta (2026-11-26). */
+.cu-primera-vez { margin: 8px 0 0; text-align: center; font-size: 14px; line-height: 1.5; color: var(--taupe); }
+.cu-crear { display: inline-block; padding-block: 10px; color: var(--tinta); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
 /* La foto de campaña de «Entrar» y «Crear cuenta» (2026-11-26): solo desde 960 px; en el celular no se dibuja. */
 .cu-foto { display: none; }
@@ -82,7 +83,6 @@
   .cu-pantalla[data-forma="entrar"] .cu-raya { height: auto; align-self: stretch; }
   /* «Cambiar mi correo» y «Eliminar mi cuenta»: una columna, con el aire de arriba de las demás. */
   .cu-pantalla[data-forma="sola"] { padding: 56px 40px 72px; }
-  .cu-pantalla[data-forma="entrar"] .cu-lado-t { font-size: 32px; }
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) {
     display: grid;
     grid-template-columns: minmax(0, 460px) minmax(0, 400px);
