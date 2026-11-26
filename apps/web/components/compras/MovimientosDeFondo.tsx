@@ -18,7 +18,14 @@ const ICONO_MOVIMIENTO: Record<MovimientoFondo["tipo"], LucideIcon> = {
   pago_deuda_fondo: HandCoins,
 };
 
-export function MovimientosDeFondo({ movimientos }: { movimientos: readonly MovimientoFondo[] }) {
+export function MovimientosDeFondo({
+  movimientos,
+  dePersona = false,
+}: {
+  movimientos: readonly MovimientoFondo[];
+  /** En el detalle de UNA persona: cada renglón dice qué fue («Entrega», «Devolución») en vez de repetir su nombre. */
+  dePersona?: boolean;
+}) {
   return (
     <div data-guia="fondos.movimientos" className="@container space-y-4">
       {movimientosPorDia(movimientos).map((g, i) => (
@@ -53,8 +60,8 @@ export function MovimientosDeFondo({ movimientos }: { movimientos: readonly Movi
                   </span>
                   <div className="min-w-0">
                     <p className={`truncate font-medium ${anulado ? "text-taupe line-through" : "text-tinta"}`}>
-                      {m.persona}
-                      <span className="sr-only"> · {TEXTO_MOVIMIENTO_FONDO[m.tipo]}</span>
+                      {dePersona ? TEXTO_MOVIMIENTO_FONDO[m.tipo] : m.persona}
+                      {!dePersona && <span className="sr-only"> · {TEXTO_MOVIMIENTO_FONDO[m.tipo]}</span>}
                     </p>
                     <p className="truncate text-sm text-taupe" title={linea}>
                       {linea}

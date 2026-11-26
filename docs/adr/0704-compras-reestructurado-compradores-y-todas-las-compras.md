@@ -91,3 +91,35 @@ dato nuevo y la nueva, sin la migración, sigue con la cuenta de antes y sin el 
 anterior, entra ahí. Cada tarjeta abierta llama a `fn_mi_plata_tiene`, que lee el libro de dinero una vez por persona: con las 4 a 6 personas
 que compran hoy no pesa; si fueran decenas, se lee el libro una sola vez (como `fn_fondos`). «Mis compras» sigue llamando «Te dieron» solo a
 lo anotado en la ronda y «tenías» a lo demás: no se tocó.
+
+## Actualización 2026-11-26 (c): Compradores es una tabla de «quién tiene plata», y el detalle va en dos columnas
+
+**Qué pidió Felipe.** Con los números ya corregidos: «la pantalla puede mejorar más, información precisa, que realmente sirva», y el detalle de
+cada persona «distribuido de manera profesional». Se le mostró en imágenes, con los datos reales del día, y dijo «Sí, constrúyela». Reemplaza la
+tarjeta por persona de la decisión 2 de este ADR.
+
+**Compradores.**
+- **Una sola tabla, «Quién tiene plata»:** una fila por persona —la que tiene su ronda abierta y la que tiene plata sin haberla abierto, juntas—,
+  primero quien más tiene en la mano. Columnas: le diste, gastó (con la parte de su plata ya usada), le queda, sus compras y prendas, y «Qué
+  pide»: una etiqueta por lo que toca hacer (por revisar, falta pagar, ronda quieta, cerrar su ronda, sin abrir su ronda) o «Al día». Al pie, el
+  total. Un cero va en tono tenue: no compite con las cifras que dicen algo.
+- **Cuatro cifras:** «Plata en la calle» (lo que suman las manos de la gente; es igual al total de «Le queda»), lo gastado en el mes con cuántas
+  compras y de cuántas personas, lo que espera revisión y de cuántas personas, y «Falta pagar» a proveedores. Se fue «Comprando ahora»: lo
+  dice el contador del título de la tabla.
+- **Rondas que ya cerraron**, como tabla (compras, prendas, gastó, cómo cerró y si le quedan papeles por revisar). Una ronda cerrada sin
+  compras, sin gastos y sin plata no se lista.
+- **En el celular** la tabla pasa sola a su forma de una columna (`corteDePlantilla`); ahí cada fila nombra sus tres cifras, porque no hay
+  cabecera que las nombre.
+
+**El detalle de una persona.** Cuatro cifras que dicen de dónde sale cada número («En 3 entregas, la última el 13/11»; la barra de lo usado;
+lo que falta pagar). Debajo, dos columnas desde 1280 px: a la izquierda lo que se hace ahí (la bandeja de revisión y sus compras, con el número
+del comprobante si ya se revisó y cuánto pagó si quedó debiendo); a la derecha su plata, entrega por entrega —sin repetir su nombre en cada
+renglón, con su «Anular» de siempre— y sus otras rondas. «Todavía no anota compras» ya no se dice dos veces.
+
+**Dónde vive.** Las cuentas, puras y con pruebas sobre los datos de producción de ese día, en `lib/compradores-reglas.ts`
+(`filasDeCompradores`, `loQuePide`, `resumenDeCompradores`, `rondasCerradasConAlgo`, `entregasDe`, `faltaPagarDeCompra`, `pctUsado`); el dibujo,
+en `components/compras/CompradoresVista.tsx` y `DetalleComprador.tsx`, con las piezas del sistema (`Tabla`, `TarjetaCifra`, `Chip`,
+`BarraAvance`). `TarjetaComprador.tsx` se borró. Sin migración: usa lo que ya manda `20261126223000`.
+
+**Lo que cuesta.** Se pierden de la portada las tres últimas compras de cada persona (están a un toque, en su detalle). «Qué pide» junta en
+una celda lo que antes era un aviso con frase completa: es más corto y dice menos del porqué.
