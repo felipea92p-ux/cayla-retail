@@ -270,8 +270,8 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 .t-menu-pie a { padding: 8px 0; font-size: 14px; color: var(--tinta); text-decoration: none; }
 .t-menu-pie a:hover, .t-menu-sub a:hover, .t-menu-tiendas a:hover { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
 
-/* La cabecera de «Entrar» y «Crear cuenta» (A · Muro): el logo siempre al centro (sin el rodeo de 960 a 1180 px: aquí no hay navegación) y a
-   la derecha una sola palabra. */
+/* La cabecera de «Entrar» y «Crear cuenta» (A · Muro): el logo siempre al centro (sin el rodeo de 960 a 1180 px: aquí no hay navegación).
+   Solo el logo, sin enlace al lado (Felipe 2026-11-26). */
 .t-cab-simple > .t-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; }
 /* La cabecera de las páginas de ayuda (`Cabecera`, sin sesión) lleva cuatro enlaces largos a un lado del logo centrado: con el aire y el tracking de la cabecera de la
    tienda (la maqueta de la Pasarela tiene solo tres) se tocaban. Aquí la letra va más junta y el hueco, más chico. */
@@ -279,9 +279,7 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 .t-nav[aria-label="Conoce CAYLA"] .t-nav-b { letter-spacing: .14em; }
 /* Con menos de unos 1360 px de ancho, el cuarto enlace («Club CAYLA») ya no cabe junto al logo: se esconde (el Club está en el inicio y en «Crear mi cuenta»). */
 @container tienda (max-width: 1359px) { .t-nav[aria-label="Conoce CAYLA"] .t-nav-b:last-child { display: none; } }
-/* En el celular el otro camino ya está en el formulario («Crear mi cuenta» / «Entrar» abajo): la cabecera es solo el logo. */
-.t-cab-simple > .t-nav-b { display: none; }
-@container tienda (min-width: 700px) { .t-cab-simple > .t-nav-b { height: 100%; display: inline-flex; align-items: center; } }
+/* En el celular, el logo también al centro. */
 @container tienda (max-width: 1179px) { .t-cab-simple > .t-logo { position: absolute; left: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; } }
 
 /* Cambiar de tienda con prendas en la bolsa: el aviso corto dentro del mismo desplegable. */

@@ -125,7 +125,7 @@ export async function MarcoCuenta({
             prendasEnBolsa={prendasEnBolsa}
           />
         ) : (
-          <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
+          <Cabecera />
         )}
         <main className="t-pagina">{children}</main>
         {conPie && <Pie anio={await anioActual()} conCuenta={conSesion} />}
