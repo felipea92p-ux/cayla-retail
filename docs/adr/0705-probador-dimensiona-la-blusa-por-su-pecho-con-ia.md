@@ -32,8 +32,9 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
    `cajaDeAbajoUnida` con `porElPecho`) y la blusa cuelga encima, como en una persona. Sin esto no alcanzaba (Felipe, 2026-11-26: «lo sigo viendo igual»): la
    blusa se achicaba, pero el bajo angosto del nudo arrastraba la pretina del jean al mínimo (30,6 cm) y el jean se achicaba con ella; la proporción pasaba de
    1,70 a 1,53 nada más. Con la cintura del cuerpo pasa a 1,31 (un cuerpo real anda en 1,2–1,3).
-   **Una falda, en cambio, sí sigue al bajo de la blusa**, sin pasar de esos 36 cm (ni bajar de 30,6): con la cintura fija sobresalía a los lados de una blusa
-   corta o anudada y se veía más ancha que ella (Felipe, 2026-11-26, con el top de encaje TOP-0021 y la Camisa Dalia sobre una falda corta).
+   **Una falda, igual: su tamaño real «como en una persona»** (Felipe, 2026-11-26), y además **arranca donde termina la blusa** (en su bajo más alto, con el solape
+   de 3 px), sin quedar tapada: se ve su pretina o su cinturón. Probado antes y descartado: que la falda siguiera al bajo de la blusa salía angosta y, como su
+   largo sale de su ancho, también corta; y tapada bajo la blusa quedaba como un bloque y el conjunto parecía una túnica.
 2. **Las axilas las dice una IA, una vez por recorte, sola.** `GET /api/fotos/medir-recortes` (cron cada 10 min, `CRON_SECRET`, llave de servicio) toma hasta 12
    recortes sin medida (`retail.recortes_sin_medida_ia`), le manda a OpenAI la URL pública del recorte en baja resolución y guarda lo que responde
    (`retail.anotar_medida_ia`): tipo, zona, holgura, si va metida y la altura de las axilas (fracción del alto). Nadie del equipo hace nada.

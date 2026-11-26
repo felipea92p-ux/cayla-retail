@@ -452,15 +452,13 @@ export function cajaDeAbajoUnida(
   const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
   // ADR-0705: si la de arriba ya se dimensionó por su pecho, el cuerpo manda: la pretina es la cintura estándar y NO sigue al bajo de la blusa (un nudo
   // angosta ese bajo y arrastraba al pantalón: la blusa se achicaba y el jean con ella, y la proporción no cambiaba). La blusa cuelga encima, como en una persona.
-  //    Una FALDA sí sigue al bajo de la blusa (sin pasar de la cintura estándar): con la cintura fija sobresalía a los lados de una blusa corta o anudada y se veía más
-  //    ancha que ella (Felipe, 2026-11-26, con el top de encaje y la Camisa Dalia).
+  //    Lo mismo una falda: su tamaño real (cintura de cuerpo y su propio largo), «como en una persona» (Felipe, 2026-11-26). Siguiendo al bajo angosto de una
+  //    blusa corta o anudada salía angosta y, como su largo sale de su ancho, también corta: parecía una túnica.
   const pretinaSegunElBorde = arriba.porElPecho
-    ? abajo.falda
-      ? Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar)
-      : estandar
+    ? estandar
     : Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
   // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
-  const pretinaPx = abajo.falda
+  const pretinaPx = abajo.falda && !arriba.porElPecho
     ? Math.max(
         pretinaMinima,
         Math.min(pretinaSegunElBorde, Math.max(arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina, pretinaSegunElBorde * PRETINA_MINIMA_DE_LA_FALDA)),
@@ -476,6 +474,9 @@ export function cajaDeAbajoUnida(
   const yEstimada = arriba.caja.y + arriba.caja.h * filaDelBorde - SOLAPE_DE_LA_UNION;
   // Con el contorno fino de las dos prendas la posición no se estima: se CALCULA la que deja el bajo de arriba cubriendo la pretina en cada columna.
   const yCubierta = alturaQueCubreLaPretina(arriba.caja, a.contorno, a.filaDelBorde, { x, w, h }, b.contorno);
+  // ADR-0705: con la blusa medida por su pecho, una FALDA no se esconde bajo la blusa: arranca donde la blusa termina más arriba y solo se solapa un poco, así se ve
+  // dónde empieza la falda (su pretina o su cinturón), como en una persona. Taparla entera la dejaba como un bloque y el conjunto parecía una túnica.
+  if (abajo.falda && arriba.porElPecho) return { x, y: Math.round(yEstimada), w: Math.round(w), h: Math.round(h) };
   return { x, y: Math.round(yCubierta ?? yEstimada), w: Math.round(w), h: Math.round(h) };
 }
 

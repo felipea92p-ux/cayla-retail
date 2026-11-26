@@ -678,14 +678,17 @@ describe("cajaDeAbajoUnida con la blusa medida por su pecho (ADR-0705)", () => {
     expect(pretinaCm(porElCuerpo)).toBeCloseTo(ANCHO_ESTANDAR_DE_LA_UNION, 0);
   });
 
-  it("una falda sí sigue al bajo de la blusa, sin pasar de la cintura estándar: no sobresale de una blusa corta o anudada", () => {
+  it("una falda toma su tamaño real y arranca donde termina la blusa: se ve dónde empieza (no queda tapada como un bloque)", () => {
     const conNudo = (x: number, y: number) => (y < 75 ? Math.abs(x - 50) < 25 : Math.abs(x - 50) < 12.5);
-    const arriba = { caja: { x: 145, y: 44, w: 100, h: 120 }, medida: medirRecorte(imagen(100, 100, conNudo), 100, 100), metida: false, porElPecho: true };
+    const arriba = { caja: { x: 145, y: 44, w: 100, h: 120 }, medida: medirRecorte(imagen(100, 100, conNudo), 100, 100), metida: false };
     const falda = (x: number, y: number) => Math.abs(x - 50) < 30 + (y / 60) * 20;
     const abajo = { proporcion: 100 / 60, medida: medirRecorte(imagen(100, 60, falda), 100, 60), falda: true };
-    const c = cajaDeAbajoUnida(arriba, abajo)!;
-    const pretinaCm = (c.w * abajo.medida.pretina!) / PX_POR_CM;
-    expect(pretinaCm).toBeLessThan(ANCHO_ESTANDAR_DE_LA_UNION);
-    expect(pretinaCm).toBeGreaterThanOrEqual(ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) - 0.5);
+    const hoy = cajaDeAbajoUnida(arriba, abajo)!;
+    const nueva = cajaDeAbajoUnida({ ...arriba, porElPecho: true }, abajo)!;
+    // Cintura de cuerpo (y por eso su largo real, que sale de su ancho), no la del bajo angosto del nudo.
+    expect((nueva.w * abajo.medida.pretina!) / PX_POR_CM).toBeCloseTo(ANCHO_ESTANDAR_DE_LA_UNION, 0);
+    expect(nueva.h).toBeGreaterThan(hoy.h);
+    // Arranca en el bajo más alto de la blusa (menos el solape), no más arriba escondida bajo ella.
+    expect(nueva.y).toBeGreaterThanOrEqual(arriba.caja.y + arriba.caja.h * 0.7 - SOLAPE_DE_LA_UNION);
   });
 });
