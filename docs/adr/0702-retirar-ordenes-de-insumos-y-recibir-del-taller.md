@@ -1,8 +1,8 @@
 # ADR-0702 — Producción ▸ Abastecimiento se achica: salen «Órdenes de insumos» y «Recibir»
 
 **Fecha:** 2026-11-25 · **Estado:** aceptado por Felipe. **Retira la fase 7 de ADR-0362.** La web se retira en este PR; la migración
-`20261125231000_retirar_modulo_ordenes_insumos.sql` está escrita y probada en local (en transacción), **sin pegar en producción** (espera
-el OK de Felipe, después de publicar la web).
+`20261125231000_retirar_modulo_ordenes_insumos.sql` está **en producción desde el 2026-11-26** (pegada por Claude con el OK de Felipe,
+antes de fusionar: la web de hoy solo pierde la pantalla de órdenes, sin uso; verificada en vivo).
 
 ## Contexto
 
