@@ -3,32 +3,31 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CompraDeLaTela, TejidoYComposicion, useTejidosDeLaTela } from "@/components/insumos-taller/PiezasDeLaTela";
+import { TablaDeColores, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
+import { CampoComposicion, CampoTejido, CompraDeLaTela, PreguntaDelTejido, useTejidosDeLaTela } from "@/components/insumos-taller/PiezasDeLaTela";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
-import { Punto } from "@/components/alta-producto/Punto";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
-import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import type { VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
+import { PALABRAS_DE_TELA, conPalabrasDeLaHoja } from "@/lib/insumos-hojas";
 import { CANTIDAD_ILEGIBLE, textoDeCompra, type CompraDeTela, type MaterialVista } from "@/lib/insumos-reglas";
+import { costoPor } from "@/lib/insumos-vista";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import {
   camposDeTelaNueva,
-  codigoBaseDeVista,
-  columnasDeLaTabla,
   filasTrasCambiarCompra,
   metrosDeFila,
   numeroMalEscrito,
@@ -47,6 +46,10 @@ import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 // «Nueva tela» (ADR-0554, actividad 2; Felipe 2026-10-28: «la parte de insumos es demasiado tediosa de completar»): UNA hoja para la tela y todos sus colores. Antes, una tela en cinco colores eran cinco altas de diez campos
 // y otras cinco hojas para ingresar el lote. Aquí se dice qué tela es, cómo se compra (metro, kilo con su ancho y gramaje, o rollo con sus metros) y se eligen los colores de la MISMA carta de Catálogo; cada color trae su código
 // (lo arma la base, nadie lo escribe) y, si ya hay saldo, su lote. Todo se guarda de una vez o no se guarda (`crear_material`). Con el mismo `<Modal>`, la guía de foco (ADR-0284) y el combo Responsable que el resto.
+//
+// «Producción más clara» (Felipe 2026-11-26; maqueta docs/maquetas/produccion-resumen-2026-11/): la hoja va en tres pasos numerados («Qué tela es», «Cómo la compras», «Qué colores tiene»), con las
+// palabras de quien la llena («De qué está hecha», «Se pierde al cortar», «Ya tengo», «Me costó el metro», «Avísame si baja de») y lo que explica detrás del «?» de cada paso. El código de la tela y
+// el de cada color ya no van a la vista: los sigue armando la base. No cambia nada de lo que se valida ni de lo que se guarda.
 //
 // También sirve para AGREGAR colores a una tela que ya existe (`agregarA`): el mismo botón de «¿Es la misma tela?» y, después, el de cada tela. Quien ve Producción en el Taller crea telas y colores; el saldo inicial (dinero)
 // solo lo anota el líder (`puedeSaldo`): quien no lo es ni ve esas columnas, y la base lo rechazaría igual. Un reintento por un corte de red no duplica nada: el envío lleva un token.
@@ -125,12 +128,10 @@ export function NuevaTelaModal({
     : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo, tejidoPorContestar: preguntaTejido?.nombre };
   const datosDeLaTela: DatosDeLaTela = { nombre: e.nombre, tejidoId: e.tejidoId, composicion: e.composicion, compra: e.compra, ancho: e.ancho, gramaje: e.gramaje, metrosPorRollo: e.metrosPorRollo, merma: e.merma };
   const problemas = problemasDeTelaNueva(e);
-  const campos = camposDeTelaNueva(e);
+  // Los mismos campos de la validación, con las palabras que la hoja usa a la vista.
+  const campos = conPalabrasDeLaHoja(camposDeTelaNueva(e), PALABRAS_DE_TELA);
   const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos, { conGrado: true });
   const parecida = agregarA ? null : telaParecida(nombre, materiales);
-  // En «Agregar colores» el código de cada color sale de la tela elegida (`MM-01-NEG`), no de una tela nueva (G10 de la revisión).
-  const codigo = codigoBaseDeVista(agregarA, e.nombre, materiales);
-  const tabla = columnasDeLaTabla(e);
   const unidadDeCompra = COLUMNAS_SALDO[e.compra];
 
   // Los colores que se pueden elegir: en una tela que ya existe, los que no tiene.
@@ -202,7 +203,7 @@ export function NuevaTelaModal({
     const n = filas.length;
     const conSaldo = filas.filter(tieneSaldo).length;
     avisar.exito(agregarA ? `${n} ${n === 1 ? "color" : "colores"} más en ${agregarA.nombre}` : `${e.nombre.trim()} ya está en Insumos`, {
-      detalle: `${n} ${n === 1 ? "color" : "colores"}${conSaldo > 0 ? ` · ${conSaldo} con su saldo inicial` : ""}`,
+      detalle: `${n} ${n === 1 ? "color" : "colores"}${conSaldo > 0 ? `, ${conSaldo} con lo que ya tenías` : ""}`,
     });
     cerrarTrasGuardar();
   }
@@ -211,7 +212,7 @@ export function NuevaTelaModal({
   return (
     <Modal
       titulo={agregarA ? `Agregar colores a «${agregarA.nombre}»` : "Nueva tela"}
-      subtitulo={agregarA ? `${agregarA.codigo} · ${textoDeCompra(agregarA)}` : "Una tela, todos sus colores, en un solo paso"}
+      subtitulo={agregarA ? textoDeCompra(agregarA) : undefined}
       variante="hoja"
       tamano="ancha"
       onClose={onClose}
@@ -222,24 +223,18 @@ export function NuevaTelaModal({
           {!agregarA && (
             <>
               <section data-guia="prod-tela-nueva.que-es" className="space-y-3">
-                <TituloGrupo>Qué tela es</TituloGrupo>
-                <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
+                <TituloDePaso paso={1}>Qué tela es</TituloDePaso>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                   <CampoGuiado id="nombre" guia={guia}>
-                    <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre de la tela")} value={nombre} onChange={(ev) => setNombre(ev.target.value)} maxLength={120} placeholder={sugerirInsumo("tela", materiales).nombre} autoComplete="off" />
+                    <CampoTexto sinPie etiqueta={guia.etiqueta("nombre", "Nombre de la tela")} value={nombre} onChange={(ev) => setNombre(ev.target.value)} maxLength={120} placeholder={sugerirInsumo("tela", materiales).nombre} autoComplete="off" />
                   </CampoGuiado>
-                  <div>
-                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">
-                      Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
-                    </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-sm font-semibold text-tinta">
-                      {codigo}
-                    </p>
-                  </div>
+                  <CampoTejido guia={guia} tejidos={tejidos} leyoVocabulario={leyoVocabulario} tejidoId={tejidoId} onTejido={setTejidoId} onCrearTejido={(t) => void crearTejido(t, setTejidoId)} pregunta={preguntaTejido} />
                 </div>
+                <PreguntaDelTejido pregunta={preguntaTejido} />
                 {parecida && (
                   <Aviso
                     tono="atencion"
-                    titulo={parecida.igual ? `Ya existe «${parecida.tela.nombre}» (${parecida.tela.codigo})` : `¿Es la misma que «${parecida.tela.nombre}» (${parecida.tela.codigo})?`}
+                    titulo={parecida.igual ? `Ya existe «${parecida.tela.nombre}»` : `¿Es la misma que «${parecida.tela.nombre}»?`}
                     accion={
                       alElegirExistente ? (
                         <Boton type="button" peso="fantasma" onClick={() => alElegirExistente(parecida.tela)}>
@@ -254,22 +249,23 @@ export function NuevaTelaModal({
                       : "Si es la misma, agrégale los colores que le faltan en vez de crearla otra vez."}
                   </Aviso>
                 )}
-                <TejidoYComposicion
-                  guia={guia}
-                  tejidos={tejidos}
-                  leyoVocabulario={leyoVocabulario}
-                  tejidoId={tejidoId}
-                  onTejido={setTejidoId}
-                  onCrearTejido={(t) => void crearTejido(t, setTejidoId)}
-                  pregunta={preguntaTejido}
-                  composicion={composicion}
-                  onComposicion={setComposicion}
-                />
+                <CampoComposicion guia={guia} composicion={composicion} onComposicion={setComposicion} titulo="De qué está hecha" />
               </section>
 
               <section data-guia="prod-tela-nueva.compra" className="space-y-3">
-                <TituloGrupo>Cómo la compras</TituloGrupo>
+                <TituloDePaso
+                  paso={2}
+                  ayuda={
+                    <>
+                      En Insumos la tela se cuenta siempre en metros: si la compras por kilo o por rollo, se pasa a metros al recibirla. «Se pierde al cortar» es la parte de la tela que no llega a la prenda
+                      en cada corte.
+                    </>
+                  }
+                >
+                  Cómo la compras
+                </TituloDePaso>
                 <CompraDeLaTela
+                  enPasos
                   guia={guia}
                   datos={datosDeLaTela}
                   onCompra={cambiarCompra}
@@ -284,55 +280,46 @@ export function NuevaTelaModal({
           )}
 
           <section data-guia="prod-tela-nueva.colores" className="space-y-3">
-            <TituloGrupo cuenta={n}>Colores</TituloGrupo>
+            <TituloDePaso
+              paso={agregarA ? undefined : 3}
+              cuenta={n}
+              ayuda={
+                puedeSaldo ? (
+                  <>
+                    Búscalo por su nombre o tócalo en la carta. Si de un color todavía no llegó nada, deja «Ya tengo» vacío: se crea en cero. «Avísame si baja de» es lo mínimo que quieres tener: con
+                    menos, el color sale en «Por acabarse».
+                  </>
+                ) : (
+                  <>
+                    Búscalo por su nombre o tócalo en la carta. Los colores se crean en cero: lo que ya hay de cada uno, con su costo, lo anota el líder. «Avísame si baja de» es lo mínimo que quieres
+                    tener.
+                  </>
+                )
+              }
+            >
+              Qué colores tiene
+            </TituloDePaso>
             <CampoGuiado id="colores" guia={guia} retiene="fila">
               {leyoColores ? (
                 <ElegirColores colores={disponibles} grupos={grupos} elegidos={filas.map((f) => f.color)} onAlternar={alternarColor} onCreado={(c) => { setColoresCarta((cs) => [...cs, c]); alternarColor(c.codigo); }} cartaAbierta={false} sinElegidos enfocarBuscador={eligioColor} />
               ) : (
-                <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                <p className="rounded-md vd-placa px-3 py-2 text-sm text-secundario">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
               )}
             </CampoGuiado>
             {n === 0 ? (
-              <p className="text-sm text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
+              <p className="text-sm text-tenue">Todavía no elegiste ninguno.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                  <div className={`${FILA} vd-placa text-xs font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                    <span>Color</span>
-                    <span>Código</span>
-                    {puedeSaldo && <span className="text-right">¿Ya tienes? ({unidadDeCompra})</span>}
-                    {puedeSaldo && e.compra !== "metro" && <span className="text-right">≈ metros</span>}
-                    {puedeSaldo && <span className="text-right">Costo por {e.compra === "rollo" ? "rollo" : unidadDeCompra}</span>}
-                    <span className="text-right">Mínimo (m)</span>
-                    <span />
-                  </div>
-                  {filas.map((f) => {
-                    const c = porCodigo.get(f.color);
-                    const nombreColor = c?.nombre ?? f.color;
-                    const metros = metrosDeFila(e, f);
-                    return (
-                      <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                        <span className="flex min-w-0 items-center gap-2 text-detalle text-tinta">
-                          <Punto hex={c?.hex ?? null} familia={c?.familiaColor} tipo={c?.tipo} />
-                          <span className="truncate">{nombreColor}</span>
-                        </span>
-                        <span className="truncate font-mono text-xs text-tinta/75">{codigo}-{f.color}</span>
-                        {puedeSaldo && (
-                          <CampoTexto caja sinPie etiqueta={`Cuánto hay de ${nombreColor} (${unidadDeCompra})`} inputMode="decimal" className="text-right tabular-nums" placeholder="0" value={f.ya} onChange={(ev) => cambiarFila(f.color, { ya: ev.target.value })} tono={numeroMalEscrito(f.ya) ? "error" : undefined} />
-                        )}
-                        {puedeSaldo && e.compra !== "metro" && <span className="text-right text-sm tabular-nums text-tinta/70">{metros === null ? "—" : `≈ ${metros.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m`}</span>}
-                        {puedeSaldo && (
-                          <CampoTexto caja sinPie etiqueta={`Costo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="0.00" value={f.costo} onChange={(ev) => cambiarFila(f.color, { costo: ev.target.value })} tono={montoIlegible(f.costo) ? "error" : undefined} />
-                        )}
-                        <CampoTexto caja sinPie etiqueta={`Mínimo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="—" value={f.minimo} onChange={(ev) => cambiarFila(f.color, { minimo: ev.target.value })} tono={numeroMalEscrito(f.minimo) ? "error" : undefined} />
-                        <button type="button" onClick={() => alternarColor(f.color)} aria-label={`Quitar ${nombreColor}`} className="grid h-8 w-8 place-items-center rounded-full text-lg leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta">
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <TablaDeColores
+                filas={filas}
+                porCodigo={porCodigo}
+                puedeSaldo={puedeSaldo}
+                unidadYa={unidadDeCompra}
+                unidadMinimo="m"
+                rotuloCosto={`Me costó ${costoPor(e.compra)}`}
+                metrosDe={e.compra === "metro" ? undefined : (f) => metrosDeFila(e, f)}
+                onCambiar={cambiarFila}
+                onQuitar={alternarColor}
+              />
             )}
             {filas.some((f) => numeroMalEscrito(f.ya) || numeroMalEscrito(f.minimo)) && (
               <Aviso tono="error" chico>
@@ -344,8 +331,6 @@ export function NuevaTelaModal({
                 {MONTO_ILEGIBLE}
               </Aviso>
             )}
-            {n > 0 && puedeSaldo && <p className="nota-cayla">Si todavía no llegó nada, deja «¿Ya tienes?» vacío: el color se crea en cero.</p>}
-            {n > 0 && !puedeSaldo && <p className="nota-cayla">Los colores se crean en cero. Lo que ya hay de cada uno, con su costo, lo anota el líder.</p>}
           </section>
 
           <div data-guia="prod-tela-nueva.cierre" className="space-y-3">
@@ -381,5 +366,3 @@ export function NuevaTelaModal({
     </Modal>
   );
 }
-
-const FILA = "grid items-center gap-3 px-3 py-2";

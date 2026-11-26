@@ -338,13 +338,13 @@ describe("órdenes y materiales del modelo", () => {
 
 describe("lineaDeOrigen — marca y proveedor bajo el nombre del modelo", () => {
   it("dice las dos cosas cuando están registradas", () => {
-    expect(lineaDeOrigen({ marca: "Cayla", proveedor: "Textil Sur" })).toBe("Marca Cayla · Proveedor Textil Sur");
+    expect(lineaDeOrigen({ marca: "Cayla", proveedor: "Textil Sur" })).toEqual({ marca: "Marca Cayla", proveedor: "Proveedor Textil Sur" });
   });
 
   it("dice lo que falta, sin esconder lo otro", () => {
-    expect(lineaDeOrigen({ marca: "Cayla", proveedor: null })).toBe("Marca Cayla · Sin proveedor");
-    expect(lineaDeOrigen({ marca: null, proveedor: "Textil Sur" })).toBe("Sin marca · Proveedor Textil Sur");
-    expect(lineaDeOrigen({ marca: null, proveedor: null })).toBe("Sin marca · Sin proveedor");
+    expect(lineaDeOrigen({ marca: "Cayla", proveedor: null })).toEqual({ marca: "Marca Cayla", proveedor: "Sin proveedor" });
+    expect(lineaDeOrigen({ marca: null, proveedor: "Textil Sur" })).toEqual({ marca: "Sin marca", proveedor: "Proveedor Textil Sur" });
+    expect(lineaDeOrigen({ marca: null, proveedor: null })).toEqual({ marca: "Sin marca", proveedor: "Sin proveedor" });
   });
 
   it("no afirma «Sin marca» si la ficha no se pudo leer", () => {

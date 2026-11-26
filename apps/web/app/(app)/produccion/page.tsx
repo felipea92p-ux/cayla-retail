@@ -14,10 +14,9 @@ import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-pres
 import { hojaDelModelo, materialesDelModelo, ordenesDelModelo, prendasPorFabricar } from "@/lib/produccion-hoja-modelo";
 import { getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
-import { cifrasResumen, resumenDeDecisiones, demandaDelTaller, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { pagosDelTaller, resumenDeDecisiones, demandaDelTaller, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { getTelaDelTaller } from "@/lib/tela-del-taller";
 import { getListaDeOrdenes } from "@/lib/ordenes-lista";
-import { cifrasHoyEnElTaller, datoHoyEnElTaller } from "@/lib/ordenes-lista-reglas";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 import { notaDeHistoria } from "@/lib/produccion-cifras-textos";
 
@@ -36,9 +35,10 @@ export default async function ProduccionPage() {
 
   const hoy = hoyLima();
   const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo, telaDelTaller, dondeEstan] = await Promise.all([
-    getOrdenesProduccion(taller.id, { conCostos: true, limite: 400 }),
+    // Sin costos: el Resumen ya no muestra dinero de las órdenes ni de los insumos (las cifras de arriba salieron el 2026-11-26); lo que se debe a proveedores sale de los comprobantes.
+    getOrdenesProduccion(taller.id, { conCostos: false, limite: 400 }),
     getModelosProducibles({ soloProducibles: true }),
-    getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
+    getInsumosDelTaller(taller.id, { conCostos: false, hoy }),
     getLineasPorRecibir(taller.id),
     getComprobantesProduccion(),
     // Las fotos son un dato SECUNDARIO (la misma copia cacheada de Catálogo, ADR-0168): si no se leen, cada modelo se dibuja con el ícono de su categoría
@@ -46,7 +46,7 @@ export default async function ProduccionPage() {
     opcional(getCatalogo(), "las fotos de los modelos"),
     // Lo que las órdenes abiertas ya reservan de cada tela y lo pedido (ADR-0400, actividad 8d): dato de apoyo; si no se lee, «¿Alcanza la tela?» cuenta con el rendimiento medido de siempre.
     getTelaDelTaller(taller.id),
-    // Dónde está cada orden (la misma lectura de la lista de Órdenes): si no se lee, «Hoy en el Taller» lo dice y manda a Órdenes.
+    // Dónde está cada orden (la misma lectura de la lista de Órdenes): si no se lee, el recuadro de órdenes lo dice y manda a Órdenes.
     getListaDeOrdenes(taller.id, hoy),
   ]);
   const presentaciones = presentacionesDeModelos(catalogo ?? []);
@@ -56,8 +56,11 @@ export default async function ProduccionPage() {
     opcional(getFichasDeModelos(modelos.map((m) => m.productoId)), "la ficha de los modelos"),
   ]);
 
-  const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
+  // El número de cada orden («OP-000031») lo trae la lista de Órdenes: con él, un asunto de «Por resolver» dice de qué orden habla. Sin la lista, nombra solo el modelo.
+  const numeroDeOrden = new Map((dondeEstan.lista?.filas ?? []).map((f) => [f.id, f.numeroTexto]));
+  const ordenesParaDecidir: OrdenParaDecidir[] = ordenes.map((o) => ({
     id: o.id,
+    numeroTexto: numeroDeOrden.get(o.id),
     referencia: o.referencia,
     productoId: o.productoId,
     estado: o.estado,
@@ -65,8 +68,6 @@ export default async function ProduccionPage() {
     fechaEntrega: o.fechaEntrega,
     cantidadPlan: o.cantidadPlan,
     etapas: o.etapas,
-    costoTela: o.costoTela,
-    costoAvios: o.costoAvios,
   }));
   const insumos: InsumoParaDecidir[] = datosInsumos.insumos.map((i) => ({ id: i.id, nombre: i.nombre, unidad: i.unidad, tipo: i.tipo, saldo: i.saldo, minimo: i.minimo, tono: i.estado.tono }));
   const llegadas = lineas.filter((l) => l.pendiente > 0).map((l) => ({ insumoId: l.insumoId, documento: `${l.serie}-${l.numero}`, proveedor: l.proveedor, pendiente: l.pendiente }));
@@ -102,15 +103,13 @@ export default async function ProduccionPage() {
     ]),
   );
 
-  // Los modelos por producir tienen su propia lista arriba («¿Qué fabrico primero?»): «Para decidir» queda para lo demás (entregas, tela, pagos, traslados, sobrestock).
+  // Los modelos por producir tienen su propia lista («Qué fabricar primero»): «Por resolver» queda para lo demás (entregas, tela, pagos, prendas por llevar a tienda, lo que hay de sobra).
   const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo, producirAparte: true });
-  const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas, enCaminoPorInsumo);
-  const hoyEnElTaller = dondeEstan.lista ? { cifras: cifrasHoyEnElTaller(dondeEstan.lista.filas), dato: datoHoyEnElTaller(dondeEstan.lista.filas) } : null;
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} modelos={filasModelo} hojas={hojas} telas={telas} ordenesEnCurso={dondeEstan.lista?.filas ?? null} pagos={pagosDelTaller(comprobantes, hoy)} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
     </div>
   );
 }

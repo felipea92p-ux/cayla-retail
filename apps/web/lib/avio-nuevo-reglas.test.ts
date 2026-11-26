@@ -9,8 +9,6 @@ import {
   MENSAJE_SIN_COSTO,
   avioParecido,
   camposDeAvioNuevo,
-  codigoDeVistaPreviaAvio,
-  columnasDeLaTablaAvio,
   coloresDelAvioParaLaBase,
   llevaMerma,
   materialDelAvioParaLaBase,
@@ -237,12 +235,7 @@ describe("lo que viaja a `crear_material`", () => {
   });
 });
 
-describe("el código y la ficha parecida", () => {
-  it("el código sale del prefijo de la CLASE, y toma el siguiente número libre", () => {
-    expect(codigoDeVistaPreviaAvio(CLASES[0], [])).toBe("BOT-01");
-    expect(codigoDeVistaPreviaAvio(CLASES[0], [avio({ codigo: "BOT-01" }), avio({ codigo: "CIE-09" })])).toBe("BOT-02");
-    expect(codigoDeVistaPreviaAvio(null, [])).toBe("AVI-01");
-  });
+describe("la ficha parecida", () => {
   it("el mismo nombre con la MISMA medida es el mismo avío: hay que sumarle colores, no repetirlo", () => {
     const r = avioParecido({ nombre: "Botón nácar", medida: "1.5", medidaUnidad: "centimetro" }, [avio()]);
     expect([r?.igual, r?.avio.codigo]).toEqual([true, "BOT-01"]);
@@ -253,16 +246,6 @@ describe("el código y la ficha parecida", () => {
   });
   it("una tela con el mismo nombre no cuenta (son catálogos distintos)", () => {
     expect(avioParecido({ nombre: "Botón nácar", medida: "1.5", medidaUnidad: "centimetro" }, [avio({ tipo: "tela" })])).toBeNull();
-  });
-});
-
-describe("la tabla de colores", () => {
-  it("un avío no tiene columna de conversión: se cuenta como se compra", () => {
-    const conSaldo = columnasDeLaTablaAvio({ puedeSaldo: true });
-    const sinSaldo = columnasDeLaTablaAvio({ puedeSaldo: false });
-    expect(conSaldo.plantilla.split(" ").length).toBe(6);
-    expect(sinSaldo.plantilla.split(" ").length).toBe(4);
-    expect(conSaldo.anchoMinimo).toBeGreaterThan(sinSaldo.anchoMinimo);
   });
 });
 

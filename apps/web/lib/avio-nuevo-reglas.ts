@@ -236,16 +236,6 @@ export function payloadDeAvioNuevo(e: EntradaAvioNuevo, clases: readonly ClaseDe
   return { material: materialDelAvioParaLaBase(e, clases), colores: coloresDelAvioParaLaBase(e) };
 }
 
-/** El código que la base le va a poner (vista previa: lo asigna ella). Prefijo de la CLASE + el siguiente número libre de ese prefijo. */
-export function codigoDeVistaPreviaAvio(clase: ClaseDeAvio | null, existentes: readonly Pick<MaterialVista, "codigo">[]): string {
-  const p = clase?.prefijo ?? "AVI";
-  const usados = existentes
-    .map((m) => /^([A-Z]{2,4})-(\d+)/i.exec(m.codigo))
-    .filter((r): r is RegExpExecArray => r !== null && r[1].toUpperCase() === p)
-    .map((r) => Number(r[2]));
-  return `${p}-${String(Math.max(0, ...usados) + 1).padStart(2, "0")}`;
-}
-
 /**
  * ¿Ya hay un avío así? Dos fichas del mismo nombre con medidas DISTINTAS son dos avíos a propósito (un cierre de 20 cm y uno de 40); con la misma medida, es el mismo y hay que sumarle
  * colores en vez de repetirlo. Por eso el aviso distingue «es el mismo» de «se parece».
@@ -264,26 +254,7 @@ export function avioParecido<T extends Pick<MaterialVista, "nombre" | "tipo" | "
   return candidato ? { avio: candidato, igual: false } : null;
 }
 
-/** Las columnas de la tabla de colores de un avío: Color, Código, [¿Ya tienes?, Costo] (solo el líder), Mínimo, ×. Sin columna de conversión: un avío se cuenta como se compra. */
-export function columnasDeLaTablaAvio(e: Pick<EntradaAvioNuevo, "puedeSaldo">): { plantilla: string; anchoMinimo: number } {
-  const cols: { css: string; px: number }[] = [
-    { css: "minmax(6.5rem,1.4fr)", px: 104 },
-    { css: "minmax(6rem,1.1fr)", px: 96 },
-    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
-    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
-    { css: "5rem", px: 80 },
-    { css: "2rem", px: 32 },
-  ];
-  return { plantilla: cols.map((c) => c.css).join(" "), anchoMinimo: cols.reduce((s, c) => s + c.px, 0) + (cols.length - 1) * 12 + 24 + 2 };
-}
-
 /** Cómo se dice la unidad de un avío en la cabecera de una columna («unid.», «conos», «m»). */
 export function unidadCorta(u: UnidadInsumo): string {
   return UNIDADES_INSUMO[u].corta;
-}
-
-/** En singular, para «Costo por cono» (y no «Costo por conos», que es lo que da la forma corta). */
-const SINGULAR: Record<UnidadInsumo, string> = { metro: "metro", kilo: "kilo", unidad: "unidad", cono: "cono", par: "par", docena: "docena" };
-export function unidadSingular(u: UnidadInsumo): string {
-  return SINGULAR[u];
 }

@@ -1,22 +1,27 @@
 "use client";
 
 import { useId, useState } from "react";
+import { TrendingUp } from "lucide-react";
 import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { ParDato } from "@/components/ui/ParDato";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import type { MotorDeLaRed } from "@/lib/motor-demanda";
 import type { ModeloProducible } from "@/lib/produccion";
 import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
 import { OPCIONES_DIAS_OBJETIVO, type CurvaSugerida, type DemandaVariante } from "@/lib/produccion-decision-reglas";
-import { explicacionDelConsejo, fraseDelConsejo } from "@/lib/nueva-orden-consejo-reglas";
+import { explicacionDelConsejo, fraseDelConsejo, paresDeLaVariante } from "@/lib/nueva-orden-consejo-reglas";
 
-// El consejo de la red en «Nueva orden», plegado a UNA línea (hallazgo H5 del /formidable de Producción, Felipe 2026-10-16). Antes ocupaba ~290 px antes de «Fases» y «Tela» —incluso
-// vacío— con tres palabras que nadie entendió. Ahora la línea dice lo único que importa («La red sugiere 40 prendas» o «La red no sugiere nada ahora»), deja usar la sugerencia con un
-// toque y guarda lo demás bajo «¿Por qué?»: la explicación, los días de venta que cubre, el detalle por talla y color, y el motor de demanda para comparar.
+// Lo que piden las ventas en «Nueva orden», en UNA línea (hallazgo H5 del /formidable de Producción, Felipe 2026-10-16; «Producción más clara», 2026-11-26). Antes ocupaba ~290 px
+// antes de «Fases» y «Tela» —incluso vacío— con tres palabras que nadie entendió. Ahora la línea dice lo único que importa («Las ventas piden unas 24 prendas» o «Las ventas no piden
+// nada ahora»), deja usar la sugerencia con un toque («Usar lo sugerido») y guarda lo demás bajo «¿Por qué?»: la explicación, los días de venta que cubre, el detalle por talla y color
+// y el motor de demanda para comparar. Vive en el paso 2, sobre la tabla que llena.
 //
-// Es solo presentación: la sugerencia es la MISMA (`sugerirCurva`, que arma el formulario), «Usarla» llama a la MISMA función que llenaba «Cuántas» (`onUsar`), el selector de días es el mismo
-// estado del formulario y el motor se compara sobre el mismo disponible. No guarda nada ni decide nada. Arranca cerrado; cerrado, el panel ni se pinta (nada de lo difícil se ve sin tocar).
-// No se reordena la hoja: la sugerencia alimenta «Cuántas» y los metros de la tela dependen del total, así que el consejo sigue donde estaba, pero ocupa una línea.
+// El detalle por talla y color ya no es una frase con puntos («Red 4 · Taller 2 · en camino 3»): cada dato es un par con su nombre completo (`<ParDato>`, `paresDeLaVariante`).
+//
+// Es solo presentación: la sugerencia es la MISMA (`sugerirCurva`, que arma el formulario), «Usar lo sugerido» llama a la MISMA función que llenaba «Cuántas» (`onUsar`), el selector de
+// días es el mismo estado del formulario y el motor se compara sobre el mismo disponible. No guarda nada ni decide nada. Arranca cerrado; cerrado, el panel ni se pinta.
 
 export function ConsejoDeLaRed({
   curva,
@@ -33,7 +38,7 @@ export function ConsejoDeLaRed({
   curva: CurvaSugerida;
   modelo: ModeloProducible;
   demandaPorVariante: ReadonlyMap<string, DemandaVariante>;
-  /** Lo que ya se está fabricando por variante (entra en «fabricando N»). */
+  /** Lo que ya se está fabricando por variante (el par «Fabricándose»). */
   enProduccion: ReadonlyMap<string, number>;
   diasObjetivo: number;
   onDias: (dias: number) => void;
@@ -45,39 +50,42 @@ export function ConsejoDeLaRed({
   onUsarMotor: (cantidades: Record<string, string>) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [conDetalle, setConDetalle] = useState(false);
   const idPanel = useId();
+  const idDetalle = useId();
   const frase = fraseDelConsejo(curva.total);
   const explicacion = explicacionDelConsejo({ total: curva.total, sugerencias: [...curva.porVariante.values()], diasObjetivo });
 
   return (
-    <section data-guia="prod-orden-nueva.red" aria-label="Lo que dice la red" className="rounded-2xl border border-sand bg-crema px-3.5 py-2.5">
-      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <p className={`min-w-0 text-sm ${frase.sugiere ? "text-tinta" : "text-tinta/70"}`}>{frase.texto}</p>
-        <div className="flex items-center gap-3">
-          {frase.sugiere && (
-            <Boton type="button" peso="fantasma" onClick={onUsar} aria-label={`Usarla: pone las ${curva.total} prendas de la sugerencia en la tabla`}>
-              Usarla
+    <section data-guia="prod-orden-nueva.red" aria-label="Lo que piden las ventas" className={`rounded-2xl px-4 py-3 ${frase.sugiere ? "bg-verde/10" : "border border-sand"}`}>
+      <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2">
+        {frase.sugiere && <TrendingUp aria-hidden className="h-4 w-4 shrink-0 text-verde" />}
+        <p className={`min-w-0 text-sm ${frase.sugiere ? "font-semibold text-tinta" : "text-secundario"}`}>{frase.texto}</p>
+        <button
+          type="button"
+          aria-expanded={abierto}
+          aria-controls={idPanel}
+          data-guia="prod-orden-nueva.red-abrir"
+          onClick={() => setAbierto((a) => !a)}
+          className="btn-cayla btn-enlace min-h-7 !px-0.5 text-xs pointer-coarse:min-h-11"
+        >
+          ¿Por qué?
+        </button>
+        {frase.sugiere && (
+          <span className="@max-[559px]:w-full @min-[560px]:ml-auto">
+            <Boton type="button" peso="fantasma" onClick={onUsar} className="@max-[559px]:w-full" aria-label={`Usar lo sugerido: pone las ${curva.total} prendas en la tabla`}>
+              Usar lo sugerido
             </Boton>
-          )}
-          <button
-            type="button"
-            aria-expanded={abierto}
-            aria-controls={idPanel}
-            data-guia="prod-orden-nueva.red-abrir"
-            onClick={() => setAbierto((a) => !a)}
-            className="btn-cayla btn-enlace min-h-7 !px-0.5 text-xs pointer-coarse:min-h-11"
-          >
-            ¿Por qué?
-          </button>
-        </div>
+          </span>
+        )}
       </div>
 
       {abierto && (
-        <div id={idPanel} className="anim-revelar mt-2 space-y-3 border-t border-sand pt-3">
-          <p className="text-sm text-tinta/70">{explicacion}</p>
+        <div id={idPanel} className="anim-revelar mt-3 space-y-3 border-t border-sand pt-3">
+          <p className="text-sm text-secundario">{explicacion}</p>
 
           <div data-guia="prod-orden-nueva.cubrir" className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-sm text-tinta/70">
+            <label className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secundario">
               Días de venta que cubre
               <Desplegable
                 valor={String(diasObjetivo)}
@@ -90,41 +98,42 @@ export function ConsejoDeLaRed({
           </div>
 
           {curva.porVariante.size > 0 && (
-            <details data-guia="prod-orden-nueva.por-que">
-              <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer py-1.5 text-sm text-tinta/75">
-                Ver el detalle por talla y color
-              </summary>
-              <ul className="mt-2 divide-y divide-tinta/10">
-                {modelo.variantes
-                  .filter((v) => curva.porVariante.has(v.varianteId))
-                  .sort((a, b) => (curva.porVariante.get(b.varianteId)?.sugerido ?? 0) - (curva.porVariante.get(a.varianteId)?.sugerido ?? 0))
-                  .map((v) => {
-                    const d = demandaPorVariante.get(v.varianteId);
-                    const sug = curva.porVariante.get(v.varianteId);
-                    return (
-                      <li key={v.varianteId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 py-1.5 text-sm">
-                        <span className="min-w-0">
-                          <span className="text-tinta">
-                            {v.color ?? "Sin color"} · {v.talla ?? "Única"}
-                          </span>
-                          {d && (
-                            <span className="ml-2 align-middle">
-                              <Chip tono={d.banda === "agotado" || d.banda === "critica" || d.banda === "atencion" ? "ambar" : "neutro"}>{ETIQUETA_BANDA[d.banda]}</Chip>
-                            </span>
-                          )}
-                          <small className="block text-sm text-tinta/65">
-                            {d ? `Red ${d.stockRed} · Taller ${d.stockTaller}${d.enCamino > 0 ? ` · en camino ${d.enCamino}` : ""}${enProduccion.get(v.varianteId) ? ` · fabricando ${enProduccion.get(v.varianteId)}` : ""}` : ""}
-                          </small>
-                        </span>
-                        <span className="text-right tabular-nums">
-                          <b className="font-semibold text-tinta">{sug?.sugerido ?? 0}</b>
-                          <small className="block max-w-[15rem] text-sm text-tinta/70">{sug?.motivo}</small>
-                        </span>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </details>
+            <div data-guia="prod-orden-nueva.por-que">
+              <BotonVerMas abierto={conDetalle} onCambiar={setConDetalle} texto="Ver el detalle por talla y color" forma="enlace" controla={idDetalle} data-guia="prod-orden-nueva.por-que-abrir" />
+              <FilasDeMas abierto={conDetalle} id={idDetalle}>
+                <ul className="mt-1 divide-y divide-sand">
+                  {modelo.variantes
+                    .filter((v) => curva.porVariante.has(v.varianteId))
+                    .sort((a, b) => (curva.porVariante.get(b.varianteId)?.sugerido ?? 0) - (curva.porVariante.get(a.varianteId)?.sugerido ?? 0))
+                    .map((v) => {
+                      const d = demandaPorVariante.get(v.varianteId);
+                      const sug = curva.porVariante.get(v.varianteId);
+                      return (
+                        <li key={v.varianteId} className="py-3">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-sm font-semibold text-tinta">{v.color ?? "Sin color"}</span>
+                            <Chip tono="neutro" versalitas={false}>
+                              {v.talla ? `Talla ${v.talla}` : "Talla única"}
+                            </Chip>
+                            {d && <Chip tono={d.banda === "agotado" || d.banda === "critica" || d.banda === "atencion" ? "ambar" : "neutro"}>{ETIQUETA_BANDA[d.banda]}</Chip>}
+                          </div>
+                          {/* Cada dato en su pieza, y todas en columnas del mismo ancho para leerlas de arriba abajo entre una talla y otra. */}
+                          <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-x-4 gap-y-1.5">
+                            <ParDato rotulo="Sugerido">{sug?.sugerido ?? 0}</ParDato>
+                            {d &&
+                              paresDeLaVariante(d, enProduccion.get(v.varianteId) ?? 0).map((par) => (
+                                <ParDato key={par.clave} rotulo={par.rotulo}>
+                                  {par.valor}
+                                </ParDato>
+                              ))}
+                          </div>
+                          {sug?.motivo && <p className="mt-1.5 text-detalle leading-snug text-secundario">{sug.motivo}</p>}
+                        </li>
+                      );
+                    })}
+                </ul>
+              </FilasDeMas>
+            </div>
           )}
 
           {motor && (

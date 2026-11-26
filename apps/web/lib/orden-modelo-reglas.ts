@@ -191,31 +191,48 @@ export function moldeDelModelo(historial: readonly OrdenParaMolde[], productoId:
 }
 
 /**
- * Lo que dice la línea junto al interruptor del tipo: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta.
- * Un modelo nuevo no tiene historial que leer, así que la frase pregunta lo que decide: si se va a vender (lote) o es una prueba
+ * Lo que se dice del tipo de orden: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta.
+ * Un modelo nuevo no tiene historial que leer, así que pregunta lo que decide: si se va a vender o es una prueba
  * del modelo (muestra). Antes preguntaba por «el molde», y la prueba ciega de Formidable dudó porque su tarea no lo decía (2026-10-30).
+ *
+ * Dos largos (Producción más clara, Felipe 2026-11-26): `texto` es la explicación completa y va detrás del «?» del paso 1; `corta` es lo único que queda a la vista
+ * junto al interruptor, en ocho palabras o menos, y es `null` cuando el nombre de la opción ya lo dice todo («Para vender» con el molde listo).
+ * El tipo se llama «Para vender» (antes «Lote de producción») y «Muestra».
  */
-export function frasesDelMolde(o: { tipo: TipoOrden | null; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; pregunta: boolean } {
+export function frasesDelMolde(o: { tipo: TipoOrden | null; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; corta: string | null; pregunta: boolean } {
   if (o.esNuevo && o.tipo === "produccion") {
-    return { texto: "Se fabrica para vender: al cerrarlo, entra al stock del Taller. Si es una prueba del modelo, elige Muestra.", pregunta: false };
+    return { texto: "Se fabrica para vender: al cerrarla, entra al stock del Taller. Si es una prueba del modelo, elige Muestra.", corta: null, pregunta: false };
   }
   if (o.esNuevo && o.tipo === "muestra") {
-    return { texto: "Una muestra es una prueba del modelo: al cerrarla, no entra al stock. Si se va a vender, elige Lote de producción.", pregunta: false };
+    return { texto: "Una muestra es una prueba del modelo: al cerrarla, no entra al stock. Si se va a vender, elige Para vender.", corta: "Una muestra no entra al stock.", pregunta: false };
   }
   if (o.esNuevo) {
-    return { texto: "¿Se va a vender? Lote de producción: al cerrarlo, entra al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.", pregunta: true };
+    return {
+      texto: "¿Se va a vender? Para vender: al cerrarla, entra al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.",
+      corta: "¿Se va a vender o es una prueba?",
+      pregunta: true,
+    };
   }
   const { molde } = o;
   if (molde.estado === "listo") {
     const de = molde.por === "muestra" ? "Ya hicieron la muestra de este modelo" : "Ya fabricaron un lote de este modelo";
     return o.tipo === "muestra"
-      ? { texto: `${de}. Otra muestra solo hace falta si cambia el molde. No entra al stock.`, pregunta: false }
-      : { texto: `${de}: el molde está listo. Fabrica el lote y, al cerrarlo, entra al stock del Taller.`, pregunta: false };
+      ? { texto: `${de}. Otra muestra solo hace falta si cambia el molde. No entra al stock.`, corta: "Una muestra no entra al stock.", pregunta: false }
+      : { texto: `${de}: el molde está listo. Fabrica el lote y, al cerrarlo, entra al stock del Taller.`, corta: null, pregunta: false };
   }
   const lead =
     molde.estado === "en_desarrollo" ? "Este modelo tiene una muestra en desarrollo." : molde.estado === "sin_lectura" ? "No pude revisar las órdenes anteriores de este modelo." : "El Taller todavía no ha hecho ninguna orden de este modelo.";
   return {
-    texto: `${lead} ¿Ya tienen el molde? Si sí, elige Lote de producción; si falta hacerlo, elige Muestra.`,
+    texto: `${lead} ¿Ya tienen el molde? Si sí, elige Para vender; si falta hacerlo, elige Muestra.`,
+    corta: "¿Ya tienen el molde de este modelo?",
     pregunta: true,
+  };
+}
+
+/** Cuántos colores y cuántas tallas distintas tiene un modelo: los dos datos que la lista de modelos dice de cada uno, cada cual en su pieza. Un modelo sin talla cuenta una («Única»). */
+export function coloresYTallasDelModelo(variantes: readonly { color?: string | null; talla?: string | null }[]): { colores: number; tallas: number } {
+  return {
+    colores: new Set(variantes.map((v) => v.color).filter(Boolean)).size,
+    tallas: new Set(variantes.map((v) => v.talla ?? "Única")).size,
   };
 }

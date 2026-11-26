@@ -1,7 +1,8 @@
 "use client";
 
+import "@/app/estilos/ordenes-lista.css";
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from "react";
-import { Factory, FunnelX, Scissors, Shirt } from "lucide-react";
+import { ChevronRight, Factory, FunnelX, Scissors, Shirt } from "lucide-react";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
 import { FilaDeOrden, PLANTILLA_LISTA } from "@/components/ordenes-lista/FilaDeOrden";
 import { MarcoDePagina } from "@/components/ordenes-lista/MarcoDePagina";
@@ -13,8 +14,6 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import {
   almacenDelNavegador,
@@ -33,38 +32,34 @@ import type { OpcionesNuevaOrden, ModeloProducible, OrdenProduccion } from "@/li
 import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
 import { ordenesParaLaLista, type OrdenParaMolde } from "@/lib/orden-modelo-reglas";
-import type { FaseClave } from "@/lib/orden-fases-reglas";
 import { DIAS_SIN_MOVERSE } from "@/lib/orden-pagina-reglas";
 import {
-  cifrasHoyEnElTaller,
-  cuentasDeFiltros,
+  caminoDeLasOrdenes,
+  cuantasPidenAtencion,
   cuentasDePestanas,
-  datoHoyEnElTaller,
   filtrarFilas,
   ordenarFilas,
   pestanaDeOrdenNueva,
   pieDeLaLista,
   urlSinParametrosDeNueva,
-  type FiltroDeLista,
   type ListaDeOrdenes,
   type OrdenCreada,
   type PestanaLista,
+  type TramoClave,
 } from "@/lib/ordenes-lista-reglas";
 import type { Tolerado } from "@/lib/resultado";
 
-// Órdenes de producción del Taller (ADR-0400, actividad 5; «A · Lista», elegida por Felipe el 2026-10-14): una fila por lote, ordenadas por entrega, y la fase es un dato de la fila (un chip
-// con quién la tiene). Arriba, «Hoy en el Taller» cuenta por fase y filtra al tocarse; la tabla lleva las pestañas En curso · Muestras · Terminadas, las píldoras de filtro y el buscador.
-// Cada fila lleva a la página de la orden (`/produccion/ordenes/OP-000012`): ahí se hace todo, también pasar al stock, anular y revertir. El cajón de antes se retiró
-// (ADR-0614, actividad 15). Toda escritura es una RPC (ninguna toca las tablas directo).
+// Órdenes de producción del Taller (ADR-0400, actividad 5; «A · Lista», elegida por Felipe el 2026-10-14; rehecha el 2026-11-26 con la maqueta de «Producción más clara»): una fila
+// por orden, ordenadas por entrega (decisión de Felipe: el orden no cambia). Arriba, la franja «dónde está cada orden»: UNA placa con «Todas» y cada fase, que filtra al tocarse. La
+// tabla lleva las pestañas (En curso, Muestras, Terminadas), una sola píldora («Piden atención») y el buscador; sus columnas van con palabras completas y el motivo de la atención se
+// lee en la propia fila. Cada fila lleva a la página de la orden (`/produccion/ordenes/OP-000012`): ahí se hace todo, también pasar al stock, anular y revertir. El cajón de antes se
+// retiró (ADR-0614, actividad 15). Toda escritura es una RPC (ninguna toca las tablas directo).
 
-const COLUMNAS: Columna[] = [
-  { titulo: "Orden" },
-  { titulo: "Prendas", alinear: "der", clase: "hidden @min-[900px]:block" },
-  { titulo: "Fase · quién la tiene" },
-  { titulo: "En la fase", clase: "hidden @min-[900px]:block" },
-  { titulo: "Entrega", clase: "hidden @min-[900px]:block" },
-  { titulo: "Pide algo", clase: "hidden @min-[620px]:block" },
-];
+/** Las columnas se ven desde el mismo ancho en que la fila deja de ser una tarjeta (`PLANTILLA_LISTA`). */
+const COLUMNAS: Columna[] = [{ titulo: "Orden" }, { titulo: "Prendas", alinear: "der" }, { titulo: "Dónde está" }, { titulo: "Lleva ahí" }, { titulo: "Entrega" }, { titulo: "Atención" }];
+
+/** Hasta cuántos tramos caben en una sola fila con su flecha entre fase y fase; con más, la franja se acomoda en varias filas. */
+const TRAMOS_EN_UNA_FILA = 6;
 
 /** Cuánto se queda marcada la orden recién abierta: la animación corre una vez; pasado esto, la fila vuelve a ser una más. */
 const MS_ORDEN_RECIEN = 6000;
@@ -75,18 +70,11 @@ function suscribirseAlAlmacen(alCambiar: () => void) {
   return () => window.removeEventListener("storage", alCambiar);
 }
 
-/** «Blusa Emma · 120 prendas · hace 5 min»: de qué es y cuánto va, para saber si es la que quieres seguir. */
+/** «Blusa Emma, 120 prendas, hace 5 min»: de qué es y cuánto va, para saber si es la que quieres seguir. */
 function textoDelBorrador(foto: Parameters<typeof resumenDelBorrador>[0], guardadoEn: string, nombres: ReadonlyMap<string, string>): string {
   const { modelo, prendas } = resumenDelBorrador(foto, nombres);
-  return [modelo, prendas > 0 ? `${prendas} ${prendas === 1 ? "prenda" : "prendas"}` : "sin cantidades todavía", haceCuanto(guardadoEn)].join(" · ");
+  return [modelo, prendas > 0 ? `${prendas} ${prendas === 1 ? "prenda" : "prendas"}` : "sin cantidades todavía", haceCuanto(guardadoEn)].join(", ");
 }
-
-const FILTROS: { valor: FiltroDeLista; texto: string }[] = [
-  { valor: "todas", texto: "Todas" },
-  { valor: "afuera", texto: "Afuera" },
-  { valor: "piden", texto: "Piden algo" },
-  { valor: "listas", texto: "Listas para el stock" },
-];
 
 export function OrdenesLista({
   tallerId,
@@ -139,8 +127,9 @@ export function OrdenesLista({
   // La sugerencia del Resumen se aplica UNA vez, a la apertura que vino por la URL: la URL no cambia al cerrar ni al guardar, así que sin esto cada «+ Nueva orden» la volvería a escribir.
   const [sugeridaPendiente, setSugeridaPendiente] = useState(sugeridaInicial);
   const [pestana, setPestana] = useState<PestanaLista>("en_curso");
-  const [fase, setFase] = useState<FaseClave | null>(null);
-  const [filtro, setFiltro] = useState<FiltroDeLista>("todas");
+  // El tramo tocado en la franja (`null` = «Todas») y la píldora «Piden atención».
+  const [tramo, setTramo] = useState<TramoClave | null>(null);
+  const [piden, setPiden] = useState(false);
   const [texto, setTexto] = useState("");
   // La orden que se acaba de abrir (su id): su fila respira en verde una vez y se lleva a la vista (ADR-0509).
   const [recien, setRecien] = useState<string | null>(null);
@@ -162,17 +151,17 @@ export function OrdenesLista({
   const filas = useMemo(() => lista?.filas ?? [], [lista]);
   // Para la lista de «Nueva orden»: cuántas órdenes abiertas tiene cada modelo y cuáles fueron los últimos (ADR-0396).
   const paraLaLista = useMemo(() => ordenesParaLaLista(ordenes), [ordenes]);
-  const cifras = useMemo(() => cifrasHoyEnElTaller(filas), [filas]);
+  const camino = useMemo(() => caminoDeLasOrdenes(filas), [filas]);
   const cuentas = useMemo(() => cuentasDePestanas(filas), [filas]);
-  const visibles = useMemo(() => ordenarFilas(filtrarFilas(filas, { pestana, fase, filtro, texto }), pestana), [filas, pestana, fase, filtro, texto]);
-  const porFiltro = useMemo(() => cuentasDeFiltros(filas, { pestana, fase, texto }), [filas, pestana, fase, texto]);
-  const hayFiltro = fase !== null || filtro !== "todas" || texto.trim() !== "";
-  const primeraConPorque = visibles.find((f) => f.causas.length > 0)?.id ?? null;
+  const visibles = useMemo(() => ordenarFilas(filtrarFilas(filas, { pestana, tramo, piden, texto }), pestana), [filas, pestana, tramo, piden, texto]);
+  const cuantasPiden = useMemo(() => cuantasPidenAtencion(filas, { pestana, tramo, texto }), [filas, pestana, tramo, texto]);
+  const hayFiltro = tramo !== null || piden || texto.trim() !== "";
+  const primeraConAtencion = visibles.find((f) => f.atencion.length > 0)?.id ?? null;
   const pie = pieDeLaLista(visibles.length, pestana, hayFiltro);
 
   function quitarFiltros() {
-    setFase(null);
-    setFiltro("todas");
+    setTramo(null);
+    setPiden(false);
     setTexto("");
   }
 
@@ -253,41 +242,44 @@ export function OrdenesLista({
   } else {
     cuerpo = (
       <>
-        <section className="space-y-3">
-          <TituloSeccion dato={datoHoyEnElTaller(filas)}>
-            Hoy en el Taller
-          </TituloSeccion>
-          <div data-guia="prod-ordenes.cifras" className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}>
-            {cifras.map((c, i) => (
-              <TarjetaCifra
-                key={c.clave}
-                etiqueta={c.titulo}
-                punto={c.ordenes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
-                valor={<CifraQueCuenta valor={c.ordenes} alMontar />}
-                unidad={c.unidad}
-                onClick={() => setFase((f) => (f === c.clave ? null : c.clave))}
-                activa={fase === c.clave}
-                className="anim-entra"
-                style={{ ["--i" as string]: i }}
-              >
-                {c.contexto}
-              </TarjetaCifra>
+        {/* «Dónde está cada orden»: UNA placa con «Todas» y cada fase en el orden de la ruta. Cada tramo filtra la lista; tocarlo de nuevo, o tocar «Todas», lo quita. */}
+        <div role="group" aria-label="Dónde está cada orden" data-guia="prod-ordenes.cifras" className="card-cayla ol-camino anim-entra">
+          <div className="ol-camino-rejilla" data-una-fila={camino.tramos.length + 1 <= TRAMOS_EN_UNA_FILA ? "" : undefined}>
+            <button type="button" className="ol-tramo" data-todas="" data-cero={camino.todas.ordenes === 0 ? "" : undefined} aria-pressed={tramo === null} onClick={() => setTramo(null)}>
+              <span className="ol-tramo-n">
+                <CifraQueCuenta valor={camino.todas.ordenes} alMontar />
+              </span>
+              <span className="min-w-0">
+                <span className="ol-tramo-nombre">Todas</span>
+                <span className="ol-tramo-prendas">{camino.todas.prendas}</span>
+              </span>
+            </button>
+            {camino.tramos.map((t, i) => (
+              <button key={t.clave} type="button" className="ol-tramo" data-cero={t.ordenes === 0 ? "" : undefined} aria-pressed={tramo === t.clave} onClick={() => setTramo((actual) => (actual === t.clave ? null : t.clave))}>
+                {i > 0 && (
+                  <span aria-hidden className="ol-tramo-flecha">
+                    <ChevronRight />
+                  </span>
+                )}
+                <span className="ol-tramo-n">
+                  <CifraQueCuenta valor={t.ordenes} alMontar />
+                </span>
+                <span className="min-w-0">
+                  <span className="ol-tramo-nombre">{t.titulo}</span>
+                  <span className="ol-tramo-prendas">{t.prendas}</span>
+                </span>
+                {t.atencion && (
+                  <span className="ol-tramo-punto">
+                    <span className="sr-only">Hay algo por atender</span>
+                  </span>
+                )}
+              </button>
             ))}
-            <TarjetaCifra
-              etiqueta="Al stock este mes"
-              punto="verde"
-              valor={<CifraQueCuenta valor={lista.alStockMes.prendas} alMontar />}
-              unidad={lista.alStockMes.prendas === 1 ? "prenda" : "prendas"}
-              className="anim-entra"
-              style={{ ["--i" as string]: cifras.length }}
-            >
-              {lista.alStockMes.lotes === 0 ? "ningún lote todavía" : `${lista.alStockMes.lotes} ${lista.alStockMes.lotes === 1 ? "lote" : "lotes"} que pasaron al stock del Taller`}
-            </TarjetaCifra>
           </div>
-        </section>
+        </div>
 
         <Tabla className="@container">
-          <div className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 p-4">
             <Pestanas
               guia="prod-ordenes.pestanas"
               items={[
@@ -300,17 +292,14 @@ export function OrdenesLista({
               onCambio={(clave) => setPestana(clave as PestanaLista)}
               idIndicador="ordenes-lista"
             />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-              <div role="group" aria-label="Filtrar las órdenes" data-guia="prod-ordenes.filtros" className="flex flex-wrap gap-2">
-                {FILTROS.filter((f) => f.valor === "todas" || f.valor === filtro || porFiltro[f.valor] > 0 || f.valor === "afuera").map((f) => (
-                  <button key={f.valor} type="button" className="pildora-cayla" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
-                    {f.texto}
-                    <span className="ml-1.5 font-medium tracking-normal tabular-nums">{porFiltro[f.valor]}</span>
-                  </button>
-                ))}
-              </div>
-              <Buscador valor={texto} onCambio={setTexto} placeholder="Buscar por modelo, color u orden" atajo guia="prod-ordenes.buscador" className="ml-auto w-full @min-[620px]:w-80" />
-            </div>
+            {/* Un solo filtro: las que piden atención. Se ve si hay alguna (o si ya está puesto, para poder quitarlo). */}
+            {(cuantasPiden > 0 || piden) && (
+              <button type="button" className="pildora-cayla" data-guia="prod-ordenes.filtros" aria-pressed={piden} onClick={() => setPiden((v) => !v)}>
+                Piden atención
+                <span className="ml-1.5 font-medium tracking-normal tabular-nums">{cuantasPiden}</span>
+              </button>
+            )}
+            <Buscador valor={texto} onCambio={setTexto} placeholder="Buscar por modelo, color u orden" atajo guia="prod-ordenes.buscador" className="w-full @min-[60rem]:ml-auto @min-[60rem]:w-72" />
           </div>
 
           <div data-resultados>
@@ -320,7 +309,7 @@ export function OrdenesLista({
                 <Vacio
                   tamano="chico"
                   icono={<FunnelX />}
-                  accion={{ texto: fase === null && filtro === "todas" ? "Borrar la búsqueda" : "Limpiar filtros", onClick: quitarFiltros }}
+                  accion={{ texto: tramo === null && !piden ? "Borrar la búsqueda" : "Limpiar filtros", onClick: quitarFiltros }}
                   className="py-5"
                 >
                   Ninguna orden coincide con lo que elegiste.
@@ -337,9 +326,10 @@ export function OrdenesLista({
               )
             ) : (
               <>
-                <Encabezado visible="hidden @min-[620px]:grid" plantilla={PLANTILLA_LISTA} columnas={COLUMNAS} />
+                {/* `pr-8`: el mismo relleno de la fila (que guarda lugar para su flecha), para que cada título caiga sobre su columna. */}
+                <Encabezado visible="hidden @min-[60rem]:grid" plantilla={`${PLANTILLA_LISTA} pr-8`} columnas={COLUMNAS} />
                 {visibles.map((f, i) => (
-                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} recien={f.id === recien} />
+                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaAtencion={f.id === primeraConAtencion} recien={f.id === recien} />
                 ))}
               </>
             )}
@@ -352,18 +342,24 @@ export function OrdenesLista({
             </div>
           )}
         </Tabla>
-
-        <p className="nota-cayla">
-          Una orden se pone en <b>rojo solo por tres causas</b>: la entrega ya pasó, la tela no alcanza o lleva {DIAS_SIN_MOVERSE} días sin moverse. «¿Por qué?» te lo explica en una línea. Lo que está <b>afuera</b> aparece con el
-          nombre de quien lo tiene y cuántas prendas.
-        </p>
       </>
     );
   }
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={tallerNombre} titulo="Órdenes" subtitulo="Cada lote, en qué fase está y quién lo tiene. Toca uno para ver y anotar lo que terminaste." acciones={nuevaOrden} />
+      <EncabezadoPagina
+        sede={tallerNombre}
+        titulo="Órdenes"
+        subtitulo="Cada orden, en qué fase está y quién la tiene. Toca una para ver y anotar lo que terminaste."
+        ayuda={
+          <>
+            Una orden pide <b>atención solo por tres causas</b>: la entrega ya pasó, la tela no alcanza o lleva {DIAS_SIN_MOVERSE} días sin que nadie anote nada. El motivo se lee en su fila. Lo que está <b>afuera</b> aparece con el nombre de quien lo
+            tiene.
+          </>
+        }
+        acciones={nuevaOrden}
+      />
 
       {/* Lo escrito en «Nueva orden» y no abierto queda guardado en este navegador (ADR-0509): aquí se ofrece seguir o soltarlo. */}
       {!nuevaAbierta && borradorGuardado && (

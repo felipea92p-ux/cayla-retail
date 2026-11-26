@@ -9,7 +9,7 @@ import {
   estadoInsumo,
   leerCantidad,
   loteMasAntiguoConSaldo,
-  origenDeLote,
+  piezasDeCompra,
   saldoDeInsumo,
   saldoDeLote,
   semanasDeCobertura,
@@ -173,13 +173,22 @@ describe("agruparPorTela: cada tela con sus colores juntos", () => {
   });
 });
 
-describe("textoDeCompra: cómo se compra, en una línea", () => {
+describe("piezasDeCompra y textoDeCompra: cómo se compra, dato por dato y en una frase", () => {
   const m = { tipo: "tela" as const, ancho: null, gramaje: null, metrosPorRollo: null };
   it("por metro, por kilo (con su rinde) y por rollo (con sus metros)", () => {
     expect(textoDeCompra({ ...m, compra: "metro" })).toBe("Se compra por metro");
-    expect(textoDeCompra({ ...m, compra: "kilo", ancho: 160, gramaje: 180 })).toBe("Se compra por kilo · rinde ≈ 3.47 m/kg");
+    expect(textoDeCompra({ ...m, compra: "kilo", ancho: 160, gramaje: 180 })).toBe("Se compra por kilo, rinde 3.47 metros por kilo");
     expect(textoDeCompra({ ...m, compra: "kilo" })).toBe("Se compra por kilo");
-    expect(textoDeCompra({ ...m, compra: "rollo", metrosPorRollo: 80 })).toBe("Se compra por rollo · ≈ 80 m cada uno");
+    expect(textoDeCompra({ ...m, compra: "rollo", metrosPorRollo: 80 })).toBe("Se compra por rollo, trae 80 metros por rollo");
+  });
+  it("cada dato es su propia pieza: una insignia por cada uno", () => {
+    expect(piezasDeCompra({ ...m, compra: "metro" })).toEqual(["Se compra por metro"]);
+    expect(piezasDeCompra({ ...m, compra: "kilo", ancho: 160, gramaje: 180 })).toEqual(["Se compra por kilo", "Rinde 3.47 metros por kilo"]);
+    expect(piezasDeCompra({ ...m, compra: "rollo", metrosPorRollo: 80 })).toEqual(["Se compra por rollo", "Trae 80 metros por rollo"]);
+    expect(piezasDeCompra({ ...m, compra: "rollo" })).toEqual(["Se compra por rollo"]);
+  });
+  it("ningún texto separa sus datos con un punto medio", () => {
+    for (const compra of ["metro", "kilo", "rollo"] as const) expect(textoDeCompra({ ...m, compra, ancho: 160, gramaje: 180, metrosPorRollo: 80 })).not.toContain("·");
   });
   it("un avío se cuenta en su unidad", () => {
     expect(textoDeCompra({ ...m, tipo: "avio", compra: "cono" })).toBe("Se cuenta en conos");
@@ -216,15 +225,6 @@ describe("texto", () => {
   });
   it("los movimientos se leen sin jerga", () => {
     expect(textoDeMovimiento({ tipo: "consumo", motivo: null })).toBe("Sale al cortar");
-    expect(textoDeMovimiento({ tipo: "ajuste", motivo: "conteo" })).toBe("Ajuste · conteo");
-  });
-});
-
-describe("origenDeLote (P11 del análisis del Taller)", () => {
-  it("dice de dónde vino: saldo inicial, compra a alguien o, sin saberlo, compra", () => {
-    expect(origenDeLote({ origen: "saldo_inicial", proveedor: "Textiles Gamarra" })).toBe("saldo inicial");
-    expect(origenDeLote({ origen: "compra", proveedor: "Textiles Gamarra" })).toBe("compra a Textiles Gamarra");
-    expect(origenDeLote({ origen: "compra", proveedor: "  " })).toBe("compra");
-    expect(origenDeLote({ origen: "compra" })).toBe("compra");
+    expect(textoDeMovimiento({ tipo: "ajuste", motivo: "conteo" })).toBe("Ajuste: conteo");
   });
 });
