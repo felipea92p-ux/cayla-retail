@@ -25,8 +25,8 @@ import { MarcaDeVista } from "../Vistas";
 /**
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
  * el contenido y, si se pide, el pie. La cabecera es la de la tienda (el menú, el buscador, los favoritos, «Mi cuenta» y la bolsa, armada
- * con el catálogo con «Todas»), con o sin cuenta; solo los formularios de entrar (crear, entrar, recuperar) llevan la del logo, y van sin
- * pie, como en la maqueta. El pie va después de <main> y llega solo al borde
+ * con el catálogo con «Todas»), con o sin cuenta; solo los formularios de entrar (crear, entrar, recuperar) llevan la del logo, sin la
+ * franja de arriba y sin pie. El pie va después de <main> y llega solo al borde
  * de abajo en una página corta (pie.css).
  *
  * Una página pública que sirve a quien tiene cuenta y a quien no («Cómo separar», «Nuestras tiendas», la privacidad…) pasa
@@ -95,8 +95,10 @@ export async function MarcoCuenta({
       </>
     );
   }
-  const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
-    leerPortada(),
+  // Los formularios de entrar (sin `conCuenta`) van solo con el logo, sin la franja de avisos: quien entra a su cuenta viene a una sola
+  // cosa, y un aviso rojo encima compite con el formulario (Felipe 2026-11-26). Por eso ni se lee la campaña.
+  const [portada, catalogo, favoritos, nombre] = await Promise.all([
+    conCuenta ? leerPortada() : Promise.resolve(null),
     conCuenta ? leerCatalogo(null) : Promise.resolve(null),
     conCuenta && !visitante ? cuantosFavoritos() : Promise.resolve(null),
     conCuenta && !visitante ? nombreDeLaCuenta() : Promise.resolve(null),
@@ -109,7 +111,7 @@ export async function MarcoCuenta({
       {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
       <MarcaDeVista />
       <div className="tienda">
-        <Anuncio frases={anuncios(campana, (await leerAyuda()).diasParaCambiar)} />
+        {portada && <Anuncio frases={anuncios(portada.campana, (await leerAyuda()).diasParaCambiar)} />}
         {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
         {conSesion && <EntradaDelDia />}
         {datosCabecera ? (
