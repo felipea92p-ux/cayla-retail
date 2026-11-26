@@ -210,7 +210,14 @@ export function FormularioEntrar() {
         {enviando ? "Entrando…" : "Entrar"}
       </button>
       <BotonGoogle volver={volver} abajo />
-      {/* «¿Primera vez en CAYLA?» y «Crear mi cuenta» viven al lado (o debajo, en el celular): `LadoPrimeraVez`. */}
+      {/* Para quien no tiene cuenta, una línea y un enlace, sin bloque aparte (Felipe 2026-11-26: «más minimalista»). Lleva la página que
+          la persona quería ver (`?volver=`). */}
+      <p className="cu-primera-vez">
+        ¿Primera vez en CAYLA?{" "}
+        <Link className="cu-crear" href={hrefConVolver("/crear-cuenta", volver)}>
+          Crear cuenta
+        </Link>
+      </p>
     </form>
   );
 }

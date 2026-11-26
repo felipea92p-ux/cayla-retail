@@ -2,22 +2,8 @@ import { CAMPOS_CUENTA, type EstadoCuenta } from "./cuentas";
 
 // El panel de marca de las páginas para volver a entrar y el lado de «Entrar» y «Crear cuenta» («A · Mostrador», 2026-11-25). Desde
 // 960 px va a la izquierda, con los colores de la campaña de la portada; en el celular, debajo del formulario (el formulario va
-// primero). Aquí, lo que dice: la promesa, los tres beneficios (hechos que la tienda ya cumple, con las mismas palabras de «Así se
-// separa» y del Club), los pasos para volver a entrar, el nombre de la tarjeta del Club mientras se crea la cuenta y cuánto del
+// primero). Aquí, lo que dice: la promesa, los pasos para volver a entrar, el nombre de la tarjeta del Club mientras se crea la cuenta y cuánto del
 // registro está listo. Solo textos y presentación: ninguna regla de negocio vive aquí (las del registro están en `lib/cuentas.ts`).
-
-export type Beneficio = { icono: "corazon" | "bolsa" | "regalo"; titulo: string; texto: string };
-
-/**
- * Los tres beneficios del panel: lo que la cuenta da y la tienda ya hace (guardar favoritos y outfits; se separa sin pagar
- * en la web y se recoge en la tienda; el Club da puntos en cada compra, que se cambian por cupones, y un regalo de puntos en el cumpleaños).
- */
-export const BENEFICIOS_DE_ENTRADA: readonly Beneficio[] = [
-  // «Mira cuánto hay en cada tienda» salió (rediseño Premium, 2026-11-07): cualquiera lo ve sin cuenta; los favoritos y outfits, no.
-  { icono: "corazon", titulo: "Guarda tus favoritos y outfits", texto: "Lo que te gusta queda en tu cuenta, en cualquier aparato." },
-  { icono: "bolsa", titulo: "Separa sin pagar aquí", texto: "Coordinas el pago por WhatsApp y lo recoges en tu tienda." },
-  { icono: "regalo", titulo: "Puntos en cada compra", texto: "Los cambias por cupones; en tu cumpleaños, más puntos." },
-];
 
 /* ------------------------------------------------------------------ Volver a entrar */
 
