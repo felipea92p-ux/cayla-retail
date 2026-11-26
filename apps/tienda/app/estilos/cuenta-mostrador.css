@@ -28,14 +28,11 @@
 /* En el celular, el pie fijo («Falta: …» y el botón) llega a los dos bordes de la pantalla. */
 .cu-form .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 
-/* ---- El lado: «¿Primera vez?» y los beneficios ---- */
+/* ---- El lado de las páginas para volver a entrar: su título ---- */
 .cu-lado-t { margin: 0; text-wrap: balance; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
-.cu-beneficios { list-style: none; margin: 26px 0 30px; padding: 0; display: grid; gap: 20px; }
-.cu-beneficios li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; align-items: center; }
-.cu-beneficio-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--dn-acento); }
-.cu-beneficio-ic .ic { width: 20px; height: 20px; }
-.cu-beneficios b { display: block; font-size: 16px; font-weight: 600; line-height: 1.3; }
-.cu-beneficios small { display: block; margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--taupe); }
+/* «¿Primera vez en CAYLA? Crear cuenta»: una línea bajo «Entrar», en el gris de lectura, con el enlace en tinta (2026-11-26). */
+.cu-primera-vez { margin: 8px 0 0; text-align: center; font-size: 14px; line-height: 1.5; color: var(--taupe); }
+.cu-crear { display: inline-block; padding-block: 10px; color: var(--tinta); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
 /* La foto de campaña de «Entrar» y «Crear cuenta» (2026-11-26): solo desde 960 px; en el celular no se dibuja. */
 .cu-foto { display: none; }
@@ -86,7 +83,6 @@
   .cu-pantalla[data-forma="entrar"] .cu-raya { height: auto; align-self: stretch; }
   /* «Cambiar mi correo» y «Eliminar mi cuenta»: una columna, con el aire de arriba de las demás. */
   .cu-pantalla[data-forma="sola"] { padding: 56px 40px 72px; }
-  .cu-pantalla[data-forma="entrar"] .cu-lado-t { font-size: 32px; }
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) {
     display: grid;
     grid-template-columns: minmax(0, 460px) minmax(0, 400px);
@@ -98,7 +94,6 @@
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-raya { display: none; }
   /* El lado se queda a la vista mientras el formulario largo pasa. */
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-lado { position: sticky; top: 32px; align-self: start; padding-top: 64px; }
-  .cu-pantalla[data-forma="crear"] .cu-beneficios { margin-top: 36px; }
   /* El pie del formulario largo, fijo abajo también en la computadora: «Falta: …» y el botón no se pierden al bajar. */
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-pie-form { position: sticky; bottom: 0; z-index: 4; padding: 14px 0 18px; background: var(--crema); border-top: 1px solid var(--sand); box-shadow: none; }
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-faltan { text-align: left; }
@@ -128,7 +123,4 @@
   .cu-pantalla[data-foto] .cu-raya { height: 1px; align-self: auto; margin: 36px 0 32px; }
   .cu-pantalla[data-foto] .cu-lado { padding-bottom: 64px; }
   .cu-pantalla[data-foto] .cu-lado-t { font-size: 28px; }
-  /* Junto a la foto, los beneficios van en su título: se entienden solos y la columna no se alarga. */
-  .cu-pantalla[data-foto] .cu-beneficios { margin: 20px 0 24px; gap: 14px; }
-  .cu-pantalla[data-foto] .cu-beneficios small { display: none; }
 }

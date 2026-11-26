@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { FormularioEntrar } from "@/components/cuenta/FormularioEntrar";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { LadoPrimeraVez, PantallaDeCuenta } from "@/components/cuenta/PantallaDeCuenta";
+import { PantallaDeCuenta } from "@/components/cuenta/PantallaDeCuenta";
 import "../estilos/entrada.css";
 import "../estilos/cuenta-mostrador.css";
 
 export const metadata: Metadata = { title: "Entrar", robots: { index: false, follow: false } };
 
-/** «Entrar» («A · Mostrador», 2026-11-25): entrar a la izquierda y «¿Primera vez en CAYLA?» a la derecha; en el celular, uno debajo del otro. */
+/** «Entrar» («A · Mostrador», 2026-11-25): la foto a la izquierda y entrar a la derecha; «¿Primera vez en CAYLA? Crear cuenta», una línea bajo el formulario. */
 export default function Entrar() {
   return (
     <MarcoCuenta enPagina="entrar">
-      <PantallaDeCuenta forma="entrar" foto lado={<LadoPrimeraVez />}>
+      <PantallaDeCuenta forma="entrar" foto>
         <FormularioEntrar />
       </PantallaDeCuenta>
     </MarcoCuenta>

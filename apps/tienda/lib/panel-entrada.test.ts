@@ -3,7 +3,6 @@ import { CAMPOS_CUENTA, estadoCuenta, REGISTRO_CUENTA_VACIO, type RegistroCuenta
 import type { CodigoDelCorreo } from "./correo-confirmado";
 import {
   avanceDeLaCuenta,
-  BENEFICIOS_DE_ENTRADA,
   buzonDelCorreo,
   CONFIANZA_ACCESO,
   estadoDelPaso,
@@ -53,24 +52,14 @@ describe("los textos del panel", () => {
     PROMESA_ACCESO.linea,
     PROMESA_ACCESO.cursiva,
     CONFIANZA_ACCESO,
-    ...BENEFICIOS_DE_ENTRADA.flatMap((b) => [b.titulo, b.texto]),
     ...Object.values(PASOS_DE_ACCESO).flatMap((pasos) => pasos.flatMap((p) => [p.titulo, p.texto])),
   ];
-
-  it("tres beneficios, cada uno con su ícono", () => {
-    expect(BENEFICIOS_DE_ENTRADA).toHaveLength(3);
-    expect(new Set(BENEFICIOS_DE_ENTRADA.map((b) => b.icono)).size).toBe(3);
-  });
 
   it("hablan de «tú» y sin género: nunca «clienta», «socia» ni «bienvenida»", () => {
     for (const t of todos) expect(t).not.toMatch(/\b(clientas?|socias?|bienvenida|emplead[ao]s?|sucursal(es)?)\b/i);
   });
 
   it("caben: un título corto y un texto de una o dos líneas (se leen de un vistazo)", () => {
-    for (const b of BENEFICIOS_DE_ENTRADA) {
-      expect(b.titulo.length).toBeLessThanOrEqual(32);
-      expect(b.texto.length).toBeLessThanOrEqual(64);
-    }
     for (const p of Object.values(PASOS_DE_ACCESO).flat()) {
       expect(p.titulo.length).toBeLessThanOrEqual(32);
       expect(p.texto.length).toBeLessThanOrEqual(64);
