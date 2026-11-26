@@ -16,6 +16,7 @@
     { "path": "/api/salud/invariantes", "schedule": "30 8 * * *" },
     { "path": "/api/salud/rendimiento", "schedule": "7 * * * *" },
     { "path": "/api/finanzas/foto-diario", "schedule": "*/5 * * * *" },
-    { "path": "/api/finanzas/foto-diario/todas", "schedule": "0 9 * * *" }
+    { "path": "/api/finanzas/foto-diario/todas", "schedule": "0 9 * * *" },
+    { "path": "/api/fotos/medir-recortes", "schedule": "*/10 * * * *" }
   ]
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { zonaDelProbador, type ZonaDelProbador } from "@cayla-retail/shared/categorias-de-la-tienda";
 import { claveCategoria, type Prenda } from "./catalogo";
 import type { Look as LookDeCayla, TallaLook } from "./looks";
+import type { MedidaDeLaIA } from "./union-prendas";
 import { esquemaStockModelo, hayAlgo, notaDeStock, type NotaStock, type StockModelo, type Tienda } from "./stock";
 
 // «Arma el tuyo», el probador de looks de la tienda (ADR-0434, actividad 4; lienzo v3, `V3Probador`). El cliente se viste prenda por
@@ -25,6 +26,17 @@ const esquemaRecorte = z.object({
   url: z.string().url(),
   // Ancho sobre alto del PNG recortado.
   proporcion: z.number().positive().lt(20),
+  // ADR-0705: lo que dijo la IA del recorte (null: todavía no lo midió, o no pudo). Un dato raro se ignora: la prenda se dibuja como siempre.
+  ia: z
+    .object({
+      tipo: z.string().min(1),
+      holgura: z.enum(["ajustada", "normal", "holgada"]),
+      metida: z.boolean(),
+      axila: z.number().min(0).max(0.8).nullable(),
+    })
+    .nullable()
+    .optional()
+    .catch(null),
 });
 
 const esquemaColor = z
@@ -47,7 +59,7 @@ const esquemaPrenda = z.object({
   colores: z.array(z.unknown()),
 });
 
-export type RecorteLeido = { color: string | null; colorNombre: string | null; url: string; proporcion: number };
+export type RecorteLeido = { color: string | null; colorNombre: string | null; url: string; proporcion: number; ia?: MedidaDeLaIA | null };
 export type ColorLeido = {
   precio: number;
   precioFinal: number;
@@ -78,7 +90,7 @@ export function interpretarProbador(dato: unknown): LecturaProbador | null {
     if (!p.success) continue;
     const recortes = p.data.recortes.flatMap((x) => {
       const y = esquemaRecorte.safeParse(x);
-      return y.success ? [{ color: y.data.color, colorNombre: y.data.color_nombre, url: y.data.url, proporcion: y.data.proporcion }] : [];
+      return y.success ? [{ color: y.data.color, colorNombre: y.data.color_nombre, url: y.data.url, proporcion: y.data.proporcion, ...(y.data.ia ? { ia: y.data.ia } : {}) }] : [];
     });
     const colores = new Map<string, ColorLeido>();
     for (const x of p.data.colores) {
@@ -127,6 +139,8 @@ export type FotoDelColor = {
   propia: boolean;
   /** Si no es la propia, de qué color es la que se ve; null si la foto no tiene color marcado (el sistema no sabe cuál es). */
   de: string | null;
+  /** Lo que dijo la IA de ESTE recorte (ADR-0705): con su axila, la prenda de arriba se dimensiona por su pecho. */
+  ia?: MedidaDeLaIA | null;
 };
 
 export type ColorDelProbador = {
@@ -177,11 +191,11 @@ export function hayDelColor(stock: StockModelo | null, elegida: Tienda | null): 
  */
 export function fotoDelColor(codigo: string, recortes: readonly RecorteLeido[]): Omit<FotoDelColor, "optimizar"> | null {
   const propia = recortes.find((r) => r.color === codigo);
-  if (propia) return { url: propia.url, proporcion: propia.proporcion, propia: true, de: null };
+  if (propia) return { url: propia.url, proporcion: propia.proporcion, propia: true, de: null, ...(propia.ia ? { ia: propia.ia } : {}) };
   const sinColor = recortes.find((r) => r.color === null);
-  if (sinColor) return { url: sinColor.url, proporcion: sinColor.proporcion, propia: false, de: null };
+  if (sinColor) return { url: sinColor.url, proporcion: sinColor.proporcion, propia: false, de: null, ...(sinColor.ia ? { ia: sinColor.ia } : {}) };
   const otra = recortes[0];
-  return otra ? { url: otra.url, proporcion: otra.proporcion, propia: false, de: otra.colorNombre } : null;
+  return otra ? { url: otra.url, proporcion: otra.proporcion, propia: false, de: otra.colorNombre, ...(otra.ia ? { ia: otra.ia } : {}) } : null;
 }
 
 /** Bajo la figura y en «Tu look», cuando el color elegido no tiene foto propia: qué se está viendo. null si es la suya. */
