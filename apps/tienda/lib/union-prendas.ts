@@ -55,54 +55,47 @@ export type MedidaDelRecorte = {
 /** En cuántas filas se parte el alto de la prenda para guardar su ancho: cada una es un 2 % del alto. */
 export const FILAS_DEL_ANCHO = 50;
 /**
- * El ancho de la prenda en cada fila (fracciones de su ancho; `null`: no hay prenda en esa fila). `centro`: el tramo que pasa por el medio (el torso, sin las mangas
- * que cuelgan sueltas). `extremos`: de la primera tela a la última (una prenda sin mangas cuyo escote o abertura corta el medio: un halter, un top de tiras, un strapless).
+ * El ancho del torso en cada fila (fracciones del ancho de la prenda; `null`: no hay prenda que pase por el medio): el tramo que pasa por el centro, así las
+ * mangas que cuelgan sueltas no se suman.
  */
-export type AnchosPorFila = { centro: (number | null)[]; extremos: (number | null)[] };
+export type AnchosPorFila = { centro: (number | null)[] };
 
 export function anchosPorFila(rgba: ArrayLike<number>, ancho: number, alto: number): AnchosPorFila {
   const centro: (number | null)[] = [];
-  const extremos: (number | null)[] = [];
   const medio = Math.floor(ancho / 2);
-  const minimo = Math.max(1, Math.round(ancho * 0.03));
   for (let i = 0; i < FILAS_DEL_ANCHO; i++) {
     const y = Math.min(alto - 1, Math.floor(((i + 0.5) / FILAS_DEL_ANCHO) * alto));
     const base = y * ancho * 4 + 3;
     let desde = -1;
     let delCentro: number | null = null;
-    let primero = -1;
-    let ultimo = -1;
     for (let x = 0; x <= ancho; x++) {
       const opaco = x < ancho && rgba[base + x * 4] > UMBRAL_ALFA;
       if (opaco && desde < 0) desde = x;
       if (!opaco && desde >= 0) {
-        const largo = x - desde;
-        if (desde <= medio && x > medio) delCentro = largo;
-        if (largo >= minimo) {
-          if (primero < 0) primero = desde;
-          ultimo = x;
-        }
+        if (desde <= medio && x > medio) delCentro = x - desde;
         desde = -1;
       }
     }
     centro.push(delCentro === null ? null : Math.round((delCentro / ancho) * 1000) / 1000);
-    extremos.push(primero < 0 ? null : Math.round(((ultimo - primero) / ancho) * 1000) / 1000);
   }
-  return { centro, extremos };
+  return { centro };
 }
 
-/** Las prendas de arriba que se miden de borde a borde de su tela (sin mangas: su escote o su abertura corta el medio). */
-const TIPOS_DE_BORDE_A_BORDE: readonly string[] = ["tirantes", "halter", "strapless", "vestido_strapless", "chaleco"];
+/**
+ * Las prendas que se dimensionan por su pecho: SOLO las de mangas. Sus mangas abiertas y su bajo (un nudo, un fruncido, un cruce) confunden la regla del bajo;
+ * las sin mangas (tirantes, halter, strapless, corset) ya se veían bien con ella y medidas por el pecho salían más anchas que la cadera (Felipe, 2026-11-26, con el
+ * Top Vanessa sobre un jean): siguen con la regla de siempre.
+ */
+export const TIPOS_POR_EL_PECHO: readonly string[] = ["con_mangas"];
 /** Cuánto bajo la axila se mide el pecho (fracción del alto): justo bajo el brazo el costado todavía se curva; un poco más abajo ya es el torso. */
 const BAJO_LA_AXILA = 0.04;
 
 /** El ancho del pecho (fracción del ancho de la prenda) un poco bajo la axila: la mediana de tres filas, para que una costura o un pliegue no lo muevan. */
-export function anchoDelPecho(anchos: AnchosPorFila | null | undefined, axila: number, tipo: string): number | null {
+export function anchoDelPecho(anchos: AnchosPorFila | null | undefined, axila: number): number | null {
   if (!anchos || !(axila >= 0) || !(axila <= 0.8)) return null;
-  const serie = TIPOS_DE_BORDE_A_BORDE.includes(tipo) ? anchos.extremos : anchos.centro;
   const fila = Math.round((axila + BAJO_LA_AXILA) * FILAS_DEL_ANCHO - 0.5);
   const vistos = [fila, fila + 1, fila + 2].flatMap((i) => {
-    const v = serie[i];
+    const v = anchos.centro[i];
     return typeof v === "number" && v > 0 ? [v] : [];
   });
   if (vistos.length === 0) return null;
@@ -113,10 +106,13 @@ export function anchoDelPecho(anchos: AnchosPorFila | null | undefined, axila: n
 /** Lo que dijo la IA de un recorte (su medida guardada en la base, que la tienda lee en `retail.tienda_probador`). */
 export type MedidaDeLaIA = { tipo: string; holgura: "ajustada" | "normal" | "holgada"; metida: boolean; axila: number | null };
 
-/** El ancho plano de axila a axila de una blusa normal (cm). Una prenda que mide eso con la holgura «normal» se dibuja como está. */
+/** El ancho plano de axila a axila de una blusa ajustada (cm). */
 export const PECHO_ESTANDAR = 44;
-/** Cuánto más ancho que el estándar se ve el pecho según la holgura: una oversize sigue viéndose suelta, una ajustada, ceñida. */
-export const HOLGURA_DEL_PECHO: Record<MedidaDeLaIA["holgura"], number> = { ajustada: 1, normal: 1.05, holgada: 1.18 };
+/**
+ * Cuánto más ancho se ve el pecho según la holgura. Calibrado el 2026-11-26 con las blusas de mangas que ya se veían bien en la tienda (Akira 44,5 cm y
+ * TOP-0021 46,5, ajustadas; el Polo Básico 53,6, normal; la Blusa Brillo 63,2, holgada): ajustada ≈ 44, normal ≈ 48, holgada ≈ 55. La Camisa Dalia se veía de 63,7.
+ */
+export const HOLGURA_DEL_PECHO: Record<MedidaDeLaIA["holgura"], number> = { ajustada: 1, normal: 1.1, holgada: 1.25 };
 /** Lo más que se agranda o se achica una prenda por su pecho: una medida rara no puede volverla diminuta ni enorme. */
 export const FACTOR_MINIMO_DEL_PECHO = 0.7;
 export const FACTOR_MAXIMO_DEL_PECHO = 1.45;
@@ -124,12 +120,12 @@ export const FACTOR_MAXIMO_DEL_PECHO = 1.45;
 /**
  * La prenda de arriba, dimensionada por su PECHO (ADR-0705): el ancho de su torso bajo las axilas que dijo la IA, llevado al de una blusa de su holgura. No le
  * importa el bajo: un nudo, un fruncido o un corte cruzado ya no la agrandan. Crece o se encoge desde el centro de los hombros, sin subir, como `cajaDeArribaAjustada`.
- * `null`: SOLO sin la medida de la IA o sin el ancho fila por fila (entonces manda la regla del bajo). Ya en su medida, devuelve la misma caja.
+ * `null`: sin la medida de la IA, una prenda sin mangas o sin el ancho fila por fila (entonces manda la regla del bajo). Ya en su medida, devuelve la misma caja.
  */
 export function cajaPorElPecho(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; ia: MedidaDeLaIA | null | undefined }): Caja | null {
   const { caja: c, medida: m, ia } = arriba;
-  if (!ia || ia.axila === null || !m || !(c.w > 0) || !(c.h > 0)) return null;
-  const fraccion = anchoDelPecho(m.anchos, ia.axila, ia.tipo);
+  if (!ia || ia.axila === null || !TIPOS_POR_EL_PECHO.includes(ia.tipo) || !m || !(c.w > 0) || !(c.h > 0)) return null;
+  const fraccion = anchoDelPecho(m.anchos, ia.axila);
   if (fraccion === null) return null;
   const pechoCm = (c.w * fraccion) / PX_POR_CM;
   const k = Math.min(FACTOR_MAXIMO_DEL_PECHO, Math.max(FACTOR_MINIMO_DEL_PECHO, (PECHO_ESTANDAR * HOLGURA_DEL_PECHO[ia.holgura]) / pechoCm));
@@ -356,7 +352,7 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
     bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto),
     anchoBajo,
     ...(contorno ? { contorno } : {}),
-    ...(anchos.centro.some((v) => v !== null) || anchos.extremos.some((v) => v !== null) ? { anchos } : {}),
+    ...(anchos.centro.some((v) => v !== null) ? { anchos } : {}),
   };
 }
 
@@ -615,9 +611,9 @@ function contornoDesdeDato(c: unknown): ContornoDelRecorte | null {
 
 function anchosDesdeDato(a: unknown): AnchosPorFila | null {
   if (!a || typeof a !== "object" || Array.isArray(a)) return null;
-  const { centro, extremos } = a as Record<string, unknown>;
+  const { centro } = a as Record<string, unknown>;
   const bien = (v: unknown): v is (number | null)[] => Array.isArray(v) && v.length === FILAS_DEL_ANCHO && v.every(esFraccion);
-  return bien(centro) && bien(extremos) ? { centro, extremos } : null;
+  return bien(centro) ? { centro } : null;
 }
 
 /** Una medida bien formada (la que responde la ruta o la que se recordó), o `null` si no lo es: un dato roto o de otra versión no rompe nada. */

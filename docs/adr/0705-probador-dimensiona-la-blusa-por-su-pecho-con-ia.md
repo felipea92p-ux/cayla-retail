@@ -22,8 +22,11 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
 
 ## Decidí
 
-1. **La prenda de arriba (blusa, camisa, polo, top, corset) se dimensiona por su PECHO, no por su bajo.** El pecho es el ancho del torso un poco bajo las axilas
-   (`anchoDelPecho`: la mediana de tres filas, 4 % bajo la axila); se lleva a 44 cm planos (`PECHO_ESTANDAR`) × su holgura (ajustada 1, normal 1,05, holgada 1,18),
+1. **La prenda de arriba CON MANGAS (blusa, camisa, polo, top de manga) se dimensiona por su PECHO, no por su bajo.** Las sin mangas (tirantes, halter,
+   strapless, corset, body) siguen con la regla de siempre: ya se veían bien y medidas por el pecho salían más anchas que la cadera (Felipe, 2026-11-26, con el
+   Top Vanessa sobre un jean: «se ve peor con ese arreglo»). El pecho es el ancho del torso un poco bajo las axilas
+   (`anchoDelPecho`: la mediana de tres filas, 4 % bajo la axila); se lleva a 44 cm planos (`PECHO_ESTANDAR`) × su holgura (ajustada 1, normal 1,1, holgada 1,25; calibrado con las blusas de mangas que ya se veían bien:
+   Akira 44,5 y TOP-0021 46,5 ajustadas, Polo Básico 53,6 normal, Blusa Brillo 63,2 holgada; la Camisa Dalia se veía de 63,7),
    con topes 0,7–1,45. Crece o se encoge desde el centro de los hombros, sin subir, como antes. El nudo, el volado o el corte del bajo ya no cuentan.
    **Y la prenda de abajo deja de seguir al bajo de esa blusa:** con la blusa medida por su pecho, la pretina es la cintura estándar (36 cm,
    `cajaDeAbajoUnida` con `porElPecho`) y la blusa cuelga encima, como en una persona. Sin esto no alcanzaba (Felipe, 2026-11-26: «lo sigo viendo igual»): la
@@ -33,8 +36,8 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
    recortes sin medida (`retail.recortes_sin_medida_ia`), le manda a OpenAI la URL pública del recorte en baja resolución y guarda lo que responde
    (`retail.anotar_medida_ia`): tipo, zona, holgura, si va metida y la altura de las axilas (fracción del alto). Nadie del equipo hace nada.
 3. **El ancho exacto lo miden los píxeles**, en la misma medida de siempre (`/api/medida/[archivo]` de la tienda): ahora guarda también el ancho fila por fila
-   (`anchos`, 50 filas: el tramo del medio y el de borde a borde). Una prenda sin mangas cuyo escote corta el medio (halter, tirantes, strapless) se mide de borde
-   a borde. `VERSION_DE_LA_MEDIDA` sube a 3: las medidas guardadas se rehacen solas.
+   (`anchos`, 50 filas: el tramo que pasa por el medio, sin las mangas sueltas).
+   `VERSION_DE_LA_MEDIDA` sube a 3: las medidas guardadas se rehacen solas.
 4. **La medida es del recorte, no de la foto.** `medida_ia` guarda el archivo del recorte que miró; si el recorte se rehace, deja de valer sola (sin tocar
    `registrar_recorte`). `tienda_probador` solo la entrega si coincide y no es un fallo.
 5. **Sin la medida, todo sigue como hoy** (principio 9): sin `OPENAI_API_KEY`, si la IA no responde, si respondió algo raro (se anota como fallo y no se reintenta) o
@@ -49,11 +52,12 @@ Blusa Akira + pantalón, 1,11 → 1,26 (su pantalón medía 41,5 de cintura y ah
 
 | Outfit | Factor de hoy (por el bajo) | Factor nuevo (por el pecho) |
 |---|---|---|
-| Camisa Dalia (CMS-0092, nudo) con jean, pantalón y dos faldas | 1,34 (agrandada) | 1,00 (como está) |
-| Blusa Brillo con pantalón y con falda | 1,12 | 0,92 |
+| Camisa Dalia (CMS-0092, nudo) con jean, pantalón y falda | 1,34 (agrandada) | 1,00 (como está) |
+| Blusa Brillo con pantalón y con falda | 1,12 | 1,00 |
+| Polo Básico (POL-0049) con jean | 1,04 | 0,94 |
 | Blusa Akira (CMS-0117) con pantalón | 0,86 | 0,85 |
-| Camisola de tirantes con jean | 1,19 | 1,42 |
-| Top Vanessa (TOP-0027, tirantes) con jean | 1,29 | 1,45 (tope) |
+| Top encaje manga larga (TOP-0021) con falda | 1,35 | 1,27 |
+| Camisola y Top Vanessa (tirantes) con jean | 1,19 y 1,29 | iguales que hoy (sin mangas: regla de siempre) |
 
 La simulación de «hoy» se comparó con capturas de la tienda real: coincide. La axila de CMS-0092 se marcó a mano (0,26) porque la clave de la prueba ya se había
 borrado; las demás son las de la IA.
@@ -69,7 +73,8 @@ borrado; las demás son las de la IA.
 
 - **La axila de la IA no es exacta** (a ojo, 4 de 26 corridas un poco bajas, en corsets y un strapless). Se mide 4 % bajo la axila y con la mediana de tres filas,
   y los topes acotan un error grande. Si una prenda sale mal, hoy no hay forma de corregirla a mano: se le borra la medida en la base y vuelve a la regla del bajo.
-- **Tops de tirantes salen algo más grandes que hoy** (1,42–1,45). Mirado: se ven proporcionados con el jean, pero hay que verlo con más prendas.
+- **Una prenda sin mangas con nudo o fruncido abajo** sigue con la regla del bajo y podría agrandarse como la Camisa Dalia. No había ninguna en la prueba.
+- **Una primera versión agrandaba los tops de tirantes** (1,42–1,45, más anchos que la cadera del jean): por eso solo las de mangas van por el pecho.
 - **Costo:** ~US$0,30 para todo el catálogo actual y menos de un centavo por foto nueva, en la cuenta de OpenAI de producción.
 - **No probado en la tienda real ni en el navegador:** solo pruebas, Postgres local con `begin … rollback` y la simulación con las funciones reales.
 

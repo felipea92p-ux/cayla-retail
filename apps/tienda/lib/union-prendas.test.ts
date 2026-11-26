@@ -590,27 +590,18 @@ describe("siguienteFase: del ajuste al «Listo» (B1)", () => {
 /* ======================== ADR-0705: la prenda de arriba por su pecho, no por su bajo ======================== */
 
 describe("anchosPorFila y anchoDelPecho: el ancho de la prenda bajo las axilas", () => {
-  it("guarda el tramo del medio (sin las mangas sueltas) y el de borde a borde", () => {
+  it("guarda el tramo del medio, sin las mangas sueltas", () => {
     const a = anchosPorFila(imagen(100, 100, polo), 100, 100);
     expect(a.centro).toHaveLength(FILAS_DEL_ANCHO);
-    // Fila 0,5: el torso (30–70) y las mangas sueltas a los lados.
+    // Fila 0,5: el torso (30–70), sin las mangas sueltas a los lados.
     expect(a.centro[25]).toBeCloseTo(0.4, 2);
-    expect(a.extremos[25]).toBeCloseTo(1, 2);
     // Bajo el torso solo quedan las mangas: no hay tramo en el medio.
     expect(a.centro[45]).toBeNull();
   });
 
-  it("una prenda sin mangas cuyo escote corta el medio se mide de borde a borde", () => {
-    // Un halter: tela de 25 a 75 con una abertura de 45 a 55 hasta la fila 50.
-    const halter = (x: number, y: number) => x >= 25 && x < 75 && !(y < 50 && x >= 45 && x < 55);
-    const a = anchosPorFila(imagen(100, 100, halter), 100, 100);
-    expect(anchoDelPecho(a, 0.2, "con_mangas")).toBeNull();
-    expect(anchoDelPecho(a, 0.2, "halter")).toBeCloseTo(0.5, 2);
-  });
-
   it("sin ancho fila por fila, o con una axila increíble, no hay pecho", () => {
-    expect(anchoDelPecho(null, 0.2, "con_mangas")).toBeNull();
-    expect(anchoDelPecho(anchosPorFila(imagen(100, 100, polo), 100, 100), 0.95, "con_mangas")).toBeNull();
+    expect(anchoDelPecho(null, 0.2)).toBeNull();
+    expect(anchoDelPecho(anchosPorFila(imagen(100, 100, polo), 100, 100), 0.95)).toBeNull();
   });
 
   it("medirRecorte trae el ancho fila por fila, y una medida vieja sin él se sigue leyendo", () => {
@@ -620,7 +611,7 @@ describe("anchosPorFila y anchoDelPecho: el ancho de la prenda bajo las axilas",
     const vieja: MedidaDelRecorte = { ...m, anchos: undefined };
     expect(medidaDesdeDato(JSON.parse(JSON.stringify(vieja)))?.anchos).toBeUndefined();
     // Un ancho mal formado no tira la medida.
-    expect(medidaDesdeDato({ ...m, anchos: { centro: [1], extremos: [] } })?.borde).toBe(m.borde);
+    expect(medidaDesdeDato({ ...m, anchos: { centro: [1] } })?.borde).toBe(m.borde);
   });
 });
 
@@ -660,6 +651,10 @@ describe("cajaPorElPecho: una blusa se dimensiona por su pecho", () => {
     expect(Math.abs(c.x + c.w / 2 - (caja.x + caja.w / 2))).toBeLessThanOrEqual(1);
     const enorme = cajaPorElPecho({ caja: { ...caja, w: 1000 }, medida, ia })!;
     expect(enorme.w / 1000).toBeCloseTo(FACTOR_MINIMO_DEL_PECHO, 2);
+  });
+
+  it("una prenda sin mangas (tirantes, halter, strapless) sigue con la regla del bajo: medida por el pecho salía más ancha que la cadera", () => {
+    for (const tipo of ["tirantes", "halter", "strapless", "body"]) expect(cajaPorElPecho({ caja, medida, ia: { ...ia, tipo } })).toBeNull();
   });
 
   it("sin lo que dijo la IA, sin axila o sin ancho fila por fila, manda la regla del bajo (null)", () => {
