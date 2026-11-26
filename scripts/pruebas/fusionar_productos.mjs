@@ -578,6 +578,7 @@ const A_PRODUCTOS = {
   "vitrina_productos.producto_id": "uno por producto",
   "producto_consumos.producto_id": "uno por producto",
   "producto_taller.producto_id": "uno por producto",
+  "producto_rasgos.producto_id": "uno por producto: las casillas del que queda mandan (ADR-0700, 20261126211000)",
   "producto_color_temporadas.producto_id": "uno por producto y color",
   "producto_procesos.producto_id": "uno por producto y proceso",
   "producto_avios.producto_id": "uno por producto, insumo y color",
@@ -1105,6 +1106,39 @@ ${VISTA_PREVIA_TRU}
 select 'x', (select string_agg(case when (p ->> 'id') = :'d' then 'repetida' else 'queda' end || '=' || (p ->> 'bajo_costo'), ',' order by p ->> 'queda')
                from jsonb_array_elements(:'vistos'::jsonb -> 0 -> 'productos') p);`),
     "repetida=true,queda=false"
+  )
+);
+
+// ---------------------------------------------------------------------------------------------- casillas de precio (20261126211000)
+
+caso("55 · las casillas de precio del duplicado pasan a la que queda si ella no tenía (ADR-0700): no se pierde el margen ya decidido", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+delete from retail.producto_rasgos where producto_id = '${EMMA}';
+select pg_temp.duplicado('ZZ Emma casillas', '[{"color":"NEG","talla":"XL","stock":1}]') as d \\gset
+insert into retail.producto_rasgos (producto_id, marcados) values (:'d', array['en_tendencia']);
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', (select array_to_string(marcados, ',') from retail.producto_rasgos where producto_id = '${EMMA}'),
+       (select count(*) from retail.producto_rasgos where producto_id = :'d');`),
+    "en_tendencia|0"
+  )
+);
+
+caso("56 · si las dos tienen casillas, mandan las de la que queda y las del duplicado se quedan en él (no se suman)", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+delete from retail.producto_rasgos where producto_id = '${EMMA}';
+insert into retail.producto_rasgos (producto_id, marcados) values ('${EMMA}', array['nadie_la_tiene']);
+select pg_temp.duplicado('ZZ Emma casillas 2', '[{"color":"NEG","talla":"XL","stock":1}]') as d \\gset
+insert into retail.producto_rasgos (producto_id, marcados) values (:'d', array['en_tendencia']);
+${sesion(FELIPE)}
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) as r \\gset
+${COMO_POSTGRES}
+select 'x', (select array_to_string(marcados, ',') from retail.producto_rasgos where producto_id = '${EMMA}'),
+       (select array_to_string(marcados, ',') from retail.producto_rasgos where producto_id = :'d');`),
+    "nadie_la_tiene|en_tendencia"
   )
 );
 
