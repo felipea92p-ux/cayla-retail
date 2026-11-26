@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { claureDelVendido, hrefCuadreFinanzas, instanteLima, lineaClaure, pieVendido, TITULO_COLUMNA_VENDIDO } from "./reportes-vendido-reglas";
+import { claureDelVendido, hrefCuadreFinanzas, instanteLima, lineaClaure, nombreDeAliadasDelVendido, pieVendido, TITULO_COLUMNA_VENDIDO } from "./reportes-vendido-reglas";
 import type { VendidoEmpresa } from "./vendido-por-empresa-reglas";
 
 // Tarea 77: el «Vendido» de Ventas ▸ Reportes dice qué incluye. Cifras inventadas y redondas (ADR-0609).
@@ -63,5 +63,18 @@ describe("el enlace y el tramo", () => {
 
   it("el tramo se lee en días de Lima", () => {
     expect(instanteLima("2026-10-01")).toBe("2026-10-01T00:00:00-05:00");
+  });
+});
+
+describe("lo de cualquier empresa aliada (ADR-0683)", () => {
+  const de = (clave: string, nombre: string, total: number) => ({ empresaId: clave, clave, nombre, orden: 1, ventas: 1, unidades: 1, total });
+  it("suma lo de todas las que no son la casa y las nombra", () => {
+    const vendido = [de("cayla", "CAYLA", 1000), de("kids", "CAYLA KIDS", 300), de("claure", "CLAURE", 0)];
+    expect(claureDelVendido(vendido)).toBe(300);
+    expect(nombreDeAliadasDelVendido(vendido)).toBe("CAYLA KIDS");
+    expect(lineaClaure(300, "CAYLA KIDS")).toContain("de prendas de CAYLA KIDS");
+  });
+  it("con dos que vendieron, «empresas aliadas»", () => {
+    expect(nombreDeAliadasDelVendido([de("kids", "CAYLA KIDS", 1), de("claure", "CLAURE", 2)])).toBe("empresas aliadas");
   });
 });

@@ -25,6 +25,8 @@ export const RUTAS_DE_CRON = [
   "/api/pedidos-web/avisar",
   // 20261016003000 (Felipe 2026-10-15, D4): libera los apartados vencidos de todas las tiendas, cada madrugada (3:40 de Lima).
   "/api/apartados/vencer",
+  // ADR-0683: aplica las bajas de empresas aliadas que cumplieron su semana, cada madrugada (3:50 de Lima).
+  "/api/empresas/bajas",
   // ADR-0536 (actividad 10): el informe del lunes de «Pregúntale a CAYLA», los lunes a las 7:00 de Lima.
   "/api/asistente/informe",
   // ADR-0601 (actividad 5): trae de la API del SIRE las propuestas del mes anterior, del día 2 al 10 a las 8:30 de Lima.

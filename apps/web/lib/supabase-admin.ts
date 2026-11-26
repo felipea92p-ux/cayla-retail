@@ -17,6 +17,9 @@ import type { Database } from "@cayla-retail/database";
 // `/api/lucode/reintentar` lo crean ANTES de llamar a Lucode y se lo pasan a `lib/transmitir-comprobante.ts` como `servidor`; lo que se
 // lee sigue con la sesión de quien pide.
 //
+// Y leer la llave de Lucode de una empresa aliada, cifrada en el Vault (`fn_llave_lucode_aliada`, ADR-0683), para «Probar conexión»
+// (`/api/lucode/probar-aliada`), que antes comprueba con la sesión de quien llama que es Admin.
+//
 // Nunca se guarda en una variable de módulo: se crea en cada llamada y muere con la petición.
 
 export const FALTA_LLAVE = "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor";

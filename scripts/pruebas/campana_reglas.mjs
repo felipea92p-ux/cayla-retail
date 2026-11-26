@@ -34,6 +34,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { deshacerCalladas } from "./campanas-en-sede-sin-calladas.mjs";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -705,7 +706,8 @@ ${YA}select estado || '|' || (select ceden = array[:'r']::uuid[] from retail.cam
     esperar(
       "la migración de una oferta por prenda se puede pegar dos veces",
       // 20261116175000 reemplazó el bloque de cesiones que ancla esta migración: se deshace antes de volver a pegarla (y se rehace con el ROLLBACK).
-      correr(`begin;\n${ANTES}${deshacerCalladas()}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\nrollback;`).ok,
+      // ADR-0683: 20261121171000 cambió el «salvo CLAURE» de las ofertas; se deshace también.
+      correr(`begin;\n${SQL_DESHACER_ALIADAS}${ANTES}${deshacerCalladas()}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\nrollback;`).ok,
     );
   }
 

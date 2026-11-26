@@ -698,8 +698,13 @@ rollback;`);
       "El historial de un apartado (ADR-0414): lista cada fila de separacion_pagos (adelanto y abonos, que no se redondean, ADR-0311 §7) con su fecha y quién cobró. Solo lee, no suma pagos ni toca venta_pagos.",
     fn_finanzas_confianza:
       "El medidor de confianza (ADR-0417, 20261015235000): suma solo los pagos con tarjeta y qr del mes para saber cuánto pasa por la máquina; filtra por medio, así que la fila de redondeo (que va con el efectivo) queda fuera y no suma dinero.",
-    fn_claure_cambios:
-      "La plata que cambia de dueño en un cambio con prendas de CLAURE (ADR-0560, 20261029162000): de venta_pagos solo toma qué PARTE de lo pagado en la venta original fue en cuentas de CAYLA (yape, plin, tarjeta, transferencia, qr, sobre el total de filas, que incluye el redondeo porque la suma de filas es el total); la fila de redondeo va con el efectivo, no suma dinero y no genera deuda.",
+    // ADR-0683: desde 20261121160000, fn_claure_cambios solo llama a fn_aliada_cambios (la misma regla, para cualquier aliada).
+    fn_aliada_cambios:
+      "La plata que cambia de dueño en un cambio con prendas de una empresa aliada (ADR-0560, ADR-0683; la de CLAURE, copiada): de venta_pagos solo toma qué PARTE de lo pagado en la venta original fue en cuentas de CAYLA (yape, plin, tarjeta, transferencia, qr, sobre el total de filas, que incluye el redondeo porque la suma de filas es el total); la fila de redondeo va con el efectivo, no suma dinero y no genera deuda.",
+    fn_aliada_cierre:
+      "El aviso del cierre de caja con cada dueña (ADR-0683; el de CLAURE, copiado): el efectivo de las ventas de la caja sale de las filas con metodo = 'efectivo' (lo físico, igual que fn_calcular_esperado_caja), así que la fila de redondeo no entra; lo cobrado en cuentas lo trae fn_aliada_filas.",
+    fn_aliada_filas:
+      "Lo cobrado por una empresa aliada en cuentas de CAYLA (ADR-0683; la de CLAURE, copiada): filtra venta_pagos por medios explícitos (yape, plin, tarjeta, transferencia, qr); el efectivo no genera deuda (lo tiene su dueña) y la fila de redondeo va con el efectivo: queda fuera y no suma dinero.",
     fn_claure_cierre:
       "El aviso del cierre de caja de Lima (ADR-0560): el efectivo de las ventas de la caja sale de las filas con metodo = 'efectivo' (lo físico, igual que fn_calcular_esperado_caja), así que la fila de redondeo no entra; lo cobrado en cuentas lo trae fn_claure_filas.",
     fn_claure_fuera:

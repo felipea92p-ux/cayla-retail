@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Empresas aliadas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Empresas aliadas (2026-11-21)
+   Qué se elige: DÓNDE vive el botón para sumar una empresa aliada en Configuración ▸ Empresa y tiendas (A · en los dos lugares,
+   B · solo en cada tienda, C · solo una pestaña aparte). La hoja «Nueva empresa aliada» es la misma en las tres.
+   Para ver a dónde lleva: «Cobrar en Lima» (una boleta por empresa, armada sola) y «Nuevo producto en Trujillo».
+   Datos inventados (el repo es público): ningún RUC, nombre de titular ni clave real. Solo tokens. Sin rebote.
+   ==================================================================== */
+.placa{border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 68%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -26px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .placa{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 72%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+.pozo{border-radius:16px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);color:var(--t80);background:color-mix(in srgb,var(--vidrio) 55%,transparent);white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);border-color:color-mix(in srgb,var(--verde) 40%,transparent)}
+.chip.ambar{color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.chip.pizarra{color:var(--pizarra);border-color:color-mix(in srgb,var(--pizarra) 40%,transparent)}
+.chip.sin{text-transform:none;letter-spacing:0;font-size:12px}
+.serie{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:10px;font-size:13px;border:1px solid var(--sand);background:color-mix(in srgb,var(--papel) 70%,transparent)}
+.titulo-sec{display:flex;align-items:baseline;gap:10px;font-family:'EB Garamond',serif;font-weight:500;font-size:24px;margin:30px 0 14px}
+.titulo-sec .cuenta{font-family:'DM Sans';font-size:11px;font-weight:600;min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;background:var(--t12);color:var(--t80)}
+.titulo-sec .der{margin-left:auto}
+.ic24{width:20px;height:20px}
+
+/* ---------- las empresas (franja de A y pestaña de C) ---------- */
+.emps{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.emp{position:relative;padding:20px;display:flex;flex-direction:column;gap:12px;animation:enfoca .6s var(--ease) backwards;animation-delay:calc(var(--i,0)*60ms)}
+.emp .cab-e{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.emp h3{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1}
+.emp .ruc{font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+.emp .sedes{display:flex;flex-wrap:wrap;gap:6px}
+.emp .lapiz{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+@media (hover:hover){.emp .lapiz:hover{background:var(--t06);color:var(--tinta)}}
+.tope{display:flex;flex-direction:column;gap:6px}
+.tope .tx{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 8px;font-size:12.5px;color:var(--t65)}
+.tope .tx b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pista{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.pista i{display:block;height:100%;border-radius:inherit;background:var(--tinta);transform-origin:left;animation:llena .9s var(--ease) .2s backwards}
+.pista i.ambar{background:var(--ambar)}
+@keyframes llena{from{transform:scaleX(0)}}
+.emp.nueva{align-items:center;justify-content:center;text-align:center;min-height:180px;border:1.5px dashed color-mix(in srgb,var(--borde) 70%,transparent);background:transparent;box-shadow:none;color:var(--t80);cursor:pointer;transition:background .25s,transform .25s var(--ease)}
+@media (hover:hover){.emp.nueva:hover{background:color-mix(in srgb,var(--vidrio) 40%,transparent);transform:translateY(-2px)}}
+.emp.nueva .mas-c{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent))}
+.emp.nueva b{font-size:15px;color:var(--tinta)}
+.emp.recien{outline:2px solid color-mix(in srgb,var(--verde) 55%,transparent);outline-offset:3px}
+
+/* ---------- D · la banda de la casa y las aliadas debajo ---------- */
+.casa-banda{display:flex;flex-wrap:wrap;align-items:center;gap:18px 48px;padding:26px 34px;animation:enfoca .6s var(--ease) backwards}
+.casa-banda h3{font-family:'EB Garamond',serif;font-weight:500;font-size:52px;line-height:1}
+.casa-banda .rs{font-size:14px;color:var(--taupe)}
+.dato-c small{display:block;font-size:13px;color:var(--taupe)}
+.dato-c b{font-size:16px;font-weight:500}
+.dato-c b.grande{font-size:30px;font-variant-numeric:tabular-nums}
+.solo-lee{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t65)}
+.aliadas-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:30px 0 14px}
+.aliadas-cab .titulo-sec{margin:0}
+.aliadas-cab .btn{height:40px}
+
+/* ---------- las tiendas ---------- */
+.tiendas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
+@container disp (max-width:1180px){.tiendas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container disp (max-width:640px){.tiendas{grid-template-columns:1fr}}
+.tienda{padding:20px;display:flex;flex-direction:column;gap:12px;animation:enfoca .6s var(--ease) backwards;animation-delay:calc(var(--i,0)*70ms + 120ms)}
+.tienda h3{font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1}
+.tienda .series{display:flex;flex-wrap:wrap;gap:6px}
+.tienda .listo{color:var(--verde);font-size:14px}
+.dato{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.dato .ico{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 4px 12px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.dato .tx{min-width:0;flex:1}
+.dato small{display:block;font-size:12.5px;color:var(--taupe)}
+.dato b{font-family:'EB Garamond',serif;font-weight:500;font-size:20px}
+/* la fila nueva de cada tienda: «Venden aquí» */
+.venden{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 45%,transparent)}
+.venden .et{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.venden .et span{font-size:12.5px;color:var(--taupe)}
+.venden .lista{display:flex;flex-wrap:wrap;gap:6px}
+.e-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent))}
+.e-chip small{font-weight:500;font-size:11.5px;color:var(--t65)}
+.e-chip.casa{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent))}
+.e-chip.casa small{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+.mas-chico{height:30px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border:1px dashed var(--borde);color:var(--t80)}
+@media (hover:hover){.mas-chico:hover{border-style:solid;background:color-mix(in srgb,var(--vidrio) 60%,transparent);color:var(--tinta)}}
+
+/* ---------- pestañas (C) ---------- */
+.pest{display:inline-flex;gap:4px;padding:4px;border-radius:999px;margin-top:26px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.pest button{height:36px;padding:0 18px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pest button.on{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));border:1px solid var(--borde)}
+
+/* ---------- la hoja «Nueva empresa aliada» ---------- */
+.capa .hoja{width:min(576px,100%);max-height:calc(100% - 40px);overflow:auto;animation:sube .45s var(--ease) both}
+.capa .hoja[data-ya],.capa .velo[data-ya]{animation:none}
+.capa{padding:4% 24px 24px}
+.capa .velo{background:color-mix(in srgb,var(--sombra) 28%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.capa .hoja{background:color-mix(in srgb,var(--vidrio) 92%,transparent)}
+.hoja .x{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+.campo{margin-bottom:16px}
+.campo .et{display:flex;justify-content:space-between}
+.campo .et em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500;color:var(--t50)}
+.campo input{width:100%;height:42px;border-radius:14px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);padding:0 14px;font-size:14px;outline:0}
+.campo input:focus{background:var(--papel);border-color:var(--tinta)}
+.campo input::placeholder{color:var(--t50)}
+.lee{display:flex;align-items:center;gap:8px;margin-top:8px;padding:10px 12px;border-radius:12px;font-size:13px;background:color-mix(in srgb,var(--verde) 9%,transparent);color:var(--tinta)}
+.lee svg{color:var(--verde)}
+.lee.esp{background:var(--t06);color:var(--t65)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{height:36px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent))}
+.seg button[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.linea-ayuda{font-size:12.5px;color:var(--t65);margin-top:8px}
+.nota-h{display:flex;gap:10px;padding:12px 14px;border-radius:14px;font-size:13px;background:color-mix(in srgb,var(--hueso) 70%,transparent);margin-bottom:16px}
+.nota-h svg{flex:none;margin-top:2px;color:var(--pizarra)}
+.hoja .pie{position:sticky;bottom:-30px;margin:6px -30px -30px;padding:14px 30px 24px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--vidrio) 85%,transparent) 30%)}
+
+/* correo, teléfono y cuentas de la aliada */
+.contacto{font-size:13px;color:var(--t80)}
+.cuentas-c{display:flex;flex-wrap:wrap;gap:6px}
+.tenue{font-size:13px;color:var(--t50)}
+.doble{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@container disp (max-width:640px){.doble{grid-template-columns:1fr}}
+.cuenta-f{position:relative;display:flex;flex-direction:column;gap:10px;padding:12px 44px 12px 12px;margin-bottom:8px;border-radius:16px;border:1px solid var(--t12);background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.cuenta-f input{width:100%;height:40px;border-radius:12px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);padding:0 12px;font-size:14px;outline:0}
+.cuenta-f input:focus{background:var(--papel);border-color:var(--tinta)}
+.cuenta-f .quitar{position:absolute;top:8px;right:6px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+@media (hover:hover){.cuenta-f .quitar:hover{background:var(--t06);color:var(--tinta)}}
+
+/* ---------- Cobrar en Lima ---------- */
+.cobro{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;margin-top:24px;align-items:start}
+@container disp (max-width:900px){.cobro{grid-template-columns:1fr}}
+.tk{padding:22px;display:flex;flex-direction:column;gap:12px}
+.tk h2,.bol-z h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px}
+.grupo-e{display:flex;flex-direction:column;gap:6px}
+.grupo-e .et{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.lin{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--t12)}
+.lin .mini{width:38px;height:38px;border-radius:10px;flex:none}
+.lin .tx{flex:1;min-width:0}.lin .tx small{display:block;color:var(--t65);font-size:12.5px}
+.lin .mon{font-variant-numeric:tabular-nums;font-weight:600}
+.total{display:flex;justify-content:space-between;align-items:baseline;padding-top:6px}
+.total strong{font-family:'EB Garamond',serif;font-size:30px;font-weight:500;font-variant-numeric:tabular-nums}
+.bol-z{display:flex;flex-direction:column;gap:14px}
+.bol-z .cab-b{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.boletas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@container disp (max-width:640px){.boletas{grid-template-columns:1fr}}
+.papel{padding:18px;border-radius:14px;background:var(--crema-fija);color:var(--tinta-fija);border:1px solid color-mix(in srgb,var(--tinta-fija) 15%,transparent);font-size:12.5px;display:flex;flex-direction:column;gap:8px;animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*90ms)}
+.papel .rs{font-weight:700;font-size:13px;letter-spacing:.04em}
+.papel .num{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.papel .fila{display:flex;justify-content:space-between;gap:8px}
+.papel hr{border:0;border-top:1px dashed color-mix(in srgb,var(--tinta-fija) 30%,transparent)}
+.papel .tot{font-weight:700;font-size:14px}
+.papel .igv{color:color-mix(in srgb,var(--tinta-fija) 70%,transparent)}
+.cobro-partido{padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.cobro-partido .fila{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.cobro-partido .fila b{font-variant-numeric:tabular-nums}
+.aviso{display:flex;gap:10px;padding:12px 14px;border-radius:14px;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,transparent);font-size:13px}
+.aviso svg{flex:none;color:var(--ambar);margin-top:2px}
+
+/* ---------- Nuevo producto en Trujillo ---------- */
+.alta{max-width:760px;margin-top:24px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.alta h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;display:flex;align-items:center;gap:10px}
+.alta .sigue{font-family:'DM Sans';font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.op{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;border:1px solid var(--borde);text-align:left;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));transition:transform .25s var(--ease)}
+@media (hover:hover){.op:hover{transform:translateY(-1px)}}
+.op[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.op .ini{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:18px;background:var(--sand);color:var(--tinta)}
+.op b{display:block;font-size:15px}.op small{display:block;font-size:12.5px;opacity:.75}
+.hilo-guia{border-left:2px solid var(--tinta);padding-left:14px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Empresas aliadas · dónde se agregan y a dónde llegan</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="config">Configuración ▸ Empresa y tiendas</button><button data-v="cobrar">Cobrar en Lima</button><button data-v="alta">Nuevo producto en Trujillo</button></div>
+  <span class="tag">El botón</span><div class="seg-m" data-ctl="boton"><button data-v="arriba">D · CAYLA arriba, aliadas debajo (tu idea)</button><button data-v="ambos">A · En los dos lugares (recomendado)</button><button data-v="tienda">B · Solo en cada tienda</button><button data-v="pestana">C · Solo una pestaña aparte</button></div>
+  <span class="tag">En cada tienda (D)</span><div class="seg-m" data-ctl="fila"><button data-v="nada">Nada (elegida)</button><button data-v="chips">Quién vende, sin botón</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1440">1440</button><button data-v="escritorio">Escritorio</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="capa" id="capa"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué se elige aquí</h2>
+    <ul>
+      <li><b>A · En los dos lugares (recomendado).</b> Arriba, la franja «Empresas que venden aquí» con todas las empresas, su régimen, sus tiendas y, si es Nuevo RUS, cuánto lleva del tope del mes. En cada tienda, la fila «Venden aquí» con un «+» que abre la misma hoja con esa tienda ya marcada.</li>
+      <li><b>B · Solo en cada tienda.</b> Lo que pediste: el «+» vive en la tarjeta de la tienda y la marca sola. No hay un lugar donde ver todas las empresas juntas ni el tope de cada RUS.</li>
+      <li><b>C · Solo una pestaña aparte.</b> «Tiendas · Empresas aliadas». Ordenado, pero desde la tienda no se ve quién vende ahí.</li>
+    </ul>
+    <p>La hoja es la misma en las tres: el RUC trae la razón social del padrón de SUNAT, el régimen decide si puede dar factura, y nunca se pide la clave SOL: la conexión con SUNAT la activa el líder con Lucode. Toca «+» y luego «Guardar» para ver dónde aparece la empresa nueva.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// Íconos propios de esta maqueta (trazos de lucide).
+const I = {
+  mas: 'M12 5v14M5 12h14', x: 'M18 6 6 18M6 6l12 12', lapiz: 'M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z',
+  ok: 'M20 6 9 17l-5-5', info: 'M12 16v-4M12 8h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  reloj: 'M12 6v6l4 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z', qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 20h1v1h-1z', tienda: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6',
+  candado: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  edificio: 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M3 21h18',
+};
+const ic = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Datos inventados. RUC de mentira a propósito (el repositorio es público).
+const TOPE_RUS = 8000;
+let empresas = [
+  { id: 'cayla', nombre: 'CAYLA', casa: true, razon: 'CAYLA S.A.C.', ruc: '20100000001', regimen: 'general', sedes: ['AQP', 'LIM', 'TRU'], sunat: 'ok' },
+  { id: 'claure', nombre: 'Claurè', razon: 'Persona natural', ruc: '10000000011', regimen: 'rus', sedes: ['LIM'], sunat: 'ok', mes: 3240,
+    correo: 'claure@ejemplo.pe', tel: '+51 900 000 010', cuentas: [{ tipo: 'yape', numero: '900 000 010' }, { tipo: 'banco', banco: 'BCP', numero: '191-0000000-0-45' }] },
+  { id: 'kids', nombre: 'CAYLA KIDS', razon: 'Persona natural', ruc: '10000000022', regimen: 'rus', sedes: ['TRU'], sunat: 'pend', mes: 0, correo: '', tel: '', cuentas: [] },
+];
+const TIENDAS = [
+  { id: 'AQP', series: ['Boleta B004', 'Factura F004'], wa: '900 000 001', cierre: '10:15 p. m.' },
+  { id: 'LIM', series: ['Boleta B006', 'Factura F006'], wa: '900 000 002', cierre: '7:30 p. m.' },
+  { id: 'TRU', series: ['Boleta B005', 'Factura F005'], wa: '900 000 003', cierre: '8:15 p. m.' },
+  { id: 'Taller', series: [], taller: true },
+];
+const REGIMEN = { general: 'Factura y boleta', rus: 'Nuevo RUS · solo boleta' };
+let pestC = 'tiendas', recien = null;
+let hoja = null; // { sedes:Set, regimen, ruc, nombre }
+
+const TIPO_CUENTA = { yape: 'Yape', plin: 'Plin', banco: 'Cuenta bancaria' };
+const ultimos = (n) => { const d = (n || '').replace(/\D/g, ''); return d ? '··· ' + d.slice(-3) : ''; };
+function etiquetaCuenta(c) { return c.tipo === 'banco' ? `${c.banco || 'Banco'} ${ultimos(c.numero)}` : `${TIPO_CUENTA[c.tipo]} ${ultimos(c.numero)}`; }
+function chipRegimen(e) { return e.casa ? `<span class="chip sin">La casa · ${REGIMEN.general}</span>` : `<span class="chip pizarra sin">${REGIMEN[e.regimen]}</span>`; }
+function chipSunat(e) { return e.sunat === 'ok' ? `<span class="chip verde"><i></i>Emite a SUNAT</span>` : `<span class="chip ambar"><i></i>Falta conectar a SUNAT</span>`; }
+function tarjetaEmpresa(e, k) {
+  const tope = e.regimen === 'rus' ? (() => { const p = Math.min(100, Math.round((e.mes / TOPE_RUS) * 100)); return `<div class="tope"><div class="tx"><span>Tope del RUS este mes</span><b>S/ ${e.mes.toLocaleString('es-PE')} de S/ ${TOPE_RUS.toLocaleString('es-PE')}</b></div><div class="pista"><i class="${p >= 80 ? 'ambar' : ''}" style="width:${Math.max(p, 1)}%"></i></div></div>`; })() : '';
+  return `<article class="placa emp${recien === e.id ? ' recien' : ''}" style="--i:${k}">
+    <div class="cab-e"><div><h3>${e.nombre}</h3><div class="ruc">${e.razon} · RUC ${e.ruc}</div></div><button class="lapiz" data-acc="editar" data-id="${e.id}" aria-label="Editar ${e.nombre}" title="Editar ${e.nombre}">${ic(I.lapiz)}</button></div>
+    <div class="sedes">${chipRegimen(e)}${chipSunat(e)}</div>
+    <div class="sedes">${e.sedes.map((s) => `<span class="e-chip">${s}</span>`).join('')}</div>
+    ${e.casa ? '' : `<div class="contacto">${[e.correo, e.tel].filter(Boolean).join(' · ') || '<span class="tenue">Sin correo ni teléfono</span>'}</div>
+    <div class="cuentas-c">${(e.cuentas || []).length ? e.cuentas.map((c) => `<span class="chip sin">${etiquetaCuenta(c)}</span>`).join('') : '<span class="tenue">Sin cuentas para cobrar</span>'}</div>`}${tope}</article>`;
+}
+function franjaEmpresas(titulo = true) {
+  return `${titulo ? `<h2 class="titulo-sec">Empresas que venden aquí <span class="cuenta">${empresas.length}</span></h2>` : '<div style="height:20px"></div>'}
+    <div class="emps">${empresas.map(tarjetaEmpresa).join('')}
+      <button class="placa emp nueva" data-acc="nueva" style="--i:${empresas.length}"><span class="mas-c">${ic(I.mas)}</span><b>Agregar empresa aliada</b><span style="font-size:13px">Otra dueña que vende en tus tiendas</span></button></div>`;
+}
+// D · la banda de la casa (como hoy en Configuración) y las aliadas debajo, con su botón solo arriba, a un lado.
+function bandaCasa() {
+  const c = empresas.find((e) => e.casa);
+  return `<section class="placa casa-banda"><div><h3>${c.nombre}</h3><span class="rs">${c.razon}</span></div>
+    <div class="dato-c"><small>RUC</small><b class="serif grande">${c.ruc}</b></div>
+    <div class="dato-c"><small>Correo</small><b>tienda@ejemplo.pe</b></div>
+    <div class="dato-c"><small>Teléfono</small><b>+51 900 000 000</b></div>
+    <span class="solo-lee">${ic(I.candado)}Solo se lee</span></section>`;
+}
+function seccionAliadas() {
+  const al = empresas.filter((e) => !e.casa);
+  return `<div class="aliadas-cab"><h2 class="titulo-sec">Empresas aliadas <span class="cuenta">${al.length}</span></h2>
+      <button class="btn sec" data-acc="nueva">${ic(I.mas, 'ic mas')}Agregar empresa aliada</button></div>
+    <div class="emps">${al.map(tarjetaEmpresa).join('')}</div>`;
+}
+function filaVenden(t, conBoton = true) {
+  const aqui = empresas.filter((e) => e.sedes.includes(t.id));
+  if (!conBoton && aqui.length < 2) return '';
+  return `<div class="venden"><div class="et"><span>Venden aquí</span>
+      ${conBoton ? `<button class="mas-chico" data-acc="nueva" data-sede="${t.id}" aria-label="Agregar empresa aliada en ${t.id}">${ic(I.mas)}Agregar</button>` : ''}</div>
+    <div class="lista">${aqui.map((e) => `<span class="e-chip${e.casa ? ' casa' : ''}">${e.nombre} <small>${e.casa ? 'la casa' : e.regimen === 'rus' ? 'RUS' : ''}</small></span>`).join('')}</div></div>`;
+}
+function tarjetaTienda(t, k, conFila) {
+  if (t.taller) return `<article class="placa tienda" style="--i:${k}"><h3>Taller</h3><div class="listo">Todo listo</div>
+    <div class="placa dato"><span class="ico">${ic(I.edificio)}</span><div class="tx"><small>Carga de stock inicial</small><b>Cerró 31-oct</b></div></div>
+    ${conFila ? `<p class="linea-ayuda">El taller no vende: no tiene empresas.</p>` : ''}</article>`;
+  return `<article class="placa tienda" style="--i:${k}"><h3>${t.id}</h3>
+    <div class="series">${t.series.map((s) => `<span class="serie">${s}</span>`).join('')}</div><div class="listo">Todo listo</div>
+    ${conFila === 'leer' ? filaVenden(t, false) : conFila ? filaVenden(t) : ''}
+    <div class="placa dato"><span class="ico">${ic(I.qr)}</span><div class="tx"><small>WhatsApp y QR</small><b>${t.wa}</b></div></div>
+    <div class="placa dato"><span class="ico">${ic(I.reloj)}</span><div class="tx"><small>Hora de cierre</small><b>${t.cierre}</b></div></div></article>`;
+}
+function pantallaConfig(e) {
+  if (e.boton === 'arriba') {
+    const pest = `<div class="pest" role="tablist"><button class="on">Empresa y tiendas</button><button>Metas</button><button>Dinero</button><button>Gastos</button><button>Impuestos</button></div>`;
+    const fila = e.fila === 'nada' ? false : 'leer';
+    return encabezado({ sede: 'Toda CAYLA', titulo: 'Configuración' }) + pest + `<div style="height:24px"></div>` + bandaCasa() + seccionAliadas() +
+      `<h2 class="titulo-sec">Tiendas <span class="cuenta">${TIENDAS.length}</span></h2><div class="tiendas">${TIENDAS.map((t, k) => tarjetaTienda(t, k, fila)).join('')}</div>`;
+  }
+  const cab = encabezado({ sede: 'Todas las tiendas', titulo: 'Empresa y tiendas' });
+  if (e.boton === 'pestana') {
+    const pest = `<div class="pest" role="tablist"><button class="${pestC === 'tiendas' ? 'on' : ''}" data-acc="pest" data-v="tiendas">Tiendas</button><button class="${pestC === 'empresas' ? 'on' : ''}" data-acc="pest" data-v="empresas">Empresas aliadas</button></div>`;
+    return cab + pest + (pestC === 'empresas' ? franjaEmpresas(false) : `<div style="height:20px"></div><div class="tiendas">${TIENDAS.map((t, k) => tarjetaTienda(t, k, false)).join('')}</div>`);
+  }
+  const conFila = true;
+  return cab + (e.boton === 'ambos' ? franjaEmpresas() : '') +
+    `<h2 class="titulo-sec">Tiendas <span class="cuenta">${TIENDAS.length}</span></h2><div class="tiendas">${TIENDAS.map((t, k) => tarjetaTienda(t, k, conFila)).join('')}</div>`;
+}
+
+// ---------- la hoja ----------
+function leidoDelRuc() {
+  const rucOk = /^\d{11}$/.test(hoja.ruc.replace(/\s/g, ''));
+  const es10 = rucOk && hoja.ruc.replace(/\s/g, '').startsWith('10');
+  return rucOk ? `<div class="lee">${ic(I.ok)}<span>SUNAT: <b>${es10 ? 'Persona natural' : 'Empresa'}</b> · activo y habido</span></div>`
+    : `<div class="lee esp">${ic(I.info)}<span>Escribe los 11 dígitos y traemos la razón social de SUNAT.</span></div>`;
+}
+// Elegir o escribir NO vuelve a abrir la hoja (Felipe 2026-11-21: «evitemos que recargue»): si ya está abierta, se redibuja sin su entrada,
+// en el mismo lugar del scroll y con el cursor donde estaba. Escribir el RUC solo cambia su línea de SUNAT.
+function pintarHoja() {
+  const capa = $('#capa');
+  if (!hoja) { capa.innerHTML = ''; $('#disp').removeAttribute('data-hoja'); return; }
+  const previa = $('.capa .hoja'), scroll = previa ? previa.scrollTop : 0;
+  const foco = document.activeElement && previa && previa.contains(document.activeElement) ? document.activeElement : null;
+  const llaveFoco = foco ? (foco.id ? '#' + foco.id : foco.dataset.cuenta != null ? `[data-cuenta="${foco.dataset.cuenta}"][data-k="${foco.dataset.k}"]` : null) : null;
+  const posFoco = foco && 'selectionStart' in foco ? foco.selectionStart : null;
+  pintarHojaAdentro();
+  if (previa) {
+    $('.capa .hoja').setAttribute('data-ya', ''); $('.capa .velo').setAttribute('data-ya', '');
+    $('.capa .hoja').scrollTop = scroll;
+    const f = llaveFoco && $(llaveFoco);
+    if (f) { f.focus({ preventScroll: true }); if (posFoco != null) try { f.setSelectionRange(posFoco, posFoco); } catch {} }
+  }
+}
+function pintarHojaAdentro() {
+  $('#disp').setAttribute('data-hoja', '');
+  const rucOk = /^\d{11}$/.test(hoja.ruc.replace(/\s/g, ''));
+  const leido = leidoDelRuc();
+  const regs = [['rus', 'Nuevo RUS'], ['rer', 'Régimen Especial'], ['mype', 'MYPE Tributario'], ['general', 'General']];
+  const ayudaReg = hoja.regimen === 'rus' ? 'Solo boletas. Te avisamos al llegar al 80 % del tope del mes.' : hoja.regimen ? 'Puede dar boleta y factura.' : '';
+  const sedes = TIENDAS.filter((t) => !t.taller).map((t) => `<button aria-pressed="${hoja.sedes.has(t.id)}" data-acc="h-sede" data-v="${t.id}">${t.id}</button>`).join('');
+  const listo = hoja.nombre.trim() && rucOk && hoja.regimen && hoja.sedes.size;
+  $('#capa').innerHTML = `<div class="velo" data-acc="cerrar"></div><div class="hoja" role="dialog" aria-labelledby="h-t">
+    <button class="x" data-acc="cerrar" aria-label="Cerrar">${ic(I.x)}</button>
+    <h2 id="h-t">${hoja.id ? 'Editar ' + hoja.nombreOriginal : 'Nueva empresa aliada'}</h2><p class="sub">${hoja.id ? 'Sus datos, tiendas y cuentas.' : 'Otra dueña que vende en tus tiendas con su propio RUC.'}</p>
+    <div class="campo"><div class="et">Nombre en la tienda</div><input id="h-nombre" value="${hoja.nombre}" placeholder="Como lo verán en las etiquetas" autocomplete="off"></div>
+    <div class="campo"><div class="et">RUC</div><input id="h-ruc" value="${hoja.ruc}" inputmode="numeric" maxlength="13" placeholder="11 dígitos" autocomplete="off">${leido}</div>
+    <div class="campo"><div class="et">Régimen</div><div class="seg">${regs.map(([v, t]) => `<button aria-pressed="${hoja.regimen === v}" data-acc="h-reg" data-v="${v}">${t}</button>`).join('')}</div>${ayudaReg ? `<p class="linea-ayuda">${ayudaReg}</p>` : ''}</div>
+    <div class="campo"><div class="et">¿En qué tiendas vende?</div><div class="seg">${sedes}</div>${hoja.regimen === 'rus' && hoja.sedes.size > 1 ? `<p class="linea-ayuda" style="color:var(--ambar)">Un Nuevo RUS vende en un solo local: elige una tienda.</p>` : ''}</div>
+    <div class="doble"><div class="campo"><div class="et">Correo <em>· opcional</em></div><input id="h-correo" type="email" value="${hoja.correo}" placeholder="Para enviarle sus cuentas" autocomplete="off"></div>
+      <div class="campo"><div class="et">Teléfono <em>· opcional</em></div><input id="h-tel" inputmode="tel" value="${hoja.tel}" placeholder="+51 9…" autocomplete="off"></div></div>
+    <div class="campo"><div class="et">Cuentas para cobrar <em>· opcional</em></div>
+      ${hoja.cuentas.map((c, i) => `<div class="cuenta-f"><div class="seg">${Object.entries(TIPO_CUENTA).map(([v, t]) => `<button aria-pressed="${c.tipo === v}" data-acc="h-tipo" data-i="${i}" data-v="${v}">${t}</button>`).join('')}</div>
+        <div class="doble">${c.tipo === 'banco' ? `<input data-cuenta="${i}" data-k="banco" value="${c.banco || ''}" placeholder="Banco (BCP, Interbank…)" autocomplete="off">` : ''}
+          <input data-cuenta="${i}" data-k="numero" value="${c.numero || ''}" inputmode="numeric" placeholder="${c.tipo === 'banco' ? 'Número de cuenta o CCI' : 'Celular del ' + TIPO_CUENTA[c.tipo]}" autocomplete="off"${c.tipo === 'banco' ? '' : ' style="grid-column:1/-1"'}></div>
+        <button class="quitar" data-acc="h-quitar" data-i="${i}" aria-label="Quitar esta cuenta" title="Quitar esta cuenta">${ic(I.x)}</button></div>`).join('')}
+      <button class="mas-chico" data-acc="h-cuenta">${ic(I.mas)}${hoja.cuentas.length ? 'Agregar otra cuenta' : 'Agregar una cuenta'}</button>
+      ${hoja.cuentas.length ? '<p class="linea-ayuda">Lo que entre aquí es de ella: no suma a CAYLA.</p>' : ''}</div>
+    <div class="nota-h">${ic(I.info)}<span>Nunca te pediremos la clave SOL. La conexión con SUNAT la activa el líder después de guardar.</span></div>
+    <div class="pie"><button class="b sec" data-acc="cerrar">Cancelar</button><button class="b pri" data-acc="guardar" ${listo && !(hoja.regimen === 'rus' && hoja.sedes.size > 1) ? '' : 'aria-disabled="true" style="opacity:.55"'}>${hoja.id ? 'Guardar cambios' : 'Guardar empresa'}</button></div></div>`;
+  const n = $('#h-nombre'), r = $('#h-ruc');
+  $('#h-correo').addEventListener('input', (ev) => { hoja.correo = ev.target.value; });
+  $('#h-tel').addEventListener('input', (ev) => { hoja.tel = ev.target.value; });
+  $$('[data-cuenta]').forEach((inp) => inp.addEventListener('input', () => { hoja.cuentas[+inp.dataset.cuenta][inp.dataset.k] = inp.value; }));
+  n.addEventListener('input', () => { hoja.nombre = n.value; actualizarPie(); });
+  r.addEventListener('input', () => { hoja.ruc = r.value.replace(/[^\d ]/g, ''); const l = $('.capa .lee'); if (l) l.outerHTML = leidoDelRuc(); actualizarPie(); });
+}
+function actualizarPie() { const b = $('[data-acc="guardar"]'); const ok = hoja.nombre.trim() && /^\d{11}$/.test(hoja.ruc.replace(/\s/g, '')) && hoja.regimen && hoja.sedes.size && !(hoja.regimen === 'rus' && hoja.sedes.size > 1); if (ok) { b.removeAttribute('aria-disabled'); b.style.opacity = ''; } else { b.setAttribute('aria-disabled', 'true'); b.style.opacity = '.55'; } }
+
+// ---------- Cobrar en Lima ----------
+let comprobante = 'boleta';
+const LINEAS = [
+  { e: 'cayla', n: 'Blusa de lino', d: 'Talla M · crema', p: 89, c: '#e9dfcf' },
+  { e: 'cayla', n: 'Jean recto', d: 'Talla 28 · azul', p: 99, c: '#3d4f66' },
+  { e: 'claure', n: 'Cárdigan tejido', d: 'Talla S · vino', p: 99, c: '#7a2633' },
+];
+function papel(eid, k) {
+  const e = empresas.find((x) => x.id === eid), ls = LINEAS.filter((l) => l.e === eid), tot = ls.reduce((a, l) => a + l.p, 0);
+  const fact = comprobante === 'factura' && e.regimen !== 'rus';
+  const serie = eid === 'cayla' ? (fact ? 'F006-000231' : 'B006-004812') : 'B001-000057';
+  // El IGV ya está DENTRO del precio de etiqueta: la boleta no lo suma, solo dice cuánto de ese total es IGV.
+  const imp = e.regimen === 'rus' ? `<div class="fila igv"><span>Nuevo RUS: no lleva IGV</span></div>`
+    : `<div class="fila igv"><span>De eso, valor de las prendas</span><span>${soles(tot / 1.18)}</span></div><div class="fila igv"><span>De eso, IGV 18 % (ya incluido)</span><span>${soles(tot - tot / 1.18)}</span></div>`;
+  return `<div class="papel" data-papel style="--i:${k}"><div class="rs">${e.razon === 'Persona natural' ? e.nombre.toUpperCase() + ' · persona natural' : e.razon}</div><div>RUC ${e.ruc}</div>
+    <div class="num">${fact ? 'FACTURA' : 'BOLETA'} ${serie}</div><hr>${ls.map((l) => `<div class="fila"><span>${l.n}</span><span>${soles(l.p)}</span></div>`).join('')}<hr>
+    <div class="fila tot"><span>Total a pagar</span><span>${soles(tot)}</span></div>${imp}</div>`;
+}
+function pantallaCobrar() {
+  const tot = LINEAS.reduce((a, l) => a + l.p, 0);
+  const grupos = ['cayla', 'claure'].map((eid) => { const e = empresas.find((x) => x.id === eid), ls = LINEAS.filter((l) => l.e === eid);
+    return `<div class="grupo-e"><div class="et"><span>${e.nombre}</span><span>${soles(ls.reduce((a, l) => a + l.p, 0))}</span></div>${ls.map((l) => `<div class="lin"><span class="mini" data-color-dato style="background:${l.c}"></span><span class="tx"><b>${l.n}</b><small>${l.d}</small></span><span class="mon">${soles(l.p)}</span></div>`).join('')}</div>`; }).join('');
+  const aviso = comprobante === 'factura' ? `<div class="aviso">${ic(I.alerta)}<span><b>Claurè es Nuevo RUS y no da factura.</b> Lo de CAYLA sale en factura; el cárdigan, en boleta de Claurè.</span></div>` : '';
+  return encabezado({ sede: 'Tienda LIM', titulo: 'Vender', detalle: 'Cobrar' }) + `<div class="cobro">
+    <section class="placa tk"><h2>Ticket actual</h2>${grupos}<div class="total"><span>Total</span><strong>${soles(tot)}</strong></div></section>
+    <section class="bol-z"><div class="cab-b"><h2>Así sale</h2><div class="seg"><button aria-pressed="${comprobante === 'boleta'}" data-acc="comp" data-v="boleta">Boleta</button><button aria-pressed="${comprobante === 'factura'}" data-acc="comp" data-v="factura">Factura</button></div></div>
+      ${aviso}<div class="boletas">${papel('cayla', 0)}${papel('claure', 1)}</div>
+      <div class="placa cobro-partido"><div class="fila"><span>Un solo cobro</span><b>${soles(tot)}</b></div>
+        <div class="fila"><span>A CAYLA · efectivo, tarjeta o QR de CAYLA</span><b>${soles(188)}</b></div>
+        <div class="fila"><span>A Claurè · su Yape o efectivo</span><b>${soles(99)}</b></div></div>
+      <button class="btn pri" style="align-self:flex-start">Cobrar ${soles(tot)} · 2 comprobantes</button></section></div>`;
+}
+
+// ---------- Nuevo producto en Trujillo ----------
+let altaElegida = null;
+function pantallaAlta() {
+  const aqui = empresas.filter((e) => e.sedes.includes('TRU'));
+  return encabezado({ sede: 'Tienda TRU', titulo: 'Nuevo producto', detalle: 'Paso 1 de 4' }) + `<section class="placa alta">
+    <h2>¿De qué empresa es esta prenda? ${altaElegida ? `<span style="color:var(--verde)">${ic(I.ok)}</span>` : '<span class="sigue">Sigue</span>'}</h2>
+    <div class="ops ${altaElegida ? '' : 'hilo-guia'}">${aqui.map((e) => `<button class="op" aria-pressed="${altaElegida === e.id}" data-acc="alta" data-v="${e.id}"><span class="ini">${e.nombre[0]}</span><span><b>${e.nombre}</b><small>${e.casa ? 'La casa' : REGIMEN[e.regimen]}</small></span></button>`).join('')}</div>
+    <p class="linea-ayuda">${altaElegida ? `Sus boletas saldrán con el RUC de ${empresas.find((e) => e.id === altaElegida).nombre}.` : 'Solo aparecen las empresas que venden en Trujillo.'}</p></section>`;
+}
+
+function pintarPantalla(e) {
+  $('#cont').innerHTML = e.pantalla === 'cobrar' ? pantallaCobrar() : e.pantalla === 'alta' ? pantallaAlta() : pantallaConfig(e);
+  pintarHoja();
+}
+activa = '';
+Marco.iniciar({
+  estado: { pantalla: 'config', boton: 'arriba', fila: 'nada' },
+  alPintar: pintarPantalla,
+  alAccion: (a, el) => {
+    if (a === 'editar') { const x = empresas.find((y) => y.id === el.dataset.id); hoja = { id: x.id, nombreOriginal: x.nombre, sedes: new Set(x.sedes), regimen: x.regimen, ruc: x.ruc, nombre: x.nombre, correo: x.correo || '', tel: x.tel || '', cuentas: (x.cuentas || []).map((c) => ({ ...c })) }; pintarHoja(); }
+    if (a === 'h-cuenta') { hoja.cuentas.push({ tipo: 'yape', numero: '' }); pintarHoja(); const ult = $$('[data-k="numero"]'); ult[ult.length - 1]?.focus(); }
+    if (a === 'h-quitar') { hoja.cuentas = hoja.cuentas.filter((_, j) => j !== +el.dataset.i); pintarHoja(); }
+    if (a === 'h-tipo') { hoja.cuentas[+el.dataset.i].tipo = el.dataset.v; pintarHoja(); }
+    if (a === 'nueva') { hoja = { sedes: new Set(el.dataset.sede ? [el.dataset.sede] : []), regimen: null, ruc: '', nombre: '', correo: '', tel: '', cuentas: [] }; pintarHoja(); setTimeout(() => $('#h-nombre')?.focus(), 60); }
+    if (a === 'cerrar') { hoja = null; pintarHoja(); }
+    if (a === 'h-reg') { hoja.regimen = el.dataset.v; pintarHoja(); }
+    if (a === 'h-sede') { const v = el.dataset.v; hoja.sedes.has(v) ? hoja.sedes.delete(v) : hoja.sedes.add(v); pintarHoja(); }
+    if (a === 'guardar' && el.getAttribute('aria-disabled') !== 'true') {
+      const datos = { nombre: hoja.nombre.trim(), ruc: hoja.ruc, regimen: hoja.regimen === 'rus' ? 'rus' : 'general', sedes: [...hoja.sedes], correo: hoja.correo.trim(), tel: hoja.tel.trim(), cuentas: hoja.cuentas.filter((c) => (c.numero || '').trim()) };
+      const id = hoja.id || 'n' + Date.now();
+      if (hoja.id) Object.assign(empresas.find((y) => y.id === id), datos); else empresas.push({ id, razon: 'Persona natural', sunat: 'pend', mes: 0, ...datos });
+      recien = id; hoja = null; if (estado.boton === 'pestana') pestC = 'empresas'; pintarPantalla(estado);
+    }
+    if (a === 'pest') { pestC = el.dataset.v; pintarPantalla(estado); }
+    if (a === 'comp') { comprobante = el.dataset.v; pintarPantalla(estado); }
+    if (a === 'alta') { altaElegida = el.dataset.v; pintarPantalla(estado); }
+  },
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && hoja) { hoja = null; pintarHoja(); } });
+</script>
+</body>
+</html>

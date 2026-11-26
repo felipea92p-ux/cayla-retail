@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { etiquetaReparto, leerReparto, textoPct, validarPct } from "./reparto-claure-reglas";
+import { etiquetaReparto, leerReparto, leerRepartoAliadas, textoPct, validarPct } from "./reparto-claure-reglas";
 
 describe("leerReparto", () => {
   it("lee lo que devuelve la base (los números llegan como texto) y respeta lo que no se cambió nunca", () => {
@@ -43,5 +43,23 @@ describe("etiquetaReparto y textoPct", () => {
     expect(textoPct(50)).toBe("50");
     expect(textoPct(12.5)).toBe("12.5");
     expect(textoPct(33.333)).toBe("33.33");
+  });
+});
+
+describe("el reparto de cualquier aliada (ADR-0683)", () => {
+  it("agrupa por aliada lo que trae fn_reparto_aliadas, con su nombre, y lee `pct`", () => {
+    const g = leerRepartoAliadas([
+      { empresa_id: "c", empresa: "CLAURE", clave: "claure", categoria: "luz", nombre: "Luz", ejemplos: "", pct: "50.00", actualizado_en: null },
+      { empresa_id: "o", empresa: "Otra Aliada", clave: "otra", categoria: "luz", nombre: "Luz", ejemplos: "", pct: 0, actualizado_en: null },
+      { empresa_id: "c", empresa: "CLAURE", clave: "claure", categoria: "agua", nombre: "Agua", ejemplos: "", pct: 100, actualizado_en: null },
+      { empresa: "sin id" },
+    ]);
+    expect(g.map((x) => `${x.nombre}:${x.filas.map((f) => `${f.categoria}=${f.pct}`).join(",")}`)).toEqual(["CLAURE:luz=50,agua=100", "Otra Aliada:luz=0"]);
+    expect(leerRepartoAliadas(null)).toEqual([]);
+  });
+  it("dice el nombre de la aliada en la etiqueta y en el error", () => {
+    expect(etiquetaReparto(40, "Otra Aliada")).toBe("40 % de Otra Aliada y el resto de CAYLA");
+    expect(etiquetaReparto(100, "Otra Aliada")).toBe("Todo de Otra Aliada");
+    expect(validarPct("120", "Otra Aliada")).toEqual({ ok: false, error: "La parte de Otra Aliada va de 0 % a 100 %." });
   });
 });

@@ -235,7 +235,8 @@ describe("el nombre y la frase", () => {
     const o = { ...ofertaNueva("2026-10-26", "2026-10-31"), dias: [2, 4], porcentaje: 30 };
     expect(fraseDeOferta(o, nombreCat)).toBe("30 % menos en todas las prendas de la campaña, los martes y jueves, del 26 oct al 31 oct.");
     expect(fraseDeOferta({ ...o, categoriasSolo: [BLUSAS], dias: [1, 2, 3, 4, 5, 6, 7] }, nombreCat)).toContain("solo en Blusas");
-    expect(fraseDeOferta({ ...o, categoriasFuera: [FALDAS], incluyeClaure: true }, nombreCat)).toContain("(menos faldas), con las prendas de Claurè");
+    expect(fraseDeOferta({ ...o, categoriasFuera: [FALDAS], incluyeClaure: true }, nombreCat, () => "", null, "Claurè")).toContain("(menos faldas), con las prendas de Claurè");
+    expect(fraseDeOferta({ ...o, incluyeClaure: true }, nombreCat)).toContain(", con las prendas de las aliadas");
   });
 });
 

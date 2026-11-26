@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode, type Ref } from "react";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
-import { ArrowUpDown, CircleAlert, LayoutGrid, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
+import { ArrowUpDown, Building2, CircleAlert, LayoutGrid, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
@@ -81,6 +81,9 @@ export function FiltrosExistencias({
   tallas,
   colores,
   marcas,
+  empresas = null,
+  empresaElegida = null,
+  onEmpresa,
   elegidos,
   conteos,
   onCambiar,
@@ -114,6 +117,10 @@ export function FiltrosExistencias({
   colores: readonly ColorBarra[];
   /** `null`: la píldora Marca no se dibuja (una sola marca en la sede, o la lectura de marcas falló). */
   marcas: readonly string[] | null;
+  /** ADR-0683: de quién son las unidades (solo donde conviven dos empresas o más; `null`, la píldora no se dibuja). Elegir una deja solo SUS unidades. */
+  empresas?: readonly { clave: string; nombre: string }[] | null;
+  empresaElegida?: string | null;
+  onEmpresa?: (clave: string | null) => void;
   /** Lo que de verdad filtra la lista (ya resuelto contra lo que la sede ofrece). */
   elegidos: FiltrosElegidos;
   /** Cuántos productos trae cada opción con los demás filtros puestos (`conteosDeFiltros`): se esconden las que darían una lista
@@ -248,6 +255,15 @@ export function FiltrosExistencias({
             valor={elegidos.marca ?? TODOS}
             onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
             opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
+          />
+        )}
+        {empresas && onEmpresa && (
+          <DesplegablePildora
+            icono={Building2}
+            etiqueta="Empresa"
+            valor={empresaElegida ?? TODOS}
+            onValor={(v) => onEmpresa(v === TODOS ? null : v)}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...empresas.map((e) => ({ valor: e.clave, texto: e.nombre }))]}
           />
         )}
       </FilaPildoras>

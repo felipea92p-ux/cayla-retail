@@ -28,6 +28,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -419,7 +420,8 @@ select (length(d) - length(replace(d, 'insert into retail.campana_regla_variante
 );
 esperarValor(
   "pegada dos veces, la caja no repite la rama de las variantes",
-  correr(`begin;\n${ANTES}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}
+  // ADR-0683: 20261121171000 cambió el «salvo CLAURE» de la caja; se deshace antes de volver a pegar (y vuelve con el ROLLBACK).
+  correr(`begin;\n${SQL_DESHACER_ALIADAS}${ANTES}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}
 select (length(d) - length(replace(d, 'retail.campana_regla_variantes rv on rv.regla_id = r.id', ''))) / length('retail.campana_regla_variantes rv on rv.regla_id = r.id')
   from (select pg_get_functiondef('retail.fn_campanas_en_sede(date, integer, uuid[], uuid)'::regprocedure) as d) x;\nrollback;`),
   "1",

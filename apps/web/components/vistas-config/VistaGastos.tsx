@@ -23,7 +23,7 @@ import { nombreCortoSede } from "@/lib/finanzas-telar-reglas";
 import { avanceDelMes, claveUnidad, colorDeFijo, diaDelFijo, diasDelMes, pagosEnLaLinea, unidadesDeFijos } from "@/lib/gastos-config-reglas";
 import { solesRedondo, textoColumnaCuando, textoDiasAntes, type CategoriaGasto, type GastoFijoMes, type UbicacionGastos } from "@/lib/gastos-reglas";
 import type { ConfigPpto } from "@/lib/presupuesto-reglas";
-import { etiquetaReparto, textoPct, validarPct, type FilaReparto } from "@/lib/reparto-claure-reglas";
+import { etiquetaReparto, textoPct, validarPct, type FilaReparto, type RepartoDeAliada } from "@/lib/reparto-claure-reglas";
 
 // Configuración ▸ Gastos (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/): junta Gastos fijos, Presupuesto y Reparto CLAURE. ¿Qué sale cada mes? Primero se ve cuándo
 // se paga (la línea del mes), después cuánto puede salir (los topes) y de quién es (el reparto, solo del líder). Mismas funciones de siempre. Un fijo es un recordatorio: cada mes
@@ -132,46 +132,51 @@ function Fijos({ fijos, categorias, ubicaciones, proveedores, fichas, fichaDispo
   );
 }
 
-function Reparto({ filas, guardar }: { filas: FilaReparto[]; guardar: Guardar }) {
+function Reparto({ aliada, guardar, indice }: { aliada: RepartoDeAliada; guardar: Guardar; indice: number }) {
+  const { filas, nombre } = aliada;
   // A la vista, lo que hoy se reparte; lo demás es todo de CAYLA y se pliega. Se decide al entrar: una fila que se pone en 0 no se esconde mientras se está mirando.
   const [conParte] = useState(() => new Set(filas.filter((f) => f.pct > 0).map((f) => f.categoria)));
   const [abierto, setAbierto] = useState(false);
   const aLaVista = filas.filter((f) => conParte.has(f.categoria));
   const plegadas = filas.filter((f) => !conParte.has(f.categoria));
   async function guardarParte(f: FilaReparto, nuevo: string) {
-    const v = validarPct(nuevo);
+    const v = validarPct(nuevo, nombre);
     if (!v.ok) {
       avisar.error(v.error);
       return false;
     }
     if (v.valor === f.pct) return true;
-    return guardar(() => createClient().rpc("guardar_reparto_claure" as never, { p_categoria: f.categoria, p_pct: v.valor } as never), "guardar el reparto de gastos", `${f.nombre}: ${etiquetaReparto(v.valor)}.`);
+    // ADR-0683: cada aliada guarda el suyo; el de CLAURE leído por la función de antes (sin `empresaId`), por la de antes.
+    const consulta = aliada.empresaId
+      ? createClient().rpc("guardar_reparto_aliada" as never, { p_empresa: aliada.empresaId, p_categoria: f.categoria, p_pct: v.valor } as never)
+      : createClient().rpc("guardar_reparto_claure" as never, { p_categoria: f.categoria, p_pct: v.valor } as never);
+    return guardar(() => consulta, "guardar el reparto de gastos", `${f.nombre}: ${etiquetaReparto(v.valor, nombre)}.`);
   }
   const fila = (f: FilaReparto, i: number) => (
     <div key={f.categoria} className="cv-fila cv-parte" title={f.ejemplos || undefined} style={conVar({ "--i": i })}>
       <span className="cv-parte-tx">
         <span className="cv-nombre">{f.nombre}</span>
         <BarraAvance pct={f.pct} tono="tinta" decorativa />
-        <span className="vs-rotulo">{etiquetaReparto(f.pct)}</span>
+        <span className="vs-rotulo">{etiquetaReparto(f.pct, nombre)}</span>
       </span>
-      <Casilla valor={textoPct(f.pct)} etiqueta={`Parte de CLAURE en ${f.nombre}, en porcentaje`} ancho="w-16" alGuardar={(n) => guardarParte(f, n)} />
+      <Casilla valor={textoPct(f.pct)} etiqueta={`Parte de ${nombre} en ${f.nombre}, en porcentaje`} ancho="w-16" alGuardar={(n) => guardarParte(f, n)} />
       <span className="cv-unidad">%</span>
     </div>
   );
   return (
-    <section className="vs-liquido cv-bloque" data-luz data-guia="config.claure-reparto" style={conVar({ "--e": 2 })}>
-      <TituloSeccion ayuda="Solo del líder. Qué parte de cada gasto de Tienda Lima es de CLAURE, la empresa de Claudia: 0 es todo de CAYLA, 100 es todo de CLAURE. Esa parte baja lo que se le debe. Un porcentaje nuevo vale también para los gastos de antes.">
-        Reparto con CLAURE
+    <section className="vs-liquido cv-bloque" data-luz data-guia={indice === 0 ? "config.claure-reparto" : undefined} style={conVar({ "--e": 2 + indice })}>
+      <TituloSeccion ayuda={`Solo del líder. Qué parte de cada gasto de sus tiendas es de ${nombre}: 0 es todo de CAYLA, 100 es todo de ${nombre}. Esa parte baja lo que se le debe. Un porcentaje nuevo vale también para los gastos de antes.`}>
+        Reparto con {nombre}
       </TituloSeccion>
       <div className="cv-tarjetas">
         {aLaVista.map((f, i) => fila(f, i))}
       </div>
       {plegadas.length > 0 && (
         <>
-          <FilasDeMas abierto={abierto} id="cv-reparto">
+          <FilasDeMas abierto={abierto} id={`cv-reparto-${indice}`}>
             <div className="cv-tarjetas">{plegadas.map((f, i) => fila(f, i))}</div>
           </FilasDeMas>
-          <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto={`Ver ${plegadas.length} que son todo de CAYLA`} controla="cv-reparto" className="cv-ver-mas" />
+          <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto={`Ver ${plegadas.length} que son todo de CAYLA`} controla={`cv-reparto-${indice}`} className="cv-ver-mas" />
         </>
       )}
     </section>
@@ -199,8 +204,8 @@ export function VistaGastos({
   /** La base ya tiene la ficha. */
   fichaDisponible: boolean;
   presupuesto: ConfigPpto | null;
-  /** `null`: no se pudo leer. Solo importa para el líder. */
-  reparto: FilaReparto[] | null;
+  /** Uno por empresa aliada (ADR-0683). `null`: no se pudo leer. Solo importa para el líder. */
+  reparto: RepartoDeAliada[] | null;
   esLider: boolean;
   hoy: string;
 }) {
@@ -216,9 +221,9 @@ export function VistaGastos({
       {presupuesto && <TopesDeGasto datos={presupuesto} hoy={hoy} guardar={guardar} guardando={guardando} responsable={<ComboResponsable control={responsable} deshabilitado={guardando} />} />}
       {esLider &&
         (reparto ? (
-          <Reparto filas={reparto} guardar={guardar} />
+          reparto.map((a, i) => <Reparto key={a.empresaId ?? a.clave} aliada={a} guardar={guardar} indice={i} />)
         ) : (
-          <Aviso tono="error" titulo="No se pudo leer el reparto con CLAURE">
+          <Aviso tono="error" titulo="No se pudo leer el reparto con las empresas aliadas">
             Recarga la página; si sigue, avísale al líder.
           </Aviso>
         ))}

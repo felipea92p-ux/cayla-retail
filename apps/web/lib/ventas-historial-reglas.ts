@@ -60,6 +60,8 @@ export type ParamsHistorial = {
   posventa?: string;
   /** «1»: solo las ventas con una clienta anotada. */
   clienta?: string;
+  /** La clave de una empresa (ADR-0683): solo las ventas con prendas suyas. Vale solo si la tienda tiene dos empresas o más (lo resuelve la página). */
+  emp?: string;
 };
 
 export type FiltrosHistorial = {
@@ -84,6 +86,8 @@ export type FiltrosHistorial = {
   mias: boolean;
   posventa: boolean;
   conClienta: boolean;
+  /** ADR-0683: solo las ventas con prendas de esta empresa (su id). Lo pone la página, contra las empresas de la tienda. */
+  empresaId?: string;
 };
 
 // El cursor tiene la misma forma que el de Movimientos (`created_at` + `id`): no hay una fecha de
@@ -147,7 +151,7 @@ export function textoPeriodoHistorial(periodo: PeriodoHistorial, desde?: string,
  *  cualquier otro filtro (los de los atajos nuevos) los totales se calculan fila por fila con los MISMOS filtros que la
  *  lista, para que la cifra nunca diga otra cosa que la lista. */
 export function totalesEnLaBase(f: FiltrosHistorial): boolean {
-  return (f.comprobante === "todos" || f.comprobante === "con" || f.comprobante === "sin") && !f.posventa && !f.conClienta;
+  return (f.comprobante === "todos" || f.comprobante === "con" || f.comprobante === "sin") && !f.posventa && !f.conClienta && !f.empresaId;
 }
 
 /** Lima no tiene horario de verano: siempre UTC−5. */

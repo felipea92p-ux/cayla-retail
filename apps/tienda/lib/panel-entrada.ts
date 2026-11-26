@@ -1,4 +1,4 @@
-import { CAMPOS_CUENTA, estadoNombre, type EstadoCuenta } from "./cuentas";
+import { CAMPOS_CUENTA, type EstadoCuenta } from "./cuentas";
 
 // El panel de marca de las páginas para volver a entrar y el lado de «Entrar» y «Crear cuenta» («A · Mostrador», 2026-11-25). Desde
 // 960 px va a la izquierda, con los colores de la campaña de la portada; en el celular, debajo del formulario (el formulario va
@@ -18,14 +18,6 @@ export const BENEFICIOS_DE_ENTRADA: readonly Beneficio[] = [
   { icono: "bolsa", titulo: "Separa sin pagar aquí", texto: "Coordinas el pago por WhatsApp y lo recoges en tu tienda." },
   { icono: "regalo", titulo: "Puntos en cada compra", texto: "Los cambias por cupones; en tu cumpleaños, más puntos." },
 ];
-
-/** La línea de confianza al pie del panel del Club (la página de cambios lo dice igual). */
-
-/** El texto bajo la tarjeta de «Crear cuenta»: antes de saber el nombre, y con el nombre ya puesto. */
-export const PIE_DE_TARJETA = {
-  sin: "Tu tarjeta del Club se activa cuando separas tu primera prenda.",
-  con: "Así será tu tarjeta del Club cuando separes.",
-} as const;
 
 /* ------------------------------------------------------------------ Volver a entrar */
 
@@ -63,16 +55,7 @@ export function estadoDelPaso(i: number, actual: number): EstadoDelPaso {
   return i === actual ? "ahora" : "luego";
 }
 
-/* ------------------------------------------------------------------ La tarjeta y el avance de «Crear cuenta» */
-
-/**
- * El nombre que lleva la tarjeta del Club del panel apenas el formulario lo sabe: el que la persona escribe al crear la cuenta (ADR-0438),
- * sin espacios de más. null mientras no hay un nombre que poner («Tu nombre aquí»). Al unirse al Club, el del padrón lo reemplaza.
- */
-export function nombreParaLaTarjeta(nombre: string): string | null {
-  const n = nombre.replace(/\s+/g, " ").trim();
-  return estadoNombre(n) === "ok" ? n : null;
-}
+/* ------------------------------------------------------------------ El avance de «Crear cuenta» */
 
 /** Cuánto de crear la cuenta está listo, para la línea que se llena en el pie. */
 export function avanceDeLaCuenta(estado: EstadoCuenta): { listos: number; total: number } {

@@ -305,9 +305,9 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
           </p>
         </div>
-        {esLider && notaClaureDeHoy(hoy.deClaure) && (
+        {esLider && notaClaureDeHoy(hoy.deClaure, hoy.nombreAliadas) && (
           <p className="nota-cayla mt-3" data-guia="inicio.claure">
-            {notaClaureDeHoy(hoy.deClaure)}
+            {notaClaureDeHoy(hoy.deClaure, hoy.nombreAliadas)}
           </p>
         )}
       </section>
@@ -353,9 +353,9 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
         )}
       </div>
       {/* Caja cuenta todo lo cobrado en la sede; el «Hoy» solo lo de CAYLA. Si se dejó algo fuera, se dice cuánto (ADR-0560, 6a). */}
-      {esLider && notaClaureDeHoy(hoy.deClaure) && (
+      {esLider && notaClaureDeHoy(hoy.deClaure, hoy.nombreAliadas) && (
         <p className="nota-cayla mt-3" data-guia="inicio.claure">
-          {notaClaureDeHoy(hoy.deClaure)}
+          {notaClaureDeHoy(hoy.deClaure, hoy.nombreAliadas)}
         </p>
       )}
     </section>

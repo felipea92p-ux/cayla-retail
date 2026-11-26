@@ -27,12 +27,11 @@ import {
 import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
-import { avanceDeLaCuenta, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
+import { avanceDeLaCuenta, buzonDelCorreo } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
-import { useNombreEnLaTarjeta } from "./EntradaViva";
 import { CabezaDeCuenta } from "./CabezaDeCuenta";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`; ADR-0438: solo lo necesario). Correo (con su código), nombre, contraseña y
@@ -126,8 +125,7 @@ export function FormularioRegistro() {
   const resumenFaltan = faltanResumidos(faltan);
   const sigue = campoQueSigue(faltan, estado, enFoco);
   const marca = (campo: CampoCuenta) => marcaDe(estado[campo], sigue === campo);
-  // La tarjeta del Club del panel de al lado lleva su nombre apenas se sabe; y la línea del pie se llena con lo que ya está listo.
-  useNombreEnLaTarjeta(nombreParaLaTarjeta(r.nombre));
+  // La línea del pie se llena con lo que ya está listo.
   const avance = avanceDeLaCuenta(estado);
   const cambiar = (cambio: Partial<RegistroCuenta>) => {
     setErrorGeneral(null);

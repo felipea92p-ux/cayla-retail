@@ -16,6 +16,11 @@ import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { useDespertarAyudante } from "@/components/impresion/imprimirBoleta";
 
+
+/** Una pregunta «¿A qué número pagó?» de la hoja de cobro: las opciones son CAYLA (`""`) y los números de las aliadas para ese medio. */
+type PreguntaNumero = { indice: number; metodo: MetodoPagoVenta; opciones: readonly { valor: string; nombre: string }[]; valor: string };
+const SIN_PREGUNTAS_NUMERO: readonly PreguntaNumero[] = [];
+
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
 const TIPOS: { tipo: TipoVenta; icono: ReactNode }[] = [
@@ -72,6 +77,8 @@ export function HojaDeCobro({
   maquinas = SIN_MAQUINAS,
   onMaquina,
   numeroADar = null,
+  preguntasNumero = SIN_PREGUNTAS_NUMERO,
+  onNumero,
   onMontoPago,
   onRecibido,
   tipoComprobante,
@@ -105,6 +112,10 @@ export function HojaDeCobro({
   onMaquina?: (indice: number, cuentaId: string) => void;
   /** A qué número paga, donde conviven dos empresas (`numeroQueDar`). `null` = no hay nada que decir y la hoja queda como siempre. */
   numeroADar?: NumeroQueDar | null;
+  /** «¿A qué número pagó?» (ADR-0683): un pago de Yape, Plin o transferencia de un ticket con prendas de una aliada, con la cuenta que la hoja
+   *  propone ya marcada. `valor` `""` = CAYLA. Vacío = la hoja no pregunta. */
+  preguntasNumero?: readonly PreguntaNumero[];
+  onNumero?: (indice: number, valor: string) => void;
   onMontoPago: (indice: number, monto: number) => void;
   onRecibido: (monto: number | null) => void;
   tipoComprobante: TipoVenta | null;
@@ -291,6 +302,33 @@ export function HojaDeCobro({
                   <b>{numeroADar.titulo}</b>
                   <span className="block">{numeroADar.detalle}</span>
                 </p>
+              )}
+              {preguntasNumero.length > 0 && (
+                <div className="hoja-cobro-maquinas anim-revelar mb-3" data-numeros>
+                  {preguntasNumero.map(({ indice, metodo, opciones, valor }) => (
+                    <div key={indice} role="radiogroup" aria-label={`A quién se pagó ${NOMBRE_METODO[metodo]}`}>
+                      <p className="hoja-cobro-pregunta label-cayla font-bold text-tinta">{metodo === "transferencia" ? "¿A qué cuenta llegó la transferencia?" : `¿A qué número pagó el ${NOMBRE_METODO[metodo]}?`}</p>
+                      <div className="hoja-cobro-billetes grid">
+                        {opciones.map((o) => (
+                          <button
+                            key={o.valor || "cayla"}
+                            type="button"
+                            role="radio"
+                            aria-checked={valor === o.valor}
+                            disabled={bloqueado}
+                            onClick={() => onNumero?.(indice, o.valor)}
+                            className={`hoja-cobro-billete es-maquina metodo-${metodo} ${valor === o.valor ? "es-elegido" : ""}`}
+                          >
+                            {valor === o.valor && (
+                              <Check /* unificar-fijo: la marca sobre un relleno lleva trazo 3, como la de los medios y la casilla (ronda 15) */ className="h-3.5 w-3.5 shrink-0" strokeWidth={3} aria-hidden />
+                            )}
+                            {o.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
               {preguntasMaquina.length > 0 && (
                 <div className="hoja-cobro-maquinas anim-revelar" data-maquinas>

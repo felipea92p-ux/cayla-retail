@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Entrar", robots: { index: false, fol
 export default function Entrar() {
   return (
     <MarcoCuenta enPagina="entrar">
-      <PantallaDeCuenta forma="entrar" lado={<LadoPrimeraVez />}>
+      <PantallaDeCuenta forma="entrar" foto lado={<LadoPrimeraVez />}>
         <FormularioEntrar />
       </PantallaDeCuenta>
     </MarcoCuenta>
