@@ -465,6 +465,7 @@ set request.jwt.claim.sub = '${FELIPE}';
 select sede_dynamic_id as sede_tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 insert into retail.ubicaciones (nombre, tipo, sede_dynamic_id)
   select 'ZZ Tickets carrera', 'tienda', :'sede_tru' where not exists (select 1 from retail.ubicaciones where nombre = 'ZZ Tickets carrera');
+update retail.ubicaciones set sede_dynamic_id = :'sede_tru' where nombre = 'ZZ Tickets carrera';
 select id as sede from retail.ubicaciones where nombre = 'ZZ Tickets carrera' \\gset
 ${sesionConfirmada(FELIPE)}select retail.enviar_ticket_a_caja(gen_random_uuid(), :'sede', 'Carrera', ${BLUSAS}) ->> 'id';
 `).trim();
@@ -487,6 +488,13 @@ commit;
       ganaron === 1 && !!perdio && /ya lo abri/.test(perdio.err),
       JSON.stringify({ a, b })
     );
+  }
+  // La sede de la carrera queda guardada (COMMIT) y apuntaba a la TRU de Dynamic: otra prueba de la misma tanda que busca «la»
+  // sede TRU (cierre_carga_inicial) veía dos y se frenaba. Se desenlaza al terminar; la próxima vuelta la vuelve a enlazar arriba.
+  try {
+    psql(`update retail.ubicaciones set sede_dynamic_id = null where nombre = 'ZZ Tickets carrera';`);
+  } catch (e) {
+    esperar("T10 · desenlazar la sede de la carrera de la TRU de Dynamic", false, `${e.stderr ?? ""}${e.message ?? ""}`);
   }
 }
 

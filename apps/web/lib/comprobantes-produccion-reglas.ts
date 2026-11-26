@@ -1,8 +1,7 @@
 // Comprobantes de Producción (ADR-0133, F4b; D-H). Puro: sin Supabase ni React, para poder probarlo.
 //
-// Refleja las reglas de `registrar_comprobante_produccion` (20260921100000) para dar la vista previa ANTES de guardar: el subtotal es
-// la suma de lo redondeado por línea, el IGV es 18 % solo en facturas y el total es subtotal + IGV. La base sigue siendo el candado;
-// esto solo evita que alguien descubra el descuadre al apretar «Guardar».
+// La lista de Facturas de insumos y sus etiquetas. La vista previa del formulario «Nueva factura» (calcularTotales) se fue con él el
+// 2026-11-25: las facturas del Taller nacen en Insumos ▸ «Llegó una compra» y en Por pagar ▸ «Pagar servicio».
 
 export type TipoComprobante = "factura" | "boleta" | "nota_venta";
 export type CondicionComprobante = "contado" | "credito";
@@ -23,8 +22,6 @@ export const METODOS_PAGO: { valor: MetodoPago; etiqueta: string }[] = [
   { valor: "otro", etiqueta: "Otro" },
 ];
 
-export const IGV_PORCENTAJE = 18;
-
 export function etiquetaTipo(tipo: string, corta = false): string {
   const t = TIPOS_COMPROBANTE.find((x) => x.valor === tipo);
   if (t) return corta ? t.corta : t.etiqueta;
@@ -41,68 +38,6 @@ export function etiquetaMetodo(metodo: string): string {
 /** Redondeo a centavos como el de la base (`numeric`: mitad hacia arriba en positivos), sin errores de punto flotante. */
 export function redondear2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-export type LineaForm = { insumoId: string | null; descripcion: string; cantidad: string; costo: string };
-
-const numero = (s: string) => Number(s.replace(",", "."));
-
-export type Totales = { subtotal: number; igv: number; total: number; lineasCompletas: number };
-
-/** Lo que la base va a calcular. Una línea incompleta (sin cantidad o sin costo) no suma: se avisa aparte. */
-export function calcularTotales(lineas: LineaForm[], tipo: TipoComprobante): Totales {
-  let subtotal = 0;
-  let lineasCompletas = 0;
-  for (const l of lineas) {
-    const q = numero(l.cantidad);
-    const c = numero(l.costo);
-    if (l.cantidad.trim() === "" || l.costo.trim() === "" || !(q > 0) || !(c >= 0)) continue;
-    subtotal += redondear2(q * c);
-    lineasCompletas++;
-  }
-  subtotal = redondear2(subtotal);
-  const igv = tipo === "factura" ? redondear2((subtotal * IGV_PORCENTAJE) / 100) : 0;
-  return { subtotal, igv, total: redondear2(subtotal + igv), lineasCompletas };
-}
-
-export type FormComprobante = {
-  proveedorId: string;
-  tipo: TipoComprobante;
-  serie: string;
-  numero: string;
-  fechaEmision: string;
-  condicion: CondicionComprobante;
-  fechaVencimiento: string;
-  lineas: LineaForm[];
-  /** Total impreso en el papel; vacío = se toma el calculado. */
-  totalPapel: string;
-};
-
-/** El primer problema que impide guardar, dicho como lo diría la base; `null` si está listo. */
-export function primerErrorComprobante(f: FormComprobante, hoy: string): string | null {
-  if (!f.proveedorId) return "Elige el proveedor.";
-  if (!f.serie.trim() || !f.numero.trim()) return "Escribe la serie y el número del comprobante.";
-  if (!f.fechaEmision) return "Indica la fecha de emisión.";
-  if (f.fechaEmision > hoy) return "La fecha de emisión no puede ser futura.";
-  if (f.condicion === "credito") {
-    if (!f.fechaVencimiento) return "Un comprobante al crédito necesita fecha de vencimiento.";
-    if (f.fechaVencimiento < f.fechaEmision) return "El vencimiento no puede ser anterior a la emisión.";
-  }
-  const llenas = f.lineas.filter((l) => l.insumoId || l.descripcion.trim() || l.cantidad.trim() || l.costo.trim());
-  if (llenas.length === 0) return "Agrega al menos una línea.";
-  for (const [i, l] of llenas.entries()) {
-    if (!l.insumoId && !l.descripcion.trim()) return `Línea ${i + 1}: elige un insumo o escribe qué se compró.`;
-    if (!(numero(l.cantidad) > 0)) return `Línea ${i + 1}: la cantidad tiene que ser mayor a cero.`;
-    if (l.costo.trim() === "" || !(numero(l.costo) >= 0)) return `Línea ${i + 1}: falta el costo unitario (sin IGV).`;
-  }
-  if (f.totalPapel.trim() !== "") {
-    const papel = numero(f.totalPapel);
-    if (!(papel >= 0)) return "El total del papel no es un número válido.";
-    const { total } = calcularTotales(llenas, f.tipo);
-    const tolerancia = 0.01 * (llenas.length + 1);
-    if (Math.abs(papel - total) > tolerancia + 1e-9) return `El total del papel (S/\u00a0${papel.toFixed(2)}) no cuadra con las líneas (S/\u00a0${total.toFixed(2)}): revisa cantidades y costos.`;
-  }
-  return null;
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import type { ComprobanteProduccion, CondicionComprobante } from "@/lib/comprobantes-produccion-reglas";
 import type { FaltanteDePedido } from "@/lib/faltante-por-pagar-reglas";
-import type { UnidadInsumo } from "@/lib/insumos-reglas";
 import { servicioDesdeCrudo, type ServicioCrudo, type ServicioPorPagar } from "@/lib/servicios-por-pagar-reglas";
 
 // Comprobantes de Producción (ADR-0133, F4b; D-H). Solo lectura: toda escritura pasa por `registrar_comprobante_produccion` y
@@ -99,11 +98,3 @@ export async function getFaltantesPorComprobante(): Promise<Record<string, Falta
   return salida;
 }
 
-export type InsumoParaComprobante = { id: string; codigo: string; nombre: string; unidad: UnidadInsumo };
-
-/** El catálogo de insumos que se puede facturar (sin archivados), para elegir en cada línea. */
-export async function getInsumosParaComprobante(): Promise<InsumoParaComprobante[]> {
-  const supabase = await createClient();
-  const filas = exigir(await supabase.from("insumos").select("id, codigo, nombre, unidad_medida").is("archivado_at", null).order("nombre"), "los insumos");
-  return filas.map((i) => ({ id: i.id, codigo: i.codigo, nombre: i.nombre, unidad: i.unidad_medida as UnidadInsumo }));
-}
