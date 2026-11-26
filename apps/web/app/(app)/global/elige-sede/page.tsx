@@ -59,11 +59,10 @@ export default async function EligeSedePage({ searchParams }: { searchParams: Pr
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       <div className="card-cayla anim-entrada w-full max-w-lg p-8 text-center">
-        <p className="label-cayla text-[11px] text-taupe-profundo">{NOMBRE_VISTA_GLOBAL}</p>
+        <p className="label-cayla text-xs text-taupe-profundo">{NOMBRE_VISTA_GLOBAL}</p>
         <h1 className="font-display mt-2 text-2xl text-tinta">{pantalla} trabaja en una sede</h1>
         <p className="mt-3 text-sm text-tinta/75">
-          {NOMBRE_VISTA_GLOBAL} es para ver y decidir sobre toda la empresa. Lo del día —vender, cobrar, contar, recibir— se
-          hace parado en una sede, para que cada movimiento quede anotado donde pasó. ¿En cuál?
+          Lo del día —vender, cobrar, contar, recibir— se hace desde una sede. ¿En cuál?
         </p>
         <EligeSede sedes={sedes} destino={destino?.ruta ?? "/"} />
         <div className="mt-6">

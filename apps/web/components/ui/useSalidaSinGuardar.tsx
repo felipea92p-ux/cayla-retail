@@ -48,7 +48,7 @@ import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/com
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "accion"; hacer: () => void };
 
 /** Lo que se pierde, dicho como lo diría la pantalla. Por defecto, la ficha que se está editando. */
-const QUE_SE_PIERDE = "Hiciste cambios en esta ficha que todavía no se guardaron. Si sales ahora, se pierden.";
+const QUE_SE_PIERDE = "Tienes cambios sin guardar. Si sales, se pierden.";
 
 /** Marca de la entrada de guardia en `history.state`: solo se retira una entrada que pusimos nosotros. */
 const MARCA = MARCA_GUARDIA;

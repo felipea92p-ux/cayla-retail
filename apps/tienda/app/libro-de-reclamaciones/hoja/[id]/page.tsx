@@ -11,7 +11,7 @@ import "../../../estilos/ayuda.css";
 import "../../../estilos/libro.css";
 
 // Una constancia con los datos de una persona: no se indexa ni se guarda en el caché de nadie.
-export const metadata: Metadata = { title: "Tu hoja de reclamación · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Tu hoja de reclamación", robots: { index: false, follow: false } };
 
 /**
  * La constancia de una hoja del Libro de Reclamaciones (ADR-0679): lo que la persona envió, con su número, la fecha y la hora, tal como
@@ -90,7 +90,7 @@ function HojaImpresa({ h }: { h: Hoja }) {
     <article className="lr-hoja" aria-label={`Hoja de reclamación N.° ${h.codigo}`}>
       <header className="lr-hoja-cab">
         <div>
-          <p className="lr-hoja-t">Hoja de reclamación · Libro {h.libro_codigo}</p>
+          <p className="lr-hoja-t">Hoja de reclamación del Libro {h.libro_codigo}</p>
           <p className="lr-hoja-n num">N.° {h.codigo}</p>
         </div>
         <p className="lr-hoja-fecha">{fechaDeLaHoja(h.creada_en)}</p>
@@ -99,7 +99,7 @@ function HojaImpresa({ h }: { h: Hoja }) {
         <Dato t="Razón social" v={h.proveedor.razon_social} />
         <Dato t="RUC" v={h.proveedor.ruc} />
         <Dato t="Domicilio" v={h.proveedor.domicilio} />
-        <Dato t="Tienda" v={h.tienda ? `${nombreTienda(h.tienda.nombre)}${h.tienda.direccion ? ` · ${h.tienda.direccion}` : ""}` : "Tienda online"} />
+        <Dato t="Tienda" v={h.tienda ? `${nombreTienda(h.tienda.nombre)}${h.tienda.direccion ? `, ${h.tienda.direccion}` : ""}` : "Tienda online"} />
       </Bloque>
       <Bloque titulo="1. Identificación del consumidor">
         <Dato t="Nombre" v={h.consumidor.nombre} />

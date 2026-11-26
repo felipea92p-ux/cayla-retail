@@ -40,6 +40,11 @@ export const PRUEBAS = [
   // en una vuelta, no uno por uno.
   "caja:verificar",
 
+  // El candado de partes (ADR-0195, act. 2026-11-23) lee bien este Postgres: una política toma auth/storage (el canario; si
+  // un día deja de hacerlo, el candado quedaría ciego), y el alter de una tabla en uso con una política en la misma parte
+  // sale rojo, en los dos órdenes; partida, sola o sobre una tabla nueva, verde. Solo mide en begin … rollback.
+  "pruebas:partes-sin-deadlock",
+
   // Tener sesión no es ser del equipo: una cuenta de Dynamic que no trabaja en retail no lee el catálogo, las sedes ni
   // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
   "pruebas:sesion-no-es-equipo",
@@ -728,6 +733,25 @@ export const PRUEBAS = [
   // previsualización y el cuadre usan la MISMA cuenta; un almacén movido después del escaneo lo rechaza; la misma marca no
   // cuadra dos veces; Frescura no lo lee como bajadas (núcleo) y lo bajado llega con edad desconocida. Cada caso en ROLLBACK.
   "pruebas:cuadrar-piso",
+
+  // «El barrido del piso» (ADR-0690, actividad 1): un barrido abierto por sede al que se suma quien llega; cada lectura es una
+  // fila con quién y a qué hora, y dos personas en la misma prenda se SUMAN (no se pisan como en Conteo); el mismo lote
+  // reenviado no cuenta dos veces; lo escaneado no se edita ni se borra; un barrido cerrado no recibe lecturas; abrir y
+  // escanear no tocan stock; 1.200 lecturas entran dentro del statement_timeout. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso",
+
+  // «El barrido del piso» (ADR-0690, actividad 5): confirmar corrige piso y almacén en los dos sentidos con traslados internos, todo o
+  // nada y con la MISMA cuenta que revisar; no toca lo apartado, lo archivado, lo de prueba ni lo que se movió durante el barrido; lo no
+  // cargado queda con dónde lo tiene el sistema; exige «todo escaneado», frena con un conteo abierto; la misma marca no confirma dos
+  // veces; cancelar no mueve nada. Y los relojes (actividad 6): solo el primer cuadre de la sede reinicia demanda y arranque; un
+  // segundo barrido no, un cuadre del almacén sí. Cada caso en ROLLBACK.
+  "pruebas:barrido-piso-confirmar",
+
+  // «Tickets compartidos» (ADR-0701, ADR-0511 paso 2): la asesora manda a la caja de su sede el ticket armado en el piso; la caja lo
+  // abre y pasa a ese equipo. Quien ve Vender en esa sede; prendas y total como la web; el mismo id reenviado no crea otro; termina
+  // UNA vez (tomado o descartado), nunca se borra; tope de 20 esperando. Cada caso en ROLLBACK, salvo la carrera de dos equipos que
+  // abren el mismo ticket (con COMMIT, en su sede «ZZ Tickets carrera»): solo uno se lo lleva.
+  "pruebas:tickets-compartidos",
 
   // La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
   // Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no

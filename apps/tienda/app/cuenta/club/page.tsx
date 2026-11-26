@@ -10,7 +10,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../estilos/entrada.css";
 import "../../estilos/mi-cuenta.css";
 
-export const metadata: Metadata = { title: "Unirme al Club · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Unirme al Club", robots: { index: false, follow: false } };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 

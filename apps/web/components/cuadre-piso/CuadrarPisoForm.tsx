@@ -106,7 +106,7 @@ type Aviso = { texto: string; tono: "ambar" | "neutro" };
 const TEXTOS_CAMARA: Omit<TextosEscaner, "contador"> = {
   titulo: "Escanear lo guardado con la cámara",
   subtitulo: "Pasa las etiquetas una tras otra. Si una se repite, te pregunto antes de sumarla.",
-  etiqueta: "Cuadrar el piso · si se repite, te pregunto",
+  etiqueta: "Cuadrar el piso",
   ayuda: "Solo lo guardado · suena y vibra en cada una",
   enCurso: "Acabas de escanear",
   vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
@@ -359,7 +359,8 @@ export function CuadrarPisoForm({
       if (decision.tipo === "pregunta") {
         if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
-        avisarLectura("desconocida");
+        // «Ya la escaneaste» suena distinto de «este código no existe» (ADR-0690): mirando el estante se sabe cuál de las dos.
+        avisarLectura("repetida");
         setAviso(null);
         setAnuncio(`${nombreDe(p)} ya está en lo escaneado: llevas ${yaEnLista}. ¿Quieres volver a agregarla?`);
         return enBandeja;
@@ -759,10 +760,10 @@ export function CuadrarPisoForm({
               bajar la pantalla). */}
           {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
             <ul data-guia="cuadrar.cuidados" className="nota-cayla sin-i list-disc space-y-1 pl-8 text-sm">
-              <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
-              <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
-              <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
-              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.</li>
+              <li>Hazlo antes de abrir: lo que se mueva mientras escaneas hay que escanearlo de nuevo.</li>
+              <li>Escanea solo lo guardado: ni las dañadas ni el estante de Apartados.</li>
+              <li>Una prenda guardada sin etiqueta quedaría como colgada: cárgala antes.</li>
+              <li>Lo escaneado dura 12 horas en este equipo: termina hoy y aquí.</li>
             </ul>
           ) : (
             <p className="text-sm text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>
@@ -783,7 +784,7 @@ export function CuadrarPisoForm({
             </CampoGuiado>
           )}
 
-          <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="La primera lectura de una prenda suma 1; si se repite, te pregunto. Si tienes 12 iguales, toca «Cambiar cantidad».">
+          <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="Si una prenda se repite, te pregunto.">
             <section data-guia="cuadrar.escaner" className="card-cayla p-4 sm:p-5">
               <label htmlFor="cuadre-escaner" className="sr-only">
                 Escanear prenda guardada

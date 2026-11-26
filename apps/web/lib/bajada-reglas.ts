@@ -427,6 +427,7 @@ export function lineasSinAlcance(details: string | null | undefined): { variante
   try {
     crudo = JSON.parse(details);
   } catch {
+    // relleno-a-proposito: un `details` roto no trae líneas: nunca lanza (lo dice arriba).
     return [];
   }
   if (!Array.isArray(crudo)) return [];

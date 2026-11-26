@@ -21,7 +21,9 @@ export const PAUSA_MISMO_CODIGO_MS = 2000;
  *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
  *  (`lib/vender-stock-local.ts`). */
 /** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384, `sinPrecioParaVender`). */
-export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada";
+/** `repetida`: la prenda ya está en el ticket y no se sumó sola: la cámara pregunta «¿Sumar otra?» (ADR-0562, act. 2026-11-25;
+ *  la regla es `decidirLectura`, `lib/lectura-repetida.ts`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada" | "repetida";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -32,7 +34,57 @@ export type ResultadoEscaneo = {
   /** Cuántas hay en el almacén de esta tienda (sin lo apartado); null/ausente sin almacén. La cámara no muestra el
    *  aviso de arriba (le taparía la ✕), así que su tarjeta tiene que decir por sí sola dónde está la prenda. */
   almacen?: number | null;
+  /** Si entró: cuántas de esta prenda lleva el ticket DESPUÉS de esta lectura (desde 2, la bandeja dice «van 2»). Si es
+   *  `repetida`: cuántas lleva AHORA, antes de responder. */
+  lleva?: number;
+  /** Solo en `repetida`: hasta cuántas admite el ticket de esa prenda (lo libre en el piso), para «Cambiar cantidad». */
+  tope?: number | null;
+  /** La línea del ticket de esta prenda (su `varianteId`): con ella la bandeja marca la fila que se acaba de leer. */
+  clave?: string;
 };
+
+/** Una línea del ticket tal como la muestra la bandeja «Escaneadas» de la cámara (2026-11-25, Felipe): UNA fila por prenda con su
+ *  cantidad, nunca dos filas de la misma. La arma la pantalla desde su ticket, que es la única fuente de verdad. */
+export type LineaEscaneada = {
+  clave: string;
+  referencia: string;
+  /** Color · talla. */
+  detalle: string;
+  fotoUrl: string | null;
+  cantidad: number;
+  /** Lo que suma la línea al ticket (cantidad × precio, ya con su descuento). */
+  importe: number;
+};
+
+/** Las filas de la bandeja: la más nueva arriba (el ticket guarda el orden en que entraron), sin repetir una prenda. */
+export function filasDeLaBandeja(lineas: readonly LineaEscaneada[]): LineaEscaneada[] {
+  const vistas = new Set<string>();
+  const filas: LineaEscaneada[] = [];
+  for (let i = lineas.length - 1; i >= 0; i--) {
+    const l = lineas[i];
+    if (l.cantidad <= 0 || vistas.has(l.clave)) continue;
+    vistas.add(l.clave);
+    filas.push(l);
+  }
+  return filas;
+}
+
+/** El aviso que sale sobre la cámara después de cada lectura y se va solo (2026-11-25, Felipe: «sin más stock» no se queda en la
+ *  bandeja). `titulo` es qué pasó en dos o tres palabras; `nombre`, qué prenda. */
+export function avisoDeLectura(r: ResultadoEscaneo): { tono: "verde" | "ambar"; titulo: string; nombre: string } {
+  const nombre = r.prenda ? [r.prenda.referencia, r.prenda.detalle].filter(Boolean).join(" · ") : `Código ${r.codigo}`;
+  if (r.estado === "agregada") {
+    return { tono: "verde", titulo: yaEstabaEnElTicket(r) ? `Entró · van ${r.lleva}` : "Entró al ticket", nombre };
+  }
+  return { tono: "ambar", titulo: estadoCorto(r) ?? "No entró", nombre };
+}
+
+/** Cuánto se queda el aviso sobre la cámara: lo que entró se confirma rápido; lo que no, se deja leer; lo que se puede bajar del
+ *  almacén trae su botón «Agregar» y espera más (si no se toca, igual se ofrece al cerrar la cámara). */
+export function msDelAvisoDeLectura(r: Pick<ResultadoEscaneo, "estado" | "almacen">, { conAgregar = false }: { conAgregar?: boolean } = {}): number {
+  if (r.estado === "agregada") return 1800;
+  return conAgregar && sePuedeBajar(r) ? 6000 : 3200;
+}
 
 /** Cuánto dura el vuelo de la tarjeta al ticket, de que aparece a que entra en la bolsa. Son tres tramos, cada uno dentro
  *  del rango de ADR-0136: aparece (≈200 ms), se deja leer (≈240 ms) y viaja (≈460 ms). */
@@ -81,8 +133,28 @@ export type TonoLectura = "verde" | "taupe" | "pizarra" | "ambar";
  * se reconoció; grave y largo si no entró («mira la pantalla»). Sin tono —la pantalla solo busca lo leído y no sabe todavía si está—,
  * agudo: el código se leyó.
  */
-export function sonidoDeLecturaCamara(tono?: TonoLectura): SonidoLectura {
-  return tono === "ambar" ? "desconocida" : "suma";
+export function sonidoDeLecturaCamara(tono?: TonoLectura, { yaEstaba = false }: { yaEstaba?: boolean } = {}): SonidoLectura {
+  if (tono === "ambar") return "desconocida";
+  // La prenda ya estaba en el ticket y entró otra (Vender, 2026-11-25): el doble toque de «ya la escaneaste» de Bajar al piso, para
+  // que una etiqueta leída dos veces se oiga distinta sin mirar la pantalla. Entra igual: aquí no se pregunta (ADR-0562).
+  return yaEstaba ? "repetida" : "suma";
+}
+
+/** ¿La prenda de esta lectura ya estaba en el ticket? Solo si entró y ahora van 2 o más. */
+export function yaEstabaEnElTicket(r: Pick<ResultadoEscaneo, "estado" | "lleva">): boolean {
+  return r.estado === "agregada" && (r.lleva ?? 1) > 1;
+}
+
+/** ¿Lo que frenó esta lectura es el almacén de ESTA tienda? Entonces la fila de la cámara ofrece «Agregar», que registra la bajada
+ *  (la misma condición que `quedoEnAlmacen` de Vender: piso en 0 con almacén, o las del piso ya en el ticket con más en el almacén). */
+export function sePuedeBajar(r: Pick<ResultadoEscaneo, "estado" | "almacen">): boolean {
+  return r.estado === "en_almacen" || (r.estado === "tope" && (r.almacen ?? 0) > 0);
+}
+
+/** La segunda línea de una fila de la bandeja: color · talla y, si ya estaba en el ticket, cuántas van; sin prenda, el código. */
+export function detalleDeLectura(r: ResultadoEscaneo): string {
+  const base = r.prenda?.detalle || `Código ${r.codigo}`;
+  return yaEstabaEnElTicket(r) ? `${base} · van ${r.lleva}` : base;
 }
 
 /** ¿Es la misma etiqueta que se acaba de leer y todavía no pasó la pausa? */
@@ -109,6 +181,8 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: no tiene precio en el catálogo` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
+    case "repetida":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} ya está en el ticket: ¿sumar otra?` };
   }
 }
 
@@ -116,7 +190,7 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
  *  Corta a propósito (la fila tiene ~120 px a 375 px de ancho). La cámara no pinta el aviso largo, así que la etiqueta
  *  tiene que leerse como un NO: «2 en el almacén» sonaba a buena noticia y la colaboradora no veía que la prenda no
  *  entró al ticket. Por eso lo del almacén (piso en 0, o todas las del piso ya en el ticket) empieza por «No entró»; qué
- *  hacer lo dice un solo aviso al cerrar la cámara (`avisoQuedaronEnAlmacen`). */
+ *  hacer lo ofrece la misma fila («Agregar», que registra la bajada, `sePuedeBajar`) y, si no se tocó, la hoja al cerrar la cámara. */
 export function estadoCorto(r: ResultadoEscaneo): string | null {
   const enAlmacen = (r.almacen ?? 0) > 0;
   switch (r.estado) {
@@ -134,5 +208,7 @@ export function estadoCorto(r: ResultadoEscaneo): string | null {
       return "No entró · sin precio";
     case "no-encontrada":
       return "No es de esta tienda";
+    case "repetida":
+      return "Ya está en el ticket";
   }
 }

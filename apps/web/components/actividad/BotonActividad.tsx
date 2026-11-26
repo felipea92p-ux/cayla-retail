@@ -36,7 +36,7 @@ export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ub
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-[18px] w-[18px]">
           <path d={RUTA_HISTORIAL} />
         </svg>
-        <span className="label-cayla hidden text-[11px] sm:inline">Actividad</span>
+        <span className="label-cayla hidden text-xs sm:inline">Actividad</span>
       </button>
       {abierto ? (
         <PanelActividad

@@ -26,13 +26,14 @@ export function FilaDePedido({ pedido: p, origenFotos }: { pedido: Pedido; orige
       )}
       <span>
         <b>
-          <span className="t-codigo">{p.codigo}</span> · {soles(p.total)}
+          <span className="t-codigo">{p.codigo}</span>
+          <span className="num w-ped-total">{soles(p.total)}</span>
         </b>
         <small>
-          {nombreTienda(p.tienda.nombre)} · {fechaCorta(p.creadoEn)}
+          {nombreTienda(p.tienda.nombre)}, {fechaCorta(p.creadoEn)}
         </small>
         <span className={`w-estado-chip t-${insignia.tono}`}>
-          {p.estado === "pagado" && p.listoParaRecoger ? "Pagado · listo para recoger" : insignia.texto}
+          {p.estado === "pagado" && p.listoParaRecoger ? "Pagado y listo para recoger" : insignia.texto}
         </span>
       </span>
       <Icono nombre="flecha" />

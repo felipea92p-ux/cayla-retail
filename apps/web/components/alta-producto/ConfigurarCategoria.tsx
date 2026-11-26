@@ -101,7 +101,7 @@ export function ConfigurarCategoria({
         <p className="mt-1 text-sm">{t.efecto} Esto se guarda en la categoría, no solo en este producto.</p>
       </Aviso>
 
-      <p className="label-cayla text-[11px] text-tinta/60">{t.accion}</p>
+      <p className="label-cayla text-xs text-tinta/60">{t.accion}</p>
       {universo.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tags />}>No hay valores aprobados todavía. Créalos en Catálogo → Atributos.</Vacio>
       ) : (

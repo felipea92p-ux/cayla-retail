@@ -2,7 +2,7 @@
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
-import { BadgePercent, Check, CirclePause, Percent, Play, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
+import { BadgePercent, Check, CirclePause, Percent, Play, Send, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/lib/vender-reglas";
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
@@ -24,6 +24,8 @@ import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { DesdeElPisoEnElTicket } from "@/components/punto-de-venta/DesdeElPiso";
+import type { TicketCompartido } from "@/lib/tickets-compartidos-reglas";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
@@ -107,6 +109,15 @@ type Props = {
   onIrAEspera: () => void;
   /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
   onDescartarEspera: (id: string) => void;
+  /** «Mandar a la caja» (ADR-0701): la asesora arma el ticket en el piso y lo manda a la caja de su sede, que lo cobra. Sin esta prop (la
+   *  base todavía no tiene los tickets compartidos) el botón no se dibuja. */
+  onMandarACaja?: () => void;
+  mandandoACaja?: boolean;
+  /** Lo que el piso mandó a la caja (ADR-0701): con el ticket vacío, la lista va adentro; ocupado, un chip la abre en una hoja. */
+  delPiso?: { tickets: readonly TicketCompartido[]; ahora: number; abriendo: string | null; onVerTodos: () => void };
+  /** «Abrir» uno de los tickets del piso (aparte de `delPiso`: dentro del objeto, el lint del compilador de React lee mal todo el componente). */
+  onAbrirDelPiso?: (t: TicketCompartido) => void;
+  onDescartarDelPiso?: (t: TicketCompartido) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -195,6 +206,11 @@ export function PuntoDeVentaTicket({
   onRetomar,
   onIrAEspera,
   onDescartarEspera,
+  onMandarACaja,
+  mandandoACaja = false,
+  delPiso,
+  onAbrirDelPiso,
+  onDescartarDelPiso,
   total,
   prendas,
   vale = null,
@@ -315,7 +331,8 @@ export function PuntoDeVentaTicket({
                 {/* Con «Dejar en espera» y el chip «En espera · N» al lado, en un ticket de 320 px el título se partía en dos
                     líneas: ahí dice solo «Ticket». */}
                 <span className="whitespace-nowrap">
-                  Ticket<span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>
+                  {/* En la hoja del celular, solo «Ticket»: la hoja ya dice qué es, y así «Dejar en espera» cabe con su nombre (Felipe 2026-11-25). */}
+                  Ticket{!enHoja && <span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>}
                 </span>
               </span>
             </TituloSeccion>
@@ -323,19 +340,26 @@ export function PuntoDeVentaTicket({
                 ticket (pidiendo un nombre, opcional) y libera la caja para el siguiente cliente. Con el chip «En espera · N» al
                 lado, o en un ticket angosto, queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con
                 texto no caben en 420 px. */}
-            {carrito.length > 0 && (
+            {/* En la hoja del celular, «Dejar en espera» baja junto a «Cobrar» (Felipe 2026-11-25): arriba se apretaba contra el título y el asa. */}
+            {carrito.length > 0 && !enHoja && (
               <button
                 type="button"
                 onClick={onDejarEnEspera}
                 disabled={bloqueado}
                 aria-label="Dejar en espera"
                 title="Dejar en espera"
-                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] ${
-                  conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
-                }`}
+                className={
+                  enHoja
+                    ? // En la hoja del celular, el botón secundario de 44 px con su nombre, a la derecha y separado de la ×: el título dice solo
+                      // «Ticket» para que quepa sin apretarse contra él (Felipe 2026-11-25).
+                      `btn-cayla btn-secundario btn-chico anim-revelar ml-auto flex shrink-0 items-center gap-1.5 ${conChipEspera ? "w-11 justify-center px-0" : ""}`
+                    : `btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-xs leading-tight ${
+                        conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
+                      }`
+                }
               >
-                <CirclePause className={ICONO_CHICO} aria-hidden />
-                {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
+                <CirclePause className={enHoja ? "h-4 w-4 shrink-0" : ICONO_CHICO} aria-hidden />
+                {!conChipEspera && <span className={enHoja ? undefined : "hidden @min-[20rem]:inline"}>Dejar en espera</span>}
               </button>
             )}
             {/* Solo cuando hay algo esperando: el chip cambia el ticket por la lista completa de los que esperan. */}
@@ -344,10 +368,28 @@ export function PuntoDeVentaTicket({
                 type="button"
                 onClick={onIrAEspera}
                 disabled={bloqueado}
-                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
               >
                 <CirclePause className={ICONO_CHICO} aria-hidden />
                 En espera · {enEspera.length}
+              </button>
+            )}
+            {/* Lo que espera del piso (ADR-0701), con el ticket ocupado: el chip abre la hoja «Del piso». Con el ticket vacío la lista ya
+                está adentro y el chip sobra. */}
+            {delPiso && delPiso.tickets.length > 0 && carrito.length > 0 && (
+              <button
+                type="button"
+                onClick={delPiso.onVerTodos}
+                disabled={bloqueado}
+                data-guia="vender.del-piso-chip"
+                aria-label={`Del piso: ${delPiso.tickets.length} ${delPiso.tickets.length === 1 ? "ticket esperando" : "tickets esperando"}`}
+                title="Del piso"
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
+              >
+                <Send className={ICONO_CHICO} aria-hidden />
+                {/* En la cabecera de 420 px, con «En espera · N» al lado, «Del piso» no cabe: queda el ícono con el número. */}
+                <span className={conChipEspera ? "hidden @min-[30rem]:inline" : undefined}>Del piso · </span>
+                {delPiso.tickets.length}
               </button>
             )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
@@ -445,7 +487,7 @@ export function PuntoDeVentaTicket({
                           type="button"
                           onClick={() => onRetomar(t.id)}
                           disabled={bloqueado}
-                          className="btn-cayla btn-primario flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+                          className="btn-cayla btn-primario flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight"
                         >
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
@@ -481,6 +523,7 @@ export function PuntoDeVentaTicket({
           ) : !carrito.length ? (
             <>
               {arriba}
+              {delPiso && onAbrirDelPiso && <DesdeElPisoEnElTicket tickets={delPiso.tickets} ahora={delPiso.ahora} abriendo={delPiso.abriendo} onAbrir={onAbrirDelPiso} onDescartar={onDescartarDelPiso} />}
               <div className="anim-sube flex min-h-48 flex-col items-center justify-center px-8 text-center">
                 <p className="font-medium text-tinta">El ticket está vacío</p>
                 <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
@@ -573,7 +616,7 @@ export function PuntoDeVentaTicket({
                   −{money(vale.monto)}
                 </span>
                 {onQuitarCupon && momentoMostrado === "armar" && (
-                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-[11.5px]">
+                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-xs leading-tight">
                     Quitar
                   </button>
                 )}
@@ -605,7 +648,7 @@ export function PuntoDeVentaTicket({
                       type="button"
                       onClick={() => onAbrirDescuento(null)}
                       disabled={bloqueado}
-                      className="area-dedo label-cayla h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta"
+                      className="area-dedo label-cayla h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta"
                     >
                       Cambiar
                     </button>
@@ -619,14 +662,14 @@ export function PuntoDeVentaTicket({
                   // Apagado con el ticket vacío: el porqué va en su `title` (no se arregla llenando un campo).
                   title={carrito.length === 0 ? "Agrega una prenda para descontar" : undefined}
                   aria-label="Aplicar descuento"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
-                    {/* En un ticket angosto (menos de 336 px de contenido) la fila dice «Descuento · Cupón»: con las dos frases enteras se
-                        partía en dos líneas y le quitaba ese alto a la lista. */}
+                    {/* En un ticket angosto (menos de 336 px de contenido) o en la hoja del celular la fila dice «Descuento · Cupón»: con
+                        las dos frases enteras se partía en dos líneas y le quitaba ese alto a la lista (Felipe 2026-11-25). */}
                     <span>
-                      <span className="@max-[21rem]:hidden">Aplicar </span>descuento
+                      {!enHoja && <span className="@max-[21rem]:hidden">Aplicar </span>}descuento
                     </span>
                   </span>
                 </button>
@@ -639,12 +682,12 @@ export function PuntoDeVentaTicket({
                   title={carrito.length === 0 ? "Agrega una prenda para usar un cupón" : vale != null ? "Ya hay un cupón en el ticket" : undefined}
                   data-guia="vender.codigo-cupon-boton"
                   aria-label="Código de cupón"
-                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-xs text-tinta/70 transition-colors vd-pasa-gota hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />
                     <span>
-                      <span className="@max-[21rem]:hidden">Código de </span>cupón
+                      {!enHoja && <span className="@max-[21rem]:hidden">Código de </span>}cupón
                     </span>
                   </span>
                 </button>
@@ -673,7 +716,7 @@ export function PuntoDeVentaTicket({
               )}
             </div>
             <div className="ml-auto text-right">
-              <p className="label-cayla text-[11px] text-tinta/60">Total</p>
+              <p className="label-cayla text-xs text-tinta/60">Total</p>
               {/* `key={total}`: al cambiar el monto el número se vuelve a montar y se
                   asienta (responde a la prenda que entró, no se anima solo). */}
               <p key={total} className="pv-pie-total anim-asentar font-display text-5xl leading-none text-tinta">
@@ -688,7 +731,7 @@ export function PuntoDeVentaTicket({
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
             <div data-guia="vender.responsable">
-              <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+              <ComboResponsable control={responsable} deshabilitado={loading} compacto enLinea={enHoja} className="mb-3" />
             </div>
           )}
 
@@ -724,7 +767,7 @@ export function PuntoDeVentaTicket({
                 aria-describedby={motivoDescuento !== null ? ID_MOTIVO : undefined}
                 className={`${BOTON_PRINCIPAL} ${luzListo ? "cobrar-listo" : ""}`}
               >
-                <span className="label-cayla flex items-center gap-2 text-[11px]">
+                <span className="label-cayla flex items-center gap-2 text-xs">
                   <BadgePercent className={ICONO} aria-hidden />
                   Aplicar descuento
                 </span>
@@ -735,7 +778,7 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={onQuitarDescuento}
                   disabled={bloqueado}
-                  className="label-cayla mt-2 h-9 w-full rounded-md text-[11px] text-rojo-profundo transition-colors vd-pasa-gota"
+                  className="label-cayla mt-2 h-9 w-full rounded-md text-xs text-rojo-profundo transition-colors vd-pasa-gota"
                 >
                   Quitar descuento
                 </button>
@@ -753,28 +796,65 @@ export function PuntoDeVentaTicket({
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
             >
-              <span className="label-cayla flex items-center gap-2 text-[11px]">
+              <span className="label-cayla flex items-center gap-2 text-xs">
                 <Check className={ICONO} aria-hidden />
                 {loading ? "Procesando…" : "Confirmar cobro"}
               </span>
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           ) : (
-            <button
-              key="cobrar"
-              type="button"
-              onClick={onIrACobrar}
-              data-guia="vender.cobrar"
-              disabled={apagado}
-              aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
-              className={BOTON_PRINCIPAL}
-            >
-              <span className="label-cayla flex items-center gap-2 text-[11px]">
-                <Wallet className={ICONO} aria-hidden />
-                Cobrar
-              </span>
-              <strong className="font-display text-lg">{money(total)}</strong>
-            </button>
+            <>
+              {/* Las tres estaciones del cobro (ADR-0701): en el piso la asesora arma el ticket y lo manda; la caja solo cobra. Va sobre
+                  «Cobrar» y en su peso secundario: en la caja se sigue cobrando directo, y en el piso es el botón que se usa. */}
+              {onMandarACaja && carrito.length > 0 && (
+                <button
+                  key="mandar-a-caja"
+                  type="button"
+                  onClick={onMandarACaja}
+                  data-guia="vender.mandar-a-caja"
+                  disabled={bloqueado || mandandoACaja}
+                  aria-busy={mandandoACaja || undefined}
+                  className="btn-cayla btn-secundario mb-2 flex h-11 w-full items-center justify-center gap-2 text-sm"
+                >
+                  <Send className={ICONO_CHICO} aria-hidden />
+                  {mandandoACaja ? "Mandando a la caja…" : "Mandar a la caja"}
+                </button>
+              )}
+            <div key="cobrar" className="flex gap-2">
+              {/* En la hoja del celular, «Dejar en espera» va a la izquierda de «Cobrar»: las dos formas de terminar con este ticket juntas,
+                  la que lo guarda para después en su peso secundario, a la misma altura (Felipe 2026-11-25). */}
+              {enHoja && carrito.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onDejarEnEspera}
+                  disabled={bloqueado}
+                  aria-label="Dejar en espera"
+                  title="Dejar en espera"
+                  className="btn-cayla btn-secundario flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 px-1 text-xs leading-tight"
+                  // La esquina de «Cobrar» (`rounded-md`), no la píldora del botón: lado a lado, dos formas distintas se veían sueltas. Y su
+                  // relleno corto: con los 18 px de `btn-cayla`, «En espera» se salía 5 px del botón (`/milimetro`, textos cortados).
+                  style={{ borderRadius: "var(--radius-md)", paddingInline: "0.5rem" }}
+                >
+                  <CirclePause className="h-4 w-4 shrink-0" aria-hidden />
+                  En espera
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onIrACobrar}
+                data-guia="vender.cobrar"
+                disabled={apagado}
+                aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
+                className={`${BOTON_PRINCIPAL} min-w-0 flex-1`}
+              >
+                <span className="label-cayla flex items-center gap-2 text-xs">
+                  <Wallet className={ICONO} aria-hidden />
+                  Cobrar
+                </span>
+                <strong className="font-display text-lg">{money(total)}</strong>
+              </button>
+            </div>
+            </>
           )}
           {!cobrando && abajo}
         </div>

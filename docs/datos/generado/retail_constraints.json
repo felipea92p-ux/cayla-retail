@@ -920,6 +920,61 @@
   "tabla": "retail.barrido_piso_lecturas"
  },
  {
+  "conname": "barrido_piso_resueltos_barrido_id_fkey",
+  "definicion": "FOREIGN KEY (barrido_id) REFERENCES retail.barridos_piso(id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_cantidad_check",
+  "definicion": "CHECK (((cantidad >= 1) AND (cantidad <= 500)))",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_como_check",
+  "definicion": "CHECK ((como = ANY (ARRAY['colgada'::text, 'encontrada'::text, 'no_era'::text])))",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_hallazgo_id_fkey",
+  "definicion": "FOREIGN KEY (hallazgo_id) REFERENCES retail.barrido_piso_hallazgos(id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_nota_check",
+  "definicion": "CHECK (((nota IS NULL) OR (char_length(nota) <= 200)))",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_pendiente_variante_id_fkey",
+  "definicion": "FOREIGN KEY (pendiente_variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_prenda",
+  "definicion": "CHECK ((((pendiente_variante_id IS NOT NULL) AND (variante_id = pendiente_variante_id)) OR ((hallazgo_id IS NOT NULL) AND ((como = 'no_era'::text) OR (variante_id IS NOT NULL)))))",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_una_cosa",
+  "definicion": "CHECK ((num_nonnulls(hallazgo_id, pendiente_variante_id) = 1))",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
+  "conname": "barrido_piso_resueltos_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.barrido_piso_resueltos"
+ },
+ {
   "conname": "barridos_piso_abierto_por_fkey",
   "definicion": "FOREIGN KEY (abierto_por) REFERENCES personas(id)",
   "tabla": "retail.barridos_piso"
@@ -6490,6 +6545,66 @@
   "tabla": "retail.foto_recortes"
  },
  {
+  "conname": "fotos_por_qr_despacho_id_fkey",
+  "definicion": "FOREIGN KEY (despacho_id) REFERENCES retail.despachos(id)",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_nombre_check",
+  "definicion": "CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 120)))",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_parada_clave_check",
+  "definicion": "CHECK (((length(parada_clave) >= 1) AND (length(parada_clave) <= 300)))",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_token_hash_check",
+  "definicion": "CHECK ((token_hash ~ '^[0-9a-f]{64}$'::text))",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_token_hash_key",
+  "definicion": "UNIQUE (token_hash)",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_tope",
+  "definicion": "CHECK (((fotos >= 0) AND (fotos <= 3)))",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_vence",
+  "definicion": "CHECK (((vence_en > creado_en) AND (vence_en <= (creado_en + '00:15:00'::interval))))",
+  "tabla": "retail.fotos_por_qr"
+ },
+ {
+  "conname": "fotos_por_qr_archivos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.fotos_por_qr_archivos"
+ },
+ {
+  "conname": "fotos_por_qr_archivos_qr_id_fkey",
+  "definicion": "FOREIGN KEY (qr_id) REFERENCES retail.fotos_por_qr(id) ON DELETE CASCADE",
+  "tabla": "retail.fotos_por_qr_archivos"
+ },
+ {
+  "conname": "fotos_por_qr_archivos_ruta_check",
+  "definicion": "CHECK (((length(ruta) >= 1) AND (length(ruta) <= 300)))",
+  "tabla": "retail.fotos_por_qr_archivos"
+ },
+ {
+  "conname": "fotos_por_qr_archivos_ruta_key",
+  "definicion": "UNIQUE (ruta)",
+  "tabla": "retail.fotos_por_qr_archivos"
+ },
+ {
   "conname": "frescura_decisiones_accion_valida",
   "definicion": "CHECK ((accion = ANY (ARRAY['cambie_lugar'::text, 'hasta_agotar'::text, 'traslade'::text, 'rebaje'::text, 'anulacion'::text])))",
   "tabla": "retail.frescura_decisiones"
@@ -8545,6 +8660,11 @@
   "tabla": "retail.orden_compra_items"
  },
  {
+  "conname": "orden_compra_items_rasgos",
+  "definicion": "CHECK (((rasgos IS NULL) OR (((cardinality(rasgos) >= 1) AND (cardinality(rasgos) <= 4)) AND (rasgos <@ ARRAY['nadie_la_tiene'::text, 'en_tendencia'::text, 'tela_que_se_nota'::text, 'marca_conocida'::text]))))",
+  "tabla": "retail.orden_compra_items"
+ },
+ {
   "conname": "orden_compra_items_sugerido_motivos",
   "definicion": "CHECK (((sugerido_motivos IS NULL) OR ((precio_venta_sugerido IS NOT NULL) AND ((cardinality(sugerido_motivos) >= 1) AND (cardinality(sugerido_motivos) <= 8)) AND (length(array_to_string(sugerido_motivos, '|'::text)) <= 520))))",
   "tabla": "retail.orden_compra_items"
@@ -8552,6 +8672,11 @@
  {
   "conname": "orden_compra_items_sugerido_tope",
   "definicion": "CHECK (((precio_venta_sugerido IS NULL) OR ((precio_venta_sugerido >= (0)::numeric) AND (precio_venta_sugerido <= (5000)::numeric))))",
+  "tabla": "retail.orden_compra_items"
+ },
+ {
+  "conname": "orden_compra_items_visto_afuera",
+  "definicion": "CHECK (((precio_visto_afuera IS NULL) OR ((precio_visto_afuera > (0)::numeric) AND (precio_visto_afuera <= (5000)::numeric))))",
   "tabla": "retail.orden_compra_items"
  },
  {
@@ -12145,6 +12270,21 @@
   "tabla": "retail.producto_procesos"
  },
  {
+  "conname": "producto_rasgos_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
+  "conname": "producto_rasgos_pkey",
+  "definicion": "PRIMARY KEY (producto_id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
+  "conname": "producto_rasgos_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
+  "tabla": "retail.producto_rasgos"
+ },
+ {
   "conname": "producto_taller_declarado_por_fkey",
   "definicion": "FOREIGN KEY (declarado_por) REFERENCES personas(id)",
   "tabla": "retail.producto_taller"
@@ -12738,6 +12878,31 @@
   "conname": "recomendaciones_web_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.recomendaciones_web"
+ },
+ {
+  "conname": "reglas_de_precio_base",
+  "definicion": "CHECK (((margen_base >= 20) AND (margen_base <= 60)))",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_puntos",
+  "definicion": "CHECK ((((puntos_nadie_la_tiene >= 0) AND (puntos_nadie_la_tiene <= 10)) AND ((puntos_en_tendencia >= 0) AND (puntos_en_tendencia <= 10)) AND ((puntos_tela_que_se_nota >= 0) AND (puntos_tela_que_se_nota <= 10)) AND ((puntos_marca_conocida >= 0) AND (puntos_marca_conocida <= 10))))",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_registrado_por_fkey",
+  "definicion": "FOREIGN KEY (registrado_por) REFERENCES personas(id)",
+  "tabla": "retail.reglas_de_precio"
+ },
+ {
+  "conname": "reglas_de_precio_tope",
+  "definicion": "CHECK ((((((margen_base + puntos_nadie_la_tiene) + puntos_en_tendencia) + puntos_tela_que_se_nota) + puntos_marca_conocida) <= 75))",
+  "tabla": "retail.reglas_de_precio"
  },
  {
   "conname": "rendicion_fondo_items_montos_finitos",
@@ -14373,6 +14538,71 @@
   "conname": "tickets_cobrado_si_y_solo_si_hay_venta",
   "definicion": "CHECK (((estado = 'cobrado'::text) = (venta_id IS NOT NULL)))",
   "tabla": "retail.tickets_abiertos"
+ },
+ {
+  "conname": "tickets_compartidos_cobrado_si_tomado",
+  "definicion": "CHECK (((venta_id IS NULL) OR (estado = 'tomado'::text)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_contenido_check",
+  "definicion": "CHECK (((jsonb_typeof(contenido) = 'object'::text) AND (pg_column_size(contenido) <= 65536)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_descartado_por_fkey",
+  "definicion": "FOREIGN KEY (descartado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_enviado_por_fkey",
+  "definicion": "FOREIGN KEY (enviado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_estado_check",
+  "definicion": "CHECK ((estado = ANY (ARRAY['esperando'::text, 'tomado'::text, 'descartado'::text])))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_estado_coherente",
+  "definicion": "CHECK ((((estado = 'esperando'::text) AND (tomado_por IS NULL) AND (tomado_en IS NULL) AND (apertura_id IS NULL) AND (descartado_por IS NULL) AND (descartado_en IS NULL)) OR ((estado = 'tomado'::text) AND (tomado_por IS NOT NULL) AND (tomado_en IS NOT NULL) AND (apertura_id IS NOT NULL) AND (descartado_por IS NULL) AND (descartado_en IS NULL)) OR ((estado = 'descartado'::text) AND (descartado_por IS NOT NULL) AND (descartado_en IS NOT NULL) AND (tomado_por IS NULL) AND (tomado_en IS NULL) AND (apertura_id IS NULL))))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_nombre_check",
+  "definicion": "CHECK (((char_length(btrim(nombre)) >= 1) AND (char_length(btrim(nombre)) <= 40)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_prendas_check",
+  "definicion": "CHECK (((prendas >= 1) AND (prendas <= 500)))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_tomado_por_fkey",
+  "definicion": "FOREIGN KEY (tomado_por) REFERENCES personas(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_total_check",
+  "definicion": "CHECK ((total >= (0)::numeric))",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.tickets_compartidos"
+ },
+ {
+  "conname": "tickets_compartidos_venta_id_fkey",
+  "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
+  "tabla": "retail.tickets_compartidos"
  },
  {
   "conname": "tienda_push_envios_clave_check",

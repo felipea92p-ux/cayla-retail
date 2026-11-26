@@ -165,14 +165,14 @@ export function EditarMensajePredeterminadoHoja({
                 (la de quien atiende) con la hora y las dos marcas de «leído». Solo es una vista: no envía nada. */}
             <div className="overflow-hidden rounded-xl border border-sand">
               <div className="flex items-center gap-3 bg-verde px-4 py-2.5 text-crema">
-                <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crema/20 font-display text-[13px]">
+                <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crema/20 font-display text-xs">
                   {INICIALES_MUESTRA}
                 </span>
-                <span className="truncate text-[14px] font-medium">{PEDIDO_DE_MUESTRA.cliente.nombre}</span>
+                <span className="truncate text-detalle font-medium">{PEDIDO_DE_MUESTRA.cliente.nombre}</span>
               </div>
               <div className="vd-hundido px-4 py-4">
                 <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
-                  <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
+                  <p className="whitespace-pre-wrap break-words text-detalle text-tinta">{vista}</p>
                   <p className="mt-1 flex items-center justify-end gap-1 text-sm text-taupe">
                     <span className="tabular-nums">{hora}</span>
                     <CheckCheck aria-hidden className="h-3.5 w-3.5 text-verde" />

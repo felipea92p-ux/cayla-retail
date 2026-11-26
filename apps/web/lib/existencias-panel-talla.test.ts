@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, insigniaDelModelo, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
+import { accionesDeTalla, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, resumenDeLugar, fraseDelEstado, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
 import { mejorOrigen } from "./existencias-flujos";
 import { esObjetivo } from "./existencias-mision";
 import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
@@ -36,7 +36,7 @@ describe("acciones del panel de una talla", () => {
     const a = Object.fromEntries(accionesDeTalla(talla({ pisoDisponible: 0, almacenDisponible: 1, disponible: 1 }), TODO, true).map((x) => [x.clave, x]));
     expect(a.colgar).toMatchObject({ ok: true, sub: "1 unidad en almacén" });
     expect(a.subir).toMatchObject({ ok: false, sub: "Nada en piso" });
-    expect(a.apartar).toMatchObject({ ok: true, sub: "Con adelanto · en Vender" });
+    expect(a.apartar).toMatchObject({ ok: true, sub: "Con adelanto, en Vender" });
     expect(a.pedir).toMatchObject({ ok: true, sub: "Lima tiene 2" });
   });
   it("sin permiso no se dibuja; sin separar piso y almacén tampoco hay colgar ni subir", () => {
@@ -174,20 +174,6 @@ describe("las tallas de arriba lo dicen en su lugar (sin volver a listarlas abaj
     expect(marcaDeColor([talla({ varianteId: "c", disponible: 3, pisoDisponible: 3 })], { faltan: new Set(), separa: true })).toBeNull();
   });
 
-  it("una sola línea: cuántas faltan en este color y en qué otros, sin nombrar las tallas", () => {
-    const colores = [
-      { clave: "azul", color: "Azul marino", tallas: [{ varianteId: "a26" }, { varianteId: "a28" }] },
-      { clave: "celeste", color: "Celeste", tallas: [{ varianteId: "c28" }] },
-      { clave: "negro", color: "Negro", tallas: [{ varianteId: "n28" }] },
-    ];
-    const falta = (ids: string[], titulo = "Faltan en el piso") => ({ titulo, ids: new Set(ids) });
-    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "a28"]))).toBe("Faltan en el piso: 2 tallas");
-    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "c28", "n28"]))).toBe("Faltan en el piso: 1 talla · también en Celeste y Negro");
-    expect(lineaDeLoQueFalta(colores, "azul", falta(["c28"]))).toBe("Faltan en el piso: en Celeste");
-    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26"], "Sin colgar, según el sistema"))).toBe("Sin colgar, según el sistema: 1 talla");
-    expect(lineaDeLoQueFalta(colores, "azul", falta([]))).toBeNull();
-    expect(lineaDeLoQueFalta(colores, "azul", null)).toBeNull();
-  });
 });
 
 describe("«Pedir a otra sede» cruza la red con las tiendas por id, no por nombre (regresión 2026-10-07)", () => {
@@ -236,8 +222,6 @@ describe("el modal separa lo posible de lo que no (ADR-0391)", () => {
     const { posibles, noAhora } = separarAcciones(todas);
     expect(posibles.map((x) => x.clave)).toEqual(["apartar", "subir", "danada"]);
     expect(noAhora.map((x) => x.clave)).toEqual(["colgar", "enviar", "pedir"]);
-    expect(lineaNoAhora(noAhora)).toBe("No ahora: Colgar (nada en almacén) · Enviar (nada en almacén) · Pedir (ninguna tienda tiene).");
-    expect(lineaNoAhora([])).toBeNull();
   });
   it("Reportar dañada entra a la lista, y sin nada en la sede dice por qué no", () => {
     const con = Object.fromEntries(accionesDeTalla(talla({ pisoDisponible: 2, disponible: 2 }), TODO, true).map((x) => [x.clave, x]));
@@ -249,23 +233,52 @@ describe("el modal separa lo posible de lo que no (ADR-0391)", () => {
 });
 
 describe("el chip de «Todas» (el modelo entero) sigue la regla de la tarjeta, no solo al motor (ADR-0391, /formidable 2026-10-12)", () => {
-  it("lo que marca el motor gana, en ámbar", () => {
-    expect(insigniaDelModelo({ porColgar: 2, sinColgar: 4, agotadas: 1 })).toEqual({ tono: "ambar", texto: "2 tallas por colgar" });
-    expect(insigniaDelModelo({ porColgar: 1, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "ambar", texto: "1 talla por colgar" });
-  });
-  it("con el piso en pausa (el motor no marca nada) y tallas a 0 colgadas con stock atrás: nunca «Todo en el piso»; se dice en neutro", () => {
-    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 3, agotadas: 0 })).toEqual({ tono: "pizarra", texto: "3 tallas sin colgar" });
-    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 1, agotadas: 2 })).toEqual({ tono: "pizarra", texto: "1 talla sin colgar" });
-  });
-  it("«Todo en el piso» solo cuando nada falta ni se acabó; con algo agotado, el chip rojo va solo", () => {
-    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "verde", texto: "Todo en el piso" });
-    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 1 })).toBeNull();
-  });
   it("la línea de «Colgar varias» cuenta lo mismo que el chip", () => {
     expect(subtituloColgarVarias({ porColgar: 2, sinColgar: 5, almacen: 9 })).toBe("2 tallas faltan en el piso");
     expect(subtituloColgarVarias({ porColgar: 1, sinColgar: 0, almacen: 9 })).toBe("1 talla falta en el piso");
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 4, almacen: 9 })).toBe("4 tallas sin colgar");
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 9 })).toBe("Elige cuántas de cada una");
     expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 0 })).toBe("Nada guardado para colgar");
+  });
+});
+
+describe("la frase grande del modal dice dónde están, con sus números (maqueta 2026-11-24)", () => {
+  it("todo en el almacén, todo en el piso, repartido o nada", () => {
+    expect(resumenDeLugar({ piso: 0, almacen: 9, disponible: 9 }, true)).toEqual({ titulo: "Las 9 están en el almacén", bajada: "Ninguna en el piso." });
+    expect(resumenDeLugar({ piso: 0, almacen: 1, disponible: 1 }, true).titulo).toBe("1 está en el almacén");
+    expect(resumenDeLugar({ piso: 1, almacen: 0, disponible: 1 }, true)).toEqual({ titulo: "Queda 1, en el piso", bajada: "Nada en el almacén." });
+    expect(resumenDeLugar({ piso: 4, almacen: 0, disponible: 4 }, true).titulo).toBe("Las 4 están en el piso");
+    expect(resumenDeLugar({ piso: 2, almacen: 5, disponible: 7 }, true)).toEqual({ titulo: "2 en el piso y 5 en el almacén", bajada: null });
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 0, apartado: 1 }, true)).toEqual({ titulo: "No queda ninguna libre", bajada: "Aparte, 1 apartada." });
+  });
+  it("lo apartado y lo dañado van aparte, en la bajada", () => {
+    expect(resumenDeLugar({ piso: 3, almacen: 2, disponible: 5, danado: 2 }, true).bajada).toBe("Aparte, 2 dañadas.");
+    expect(resumenDeLugar({ piso: 0, almacen: 4, disponible: 4, apartado: 1, danado: 1 }, true).bajada).toBe("Ninguna en el piso. Aparte, 1 apartada y 1 dañada.");
+  });
+  it("donde la sede no separa piso y almacén, habla de la sede", () => {
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 6 }, false).titulo).toBe("6 en esta sede");
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 1 }, false).titulo).toBe("Queda 1 en esta sede");
+    expect(resumenDeLugar({ piso: 0, almacen: 0, disponible: 0 }, false).titulo).toBe("No queda ninguna libre");
+  });
+  it("nunca usa «·» para separar (Felipe 2026-11-24)", () => {
+    for (const c of [{ piso: 0, almacen: 4, disponible: 4, apartado: 2, danado: 1 }, { piso: 3, almacen: 2, disponible: 5, danado: 2 }]) {
+      const r = resumenDeLugar(c, true);
+      expect(`${r.titulo} ${r.bajada ?? ""}`).not.toContain("·");
+    }
+  });
+});
+
+describe("el porqué del estado no repite los números de la frase grande (maqueta 2026-11-24)", () => {
+  it("falta colgar: lo que hay que hacer", () => {
+    expect(fraseDelEstado({ tono: "ambar", texto: "Falta colgar", frase: "Cuelga 1: no hay en el piso y hay 4 en almacén" })).toBe("cuelga 1");
+  });
+  it("queda poco o se acabó: quién la tiene", () => {
+    expect(fraseDelEstado({ tono: "pizarra", texto: "Queda poco", frase: "Queda 1 aquí: Lima tiene 3" })).toBe("Lima tiene 3");
+    expect(fraseDelEstado({ tono: "rojo", texto: "Se acabó", frase: "No hay aquí: Lima tiene 2" })).toBe("Lima tiene 2");
+  });
+  it("las frases cortas van como vienen, y sin frase no agrega nada", () => {
+    expect(fraseDelEstado({ tono: "pizarra", texto: "Piso en pausa", frase: "Revisa lo colgado antes de colgar más" })).toBe("Revisa lo colgado antes de colgar más");
+    expect(fraseDelEstado({ tono: "verde", texto: "Todo bien", frase: "" })).toBeNull();
+    expect(fraseDelEstado({ tono: "verde", texto: "Todo bien", frase: "3 en piso · 2 en almacén · aparte, 2 dañadas" })).toBeNull();
   });
 });

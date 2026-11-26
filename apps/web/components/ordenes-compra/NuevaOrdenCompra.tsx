@@ -80,7 +80,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera de la orden: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier
 // estado de la guía (✓, «Sigue aquí», falta, opcional).
-const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
+const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-xs font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
 // categoría · marca · descripción · cantidad · costo · descuento (caja + «% / S/») · subtotal · quitar.
 const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
@@ -374,14 +374,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           {/* Al editar, el número ya está en el título. */}
           {!editar && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">N.º</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-taupe-profundo">N.º</p>
               <p className="font-display mt-1 text-2xl tabular-nums text-tinta" title="Se confirma al guardar">
                 {datos.siguiente != null ? numeroOrdenCompra(datos.siguiente) : "Al guardar"}
               </p>
             </div>
           )}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Total</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-taupe-profundo">Total</p>
             <p className="font-display mt-1 text-2xl tabular-nums text-tinta" aria-live="polite">
               {soles(total)}
             </p>

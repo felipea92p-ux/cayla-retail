@@ -51,7 +51,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
 
       {res.estado === "sin_funcion" && (
         <Aviso tono="atencion" titulo="Esta vista todavía no está activa en la base de datos" guia="por-revisar.sin-funcion">
-          Falta aplicar la migración <span className="font-mono text-[13px]">20261010170000_revisar_productos_pendientes.sql</span> en producción. Hasta entonces las prendas
+          Falta aplicar la migración <span className="font-mono text-xs">20261010170000_revisar_productos_pendientes.sql</span> en producción. Hasta entonces las prendas
           propuestas siguen funcionando igual; solo no se pueden revisar desde aquí.
         </Aviso>
       )}
@@ -100,7 +100,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
       )}
 
       <p className="nota-cayla" data-guia="por-revisar.nota">
-        La creó alguien que no edita el catálogo. Mientras tanto se cuenta y, con precio, se vende. Rechazar es para siempre: para sacarla de venta un tiempo, descontínuala en su ficha.
+        La creó alguien que no edita el catálogo. Rechazar es para siempre: para pausarla, descontínuala en su ficha.
       </p>
     </div>
   );

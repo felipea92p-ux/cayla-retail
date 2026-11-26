@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
 import { FormularioEntrar } from "@/components/cuenta/FormularioEntrar";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { PanelDelClub, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntrada";
-import { anioActual } from "@/lib/hoy-servidor";
+import { LadoPrimeraVez, PantallaDeCuenta } from "@/components/cuenta/PantallaDeCuenta";
 import "../estilos/entrada.css";
+import "../estilos/cuenta-mostrador.css";
 
-export const metadata: Metadata = { title: "Entrar · CAYLA" };
+export const metadata: Metadata = { title: "Entrar", robots: { index: false, follow: false } };
 
-/** «Entrar»: desde 960 px, la pantalla partida con el panel del Club a la izquierda; en el celular, el panel debajo del formulario. */
-export default async function Entrar() {
-  const anio = await anioActual();
+/** «Entrar» («A · Mostrador», 2026-11-25): entrar a la izquierda y «¿Primera vez en CAYLA?» a la derecha; en el celular, uno debajo del otro. */
+export default function Entrar() {
   return (
     <MarcoCuenta enPagina="entrar">
-      <PantallaDeEntrada titulo="corto" panel={<PanelDelClub desde={anio} />}>
+      <PantallaDeCuenta forma="entrar" lado={<LadoPrimeraVez />}>
         <FormularioEntrar />
-      </PantallaDeEntrada>
+      </PantallaDeCuenta>
     </MarcoCuenta>
   );
 }

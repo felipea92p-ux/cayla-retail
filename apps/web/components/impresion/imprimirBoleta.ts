@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { sistemaDelEquipo } from "@/lib/guia-impresion-reglas";
-import { ayudanteImprimeBoletas, documentoDeBoleta, largoDeLaBoleta, resultadoDeBoleta, URL_AYUDANTE } from "@/lib/mac-etiquetas";
+import { comprobarBoletasPorAyudante, esMac, repreguntarAlAyudante } from "@/lib/ayudante-de-boletas";
+import { documentoDeBoleta, largoDeLaBoleta, resultadoDeBoleta, URL_AYUDANTE } from "@/lib/mac-etiquetas";
 import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 
@@ -20,49 +20,6 @@ import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 export type FinBoleta = "impresa" | "cuadro" | "frenada" | "fallo";
 
 const ID = "comprobante-print";
-/** Cuánto se espera al ayudante al preguntarle si está. En una Mac sin él la respuesta llega al instante (conexión rechazada); lo que
- *  tarda es el aviso de Chrome «acceso a la red local» la primera vez, mientras la persona elige Permitir. */
-const ESPERA_ESTADO_MS = 5000;
-/** Cada cuánto se vuelve a preguntar. Instalar el ayudante o conectar la ticketera se nota sin recargar. */
-const VIGENCIA_MS = 30_000;
-
-let conocido: boolean | null = null;
-let cuando = 0;
-let enCurso: Promise<boolean> | null = null;
-const oyentes = new Set<() => void>();
-
-const esMac = () => typeof navigator !== "undefined" && sistemaDelEquipo(navigator.userAgent, navigator.platform) === "mac";
-
-/** ¿Esta Mac imprime la boleta por el ayudante? Pregunta a lo más cada 30 s; en otro sistema, no pregunta. */
-export function comprobarBoletasPorAyudante(): Promise<boolean> {
-  if (!esMac()) return Promise.resolve(false);
-  if (conocido !== null && Date.now() - cuando < VIGENCIA_MS) return Promise.resolve(conocido);
-  enCurso ??= fetch(`${URL_AYUDANTE}/estado`, { cache: "no-store", signal: AbortSignal.timeout(ESPERA_ESTADO_MS) })
-    .then((r) => r.json())
-    .then(ayudanteImprimeBoletas)
-    .catch(() => false)
-    .then((si) => {
-      const cambio = si !== conocido;
-      conocido = si;
-      cuando = Date.now();
-      enCurso = null;
-      if (cambio) oyentes.forEach((f) => f());
-      return si;
-    });
-  return enCurso;
-}
-
-/** Para `useSyncExternalStore`: esta Mac es «la caja» porque su ayudante tiene la ticketera (la estación y «Venta registrada»). */
-export const boletasPorAyudante = {
-  suscribir(alCambiar: () => void) {
-    oyentes.add(alCambiar);
-    void comprobarBoletasPorAyudante();
-    return () => void oyentes.delete(alCambiar);
-  },
-  leer: () => conocido === true,
-  leerEnServidor: () => false,
-};
-
 let ultimoDespertar = 0;
 
 /**
@@ -196,8 +153,8 @@ async function porElAyudante(nodo: HTMLElement): Promise<boolean> {
   }
   const fallo = resultadoDeBoleta(status, cuerpo);
   if (!fallo) return true;
-  // Algo cambió en esta Mac (se desconectó la ticketera, se detuvo el ayudante): se vuelve a preguntar en la próxima.
-  conocido = null;
+  // Algo cambió en esta Mac (se desconectó la ticketera, se detuvo el ayudante): se vuelve a preguntar ya.
+  repreguntarAlAyudante();
   avisar.error(fallo.texto, { detalle: fallo.detalle });
   return false;
 }
@@ -221,14 +178,15 @@ const porElCuadro = () =>
 
 /**
  * Imprime la boleta montada. Por el ayudante avisa «Ticket enviado a la ticketera». `conCuadro: false` (la estación de la caja) no avisa ni cae nunca al cuadro: en una ventana minimizada el cuadro
- * se quedaría abierto sin que nadie lo vea, y la boleta vuelve a la cola.
+ * se quedaría abierto sin que nadie lo vea, y la boleta vuelve a la cola. `conAviso: false` (Vender al cobrar sin hoja): quien llama ya
+ * avisa de la venta y dice ahí que se imprimió; dos avisos para lo mismo serían ruido.
  */
-export async function imprimirBoleta({ conCuadro = true }: { conCuadro?: boolean } = {}): Promise<FinBoleta> {
+export async function imprimirBoleta({ conCuadro = true, conAviso = conCuadro }: { conCuadro?: boolean; conAviso?: boolean } = {}): Promise<FinBoleta> {
   const nodo = document.getElementById(ID);
   if (nodo && (await comprobarBoletasPorAyudante())) {
     if (await porElAyudante(nodo)) {
       // Sin cuadro no hay nada que diga que salió: el aviso lo dice (la estación, que imprime sola, no avisa).
-      if (conCuadro) avisar.exito("Ticket enviado a la ticketera");
+      if (conAviso) avisar.exito("Ticket enviado a la ticketera");
       return "impresa";
     }
     if (!conCuadro) return "fallo";

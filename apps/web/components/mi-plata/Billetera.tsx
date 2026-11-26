@@ -18,7 +18,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
   return (
     <section aria-label="Tu plata para compras" data-guia="mi-plata.tienes" className="mc-billetera flex flex-col gap-2.5 px-5 pb-4 pt-[18px] text-crema">
       <span className="flex items-baseline justify-between gap-3">
-        <span className="label-cayla text-[11px] text-crema/75">Tienes para comprar</span>
+        <span className="label-cayla text-xs text-crema/75">Tienes para comprar</span>
         <span className="text-sm tabular-nums text-crema/75" data-guia="mi-plata.ronda" title="Lo comprado y gastado es de esta ronda">
           {plata.ronda.abierta ? `Ronda ${plata.ronda.abierta.texto}` : "Sin ronda"}
         </span>

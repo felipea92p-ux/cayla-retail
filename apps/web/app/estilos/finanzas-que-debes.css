@@ -56,7 +56,7 @@
     padding: 0;
     list-style: none;
     /* Dice sede y monto: es lectura, no etiqueta (14 px, la regla de la letra de lectura). */
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-leyenda li {
@@ -70,7 +70,7 @@
   }
   .qd-franja-pie p {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
 
@@ -101,15 +101,15 @@
   .qd-fac b {
     display: block;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .qd-fac small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-fac-vence b {
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .qd-fac-vence small {
     white-space: nowrap;
@@ -130,7 +130,7 @@
     justify-content: flex-end;
     gap: 12px;
     font-family: var(--font-serif);
-    font-size: 19px;
+    font-size: var(--text-lg);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -192,7 +192,7 @@
     gap: 6px 12px;
     padding: 12px 20px;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-partido {
@@ -237,7 +237,7 @@
   }
   .qd-aten .qd-aten-ic b {
     display: inline;
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 700;
     line-height: 1;
     color: inherit;
@@ -251,11 +251,11 @@
   .qd-aten b {
     display: block;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .qd-aten span:not(.qd-aten-ic) {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
 
@@ -283,15 +283,15 @@
   }
   .qd-prov b {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .qd-prov-saldo {
     font-family: var(--font-serif);
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-variant-numeric: tabular-nums;
   }
   .qd-prov small {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-prov-barra {
@@ -333,13 +333,13 @@
   }
   .qd-sede-nombre {
     fill: var(--color-tinta);
-    font-size: 12px;
+    font-size: 12px; /* letra-fija: texto del dibujo (svg), va con su geometría */
     font-weight: 600;
   }
   .qd-sede-total,
   .qd-eje {
     fill: var(--color-taupe);
-    font-size: 11px;
+    font-size: 11px; /* letra-fija: eje del dibujo (svg), va con su geometría */
   }
   .qd-punto circle {
     fill: color-mix(in srgb, var(--c) 75%, transparent);
@@ -389,11 +389,11 @@
     margin-bottom: 8px;
   }
   .qd-tipo-cab b {
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
   }
   .qd-tipo-cab small {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-tipo-ley {
@@ -426,16 +426,16 @@
   }
   .qd-tipo-ley b {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .qd-tipo-monto {
     font-family: var(--font-serif);
-    font-size: 16px;
+    font-size: var(--text-sm);
     font-variant-numeric: tabular-nums;
   }
   .qd-tipo-ley small {
     grid-column: 2 / 4;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .qd-tipo-ley button[aria-pressed="true"] {

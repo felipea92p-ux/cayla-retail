@@ -35,7 +35,7 @@
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     padding: 10px 14px;
-    font-size: 13.5px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
     white-space: nowrap;
     transition: color 150ms, border-color 150ms;
@@ -61,7 +61,7 @@
     border-radius: 999px;
     background: var(--gota-chica-fondo);
     box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
-    font-size: 11.5px;
+    font-size: var(--text-xs);
     color: var(--color-tinta);
   }
 
@@ -91,7 +91,7 @@
     align-items: center;
     padding: 12px 14px;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   /* Cabecera de un bloque dentro de una superficie: título serif + bajada, y a la derecha su acción. */
@@ -112,18 +112,18 @@
   }
   .fin-bloque-cab p {
     margin: 2px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   /* Cabecera de la franja de herramientas cuando lleva título en vez de filtros (Configuración). */
   .fin-herramientas-titulo b {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-herramientas-titulo p {
     margin: 2px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
 
@@ -137,7 +137,7 @@
     border: 1px solid var(--color-borde-control); /* lo que se toca pasa 3:1; `sand` es solo la línea decorativa (ADR-0516) */
     background: var(--hundido-fondo);
     box-shadow: var(--hundido-sombra);
-    font-size: 13.5px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
     transition: border-color 150ms;
   }
@@ -201,13 +201,13 @@
   .fin-campo > .fin-etiqueta {
     display: block;
     margin-bottom: 6px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-ayuda {
     display: block;
     margin-top: 5px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.4;
     color: var(--color-taupe);
   }
@@ -240,7 +240,7 @@
     border-radius: var(--radius-md);
     background: var(--gota-fondo-encima);
     box-shadow: var(--gota-luz);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.3;
     color: var(--color-tinta);
     cursor: pointer;
@@ -288,10 +288,10 @@
   }
   .fin-opciones b {
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--text-sm);
   }
   .fin-opciones span {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
 
@@ -316,7 +316,7 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-lista li > span:first-child {
@@ -329,7 +329,7 @@
   }
   .fin-lista li small {
     color: var(--color-taupe);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     text-align: right;
   }
 
@@ -345,7 +345,7 @@
   .fin-tabla {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-tabla thead {
@@ -355,7 +355,7 @@
     padding: 9px 14px;
     text-align: left;
     font-weight: 400;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
     white-space: nowrap;
   }
@@ -374,7 +374,7 @@
   }
   .fin-tabla .fin-sub {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-tabla .fin-tenue {
@@ -491,18 +491,18 @@
   }
   .fin-fijo b {
     display: block;
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-fijo .fin-sub {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-fijo .fin-monto {
     font-family: var(--font-serif);
-    font-size: 19px;
+    font-size: var(--text-lg);
     white-space: nowrap;
     color: var(--color-tinta);
   }
@@ -537,7 +537,7 @@
     max-width: 160px;
   }
   .fin-con-unidad span {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
 
@@ -595,7 +595,7 @@
       content: attr(data-l);
       display: block;
       margin-bottom: 3px;
-      font-size: 10.5px;
+      font-size: var(--text-xs);
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--color-taupe);
@@ -642,7 +642,7 @@
       content: attr(data-l);
       display: block;
       margin-bottom: 3px;
-      font-size: 10.5px;
+      font-size: var(--text-xs);
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--color-taupe);
@@ -689,7 +689,7 @@
       content: attr(data-l);
       display: block;
       margin-bottom: 3px;
-      font-size: 10.5px;
+      font-size: var(--text-xs);
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--color-taupe);
@@ -732,7 +732,7 @@
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    font-size: 11.5px;
+    font-size: var(--text-xs);
     color: var(--color-taupe);
   }
   .fin-marcas b {
@@ -764,13 +764,13 @@
     padding-top: 12px;
   }
   .fin-decidir b {
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-decidir p {
     margin: 3px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -815,12 +815,12 @@
     align-items: center;
     padding: 9px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-vigencias small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-vigencias input.fin-control {
@@ -831,7 +831,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
 
@@ -854,7 +854,7 @@
   /* Sobretítulo de un grupo de cuentas («BANCOS · CUENTA 104»). */
   .fin-etq {
     margin: 4px 0 10px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -884,7 +884,7 @@
     gap: 4px 8px;
   }
   .fin-cuenta-cab b {
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-tinta);
   }
@@ -902,13 +902,13 @@
   .fin-cuenta-saldo[data-oculto] {
     font-family: inherit;
     font-weight: 400;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.4;
     color: var(--color-taupe);
   }
   .fin-cuenta p {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -937,14 +937,14 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-lista-mov li:first-child {
     border-top: 0;
   }
   .fin-lista-mov li > span:last-child {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     text-align: right;
     color: var(--color-taupe);
   }
@@ -998,13 +998,13 @@
     width: 100%;
     min-width: 860px;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-eerr th {
     padding: 10px 14px;
     font-weight: 400;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
     text-align: right;
     white-space: nowrap;
@@ -1025,7 +1025,7 @@
   .fin-eerr td.fin-eerr-cta {
     width: 44px;
     text-align: left;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-eerr td.fin-eerr-vacia {
@@ -1059,14 +1059,14 @@
   }
   .fin-eerr tr.fin-eerr-total td {
     font-family: var(--font-serif);
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 500;
     border-top: 2px solid var(--color-tinta);
   }
   .fin-eerr tr.fin-eerr-pct td {
     padding-top: 0;
     border-top: 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-eerr .fin-eerr-cons {
@@ -1115,7 +1115,7 @@
   .fin-delta {
     display: block;
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 400;
     color: var(--color-taupe);
   }
@@ -1193,11 +1193,11 @@
      se distinguía (auditoría /milimetro 2026-11-16, WCAG 2.4.7). Con el mouse no aparece: un clic no es :focus-visible. */
   .fin-grafico text {
     font-family: var(--font-sans);
-    font-size: 11.5px;
+    font-size: 11.5px; /* letra-fija: texto del dibujo (svg) del gráfico de Finanzas, va con su geometría */
     fill: var(--color-tinta);
   }
   .fin-grafico text.fin-grafico-eje {
-    font-size: 11px;
+    font-size: 11px; /* letra-fija: eje del dibujo (svg) del gráfico de Finanzas, va con su geometría */
     fill: var(--color-taupe);
   }
   .fin-grafico-mala text.fin-grafico-valor {
@@ -1217,7 +1217,7 @@
     align-items: center;
     gap: 8px;
     margin: 6px 0 0;
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--color-taupe);
   }
   .fin-grafico-leyenda i {
@@ -1234,13 +1234,13 @@
      del celular, y además alcanzan a la columna angosta de una pantalla ancha. */
   @container fin-grafico (max-width: 520px) {
     .fin-grafico svg[viewBox^="0 0 560 "] text {
-      font-size: 18px;
+      font-size: 18px; /* letra-fija: letra del dibujo (svg) en unidades de su lienzo, no de pantalla */
     }
     .fin-grafico svg[viewBox^="0 0 460 "] text {
-      font-size: 15px;
+      font-size: 15px; /* letra-fija: letra del dibujo (svg) en unidades de su lienzo, no de pantalla */
     }
     .fin-grafico svg[viewBox^="0 0 440 "] text {
-      font-size: 14px;
+      font-size: 14px; /* letra-fija: letra del dibujo (svg) en unidades de su lienzo, no de pantalla */
     }
     /* Campañas: con la letra grande, «no se pagó» se montaba sobre el monto y el nombre. La barra que baja de la línea y su
        «−S/» ya lo dicen, y la frase de debajo del gráfico nombra cada campaña que no se pagó. */
@@ -1262,7 +1262,7 @@
     }
     .fin-grafico-leyenda,
     .fin-grafico-tip {
-      font-size: 14px;
+      font-size: var(--text-detalle);
     }
   }
   @container fin-grafico (max-width: 400px) {
@@ -1270,10 +1270,10 @@
       font-size: 22px;
     }
     .fin-grafico svg[viewBox^="0 0 460 "] text {
-      font-size: 18px;
+      font-size: 18px; /* letra-fija: letra del dibujo (svg) en unidades de su lienzo, no de pantalla */
     }
     .fin-grafico svg[viewBox^="0 0 440 "] text {
-      font-size: 16px;
+      font-size: 16px; /* letra-fija: letra del dibujo (svg) en unidades de su lienzo, no de pantalla */
     }
   }
 
@@ -1296,7 +1296,7 @@
   /* La franja de cada unidad (y la meta de ventas en Configuración): versalitas en taupe sobre arena. */
   .fin-tabla tr.fin-grupo td {
     background: var(--placa-fondo);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1308,7 +1308,7 @@
     text-transform: none;
   }
   .fin-tabla tr.fin-grupo .fin-meta-enlace {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     letter-spacing: 0;
     text-transform: none;
@@ -1333,7 +1333,7 @@
     min-height: 32px;
     padding-top: 5px;
     padding-bottom: 5px;
-    font-size: 13px;
+    font-size: var(--text-xs);
   }
   /* Una tabla dentro de una hoja (lo propuesto): sin el ancho mínimo de las pantallas. */
   .fin-tabla.fin-tabla-hoja {
@@ -1397,11 +1397,11 @@
     margin: 14px 0 4px;
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 20px;
+    font-size: var(--text-xl);
     color: var(--color-tinta);
   }
   .fin-h-flujo-chica {
-    font-size: 16px;
+    font-size: var(--text-sm);
   }
   .fin-flujo-lista {
     list-style: none;
@@ -1414,7 +1414,7 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-flujo-lista li b {
@@ -1438,7 +1438,7 @@
     align-items: baseline;
     gap: 6px 10px;
     margin: 0 0 6px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -1462,13 +1462,13 @@
     min-width: 420px;
   }
   .fin-tabla td.fin-que-vence {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-chip-campana {
     display: block;
     margin-top: 3px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--color-ambar-profundo);
   }
   .fin-queda-malo {
@@ -1498,7 +1498,7 @@
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
     background: var(--color-papel);
-    font-size: 12px;
+    font-size: var(--text-xs);
     line-height: 1.45;
     color: var(--color-tinta);
     pointer-events: none;
@@ -1527,12 +1527,12 @@
     align-items: baseline;
     gap: 10px;
     margin-bottom: 8px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-campo-esc > label b {
     font-family: var(--font-serif);
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 500;
     white-space: nowrap;
   }
@@ -1551,7 +1551,7 @@
     border-radius: var(--radius-md);
     background: var(--placa-fondo);
     box-shadow: var(--placa-luz);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-tinta);
     transition: border-color 150ms, background-color 150ms;
@@ -1578,7 +1578,7 @@
   }
   .fin-opcion-esc-fila small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-opcion-esc-campos {
@@ -1592,7 +1592,7 @@
     margin: 0;
     padding-left: 18px;
     list-style: disc;
-    font-size: 15px;
+    font-size: var(--text-sm);
     line-height: 1.5;
     color: var(--color-tinta);
   }
@@ -1645,17 +1645,17 @@
     border-color: var(--color-tinta);
   }
   .fin-unidad-n {
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
   }
   .fin-unidad-sub {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.4;
     color: var(--color-taupe);
   }
   .fin-unidad-h {
     font-family: ui-monospace, Menlo, monospace;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-unidad-cons {
@@ -1676,7 +1676,7 @@
     gap: 10px;
     align-items: start;
     padding: 10px 12px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
     background: var(--color-papel);
@@ -1687,7 +1687,7 @@
   }
   .fin-chequeos p {
     margin: 2px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -1697,7 +1697,7 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    font-size: 12px;
+    font-size: 12px; /* letra-fija: el visto dentro de su círculo, es un signo */
     background: color-mix(in oklab, var(--color-verde) 16%, transparent);
     color: var(--color-verde);
   }
@@ -1715,7 +1715,7 @@
     margin: 14px 0 0;
     padding: 0;
     list-style: none;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -1733,12 +1733,12 @@
     margin: 0 0 2px;
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 19px;
+    font-size: var(--text-lg);
     color: var(--color-tinta);
   }
   .fin-pasos-cierre p {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -1791,17 +1791,17 @@
   .fin-sin-cuenta-que b {
     display: block;
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--text-sm);
     color: var(--color-tinta);
   }
   .fin-sin-cuenta-que span {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-sin-cuenta-monto {
     font-variant-numeric: tabular-nums;
-    font-size: 15px;
+    font-size: var(--text-sm);
     color: var(--color-tinta);
     text-align: right;
   }
@@ -1831,7 +1831,7 @@
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-lg);
     background: var(--color-papel);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-chequeos > li > div > b {
@@ -1839,7 +1839,7 @@
   }
   .fin-chequeos > li > div > p {
     margin: 2px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-chequeos > li > span:last-child {
@@ -1857,7 +1857,7 @@
     width: 20px;
     height: 20px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 12px; /* letra-fija: el visto dentro de su círculo, es un signo */
     line-height: 1;
     background: color-mix(in oklab, var(--color-verde) 16%, transparent);
     color: var(--color-verde);
@@ -1878,7 +1878,7 @@
     border-top: 1px dashed var(--color-sand);
     display: grid;
     gap: 4px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-causas li {
@@ -1903,7 +1903,7 @@
     margin: 0 0 8px;
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 20px;
+    font-size: var(--text-xl);
     color: var(--color-tinta);
   }
   .fin-balance ul + h3 {
@@ -1920,12 +1920,12 @@
     gap: 8px;
     padding: 8px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
   }
   .fin-balance li > span:first-child {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-balance li > span:last-child {
@@ -1934,12 +1934,12 @@
   }
   .fin-balance li small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-balance li.fin-balance-tot {
     font-family: var(--font-serif);
-    font-size: 18px;
+    font-size: var(--text-lg);
     border-top: 2px solid var(--color-tinta);
   }
 
@@ -1954,7 +1954,7 @@
     border-radius: var(--radius-lg);
     background: color-mix(in oklab, var(--color-ambar) 10%, transparent);
     border: 1px solid color-mix(in oklab, var(--color-ambar) 28%, transparent);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.5;
     color: var(--color-tinta);
   }
@@ -1970,7 +1970,7 @@
     margin: 0 0 6px;
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 17px;
+    font-size: var(--text-lg);
     color: var(--color-tinta);
   }
   .fin-arranque-linea {
@@ -1980,16 +1980,16 @@
     align-items: center;
     padding: 8px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-arranque-linea > span:first-child {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
   }
   .fin-arranque-linea small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
     line-height: 1.4;
   }
@@ -2012,7 +2012,7 @@
     border-radius: var(--radius-lg);
     background: var(--hundido-fondo);
     box-shadow: var(--hundido-sombra);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
   }
@@ -2073,14 +2073,14 @@
   }
   .fin-frase-t {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.35;
     color: var(--color-tinta);
   }
   .fin-frase-d {
     margin: 4px 0 0;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -2097,16 +2097,16 @@
   /* «Para decidir hoy»: lo que está en juego, en tinta, y de qué pantalla sale, en taupe. */
   .fin-decidir .fin-impacto {
     margin-top: 4px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-decidir .fin-aviso {
-    font-size: 15px;
+    font-size: var(--text-sm);
     line-height: 1.35;
   }
   .fin-decidir .fin-origen {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     font-weight: 400;
     color: var(--color-taupe);
   }
@@ -2119,7 +2119,7 @@
     padding: 10px 0 0;
     border-top: 1px solid var(--color-sand);
     list-style: none;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -2186,7 +2186,7 @@
     border: 1px solid var(--color-sand);
     border-radius: 0.5rem;
     background: var(--color-papel);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   .fin-lote-texto {
@@ -2195,7 +2195,7 @@
     white-space: nowrap;
   }
   .fin-lote-dias {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe);
     white-space: nowrap;
   }
@@ -2223,7 +2223,7 @@
     align-items: center;
     padding: 0.25rem 0.625rem;
     border-left: 2px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-tinta);
   }
   /* En una lista angosta (el celular, la hoja mediana) el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y
@@ -2290,10 +2290,10 @@
   .fin-confianza-piezas > li > div > b {
     display: block;
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--text-sm);
   }
   .fin-confianza-piezas > li > div > p {
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
   }
   @media (max-width: 720px) {
@@ -2331,7 +2331,7 @@
   }
   .fin-pulso-explica {
     max-width: 62ch;
-    font-size: 15px;
+    font-size: var(--text-sm);
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
   }
   @keyframes fin-pulso-crece {
@@ -2380,7 +2380,7 @@
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
-    font-size: 11px;
+    font-size: var(--text-xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     font-weight: 600;
@@ -2389,14 +2389,14 @@
   .fin-pulso-ritmo-escala {
     display: flex;
     justify-content: space-between;
-    font-size: 12.5px;
+    font-size: var(--text-xs);
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
     font-variant-numeric: tabular-nums;
   }
   .fin-pulso-cierre {
     margin-top: 14px;
     font-family: var(--font-serif);
-    font-size: 19px;
+    font-size: var(--text-lg);
     line-height: 1.3;
   }
 
@@ -2422,11 +2422,11 @@
   .fin-pulso-lugar-nombre b {
     display: block;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .fin-pulso-lugar-nombre small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
   }
   .fin-pulso-lugar-eje {
@@ -2475,7 +2475,7 @@
   .fin-pulso-lugar-total .fin-pulso-lugar-nombre b,
   .fin-pulso-lugar-total .fin-pulso-lugar-monto {
     font-family: var(--font-serif);
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-weight: 500;
   }
   @media (max-width: 640px) {
@@ -2486,7 +2486,7 @@
       display: none;
     }
     .fin-pulso-ritmo-marca > span {
-      font-size: 10px;
+      font-size: var(--text-xs);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -2521,7 +2521,7 @@
     border-radius: 999px;
     background: var(--gota-chica-fondo);
     box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .fin-dinero-partes > li > b {
     font-weight: 600;
@@ -2541,7 +2541,7 @@
   }
   .fin-dinero-ver {
     flex-basis: 100%;
-    font-size: 15px;
+    font-size: var(--text-sm);
     margin-top: 6px;
   }
 }
@@ -2561,13 +2561,13 @@
   .fin-gastos-cosa > div > b {
     display: block;
     font-family: var(--font-serif);
-    font-size: 21px;
+    font-size: var(--text-xl);
     font-weight: 500;
     line-height: 1.15;
     margin-top: 4px;
   }
   .fin-gastos-cosa > div > p {
-    font-size: 15px;
+    font-size: var(--text-sm);
     margin-top: 4px;
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre hueso (ADR-0336: desde 64 % pasa) */
   }
@@ -2585,7 +2585,7 @@
   }
   .fin-gastos-cosa-mas {
     margin-top: 10px;
-    font-size: 15px;
+    font-size: var(--text-sm);
   }
   @media (max-width: 560px) {
     .fin-gastos-cosa {
@@ -2645,7 +2645,7 @@
     font-weight: 500;
   }
   .fin-cierre-anillo-num > small {
-    font-size: 11px;
+    font-size: var(--text-xs);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     font-weight: 600;
@@ -2696,7 +2696,7 @@
     color: var(--color-crema);
   }
   .fin-pagas-nombre {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -2712,12 +2712,12 @@
     align-self: flex-start;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 12.5px;
+    font-size: var(--text-xs);
     background: color-mix(in srgb, var(--color-crema) 16%, transparent);
   }
   .fin-pagas-frase {
     max-width: 46ch;
-    font-size: 14.5px;
+    font-size: var(--text-detalle);
     line-height: 1.45;
     color: color-mix(in srgb, var(--color-crema) 88%, transparent); /* contraste: texto sobre tinta, 88 % de crema */
   }
@@ -2737,16 +2737,16 @@
     gap: 12px;
     padding: 10px 0;
     border-bottom: 1px solid var(--color-sand);
-    font-size: 14.5px;
+    font-size: var(--text-detalle);
   }
   .fin-cuenta-fila small {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     color: var(--color-taupe-profundo);
   }
   .fin-cuenta-monto {
     font-family: var(--font-serif);
-    font-size: 21px;
+    font-size: var(--text-xl);
     font-variant-numeric: lining-nums tabular-nums;
     white-space: nowrap;
   }
@@ -2779,7 +2779,7 @@
     gap: 3px;
     padding: 8px 0 8px 14px;
     border-bottom: 1px solid var(--color-sand);
-    font-size: 14px;
+    font-size: var(--text-detalle);
   }
   .fin-cuenta-det > div {
     display: flex;
@@ -2796,7 +2796,7 @@
     margin-bottom: 6px;
   }
   .fin-imp-titulo {
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-tinta);
   }
@@ -2822,20 +2822,20 @@
   }
   .fin-imp-pend b {
     display: block;
-    font-size: 15px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-imp-pend small {
     display: block;
     margin-top: 2px;
-    font-size: 14px;
+    font-size: var(--text-detalle);
     line-height: 1.4;
     color: var(--color-taupe-profundo);
   }
   .fin-imp-monto {
     font-family: var(--font-serif);
-    font-size: 16px;
+    font-size: var(--text-sm);
     font-variant-numeric: lining-nums tabular-nums;
     white-space: nowrap;
   }
@@ -2868,7 +2868,7 @@
     position: relative;
     height: 18px;
     margin-bottom: 6px;
-    font-size: 11.5px;
+    font-size: var(--text-xs);
     color: var(--color-taupe-profundo);
   }
   .fin-umbral-escala span {

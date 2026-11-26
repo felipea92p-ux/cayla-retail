@@ -47,7 +47,7 @@ import { ofertasDeGrupoDeFilas } from "@/lib/ofertas-de-grupo";
 export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string; repetir?: string }> }) {
   const { proforma, repetir } = await searchParams;
   return (
-    <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
+    <Suspense fallback={<p className="label-cayla text-xs text-tinta/50">Cargando caja…</p>}>
       <Caja proformaId={proforma ?? null} repetirVentaId={!proforma && repetir && /^[0-9a-f-]{36}$/i.test(repetir) ? repetir : null} />
     </Suspense>
   );
@@ -77,7 +77,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const cargaOfertasGrupo = leerOfertasDeGrupoVigentes(supabase, persona.ubicacionId);
   // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundario: sin ellos, la caja vende igual.
   const cargaOfertasMonto = leerOfertasDeMontoVigentes(supabase, persona.ubicacionId);
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre, resNumerosAliadas] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre, resTicketsCompartidos, resNumerosAliadas] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
     getCatalogoParaOfrecer(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
@@ -130,7 +130,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // De quién son las unidades de cada prenda aquí (ADR-0542): solo donde conviven dos empresas (Lima). La cajera elige de cuál sale cuando hay
     // de las dos. Dato secundario: si la base no responde por las empresas, no se pregunta y la base decide (rechaza si de verdad hay duda).
     getEmpresasAqui(persona.ubicacionId)
-      .catch(() => null)
+      .catch(() => null) // relleno-a-proposito: sin las empresas no se pregunta y la base decide (lo dice arriba)
       .then((empresasAqui) => getStockPorDueno(persona.ubicacionId, empresasAqui)),
     proformaId ? getProformaParaCobrar(proformaId, ahora.getTime()) : Promise.resolve(null),
     repetirVentaId
@@ -145,6 +145,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       : Promise.resolve(null),
     // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
     getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
+    // Tickets compartidos (ADR-0701): ¿la base ya los tiene? Si la función no existe todavía (la web se publicó antes de pegar el SQL),
+    // o la sede no es una tienda, «Mandar a la caja» no se dibuja y Vender sigue como siempre.
+    supabase.rpc("fn_tickets_compartidos" as never, { p_ubicacion_id: persona.ubicacionId } as never),
     // ADR-0683: los Yape, Plin y cuentas de las empresas aliadas de esta tienda, para que la hoja de cobro ofrezca el número de cada dueña. Sin
     // respuesta, la hoja no lo pregunta y el pago se sella en CAYLA, como antes.
     supabase.rpc("fn_cuentas_de_aliadas_en_sede" as never, { p_ubicacion_id: persona.ubicacionId } as never),
@@ -312,6 +315,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}
         tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}
         redondeoEfectivoDisponible={resRedondeo.data === true}
+        ticketsCompartidos={resTicketsCompartidos.error === null}
         pedirAOtraSede={
           (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
             ? null

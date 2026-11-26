@@ -51,7 +51,9 @@ const TEXTOS_CONTEO: TextosEscaner = {
 export type LecturaConteo =
   // `atencion`: la prenda se reconoció pero NO se sumó (necesita una respuesta de la persona: «Agregar igual», elegir quién
   // cuenta…). El destello sale ámbar y no verde, y lo que hay que responder va en `aviso`.
-  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number; atencion?: boolean }
+  // `miniatura`: la foto de la prenda (o su color con el ícono de su categoría) en la bandeja, para reconocerla de un vistazo (el
+  // barrido del piso, ADR-0690). Sin ella, la bandeja es solo texto, como en Conteo.
+  | { encontrada: true; referencia: string; detalle: string; sku: string; cantidad: number; atencion?: boolean; miniatura?: ReactNode }
   | { encontrada: false; codigo: string };
 
 export function EscanerConteo({
@@ -71,8 +73,9 @@ export function EscanerConteo({
   /** La prenda que se está contando, con su cifra en vivo (cambia también con − / +). */
   actual: Extract<LecturaConteo, { encontrada: true }> | null;
   avance: { contadas: number; total: number };
-  /** − / + sobre la prenda que se está contando. */
-  onPaso: (paso: number) => void;
+  /** − / + sobre la prenda que se está contando. Sin él, la bandeja no los dibuja (el barrido quita una lectura con doble
+   *  confirmación, no con un toque en la cámara). */
+  onPaso?: (paso: number) => void;
   /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. Sin él, no se ofrece (la pantalla
    *  que la usa dice qué hacer en `aviso`). */
   onDarDeAlta?: (codigo: string) => void;
@@ -195,7 +198,7 @@ export function EscanerConteo({
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
-            <p className="label-cayla text-[11px] text-crema/90">{t.etiqueta}</p>
+            <p className="label-cayla text-xs text-crema/90">{t.etiqueta}</p>
             <span className="grid h-11 min-w-11 place-items-center rounded-full bg-crema/15 px-3 text-sm tabular-nums text-crema backdrop-blur-md">
               {t.contador ?? `${avance.contadas}/${avance.total}`}
             </span>
@@ -206,7 +209,7 @@ export function EscanerConteo({
               <div className="w-full max-w-md">{pregunta}</div>
             ) : sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
-                <p className="text-[15px] leading-relaxed">
+                <p className="text-sm leading-relaxed">
                   {estado === "sin-permiso"
                     ? "El navegador no tiene permiso para usar la cámara. Actívalo en los ajustes del navegador para este sitio, o escribe el código."
                     : "No encontramos una cámara disponible en este aparato. Escribe el código."}
@@ -253,7 +256,7 @@ export function EscanerConteo({
                 <div className="flex items-center gap-3">
                   <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ambar text-crema">!</span>
                   <span className="min-w-0 flex-1 text-sm text-tinta">
-                    «<span className="font-mono text-[13px]">{desconocido}</span>» no es de ninguna prenda del catálogo.
+                    «<span className="font-mono text-xs">{desconocido}</span>» no es de ninguna prenda del catálogo.
                   </span>
                   {onDarDeAlta && (
                     <button type="button" onClick={() => onDarDeAlta(desconocido)} className="btn-cayla btn-secundario btn-chico shrink-0">
@@ -263,21 +266,26 @@ export function EscanerConteo({
                 </div>
               ) : actual ? (
                 <div className="flex items-center gap-3">
+                  {actual.miniatura}
                   <span className="min-w-0 flex-1">
-                    <span className="label-cayla block text-[10px] text-taupe">{t.enCurso}</span>
-                    <span className="block truncate text-[15px] text-tinta">{actual.referencia}</span>
+                    <span className="label-cayla block text-xs text-taupe">{t.enCurso}</span>
+                    <span className="block truncate text-sm text-tinta">{actual.referencia}</span>
                     <span className="block truncate text-sm text-taupe">
                       {actual.detalle}
-                      {actual.sku && <span className="font-mono text-[11px]"> · {actual.sku}</span>}
+                      {actual.sku && <span className="font-mono text-xs"> · {actual.sku}</span>}
                     </span>
                   </span>
-                  <button type="button" onClick={() => onPaso(-1)} aria-label="Una menos" className={botonPaso}>
-                    <Minus aria-hidden className="h-5 w-5" />
-                  </button>
+                  {onPaso && (
+                    <button type="button" onClick={() => onPaso(-1)} aria-label="Una menos" className={botonPaso}>
+                      <Minus aria-hidden className="h-5 w-5" />
+                    </button>
+                  )}
                   <span className="font-display min-w-[2.5ch] text-center text-4xl tabular-nums text-tinta">{actual.cantidad}</span>
-                  <button type="button" onClick={() => onPaso(1)} aria-label="Una más" className={botonPaso}>
-                    <Plus aria-hidden className="h-5 w-5" />
-                  </button>
+                  {onPaso && (
+                    <button type="button" onClick={() => onPaso(1)} aria-label="Una más" className={botonPaso}>
+                      <Plus aria-hidden className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <p className="grid h-[4.75rem] place-items-center text-center text-sm text-tinta/55">{t.vacio}</p>

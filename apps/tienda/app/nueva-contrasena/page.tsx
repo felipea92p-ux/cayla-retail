@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FormularioClaveNueva } from "@/components/cuenta/FormularioClaveNueva";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { PanelDeAcceso, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntrada";
+import { LadoDeAcceso, PantallaDeCuenta } from "@/components/cuenta/PantallaDeCuenta";
 import { Icono } from "@/components/Icono";
 import "../estilos/entrada.css";
+import "../estilos/cuenta-mostrador.css";
 
 // La dirección trae el código de un solo uso del correo: que no la guarde ningún buscador.
-export const metadata: Metadata = { title: "Crea tu contraseña nueva · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Crea tu contraseña nueva", robots: { index: false, follow: false } };
 
 // Esta página no tiene cáscara que armar por adelantado a propósito (ADR-0432): lo que muestra (el formulario de la contraseña nueva o
 // «Abre el enlace de tu correo») y hasta el paso que marca el panel dependen del código que trae la dirección. Se arma en cada visita,
@@ -24,7 +25,7 @@ export default async function NuevaContrasena({ searchParams }: { searchParams: 
   const valido = typeof codigo === "string" && tipo === "recovery" && /^[A-Za-z0-9_-]{10,200}$/.test(codigo);
   return (
     <MarcoCuenta>
-      <PantallaDeEntrada panel={<PanelDeAcceso camino="olvide" actual={valido ? 2 : 1} />}>
+      <PantallaDeCuenta forma="acceso" lado={<LadoDeAcceso camino="olvide" actual={valido ? 2 : 1} />}>
         {valido ? (
           <FormularioClaveNueva codigo={codigo} />
         ) : (
@@ -44,7 +45,7 @@ export default async function NuevaContrasena({ searchParams }: { searchParams: 
             </Link>
           </div>
         )}
-      </PantallaDeEntrada>
+      </PantallaDeCuenta>
     </MarcoCuenta>
   );
 }

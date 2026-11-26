@@ -346,8 +346,15 @@ describe("botonPrincipal: un solo botón negro a la vez (ADR-0645, cambio 2 de /
     expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
   });
 
+  it("una prenda nueva manda su tarjeta («Crear la prenda»), salvo que se dejó para después a propósito (ADR-0699)", () => {
+    for (const todoContado of SI_NO) {
+      expect(botonPrincipal({ tarjeta: "nueva", hayParaLlevar: false, hayConteo: true, todoContado })).toBe("tarjeta");
+      expect(botonPrincipal({ tarjeta: "nueva", hayParaLlevar: false, hayConteo: true, todoContado, nuevaParaDespues: true })).toBe(todoContado ? "cerrar" : "siguiente");
+    }
+  });
+
   it("«Revisar y cerrar» manda con todo contado y nada pendiente en el modelo en foco", () => {
-    for (const tarjeta of [null, "espera", "en-stock", "nueva", "despues"] as const) {
+    for (const tarjeta of [null, "espera", "en-stock", "despues"] as const) {
       expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: true })).toBe("cerrar");
     }
   });
@@ -358,7 +365,7 @@ describe("botonPrincipal: un solo botón negro a la vez (ADR-0645, cambio 2 de /
   });
 
   it("contado y con envío por contar, manda «Listo, siguiente»", () => {
-    for (const tarjeta of ["en-stock", "nueva", "despues"] as const) {
+    for (const tarjeta of ["en-stock", "despues"] as const) {
       expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
     }
   });

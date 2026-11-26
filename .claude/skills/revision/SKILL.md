@@ -1,7 +1,11 @@
 ---
 name: revision
-description: Revisión maestra del repo de CAYLA Retail. Cinco revisores en paralelo (módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web) y un escéptico que descarta lo falso. Entrega un informe de hallazgos rankeados con solución, esfuerzo y cómo verificarla, más ideas para programar mejor. Solo lee, no arregla. Con `rapido` corre una pasada barata; con `eje=A`…`eje=E`, un solo eje.
+description: "Revisión maestra del repo: cinco revisores en paralelo y un escéptico, con hallazgos rankeados, su solución y cómo verificarla. Solo lee, no arregla. Úsala para auditar el repo entero; `rapido` hace una pasada barata y `eje=A…E` revisa uno solo."
 ---
+
+## Qué hace y cuándo se usa
+
+Revisión maestra del repo de CAYLA Retail. Cinco revisores en paralelo (módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web) y un escéptico que descarta lo falso. Entrega un informe de hallazgos rankeados con solución, esfuerzo y cómo verificarla, más ideas para programar mejor. Solo lee, no arregla. Con `rapido` corre una pasada barata; con `eje=A`…`eje=E`, un solo eje.
 
 Revisión maestra del repo. Alcance pedido: $ARGUMENTS
 
@@ -14,7 +18,7 @@ Revisión maestra del repo. Alcance pedido: $ARGUMENTS
 ## Paso 0 — Terreno (tú, el coordinador, antes de lanzar nada)
 
 1. `git fetch origin` y `git rev-list --left-right --count HEAD...origin/main`. Si la rama va detrás, dilo en la primera línea del informe y pásale a cada revisor el SHA de `origin/main` para que lea con `git show origin/main:<ruta>`: leer código viejo produce hallazgos fantasma. Anota `git rev-parse --short origin/main`: sin ese SHA nadie sabe contra qué versión vale el informe.
-2. Mira qué está en vuelo: `docs/SESIONES-ACTIVAS.md` (solo la tabla «Activas ahora») y `gh pr list --state open --limit 60`. Se lo pasas a los revisores para que no reporten como hallazgo lo que un PR abierto ya arregla.
+2. Mira qué está en vuelo: `pnpm sesiones` (las sesiones activas y los PR abiertos). Se lo pasas a los revisores para que no reporten como hallazgo lo que un PR abierto ya arregla.
 3. Crea el directorio de trabajo `<scratchpad>/revision-AAAA-MM-DD/` (el scratchpad de tu prompt de sistema; si no hay, `/tmp/revision-AAAA-MM-DD/`). Ahí van los JSON de los revisores; el repo solo recibe el informe final.
 4. `BACKLOG.md` y `BITACORA.md` juntos pasan de 15.000 líneas, y desde el 2026-09-29 lo nuevo vive en `docs/backlog/` y `docs/bitacora/` (un archivo por entrada, ADR-0259): **no se leen enteros, se buscan** por módulo o término en los cuatro sitios. El triaje del 2026-09-25 (sección «Estado verificado el 2026-09-25» del BACKLOG) ya clasificó las casillas abiertas de ese día; esta revisión no lo repite, mira lo que cambió después.
 
@@ -76,7 +80,7 @@ Cada uno lleva su pregunta madre y dónde mirar. Los ejemplos son **patrones a b
 2. *Contratos RPC pantalla ↔ base:* cruza cada `.rpc("…")` de `apps/web` (`grep -rn '\.rpc(' apps/web`) con `pg_proc` **en vivo** (`pnpm datos:comparar` lee el volcado, que va detrás): firmas que no calzan, sobrecargas, funciones vivas que un `create or replace` posterior pudo revertir (`grep -n "reemplazar_vivo" supabase/migrations/*.sql`).
 3. *Un módulo asume algo de otro:* sigue tres flujos de punta a punta (venta → stock → movimiento → caja → comprobante; recibir → stock → costo → por pagar; devolución → nota de crédito → stock). En cada frontera: ¿quién lo promete (`docs/datos/09-CONTRATOS.md`), qué candado lo vigila (`01-INVARIANTES.md`), y `13-PROMESAS-INCUMPLIDAS.md` sigue diciendo la verdad?
 4. *Alineación diccionario · aviario · menú · roles:* `DICCIONARIO-RETAIL.md` y `retail_*.json` contra la base viva (tablas, vistas, funciones, RLS); `scripts/datos/aviario.mjs` y `AVIARIO.md`; `apps/web/lib/modulos.ts` y `lib/menu.ts` contra `retail.modulos`; un archivo de `docs/datos/modulos/` por pájaro. No repitas de memoria cuántas tablas hay: mídelo.
-5. *Coordinación y organización:* filas de `SESIONES-ACTIVAS.md` con más de 7 días (sesiones zombi), choques de ADR y de versión de migración (`node scripts/adr/numeros.mjs`, `node scripts/migraciones/versiones.mjs`), PR abiertos que tocan los mismos archivos (`gh pr diff <n> --name-only`), ramas huérfanas.
+5. *Coordinación y organización:* las «quietas» de `pnpm sesiones` con semanas sin moverse (sesiones zombi), choques de ADR y de versión de migración (`node scripts/adr/numeros.mjs`, `node scripts/migraciones/versiones.mjs`), PR abiertos que tocan los mismos archivos (`gh pr diff <n> --name-only`), ramas huérfanas.
 
 **B · Base de datos: esquema, RLS, funciones** — *«¿puede el esquema producir un estado imposible aunque el código sea perfecto?»*
 1. *RLS:* tablas de `retail` sin RLS (`relrowsecurity`), políticas `using (true)`, tablas leídas directo con `.from("…")` desde la web cuya política no distingue sede ni rol.
@@ -97,9 +101,9 @@ Cada uno lleva su pregunta madre y dónde mirar. Los ejemplos son **patrones a b
 6. *Puertas:* qué obliga el CI y `main` (checks, revisión) y qué queda a la disciplina de cada quien.
 
 **D · Cómo instruimos a Claude Code** — *«¿qué reglas se cumplen solas y cuáles dependen de que alguien se acuerde?»*
-1. Inventario de las reglas de `CLAUDE.md` (movimiento de modales, loader único, paleta, módulos y roles, combos, página estable, pantallas de Finanzas, migraciones y deadlocks…). Para cada una: **vigilada** (una prueba, lint o CI la rompe en rojo: `lib/modulos.test.ts`, la prueba de arquitectura), **solo escrita**, o **contradicha por el código**. Busca violaciones reales con `grep`: overlay `fixed inset-0` fuera de `<Modal>`, `<select` nativo, hex sueltos en `*.tsx`, `fn_actor_persona_id(false)` o `from personas where auth_user_id` en migraciones nuevas, `drop trigger`. Excluye los usos legítimos de `fn_actor_persona_id(false)` (comparar con la cuenta, «no te quites a ti mismo», `fn_alcanzo_a`).
-2. `CLAUDE.md`: longitud, contradicciones internas, afirmaciones que ya no son ciertas, cifras que envejecen, rituales imposibles (mandar leer archivos de miles de líneas), dependencias de archivos fuera del repo.
-3. `.claude/skills/`: skills que citan archivos inexistentes, solapadas, o que faltan (checklist de «módulo nuevo», de «aplicar migración a producción») y hoy son párrafos sueltos de `CLAUDE.md`.
+1. Inventario de las reglas de `CLAUDE.md` y `.claude/rules/` (movimiento de modales, loader único, paleta, módulos y roles, combos, página estable, pantallas de Finanzas, migraciones y deadlocks…). Para cada una: **vigilada** (una prueba, lint o CI la rompe en rojo: `lib/modulos.test.ts`, la prueba de arquitectura), **solo escrita**, o **contradicha por el código**. Busca violaciones reales con `grep`: overlay `fixed inset-0` fuera de `<Modal>`, `<select` nativo, hex sueltos en `*.tsx`, `fn_actor_persona_id(false)` o `from personas where auth_user_id` en migraciones nuevas, `drop trigger`. Excluye los usos legítimos de `fn_actor_persona_id(false)` (comparar con la cuenta, «no te quites a ti mismo», `fn_alcanzo_a`).
+2. `CLAUDE.md` y `.claude/rules/`: longitud (la raíz, cerca de 200 líneas; el detalle, en el archivo de su regla, ADR-0692), reglas que quedaron en una ruta que no las carga, contradicciones internas, afirmaciones que ya no son ciertas, cifras que envejecen, rituales imposibles (mandar leer archivos de miles de líneas), dependencias de archivos fuera del repo.
+3. `.claude/skills/`: skills que citan archivos inexistentes, solapadas, o que faltan (checklist de «módulo nuevo», de «aplicar migración a producción») y hoy son párrafos sueltos de `CLAUDE.md` o de `.claude/rules/`.
 4. `.claude/settings.json`, `.githooks/pre-commit`: qué regla escrita podría ser un hook o un paso del CI (`migraciones:verificar`, `adr:numeros`); rutas que solo existen en una máquina.
 5. *Simulación del recién llegado:* con solo lo que hay en el repo, ¿puede una sesión de Claude Code de una persona sin contexto escribir una migración correcta, un módulo nuevo con su rol y una pantalla que respete la paleta? Recorre el camino mínimo y anota dónde se atasca o se equivoca en silencio.
 

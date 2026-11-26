@@ -219,7 +219,7 @@ export default async function FondosPage() {
                     )}
                   </div>
                   <p className="text-right">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.13em] text-taupe">Tiene</span>
+                    <span className="block text-xs font-semibold uppercase tracking-[0.13em] text-taupe">Tiene</span>
                     <span className={`font-display block whitespace-nowrap text-[26px] leading-tight tabular-nums ${t.tiene > 0.005 ? "text-tinta" : "text-taupe"}`}>
                       {soles(t.tiene)}
                     </span>

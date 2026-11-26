@@ -1,6 +1,6 @@
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { colorDeAvance } from "@/lib/avance-color";
-import { etiquetaDelAvance, fraseDelAvance, type CifrasDelResumen } from "@/lib/recepcion-modelos-reglas";
+import { conMiles, etiquetaDelAvance, fraseDelAvance, type CifrasDelResumen } from "@/lib/recepcion-modelos-reglas";
 import { Odometro } from "./Odometro";
 
 // Cómo va TODO el envío, en una línea arriba de la lista (ADR-0645, Felipe 2026-11-11): la barra, cuántas van de las que dijeron y qué falta. Reemplaza a la
@@ -29,6 +29,8 @@ export function AvanceDelEnvio({ cifras, sinAviso, onIrAlQueFalta }: { cifras: C
         ) : (
           <span data-tono={frase.tono ?? undefined}>{frase.texto}</span>
         )}
+        {/* Lo que ya salió a la venta desde el contador (ADR-0699): contar no es terminar; esto sí. */}
+        {cifras.enStock > 0 && <span data-tono="verde">{cifras.enStock === 1 ? "1 ya a la venta" : `${conMiles(cifras.enStock)} ya a la venta`}</span>}
       </p>
     </div>
   );

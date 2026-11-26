@@ -56,6 +56,7 @@ export const RUTAS_MEDIDAS = [
   "/looks/arma",
   "/looks/guardado/[id]",
   "/notificaciones",
+  "/nuestra-historia",
   "/nueva-contrasena",
   "/olvide-mi-contrasena",
   "/preguntas-frecuentes",
@@ -64,6 +65,7 @@ export const RUTAS_MEDIDAS = [
   "/restablecer-acceso",
   "/terminos-del-club",
   "/tiendas",
+  "/trabaja-con-nosotros",
   "/tu-look",
   "/vista-previa/[llave]",
 ] as const;

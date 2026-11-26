@@ -1,7 +1,11 @@
 ---
 name: focus
-description: Recorre las pantallas Y los modales que estás construyendo o editando y verifica si tienen la guía de foco estandarizada (qué está hecho, qué sigue, qué falta; el control que sigue lleva EL HILO: una línea de tinta al costado y la palabra «Sigue», en una caja de texto, un combo, unos chips, un interruptor…; CLAUDE.md «Guía de foco», ADR-0284). Si a alguno le falta, primero se lo avisa a Felipe con la lista y después lo implementa con el estándar, cuidando que la guía ACOMPAÑE, no apure a quien escribe y NO INVADA (la luz espera mientras se teclea o se eligen varias opciones; un combo con valor de fábrica también pasa por ella; nada salta, la hoja no se mueve sola, nunca rojo) y verificándolo en el navegador con el recorrido «una letra → Tab → combo». Con `todo` solo informa el tablero de todo el ERP; con una ruta (`/vender`) o un módulo (`compras`) trabaja solo eso. Úsala antes de dar por terminada cualquier pantalla o modal con campos o pasos, y cuando Felipe diga «focus» o que la guía «salta», «apura», «me manda al siguiente», «parece error» o «invade».
+description: "Obligatoria en pantallas y modales con campos o pasos: revisa e implementa la guía de foco (qué está hecho, qué sigue, qué falta) sin apurar ni invadir. Úsala antes de cerrar una pantalla con campos, o si la guía «salta», «apura» o «invade»."
 ---
+
+## Qué hace y cuándo se usa
+
+Recorre las pantallas Y los modales que estás construyendo o editando y verifica si tienen la guía de foco estandarizada (qué está hecho, qué sigue, qué falta; el control que sigue lleva EL HILO: una línea de tinta al costado y la palabra «Sigue», en una caja de texto, un combo, unos chips, un interruptor…; CLAUDE.md «Guía de foco», ADR-0284). Si a alguno le falta, primero se lo avisa a Felipe con la lista y después lo implementa con el estándar, cuidando que la guía ACOMPAÑE, no apure a quien escribe y NO INVADA (la luz espera mientras se teclea o se eligen varias opciones; un combo con valor de fábrica también pasa por ella; nada salta, la hoja no se mueve sola, nunca rojo) y verificándolo en el navegador con el recorrido «una letra → Tab → combo». Con `todo` solo informa el tablero de todo el ERP; con una ruta (`/vender`) o un módulo (`compras`) trabaja solo eso. Úsala antes de dar por terminada cualquier pantalla o modal con campos o pasos, y cuando Felipe diga «focus» o que la guía «salta», «apura», «me manda al siguiente», «parece error» o «invade».
 
 Verifica y completa la guía de foco de las pantallas y los modales en construcción: $ARGUMENTS
 
@@ -30,7 +34,7 @@ Verifica y completa la guía de foco de las pantallas y los modales en construcc
    - «Archivos con campos que no llegan a ninguna pantalla»: un componente en construcción que ni es modal. La regla vale igual.
    - «Registro por ajustar»: pantallas con guía que siguen «pendiente», o «aplicada» sin guía.
 4. **Mirada de tolerancia** (el escáner no la hace; léela tú en cada pantalla y modal del alcance, con guía nueva o ya puesta): anota, por control, en cuál de las filas de la tabla de «La guía acompaña, no apura» cae. Busca en especial (a) **controles de varias opciones** (chips que se marcan de a uno: tallas, colores, etiquetas) sin `retiene="fila"`, y (b) **combos o chips con valor de fábrica** (`useState("neutro")`, una opción marcada de antemano) que la guía no mira.
-5. Mira `docs/SESIONES-ACTIVAS.md`: si otra sesión toca los mismos archivos, **avísalo y no la pises**.
+5. Mira `pnpm sesiones`: si otra sesión toca los mismos archivos, **avísalo y no la pises**.
 
 ## Paso 2 — Avisa (ANTES de tocar código)
 

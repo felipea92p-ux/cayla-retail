@@ -47,7 +47,7 @@
   pointer-events: none;
 }
 .fin-donut-centro span {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   line-height: 1.2;
   color: var(--color-taupe-profundo);
 }
@@ -76,7 +76,7 @@
   border-radius: 0.625rem;
   background: none;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--text-detalle);
   text-align: left;
   color: var(--color-tinta);
 }

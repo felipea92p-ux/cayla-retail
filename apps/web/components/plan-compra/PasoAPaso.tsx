@@ -82,7 +82,7 @@ export function PasoAPaso({
   const lado = (
     <aside className="space-y-3 lg:sticky lg:top-4">
       <div className="rounded-2xl border border-sand p-4">
-        <p className="label-cayla text-[11px] text-taupe-profundo">Tu avance</p>
+        <p className="label-cayla text-xs text-taupe-profundo">Tu avance</p>
         <p className="mt-1 font-display text-2xl tabular-nums text-tinta">
           {avance.hechas} de {avance.total}
         </p>
@@ -98,7 +98,7 @@ export function PasoAPaso({
                 title={f.c.nombre}
                 aria-label={`${f.c.nombre}${hecha ? ", con plan" : ""}${aqui ? ", la que estás armando" : ""}`}
                 aria-current={aqui ? "step" : undefined}
-                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none pointer-coarse:h-11 pointer-coarse:min-w-11 ${
+                className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-semibold tabular-nums transition-colors duration-200 ease-cayla motion-reduce:transition-none pointer-coarse:h-11 pointer-coarse:min-w-11 ${
                   hecha ? "bg-verde text-crema" : "border border-tinta/25 bg-papel text-tinta/80 hover:border-tinta"
                 } ${aqui ? "ring-2 ring-tinta ring-offset-2 ring-offset-papel" : ""}`}
               >
@@ -109,7 +109,7 @@ export function PasoAPaso({
         </div>
       </div>
       <div className="rounded-2xl border border-sand p-4">
-        <p className="label-cayla text-[11px] text-taupe-profundo">Lo que llevas</p>
+        <p className="label-cayla text-xs text-taupe-profundo">Lo que llevas</p>
         <p className="mt-2 text-sm text-tinta/80">
           Comprar <b className="font-semibold text-tinta">{enteroES.format(totales.aComprar)}</b> prendas
         </p>
@@ -119,7 +119,7 @@ export function PasoAPaso({
         </p>
       </div>
       <div className="rounded-2xl border border-sand p-4">
-        <p className="label-cayla text-[11px] text-taupe-profundo">Alcance</p>
+        <p className="label-cayla text-xs text-taupe-profundo">Alcance</p>
         <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Qué categorías recorrer">
           <BotonFiltro activo={alcance === "top"} cuenta={colaDelPaso(filas, "top").length} onClick={() => cambiarAlcance("top")}>
             Las que más venden
@@ -164,7 +164,7 @@ export function PasoAPaso({
       <div className="rounded-2xl border border-sand p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="label-cayla text-[11px] text-taupe-profundo">
+            <p className="label-cayla text-xs text-taupe-profundo">
               Categoría {lugar} de {cola.length}
               {actual.puesto !== null && ` · N.º ${actual.puesto} en ventas`}
             </p>

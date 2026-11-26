@@ -1,0 +1,4 @@
+## 2026-11-25 (Vender en el celular: el ticket le da el lugar a las prendas)
+Qué hice: en la hoja del ticket del celular quité «Hoy N sin registrar…» y achiqué el pie. «Dejar en espera» bajó al lado de «Cobrar», y el título quedó en «Ticket». Cada prenda va con «controles a la vista» (maqueta 2, elegida por Felipe): miniatura, nombre, color y talla, y el precio arriba; la cantidad, el «%» y la papelera abajo. Con descuento, una insignia «−10 % Motivo».
+Por qué así: en el celular las prendas tenían ~250 px. «Dejar en espera» se apretaba contra el asa y el título, y el «%» del precio no se leía como algo que se toca. El stock solo se dice cuando quedan pocas, y el escritorio sigue igual (todo va en clases `max-sm:`).
+Felipe se lleva: probarlo con una cuenta real en una tienda (cobrar, descuento por prenda, quitar, «En espera»). Ver las prendas negras en modo oscuro: su miniatura se funde con el fondo.

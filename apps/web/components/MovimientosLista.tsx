@@ -133,7 +133,7 @@ export function MovimientosLista({
       {abiertoId && !abierto && (
         <div className="nota-cayla mx-4 mt-3 flex items-center justify-between gap-3 text-sm sm:mx-5">
           <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
-          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-taupe underline underline-offset-2 hover:text-rojo">
+          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-xs text-taupe underline underline-offset-2 hover:text-rojo">
             Entendido
           </button>
         </div>

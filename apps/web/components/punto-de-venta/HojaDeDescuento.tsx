@@ -69,7 +69,7 @@ export function HojaDeDescuento({
 
       <div className="pv-desc-pie">
         <div className="pv-desc-quedaria">
-          <span className="label-cayla text-[11px] text-tinta/60">Quedaría en</span>
+          <span className="label-cayla text-xs text-tinta/60">Quedaría en</span>
           <strong key={verQuedaria ? cuenta.totalConDescuento : "—"} className={`anim-asentar font-display tabular-nums ${verQuedaria ? "text-tinta" : "text-tinta/45"}`}>
             {verQuedaria ? money(cuenta.totalConDescuento) : "—"}
           </strong>

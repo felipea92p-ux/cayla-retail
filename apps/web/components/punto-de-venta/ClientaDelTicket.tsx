@@ -52,9 +52,9 @@ const ESPERA_MS = 300;
 /** Los botones chicos de adentro de la caja (spike del club, `BTN_P` / `BTN_S` de `45-club-caja.js`). El hover del primario
  *  es rojo PROFUNDO, como todo primario del ERP (ADR-0169): el rojo de marca no se gasta en un hover. */
 const BOTON_CHICO_PRIMARIO =
-  "btn-cayla btn-primario h-7 shrink-0 px-2.5 text-[12.5px]";
+  "btn-cayla btn-primario h-7 shrink-0 px-2.5 text-xs leading-tight";
 const BOTON_CHICO_SECUNDARIO =
-  "btn-cayla btn-secundario h-7 shrink-0 px-2.5 text-[12.5px]";
+  "btn-cayla btn-secundario h-7 shrink-0 px-2.5 text-xs leading-tight";
 /** Con lo del club plegado, su acción a la vista como píldora (spike, `accion` de `partesClub`): «Usar puntos». */
 const PILDORA_ACCION =
   "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-sm leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
@@ -174,7 +174,7 @@ export function ClientaDelTicket({
             <AvatarPersona personaId={null} nombre={soloPalabras(linea.titulo)} tamano={32} />
             <div className="min-w-0 flex-1">
               <button type="button" onClick={() => setAbierto(true)} disabled={bloqueado || fila === "elegida_fija"} className="block w-full min-w-0 text-left">
-                <span className="block truncate text-[15px] font-semibold text-tinta">{linea.titulo}</span>
+                <span className="block truncate text-sm font-semibold text-tinta">{linea.titulo}</span>
                 {linea.detalle && <span className="block truncate text-sm text-tinta/60">{linea.detalle}</span>}
               </button>
               {caja.tipo !== "nada" && (
@@ -378,7 +378,7 @@ function FilaDelCartel({ fila, revisando, onActualizar }: { fila: ReturnType<typ
         fondo
         accion={
           fila.actualizar ? (
-            <Boton type="button" onClick={onActualizar} cargando={revisando} textoCargando="Revisando…" className="h-7 shrink-0 px-2.5 text-[12.5px]">
+            <Boton type="button" onClick={onActualizar} cargando={revisando} textoCargando="Revisando…" className="h-7 shrink-0 px-2.5 text-xs leading-tight">
               Actualizar
             </Boton>
           ) : undefined
@@ -473,8 +473,8 @@ function BuscarClientaModal({
       titulo={alta ? "Registrar cliente" : "Cliente de esta venta"}
       subtitulo={
         alta
-          ? "Solo su documento. Para ser del club, se une por su cuenta escaneando el cartel."
-          : "Opcional. Sus datos pasan solos al comprobante y la compra queda en su ficha."
+          ? "Solo su documento. Al club se une escaneando el cartel."
+          : "Opcional. Sus datos pasan solos al comprobante."
       }
       variante="hoja"
       onClose={onClose}
@@ -545,7 +545,7 @@ function BuscarClientaModal({
                             <span className="block truncate text-sm font-semibold text-tinta">{l.titulo}</span>
                             <span className="block truncate text-sm text-tinta/60">{[l.detalle, estadoEnLaLibreta(clubDesde)].filter(Boolean).join(" · ")}</span>
                           </span>
-                          <span className="label-cayla text-[10.5px] text-tinta/70">Elegir</span>
+                          <span className="label-cayla text-xs text-tinta/70">Elegir</span>
                         </button>
                       </li>
                     );

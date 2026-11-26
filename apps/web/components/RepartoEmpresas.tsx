@@ -61,7 +61,7 @@ export function RepartoEmpresas({
       <dl className="mt-4 grid grid-cols-2 gap-4">
         {reparto.partes.map((p) => (
           <div key={p.empresaId} className="min-w-0">
-            <dt className="flex items-center gap-1.5 text-[13px] font-semibold text-tinta">
+            <dt className="flex items-center gap-1.5 text-xs font-semibold text-tinta">
               <MuestraTramo clase={colorDe(p.clave, aliadas)} />
               {p.nombre}
             </dt>

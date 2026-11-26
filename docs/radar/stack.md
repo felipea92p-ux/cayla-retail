@@ -1,12 +1,13 @@
-# Radar · stack (al 2026-11-16)
+# Radar · stack (al 2026-11-23)
 
-Alcance: lo salido o anunciado en ~12 meses (nov-2025 → nov-2026) para Next.js, React, PostgreSQL, Supabase, Vercel, herramientas, plataforma web e IA, filtrado por lo que le sirve a un ERP de 3 tiendas + 1 taller (Next.js 16.4.6 + Supabase con RLS/RPC + Vercel). Refresco semanal del 2026-11-16: solo cambia lo publicado o descubierto desde el 2026-11-13.
+Alcance: lo salido o anunciado en ~12 meses (nov-2025 → nov-2026) para Next.js, React, PostgreSQL, Supabase, Vercel, herramientas, plataforma web e IA, filtrado por lo que le sirve a un ERP de 3 tiendas + 1 taller (Next.js 16.4.6 + Supabase con RLS/RPC + Vercel). Refresco semanal del 2026-11-23: solo cambia lo publicado o descubierto desde el 2026-11-16.
 Anillos (ThoughtWorks): **ADOPTAR** · **PROBAR** · **EVALUAR** · **ESPERAR**.
 
-Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-13 y revisado contra `pnpm-lock.yaml` el 2026-11-16 (solo lectura):
+Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-13 y revisado contra `pnpm-lock.yaml` el 2026-11-16 y el 2026-11-23 (solo lectura; sin cambios de versión en el repo entre ambas fechas):
 - Ya en uso: `proxy.ts` (no `middleware.ts`), `getClaims()` (5 archivos; quedan 7 con `auth.getUser`), llaves `PUBLISHABLE_KEY`, `useEffectEvent` (4 archivos), `document.startViewTransition` a mano (3 archivos), `BarcodeDetector` (`EscanerCamara.tsx`), Tailwind 4.3.2 (lockfile), pnpm 12.4.1, Next 16.4.6 (desde el 2026-11-13). El CI fija el CLI de Supabase en `supabase@2.118.0` (`ci.yml`, `deriva-diaria.yml`).
-- Versiones del repo (declarada · resuelta en el lockfile) frente a lo último en npm (consultado 2026-11-16): next 16.4.6 = **16.4.6** (al día; canary 16.5.0-canary.52); react/react-dom 19.2.4 → 19.3.1; @supabase/supabase-js ^2.45 · 2.110.6 → 2.119.0; @supabase/ssr ^0.12.3 · 0.12.3 → 0.12.7; @sentry/nextjs 10.76.2 → 11.12.0 (la línea 10 sigue con parches: 10.78.0); zod ^3.25.76 · 3.25.76 → 4.6.7; typescript ^5 · 5.9.3 → 7.0.2 (7.1.0-beta); vitest ^4.1.10 · 4.1.10 → 5.1.0 (4.x: 4.1.12); turbo ^2.5 · 2.10.5 → 2.11.11; tailwindcss 4.3.2 → 4.3.5; knip ^6.41 → 6.45.1; pnpm 12.4.1 → 12.21.0; CLI `supabase` 2.118.0 (fijado en el CI) → 3.1.0.
-- Postgres de producción: el proyecto Supabase está en Postgres 17 (major_version 17, también en local). **Postgres 18 todavía no está en Supabase hospedado**, así que todo lo de PG18/PG19 queda en EVALUAR o ESPERAR.
+- Versiones del repo (declarada · resuelta en el lockfile) frente a lo último en npm (`npm view`, consultado 2026-11-23): next 16.4.6 = **16.4.6** (al día; canary 16.5.0-canary.61); react/react-dom 19.2.4 → 19.3.1; @supabase/supabase-js ^2.45 · 2.110.6 → 2.119.2 (2026-11-19); @supabase/ssr ^0.12.3 · 0.12.3 → 0.12.7; @sentry/nextjs 10.76.2 → 11.16.0 (2026-11-20; la línea 10 sigue en 10.78.0); zod ^3.25.76 · 3.25.76 → 4.6.7; typescript ^5 · 5.9.3 → 7.0.2 (7.1.0-beta; diaria 7.1.0-dev.20261123.1); vitest ^4.1.10 · 4.1.10 → 5.1.1 (2026-11-18; 4.x: 4.1.12); turbo ^2.5 · 2.10.5 → 2.11.13 (2026-11-18); tailwindcss 4.3.2 → 4.3.5; knip ^6.41 → 6.48.0 (2026-11-22); pnpm 12.4.1 → 12.23.0 (2026-11-22); CLI `supabase` 2.118.0 (fijado en el CI) → 3.3.0 (2026-11-23; `v2.stable` 2.122.1); `@anthropic-ai/sdk` → 1.12.0 (2026-11-20); `@anthropic-ai/claude-agent-sdk` → 0.3.330; `ai` → 7.0.179; `@modelcontextprotocol/sdk` 1.32.2 (sin cambio).
+- **Avisos de seguridad sobre el lockfile (`pnpm audit`, 2026-11-23; 0 críticos, 4 altos, 10 moderados, 3 bajos), todos en herramientas de desarrollo o de build, ninguno en el código que corre en producción:** `zod` 3.25.76 de `apps/tienda` (GHSA-mrhx-c7xc-m3w5, alto, ya conocido); `vitest` 4.1.10 (GHSA-82fw-gwwq-j7x9, ya conocido) y **nuevo esta semana GHSA-qxg6-89mg-rqv8** (`@vitest/mocker` < 4.1.12, moderado: inyección de código al registrar un mock por el WebSocket del servidor de desarrollo, CVE-2026-112949), que sube el arreglo mínimo de 4.1.11 a **4.1.12**; **nuevos: cinco avisos de `vite` 8.0.0–8.1.5** (traído por `@vitest/mocker`; `server.fs.allow` saltable con el servidor expuesto a la red, GHSA-rq7h-c2jc-7f22; `launch-editor` con banderas inyectables, GHSA-r825-w8mm-5pxw y GHSA-587h-7wmj-h5pm (alto, solo Windows), GHSA-698v-4r3x-3vcv; y GHSA-9jrq-w75r-8gcw), arreglados en vite 8.1.6, que llega solo al subir `vitest` a 4.1.12; `js-yaml` < 4.3.2 (vía `eslint`, 2 altos de CPU), `fast-uri` < 3.1.9 y `glob` ≤ 14.0.1 (vía `@sentry/nextjs` → plugin de webpack, en el build) y `minimatch` < 11.0.1 (vía typescript-eslint). Para `next@16.4.6`, `react@19.2.4`, `@supabase/*`, `typescript`, `turbo`, `tailwindcss` y `@sentry/nextjs` mismo, la base de avisos de npm no devuelve nada. No se pudo leer la API de avisos de GitHub por repositorio desde esta sesión (solo los repositorios configurados); los datos salen de la base de npm, que replica la de GitHub.
+- Postgres de producción: el proyecto Supabase está en Postgres 17 (major_version 17, también en local). **Postgres 18 todavía no está en Supabase hospedado** (sin anuncio oficial al 2026-11-23) y **PostgreSQL 19 salió GA el 2026-11-19**, así que todo lo de PG18/PG19 queda en EVALUAR o ESPERAR.
 
 ## Tabla resumen
 
@@ -18,7 +19,7 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | Resiliencia de red `experimental.useOffline` | Next.js | EVALUAR |
 | React Compiler 1.0 (y su versión en Rust) | Next.js / React | PROBAR |
 | `next upgrade --agent` y aviso `agentUpgrade: 'security'` | Next.js | ADOPTAR |
-| `ensureStatic` para la tienda online (↑, cruza con Vercel) | Next.js | PROBAR |
+| `ensureStatic` para la tienda online (↑ 2026-11-23, cruza con Vercel) | Next.js | ADOPTAR |
 | `useEffectEvent` | React 19.2 | ADOPTAR |
 | `<Activity>` | React 19.2 | PROBAR |
 | `<ViewTransition>` estable (React 19.3) | React 19.3 | PROBAR |
@@ -27,7 +28,7 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | `OLD`/`NEW` en `RETURNING` | PostgreSQL 18 | EVALUAR |
 | Columnas generadas virtuales | PostgreSQL 18 | EVALUAR |
 | Restricciones temporales `WITHOUT OVERLAPS` | PostgreSQL 18 | EVALUAR |
-| PostgreSQL 19 (RC2; GA prevista el 2026-11-19) | PostgreSQL 19 | ESPERAR |
+| PostgreSQL 19 (GA el 2026-11-19) | PostgreSQL 19 | ESPERAR |
 | Apagar las llaves heredadas `anon`/`service_role` | Supabase | ADOPTAR |
 | Llaves de firma JWT asimétricas + `getClaims()` en todo | Supabase | ADOPTAR |
 | La Data API ya no expone tablas nuevas sola | Supabase | ADOPTAR |
@@ -43,7 +44,7 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | CLI de Supabase v3 (local por defecto) — nuevo | Supabase | EVALUAR |
 | Fluid compute + precio por CPU activa | Vercel | ADOPTAR |
 | Rolling Releases | Vercel | PROBAR |
-| Vercel Workflows (ejecución durable) | Vercel | PROBAR |
+| Vercel Workflows (Workflow SDK 5, ya en `gru1`) | Vercel | PROBAR |
 | Vercel Queues (beta pública) | Vercel | EVALUAR |
 | BotID | Vercel | PROBAR |
 | AI Gateway con presupuestos | Vercel | EVALUAR |
@@ -51,7 +52,7 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | TypeScript 7.0/7.1 (compilador nativo en Go) | TypeScript | PROBAR |
 | Zod 4 (↑ por el aviso de memoria en <4.6.6) | Zod | ADOPTAR |
 | Tailwind v4.2/v4.3 (scrollbar, gutter, logical, `font-features`) | Tailwind | ADOPTAR |
-| Vitest 5 (y Browser Mode con capturas) | Vitest | PROBAR |
+| Vitest 5 (y Browser Mode con capturas; 4.1.12 por dos avisos) | Vitest | PROBAR |
 | Oxlint con análisis por tipos estable (vs. Biome 2) | Lint | PROBAR |
 | Almacén virtual global de pnpm + raíces extra de Next 16.4 | pnpm / Next.js | PROBAR |
 | Turborepo 2.9–2.11 (`--affected` componible, caché) | Turborepo | PROBAR |
@@ -60,7 +61,7 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | Navigation API (Baseline) | Web | EVALUAR |
 | `field-sizing: content` (Baseline 2026) | Web | ADOPTAR |
 | View Transitions entre documentos | Web | ESPERAR |
-| Animaciones guiadas por scroll | Web | EVALUAR |
+| Animaciones guiadas por scroll (↑, Baseline octubre 2026) | Web | PROBAR |
 | `<select>` personalizable (`appearance: base-select`) | Web | ESPERAR |
 | Temporal (fechas y zonas horarias) | Web / JS | EVALUAR |
 | WebUSB / Web Serial para la impresora térmica | Web | PROBAR |
@@ -73,7 +74,9 @@ Contexto que cambia el anillo de varias entradas, medido en el repo el 2026-11-1
 | Especificación MCP 2026-07-28 y MCP Apps | IA | EVALUAR |
 | AI SDK 7 | IA | EVALUAR |
 
-Conteo: ADOPTAR 15 · PROBAR 20 · EVALUAR 20 · ESPERAR 5 — **60 entradas**.
+Conteo: ADOPTAR 16 · PROBAR 20 · EVALUAR 19 · ESPERAR 5 — **60 entradas**.
+
+Cambios del refresco 2026-11-23: sube `ensureStatic` (PROBAR → ADOPTAR, por el cruce con Vercel: los fallos de prerender de la tienda pasaron de cientos a más de doce mil en la semana); sube «Animaciones guiadas por scroll» (EVALUAR → PROBAR: Baseline «recién disponible» desde octubre con Firefox 159; el radar anterior lo daba fuera de Baseline); PostgreSQL 19 pasa de RC2 a GA (2026-11-19) y sigue en ESPERAR porque Supabase no ofrece ni PG18; Vercel Workflows se actualiza a Workflow SDK 5 (cifrado de extremo a extremo y ejecución en todas las regiones, incluida `gru1`); el arreglo de Vitest sube a 4.1.12 por un aviso nuevo (GHSA-qxg6-89mg-rqv8) y cinco de Vite; Branching 2.0 exige desde el 2026-11-12 un token con alcance para fusionar a producción; se corrigen versiones de supabase-js, CLI de Supabase, Sentry, Turborepo, pnpm, knip y la IA. No entró ni salió ninguna entrada: sigue en 60 (el tope), y nada de la semana justificaba reemplazar una.
 
 Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBAR → ADOPTAR); sube `ensureStatic` (EVALUAR → PROBAR, por los errores de prerender de la tienda en Vercel); se corrige Cache Components (la tienda ya lo usa); el parche 16.4.5 queda adoptado; se corrigen versiones y fechas de React, PostgreSQL 19, supabase-js, TypeScript, Vitest, Turborepo, pnpm, Sentry, Tailwind, Oxlint/Biome y la IA. No salió ninguna entrada.
 
@@ -83,11 +86,11 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Parche de seguridad 16.4.5 (noviembre 2026)
 - **Qué es:** publicación programada que corrige 7 avisos: fugas entre «inquilinos» del caché `use cache` (las siete de severidad media según los avisos de GitHub de `vercel/next.js`, verificado el 2026-11-13), una cookie `HttpOnly` filtrada por la cabecera interna `x-middleware-set-cookie` en rutas Edge y un bypass de SVG en el optimizador de imágenes.
-- **Versión / fecha:** estable; 16.4.5 (Active LTS) publicado el 2026-11-03; 16.4.6 el 2026-11-09 (sigue siendo `latest` en npm al 2026-11-16; la siguiente línea, 16.5, va en canary).
+- **Versión / fecha:** estable; 16.4.5 (Active LTS) publicado el 2026-11-03; 16.4.6 el 2026-11-09 (sigue siendo `latest` en npm al 2026-11-23; la siguiente línea, 16.5, va en canary.61, que suma un soporte experimental de `@next/safe-image-optimization` para el optimizador de imágenes, según un índice de cambios de terceros).
 - **Anillo:** ADOPTAR — **adoptado en el repo el 2026-11-13** (`next@16.4.6` en el lockfile). Next tiene un ciclo mensual formal de seguridad (desde 2026-07-13): el próximo parche programado caería a inicios de diciembre.
 - **Dónde le serviría a este ERP:** toda la web y la tienda. El optimizador de imágenes (`ImagenDePrenda`, ADR-0168) es parte del alcance del aviso de SVG; los avisos de caché importan el día que se encienda Cache Components.
-- **Costo o riesgo:** hecho. Lo que queda: seguir el ciclo mensual. La consulta de avisos de npm (`/-/npm/v1/security/advisories/bulk`) no devuelve ningún aviso para `next@16.4.6` al 2026-11-16.
-- **Fuente:** https://nextjs.org/blog/november-2026-security-release (2026-11-03); https://nextjs.org/blog/next-security-release-program (2026-07-13); https://registry.npmjs.org/next (16.4.6, 2026-11-09) — consultado 2026-11-16.
+- **Costo o riesgo:** hecho. Lo que queda: seguir el ciclo mensual. La consulta de avisos de npm (`/-/npm/v1/security/advisories/bulk`) no devuelve ningún aviso para `next@16.4.6` al 2026-11-23.
+- **Fuente:** https://nextjs.org/blog/november-2026-security-release (2026-11-03); https://nextjs.org/blog/next-security-release-program (2026-07-13) — consultado 2026-11-16; https://registry.npmjs.org/next (16.4.6, 2026-11-09; canary 16.5.0-canary.61); https://releases.sh/vercel/nextjs (fuente secundaria) — consultado 2026-11-23.
 
 ### Cache Components + Partial Prefetching («Instant Navigations»)
 - **Qué es:** el nuevo modelo de Next: nada se cachea solo; con `'use cache'` + `cacheLife` se marca qué parte de la pantalla puede guardarse (en el navegador y en el servidor), y Partial Prefetching precarga la «cáscara» de la ruta para que el clic en un enlace pinte al instante. Trae herramientas de desarrollo: *Instant Insights* (avisa qué navegación no es instantánea), *Navigation Inspector* y el ayudante `instant()` para Playwright.
@@ -132,7 +135,7 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 ### `ensureStatic` para la tienda online
 - **Qué es:** `export const ensureStatic = 'navigation' | 'prefetch' | 'shell'` hace fallar el build si un componente dinámico se cuela en una ruta que debía ser estática.
 - **Versión / fecha:** 16.4 (2026-10-06), dentro de Cache Components.
-- **Anillo:** PROBAR (↑ desde EVALUAR el 2026-11-16). La tienda ya tiene Cache Components (ADR-0432), así que el requisito estaba cumplido, y Vercel muestra esta semana lo que `ensureStatic` atraparía en el build: rutas de la tienda que leen la hora durante el prerender y fallan en ejecución (cientos de veces por semana en catálogo, ficha e inicio).
+- **Anillo:** ADOPTAR (↑ desde PROBAR el 2026-11-23; antes ↑ desde EVALUAR el 2026-11-16). La tienda ya tiene Cache Components (ADR-0432), así que el requisito estaba cumplido. El 2026-11-16 Vercel mostraba cientos de fallos por semana de rutas de la tienda que leen la hora durante el prerender; el 2026-11-23 eran más de doce mil en la semana, casi todos en la ficha de prenda y en «arma tu look». Es exactamente lo que `ensureStatic` frenaría en el build, cuesta una línea por ruta y el error crece: ya no es un piloto.
 - **Dónde le serviría a este ERP:** las vitrinas y fichas de producto de `apps/tienda`: garantizar que sigan siendo estáticas (menos cómputo en la factura de Vercel, ADR-0648).
 - **Costo o riesgo:** bajo: una línea por ruta, empezando por la ficha de prenda; el primer build probablemente falle y obligue a mover el `Date.now()` a su `<Suspense>` o al cliente, que es justo el arreglo. Es de `apps/tienda`, sin efecto en el ERP.
 - **Fuente:** https://nextjs.org/blog/next-16-4 (2026-10-06) — consultado 2026-11-13; errores de ejecución de Vercel del proyecto de la tienda (últimos 7 días) — consultado 2026-11-16.
@@ -160,18 +163,18 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 - **Versión / fecha:** estable en React 19.3 (2026-09-09); Next 16.4 la incluye.
 - **Anillo:** PROBAR. El repo llama a `document.startViewTransition` a mano en 3 lugares (Observatorio, tema, Inicio de almacén).
 - **Dónde le serviría a este ERP:** reemplazar esos tres usos manuales por la pieza de React; animar el cambio de vista GRILLA/TABLA o una fila que se abre, sin escribir `flushSync`.
-- **Costo o riesgo:** subir `react`/`react-dom` de 19.2.4 a 19.3.1 (sigue siendo la última en npm al 2026-11-16). Debe respetar «Las animaciones arrancan apagadas» (ADR-0625): envolver con `useQuieto()` y pasar por ADR-0136 antes de cualquier animación nueva. Nota de seguridad: 19.3.1 es también el parche del RCE en `react-server-dom-*` (GHSA-xqc2-xf4c-x3h3, crítico, publicado 2026-10-14 y sumado a la base de avisos el 2026-11-10); el ERP no se ve afectado porque Next trae su propia copia del runtime de RSC y ese fallo lo corrigió Next 16.4.1 (GHSA-673q-mjm6-r5xr). El repo no instala `react-server-dom-*` aparte.
+- **Costo o riesgo:** subir `react`/`react-dom` de 19.2.4 a 19.3.1 (sigue siendo la última en npm al 2026-11-23; no hay 19.4 anunciada). Debe respetar «Las animaciones arrancan apagadas» (ADR-0625): envolver con `useQuieto()` y pasar por ADR-0136 antes de cualquier animación nueva. Nota de seguridad: 19.3.1 es también el parche del RCE en `react-server-dom-*` (GHSA-xqc2-xf4c-x3h3, crítico, publicado 2026-10-14 y sumado a la base de avisos el 2026-11-10); el ERP no se ve afectado porque Next trae su propia copia del runtime de RSC y ese fallo lo corrigió Next 16.4.1 (GHSA-673q-mjm6-r5xr). El repo no instala `react-server-dom-*` aparte.
 - **Fuente:** https://react.dev/blog/2026/09/09/react-19-3 (2026-09-09) — consultado 2026-11-13; https://github.com/advisories/GHSA-xqc2-xf4c-x3h3 (2026-10-14) y https://github.com/advisories/GHSA-673q-mjm6-r5xr (2026-10-14) — consultado 2026-11-16.
 
 ## 3. PostgreSQL
 
 ### Postgres 18 en Supabase (AIO, skip scan, EXPLAIN con buffers)
 - **Qué es:** PG18 trae E/S asíncrona (hasta 3× en lecturas), *skip scan* en índices B-tree de varias columnas (usa el índice aunque la consulta no filtre la primera columna), `EXPLAIN ANALYZE` con buffers por defecto y `pg_upgrade` que conserva estadísticas.
-- **Versión / fecha:** PG18 estable el 2025-09-25 (última menor 18.7, 2026-11-12). **En Supabase hospedado aún no está**: el último comentario del personal (2026-05-04) habla de «eventualmente en 2026».
+- **Versión / fecha:** PG18 estable el 2025-09-25 (última menor 18.7, 2026-11-12). **En Supabase hospedado aún no está** al 2026-11-23: el último comentario del personal (2026-05-04) habla de «eventualmente en 2026», y no hay entrada en el changelog que lo active; los proyectos nuevos siguen naciendo en 17 (fuente secundaria para esto último). Con PG19 ya GA, Supabase queda dos versiones mayores atrás.
 - **Anillo:** EVALUAR. Es la puerta de todas las entradas de PG18 de abajo; no depende de nosotros.
 - **Dónde le serviría a este ERP:** las RPC de listado y Análisis que filtran por `(ubicacion_id, variante_id, …)` sin la primera columna (skip scan); el vigía `/api/salud` se beneficia de lecturas más rápidas.
 - **Costo o riesgo:** la subida la decide Supabase y afecta al proyecto de Dynamic entero (retail vive en su schema). Reindexar `pg_trgm` y FTS tras el upgrade; `md5` deprecado.
-- **Fuente:** https://www.postgresql.org/about/news/postgresql-18-released-3142/ (2025-09-25); https://github.com/orgs/supabase/discussions/42681 (comentario 2026-05-04) — consultado 2026-11-13.
+- **Fuente:** https://www.postgresql.org/about/news/postgresql-18-released-3142/ (2025-09-25); https://github.com/orgs/supabase/discussions/42681 (comentario 2026-05-04) — consultado 2026-11-13; https://pulore.com/postgresql-end-of-life y https://www.webhound.ai/p/cloud-databases-adding-postgresql-18-support-in-2026-8se2lb (fuentes secundarias) — consultado 2026-11-23.
 
 ### `uuidv7()`
 - **Qué es:** función nativa que genera UUID ordenados por tiempo: mejor localidad en índices que `gen_random_uuid()` en tablas que solo crecen.
@@ -205,23 +208,23 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 - **Costo o riesgo:** requiere `btree_gist`; Supabase avisó que índices `btree_gist` pueden requerir reindexado tras sus parches (2026-09-25).
 - **Fuente:** https://www.postgresql.org/about/news/postgresql-18-released-3142/ (2025-09-25); https://supabase.com/changelog (entrada 2026-09-25) — consultado 2026-11-13.
 
-### PostgreSQL 19 (RC2)
-- **Qué es:** `INSERT … ON CONFLICT DO SELECT … RETURNING` (devuelve la fila que chocó), `GROUP BY ALL`, `FOR PORTION OF`, inserciones con FK hasta 2× más rápidas, `REPACK CONCURRENTLY`, `WAIT FOR LSN`, autovacuum paralelo; JIT apagado y `lz4` por defecto.
-- **Versión / fecha:** Beta 1 el 2026-06-04; RC1 el 2026-10-15; **RC2 el 2026-11-12**; GA prevista para el **2026-11-19** salvo un problema de último momento (fuente secundaria: no se pudo abrir postgresql.org desde esta sesión). Se cayó del alcance, entre otras cosas, SQL/PGQ (consultas de grafos).
-- **Anillo:** ESPERAR. Aunque salga GA esta semana, Supabase aún no ofrece PG18.
+### PostgreSQL 19 (GA)
+- **Qué es:** `INSERT … ON CONFLICT DO SELECT … RETURNING` (devuelve la fila que chocó), `GROUP BY ALL`, `FOR PORTION OF`, inserciones con FK hasta 2× más rápidas, `REPACK CONCURRENTLY`, `WAIT FOR LSN`, autovacuum paralelo, la extensión `pg_plan_advice` (guiar planes de consulta) y réplica lógica de secuencias; JIT apagado y `lz4` por defecto; se quita la autenticación RADIUS.
+- **Versión / fecha:** Beta 1 el 2026-06-04; RC1 el 2026-10-15; RC2 el 2026-11-12; **GA (19.0) el 2026-11-19**, unas seis semanas más tarde de lo planeado; soporte hasta noviembre de 2031. Se cayeron del alcance SQL/PGQ (consultas de grafos) y el encendido de checksums en línea, que pasan a candidatos de PG20. El anuncio oficial existe (lo indexa el buscador), pero postgresql.org no se pudo abrir desde esta sesión: la lista de funciones sale de fuentes secundarias.
+- **Anillo:** ESPERAR. Ya es GA, pero Supabase aún no ofrece ni PG18; el día que llegue, convendrá saltar directo a 19 si Supabase lo permite.
 - **Dónde le serviría a este ERP:** `ON CONFLICT DO SELECT` simplifica RPC idempotentes (doble clic en «Cobrar», ADR-0356); inserts con FK más rápidos ayudan a `movimientos`.
 - **Costo o riesgo:** ninguno hoy; vigilar.
-- **Fuente:** https://www.postgresql.org/about/news/postgresql-19-beta-1-released-3313/ (2026-06-04); https://www.postgresql.org/about/newsarchive/ (2026-11-12) — consultado 2026-11-13; https://jamsql.com/blog/whats-new-postgresql-19/ y https://atlasgo.io/blog/2026/11/12/postgres-19 (2026-11-12; fuente secundaria) — consultado 2026-11-16.
+- **Fuente:** https://www.postgresql.org/about/news/postgresql-19-released-3449/ (2026-11-19; visto en el buscador, no abierto); https://www.postgresql.org/about/news/postgresql-19-beta-1-released-3313/ (2026-06-04) — consultado 2026-11-13; https://tecadmin.net/postgresql-19-released/ y https://www.linuxcompatible.org/story/postgresql-19-released-key-features-changes-and-upgrade-guide (fuentes secundarias) — consultado 2026-11-23.
 
 ## 4. Supabase
 
 ### Apagar las llaves heredadas `anon`/`service_role`
 - **Qué es:** Supabase reemplaza las llaves JWT de larga vida por `sb_publishable_…` (respeta RLS) y `sb_secret_…` (salta RLS, bloqueada en navegadores). Las heredadas siguen vivas hasta que se apagan a mano en *Settings ▸ API Keys*.
 - **Versión / fecha:** nuevas llaves disponibles desde 2025; Supabase retira las heredadas «a fines de 2026» (sin fecha exacta publicada).
-- **Anillo:** ADOPTAR. Fecha límite en ~6 semanas; al 2026-11-16 Supabase sigue sin fecha exacta («late 2026, TBC»).
+- **Anillo:** ADOPTAR. Fecha límite en ~5 semanas; al 2026-11-23 Supabase sigue sin fecha exacta («late 2026, TBC», discusión #29260). Alguna página de terceros dice «31 de diciembre de 2026», pero su propio texto admite que no está confirmada: no planificar con esa fecha.
 - **Dónde le serviría a este ERP:** el repo ya usa `PUBLISHABLE_KEY` (7 archivos); falta confirmar que `lib/supabase-admin.ts` use una `sb_secret_` y no el JWT `service_role`, revisar Vercel, CI, scripts y vigías, y luego **apagar las heredadas**. Ojo: el proyecto es el de Dynamic, así que apagar afecta a Dynamic también.
 - **Costo o riesgo:** decisión que toca dos sistemas (regla de «más de un módulo»): coordinar con Dynamic antes de apagar.
-- **Fuente:** https://supabase.com/docs/guides/api/api-keys ; https://supabase.com/blog/jwt-signing-keys (2025-07-14) — consultado 2026-11-13; https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys — consultado 2026-11-16.
+- **Fuente:** https://supabase.com/docs/guides/api/api-keys ; https://supabase.com/blog/jwt-signing-keys (2025-07-14) — consultado 2026-11-13; https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys — consultado 2026-11-16; https://agentdeals.dev/shutdowns/supabase-2026-12-31-supabase-legacy-api-keys (fuente secundaria, fecha no confirmada) — consultado 2026-11-23.
 
 ### Llaves de firma JWT asimétricas + `getClaims()` en todo
 - **Qué es:** con llaves asimétricas, `getClaims()` verifica el token localmente con Web Crypto (llave pública en caché) en vez de llamar a Auth como `getUser()`.
@@ -242,18 +245,18 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 ### supabase-js 2.45 → 2.119
 - **Qué es:** 2.119.0 (2026-11-04) reintenta solo los GET/HEAD a PostgREST ante errores transitorios (desde 2026-04-20), infiere tipos de funciones `SETOF` en `.select()`, y PostgREST v14 da ~20 % más rendimiento en GET.
 - **Versión / fecha:** estable; las librerías dejaron Node 20 el 2026-06-30 y exigirán TypeScript ≥ 5.0 desde 2027-01-31.
-- **Anillo:** ADOPTAR. El repo declara `^2.45.0` y el lockfile resuelve 2.110.6; 2.119.0 sigue siendo la última al 2026-11-16 (`@supabase/ssr`: 0.12.3 → 0.12.7). Ningún aviso de seguridad para esas versiones en la base de avisos de npm.
+- **Anillo:** ADOPTAR. El repo declara `^2.45.0` y el lockfile resuelve 2.110.6; la última es 2.119.2 (2026-11-19, un parche de Storage) al 2026-11-23 (`@supabase/ssr`: 0.12.3 → 0.12.7, sin cambio). Ningún aviso de seguridad para esas versiones en la base de avisos de npm.
 - **Dónde le serviría a este ERP:** las RPC de listado y búsquedas: menos errores visibles por un corte breve; tipos mejores en `packages/database`.
 - **Costo o riesgo:** bajo (misma versión mayor). Revisar que el reintento no aplique a nada que escriba (solo GET/HEAD, según Supabase) y que `datos:comparar` siga verde. Desde el 2026-11-10 Supabase retira cuatro cifrados viejos de TLS 1.2 en sus API HTTP (no toca la conexión directa a Postgres): sin efecto en Vercel, pero un script antiguo podría notarlo.
-- **Fuente:** https://supabase.com/changelog (entradas 2026-04-20, 2025-12-11, 2025-10-22, 2026-05-08, 2026-07-10) — consultado 2026-11-13; https://registry.npmjs.org/@supabase/supabase-js (2.119.0, 2026-11-04); https://supabase.com/changelog (cifrados TLS, 2026-11-10; leído vía buscador) — consultado 2026-11-16.
+- **Fuente:** https://supabase.com/changelog (entradas 2026-04-20, 2025-12-11, 2025-10-22, 2026-05-08, 2026-07-10) — consultado 2026-11-13; https://registry.npmjs.org/@supabase/supabase-js (2.119.0, 2026-11-04); https://supabase.com/changelog (cifrados TLS, 2026-11-10; leído vía buscador) — consultado 2026-11-16; https://registry.npmjs.org/@supabase/supabase-js (2.119.2, 2026-11-19) — consultado 2026-11-23.
 
 ### Branching 2.0 (ramas sin Git)
 - **Qué es:** ramas de base creadas desde el panel, CLI o API, sin conectar GitHub: copian schema, funciones y configuración (no los datos) y se fusionan a producción desde el panel con revisión de cambios.
 - **Versión / fecha:** anunciado 2025-07-16 (vista previa); desde 2026-05-07 las ramas funcionan sin Git por defecto; 2026-10-15 migraciones y funciones más rápidas en ramas.
 - **Anillo:** PROBAR. Ataca el dolor más caro del repo: pegar migraciones en el SQL Editor de producción (deadlocks, prefijo `retail.`, líneas agregadas).
 - **Dónde le serviría a este ERP:** ensayar una migración «partida en partes» (ADR-0195) en una rama idéntica a producción antes de pegarla; probar la segunda llave que tumbó Existencias (memoria del 2026-11-10).
-- **Costo o riesgo:** la rama copia el proyecto de Dynamic entero; roles creados en el panel no se copian; costo por rama (no publicado en el anuncio; ver precios). Requiere coordinación con Dynamic.
-- **Fuente:** https://supabase.com/blog/branching-2-0 (2025-07-16); https://supabase.com/changelog (2026-05-07) — consultado 2026-11-13.
+- **Costo o riesgo:** la rama copia el proyecto de Dynamic entero; roles creados en el panel no se copian; costo por rama (no publicado en el anuncio; ver precios). Requiere coordinación con Dynamic. **Cambio desde el 2026-11-12:** fusionar una rama a producción exige un token personal con alcance («Production Branches: Read-write»); un token viejo sin alcance falla (fuente secundaria: resumen del changelog vía buscador).
+- **Fuente:** https://supabase.com/blog/branching-2-0 (2025-07-16); https://supabase.com/changelog (2026-05-07) — consultado 2026-11-13; https://supabase.com/changelog (2026-11-12; leído vía buscador, supabase.com no abre desde esta sesión) — consultado 2026-11-23.
 
 ### Declarative Schemas 2.0 y desarrollo local sin Docker
 - **Qué es:** el schema vive como archivos SQL en el repo y `pg-delta` genera la migración por diferencia; y una pila local que corre como procesos nativos (sin Docker), varias por carpeta.
@@ -313,11 +316,11 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### CLI de Supabase v3 (local por defecto) — nuevo
 - **Qué es:** versión mayor del CLI: `db push`, `db pull`, `db dump`, `migration list`, `gen types` y los comandos de storage apuntan a la base **local** salvo `--remote`; todo lo que cambia un proyecto hospedado pregunta antes (por defecto «No», y en CI falla sin `--yes`); un solo `--remote` reemplaza a `--linked`, `--project-ref` y `--db-url`; las variables `SUPABASE_*` le ganan a `config.toml`; se quitan comandos y claves deprecados.
-- **Versión / fecha:** 3.0.0 el 2026-11-02; npm `supabase` 3.1.0 (`latest`); quien necesite quedarse en v2 usa el canal `v2.stable` (2.122.1).
+- **Versión / fecha:** 3.0.0 el 2026-11-02; npm `supabase` **3.3.0** (`latest`, 2026-11-23; 3.4.0 en beta y 4.0.0 ya en `next`); quien necesite quedarse en v2 usa el canal `v2.stable` (2.122.1, sin cambio). v3 es ya el valor por defecto para instalaciones nuevas.
 - **Anillo:** EVALUAR. El CI ya fija `supabase@2.118.0`, así que no se rompe solo; pero `npx supabase start` sin versión (lo que piden `scripts/migraciones/README.md` y `verificar.mjs`) ya baja v3 en una máquina nueva.
 - **Dónde le serviría a este ERP:** «local por defecto» y la confirmación antes de tocar lo hospedado encajan con la regla de no aplicar a producción sin OK; las pilas locales compartidas entre sesiones ganan si v3 corre igual. Mientras tanto, conviene que la documentación diga la versión fija igual que el CI.
 - **Costo o riesgo:** revisar la guía de migración (precedencia de configuración, motor de diff) antes de subir el pin del CI; v2 no avisa de esos cambios. Proyectos hospedados no cambian.
-- **Fuente:** https://supabase.com/changelog/supabase-cli-v3 (2026-11-02); https://supabase.com/docs/guides/local-development/cli/migrating-to-v3 ; https://registry.npmjs.org/supabase (dist-tags) — consultado 2026-11-16.
+- **Fuente:** https://supabase.com/changelog/supabase-cli-v3 (2026-11-02); https://supabase.com/docs/guides/local-development/cli/migrating-to-v3 — consultado 2026-11-16; https://registry.npmjs.org/supabase (dist-tags) — consultado 2026-11-23.
 
 ## 5. Vercel
 
@@ -339,11 +342,11 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Vercel Workflows (ejecución durable)
 - **Qué es:** funciones de larga duración escritas como código normal (`"use workflow"` / `"use step"`) donde cada paso terminado se guarda y se reintenta solo; pueden dormir minutos o meses o esperar un evento externo.
-- **Versión / fecha:** GA el 2026-04-17 (TypeScript); SDK de Python en beta; el kit abierto (Workflow DevKit) es la base.
-- **Anillo:** PROBAR. Primer encaje fuerte con el principio 9 sin montar infraestructura.
+- **Versión / fecha:** GA el 2026-04-17 (TypeScript); **Workflow SDK 5, «listo para producción», destacado en el resumen semanal de Vercel del 2026-11-16**: cifra cada carga de extremo a extremo antes de salir del código (automático en Vercel) y, a diferencia de v4 (que corría todo en `iad1`, EE. UU.), despliega su infraestructura en todas las regiones de Functions; más recuperación ante cortes de red intermitentes. SDK de Python sigue en beta.
+- **Anillo:** PROBAR. Primer encaje fuerte con el principio 9 sin montar infraestructura. v5 quita dos objeciones: los pasos ya corren en `gru1` (São Paulo, donde están los dos proyectos) en vez de cruzar a EE. UU., y los datos de un comprobante viajan cifrados.
 - **Dónde le serviría a este ERP:** la transmisión a SUNAT por Lucode: emitir → esperar respuesta → reintentar con espera → marcar aceptado/rechazado, sobreviviendo a cortes y publicaciones; el cierre de mes de Finanzas.
 - **Costo o riesgo:** amarra el flujo a Vercel (choca con el principio 6 si no se aísla la regla en `lib/`); precio por pasos/colas. Cualquier cosa que dé validez legal a un comprobante: OK de Felipe.
-- **Fuente:** https://community.vercel.com/t/a-new-programming-model-for-durable-execution/38569 (2026-04-17); https://vercel.com/docs/workflows — consultado 2026-11-13.
+- **Fuente:** https://community.vercel.com/t/a-new-programming-model-for-durable-execution/38569 (2026-04-17); https://vercel.com/docs/workflows — consultado 2026-11-13; https://vercel.com/blog/workflow-sdk-5 y https://community.vercel.com/t/vercel-weekly-november-16-2026/1000000284 (2026-11-16; vistos en el buscador, vercel.com no abre desde esta sesión) — consultado 2026-11-23.
 
 ### Vercel Queues (beta pública)
 - **Qué es:** colas durables con grupos de consumidores, entrega «al menos una vez» y reintentos; es la pieza sobre la que corre Workflows.
@@ -381,11 +384,11 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### TypeScript 7.0 (compilador nativo en Go)
 - **Qué es:** el compilador portado a Go, ~10× más rápido (VS Code: 125,7 s → 10,6 s) y con menos memoria; Next 16.3 ya puede usarlo para revisar tipos en `next build`.
-- **Versión / fecha:** estable el 2026-07-08 (npm 7.0.2, sigue siendo `latest` al 2026-11-16); **7.1 beta el 2026-10-20** devuelve la API programática (`typescript/sync`, `typescript/async`) y corrige una regresión de memoria; su RC se esperaba ~un mes después (sin publicar aún; `next` diario 7.1.0-dev.20261116). Hasta 7.1, `@typescript/typescript6` (`tsc6`) sirve a las herramientas.
+- **Versión / fecha:** estable el 2026-07-08 (npm 7.0.2, sigue siendo `latest` al 2026-11-23); **7.1 beta el 2026-10-20** devuelve la API programática (`typescript/sync`, `typescript/async`, `typescript/fs`, `typescript/ast`) y corrige una regresión de memoria; su RC estaba planeada para el 2026-11-10 y la final para el 2026-11-24, pero al 2026-11-23 **no hay RC publicada** (`rc` en npm sigue en 7.0.1-rc; diaria 7.1.0-dev.20261123.1): la fecha final está en riesgo. Hasta 7.1, `@typescript/typescript6` (`tsc6`) sirve a las herramientas.
 - **Anillo:** PROBAR. El CI hace `pnpm typecheck` en cada PR de la cola de fusión (ADR-0648): es donde más se gana.
 - **Dónde le serviría a este ERP:** `pnpm typecheck` del CI y del editor; acelera el ciclo de cada PR.
 - **Costo o riesgo:** typescript-eslint y Knip usan la API de TypeScript: deben seguir con 6.0 vía `tsc6`. Cambio de inferencia de *template literals* con emojis (rompe utilidades que cuentan unidades UTF-16; revisar `lib/emojis-del-mensaje.ts`).
-- **Fuente:** https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ (2026-07-08); https://nextjs.org/blog/next-16-3 (2026-08-03) — consultado 2026-11-13; https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/ (2026-10-20); https://registry.npmjs.org/typescript (dist-tags) — consultado 2026-11-16.
+- **Fuente:** https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ (2026-07-08); https://nextjs.org/blog/next-16-3 (2026-08-03) — consultado 2026-11-13; https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/ (2026-10-20); https://registry.npmjs.org/typescript (dist-tags) — consultado 2026-11-23; https://devopen.io/typescript-7-1-release-date/ (fuente secundaria, plan de fechas) — consultado 2026-11-23.
 
 ### Zod 4
 - **Qué es:** reescritura 6–14× más rápida al validar y con ~100× menos trabajo para el chequeo de tipos; trae `z.toJSONSchema()`, metadatos (`.meta()`), un solo parámetro `error`, formatos de primer nivel (`z.iso.date()`, `z.email()`, `z.uuidv7()`), `z.stringbool()` y Zod Mini.
@@ -405,15 +408,15 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Vitest 5 (y Browser Mode con capturas)
 - **Qué es:** 5.0 se enfoca en velocidad (hasta 53 % más rápido), *Trace View* en Browser Mode, `vi.when` y `vitest doctor`; desde 4.0 el Browser Mode es estable y trae `toMatchScreenshot` (regresión visual) y `expect.schemaMatching` (valida contra Zod).
-- **Versión / fecha:** 4.0 el 2025-10-22; 5.0 el 2026-09-03; 5.1 el 2026-11-02.
-- **Anillo:** PROBAR para v5. Aparte, **ya**: el lockfile resuelve `vitest@4.1.10`, dentro del aviso GHSA-82fw-gwwq-j7x9 (moderado, publicado 2026-08-18: el mock con redirección de `@vitest/mocker` deja leer archivos locales a un cliente del WebSocket del servidor de desarrollo). Se corrige con 4.1.11 (hoy 4.1.12 en la línea 4), un `pnpm update vitest` sin salto mayor. Solo afecta a máquinas de desarrollo con el servidor de Vitest abierto (UI o Browser Mode), no a producción.
+- **Versión / fecha:** 4.0 el 2025-10-22; 5.0 el 2026-09-03; 5.1 el 2026-11-02; 5.1.1 el 2026-11-18.
+- **Anillo:** PROBAR para v5. Aparte, **ya**: el lockfile resuelve `vitest@4.1.10`, dentro del aviso GHSA-82fw-gwwq-j7x9 (moderado, publicado 2026-08-18: el mock con redirección de `@vitest/mocker` deja leer archivos locales a un cliente del WebSocket del servidor de desarrollo). **Nuevo esta semana:** GHSA-qxg6-89mg-rqv8 (moderado, CVSS 4.7, CVE-2026-112949: el registro manual de un mock por el WebSocket del servidor de desarrollo mete la URL sin escapar en el código generado, inyección en el navegador del desarrollador) afecta a `@vitest/mocker` < 4.1.12 (y 5.0.0-beta.1 a < 5.0.3). Por eso **el piso ahora es 4.1.12**, no 4.1.11; ese mismo salto trae `vite` ≥ 8.1.6 y cierra los cinco avisos de Vite que `pnpm audit` marca en el lockfile (`server.fs.allow`, `launch-editor`). Un `pnpm update vitest` sin salto mayor. Solo afecta a máquinas de desarrollo con el servidor de Vitest o Vite abierto, no a producción.
 - **Dónde le serviría a este ERP:** CI más rápido; regresión visual de piezas del sistema (`<Chip>`, `<TarjetaCifra>`, hoja Serena) en claro y oscuro, hoy revisadas a ojo con `tema:auditar`.
 - **Costo o riesgo:** requiere Node ≥ 22.12 y Vite ≥ 6.4; `clearMocks` pasa a `true` por defecto y las aserciones `resolves`/`rejects` sin `await` fallan (puede destapar pruebas que pasaban sin probar nada).
-- **Fuente:** https://vitest.dev/blog/vitest-5 (2026-09-03); https://vitest.dev/blog/vitest-4 (2025-10-22) — consultado 2026-11-13; https://github.com/advisories/GHSA-82fw-gwwq-j7x9 (2026-08-18) — consultado 2026-11-16.
+- **Fuente:** https://vitest.dev/blog/vitest-5 (2026-09-03); https://vitest.dev/blog/vitest-4 (2025-10-22) — consultado 2026-11-13; https://github.com/advisories/GHSA-82fw-gwwq-j7x9 (2026-08-18) — consultado 2026-11-16; https://github.com/advisories/GHSA-qxg6-89mg-rqv8 y https://github.com/advisories/GHSA-rq7h-c2jc-7f22 (`pnpm audit` contra la base de npm; detalle y CVE leídos en issues de terceros vía buscador) — consultado 2026-11-23.
 
 ### Oxlint con análisis por tipos estable (vs. Biome 2)
 - **Qué es:** linter en Rust 50–100× más rápido que ESLint; desde julio 2026 su análisis por tipos (motor `tsgolint` sobre TS 7) es estable y cubre 59 de las 61 reglas con tipos de typescript-eslint. Biome 2 también suma reglas con tipos, pero con menos cobertura.
-- **Versión / fecha:** Oxlint 1.0 (2025-06-10); análisis por tipos estable (2026-07-22); hoy 1.94.0 (2026-11-16). Biome 2.6.8 (2026-11-15). Parches menores, sin cambio de anillo (consultado 2026-11-16, registry.npmjs.org).
+- **Versión / fecha:** Oxlint 1.0 (2025-06-10); análisis por tipos estable (2026-07-22); hoy 1.94.0 (2026-11-16). Biome 2.6.8 (2026-11-15). Sin publicaciones nuevas al 2026-11-23 (registry.npmjs.org); sin cambio de anillo.
 - **Anillo:** PROBAR Oxlint como primer paso rápido en el CI; Biome no (formateador y linter a la vez es un cambio mayor sin ganancia clara aquí).
 - **Dónde le serviría a este ERP:** `pnpm lint` en el CI y antes de cada PR (`/abrir-pr`): segundos en vez de minutos.
 - **Costo o riesgo:** reglas propias de `eslint-config-next` que Oxlint no tenga; correr los dos un tiempo.
@@ -421,7 +424,7 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Almacén virtual global de pnpm + raíces extra de Next 16.4
 - **Qué es:** pnpm puede compartir las dependencias instaladas entre proyectos y worktrees (almacén virtual global); Next 16.4 agrega `turbopackAdditionalRoots` para seguir esos enlaces fuera de la raíz del proyecto.
-- **Versión / fecha:** pnpm 12 (12.0 en ~agosto 2026; hoy 12.21.0, 2026-11-13; el repo usa 12.4.1, sin avisos de seguridad en la base de npm al 2026-11-16); raíces extra experimentales en Next 16.4 (2026-10-06); integración automática anunciada para más adelante.
+- **Versión / fecha:** pnpm 12 (12.0 en ~agosto 2026; hoy 12.23.0, 2026-11-22; 12.21 dejó de releer el `package.json` de proyectos sin cambios en instalaciones repetidas; el repo usa 12.4.1, sin avisos de seguridad en la base de npm al 2026-11-23); raíces extra experimentales en Next 16.4 (2026-10-06); integración automática anunciada para más adelante.
 - **Anillo:** PROBAR. El repo trabaja con muchos worktrees en paralelo (`.claude/worktrees/*`), cada uno con su `node_modules`.
 - **Dónde le serviría a este ERP:** abrir un worktree nuevo sin reinstalar todo: menos disco y minutos por sesión de Claude Code.
 - **Costo o riesgo:** experimental del lado de Next; el CI y Vercel no lo necesitan.
@@ -429,7 +432,7 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Turborepo 2.9–2.11 (`--affected` componible, caché)
 - **Qué es:** 2.9 (2026-03-25) acelera hasta 96 % y deja `turbo query` estable; 2.10 (2026-06-24) permite combinar `--affected` con `--filter` y agrega hash diferido y limpieza de caché local; 2.11 (2026-09-18).
-- **Versión / fecha:** estable; npm 2.11.11 (2026-11-11).
+- **Versión / fecha:** estable; npm 2.11.13 (2026-11-18), parches de la línea 2.11.
 - **Anillo:** PROBAR. El repo declara `^2.5.0` y el lockfile resuelve 2.10.5, que ya está fuera de los dos avisos de mayo (GHSA-3qcw-2rhx-2726 y GHSA-hcf7-66rw-9f5r, corregidos en 2.9.14). Conviene subir el piso declarado a `^2.9.14` para que nadie resuelva una versión vulnerable.
 - **Dónde le serviría a este ERP:** el CI: correr solo las pruebas de `apps/tienda` o `apps/web` que el PR toca (`--affected --filter=web`).
 - **Costo o riesgo:** 2.9 trae deprecaciones previas a 3.0; revisar `turbo.json`.
@@ -437,7 +440,7 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Sentry SDK v11 (y Logs GA)
 - **Qué es:** v11 envía los spans en streaming por defecto, instrumenta en el build (mejor en Vercel), y reemplaza `sendDefaultPii` por `dataCollection` **con valores por defecto más permisivos**; los Logs de Sentry son GA (5 GB/mes incluidos).
-- **Versión / fecha:** v11.0 el 2026-09-23 (hoy 11.12.0, 2026-11-10); la línea 10 sigue recibiendo parches (`v10` = 10.78.0, 2026-10-28), así que quedarse en 10 un tiempo es válido; Logs GA el 2025-09-03. Sin avisos de seguridad para 10.76.2 en la base de npm al 2026-11-16.
+- **Versión / fecha:** v11.0 el 2026-09-23 (hoy 11.16.0, 2026-11-20); la línea 10 sigue en `v10` = 10.78.0 (2026-10-28, sin parche nuevo en cuatro semanas: vigilar si Sentry la da por cerrada); Logs GA el 2025-09-03. Sin avisos de seguridad para `@sentry/nextjs@10.76.2` en la base de npm al 2026-11-23; sí los hay en dependencias de su plugin de webpack (`fast-uri` < 3.1.9, `glob` ≤ 14.0.1), que solo corren en el build.
 - **Anillo:** EVALUAR. El repo está en 10.76.2 y su ADR-0424 prohíbe mandar sesión, búsquedas o DNI.
 - **Dónde le serviría a este ERP:** trazas completas de una venta lenta; logs estructurados con ids (nunca nombres) de la integración con Lucode y apis.net.pe.
 - **Costo o riesgo:** al subir, fijar `dataCollection` explícito y restrictivo, o la versión nueva mandará más datos de los permitidos; cambian nombres de spans (alertas y tableros).
@@ -479,11 +482,11 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Animaciones guiadas por scroll
 - **Qué es:** `animation-timeline: scroll()/view()` anima según el desplazamiento, sin JavaScript y fuera del hilo principal.
-- **Versión / fecha:** no figura en la lista Baseline 2026 de web.dev; es foco de Interop 2026.
-- **Anillo:** EVALUAR.
+- **Versión / fecha:** **Baseline «recién disponible» desde octubre de 2026**, al sumarse Firefox 159 (Chrome y Safari ya lo tenían); era foco de Interop 2026. **Corrección:** el radar anterior decía que no figuraba en Baseline.
+- **Anillo:** PROBAR (↑ desde EVALUAR el 2026-11-23). Ya corre en los tres motores sin JavaScript y fuera del hilo principal; con `@supports (animation-timeline: view())` el navegador viejo de una sede simplemente no anima.
 - **Dónde le serviría a este ERP:** «Tienda web ▸ Tráfico» (estaciones que entran al verse) y las piezas que «entran una vez al verse» hoy con IntersectionObserver.
-- **Costo o riesgo:** debe pasar por ADR-0136 y ADR-0625 (animaciones apagadas por defecto).
-- **Fuente:** https://web.dev/blog/interop-2026 ; https://web.dev/baseline/2026 — consultado 2026-11-13.
+- **Costo o riesgo:** debe pasar por ADR-0136 y ADR-0625 (animaciones apagadas por defecto: con `data-movimiento` apagado, `movimiento.css` las deja en 0,01 ms); probar primero en una pieza que ya «entra una vez al verse» y comparar con su IntersectionObserver. Safari de iPhone viejos en las sedes: mantener el respaldo.
+- **Fuente:** https://web.dev/blog/interop-2026 ; https://web.dev/baseline/2026 — consultado 2026-11-13; https://web.dev/blog/web-platform-10-2026 (octubre 2026; visto en el buscador) — consultado 2026-11-23.
 
 ### `<select>` personalizable (`appearance: base-select`)
 - **Qué es:** un `<select>` nativo que se puede estilizar por completo (lista, ícono, marca de elegido) manteniendo accesibilidad y teclado del navegador.
@@ -532,7 +535,7 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 - **Versión / fecha:** beta 2025-11-14; **GA el 2026-01-29** en la API de Claude.
 - **Anillo:** ADOPTAR. Encaja con lo ya construido (precio propuesto con IA) y evita parsear texto.
 - **Dónde le serviría a este ERP:** «precio propuesto con IA», extracción de datos de una factura de proveedor, clasificación de gastos; el esquema puede salir de Zod 4 (`z.toJSONSchema()`).
-- **Costo o riesgo:** bajo; el SDK del repo (`@anthropic-ai/sdk` ^1.3; npm 1.8.0, 2026-11-10) ya es de la línea nueva.
+- **Costo o riesgo:** bajo; el SDK del repo (`@anthropic-ai/sdk` ^1.3; npm 1.12.0, 2026-11-20) ya es de la línea nueva.
 - **Fuente:** https://platform.claude.com/docs/en/release-notes/overview (entradas 2025-11-14 y 2026-01-29) — consultado 2026-11-13.
 
 ### PDF + Files API GA + visión de alta resolución (facturas)
@@ -553,23 +556,23 @@ Cambios del refresco 2026-11-16: entra «CLI de Supabase v3»; sube Zod 4 (PROBA
 
 ### Claude Agent SDK
 - **Qué es:** la misma infraestructura de Claude Code empaquetada como SDK (TypeScript y Python) para construir agentes con herramientas, permisos y contexto.
-- **Versión / fecha:** lanzado junto a Claude Sonnet 4.5 (2025-09-29); npm `@anthropic-ai/claude-agent-sdk` 0.3.325 (2026-11-13), aún en 0.x. En noviembre sus ganchos sumaron `onFailure: block` (si el gancho falla, la acción se detiene) y se quitó el cliente MCP v1 (fuente secundaria).
+- **Versión / fecha:** lanzado junto a Claude Sonnet 4.5 (2025-09-29); npm `@anthropic-ai/claude-agent-sdk` 0.3.330 (al 2026-11-23), aún en 0.x. En noviembre sus ganchos sumaron `onFailure: block` (si el gancho falla, la acción se detiene) y se quitó el cliente MCP v1 (fuente secundaria).
 - **Anillo:** EVALUAR.
 - **Dónde le serviría a este ERP:** dentro del desarrollo, automatizar skills del repo fuera de la sesión (p. ej. `/chaos` o `/revision` programados); dentro del producto, un asistente de búsqueda en lenguaje natural que llame solo RPC de lectura.
 - **Costo o riesgo:** versión 0.x con cambios frecuentes; un agente que escribe en producción está fuera de discusión sin OK de Felipe.
-- **Fuente:** https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk ; https://www.anthropic.com/news/claude-sonnet-4-5 — consultado 2026-11-13; https://registry.npmjs.org/@anthropic-ai/claude-agent-sdk (0.3.325); https://releasebot.io/updates/anthropic/claude-code (fuente secundaria) — consultado 2026-11-16.
+- **Fuente:** https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk ; https://www.anthropic.com/news/claude-sonnet-4-5 — consultado 2026-11-13; https://releasebot.io/updates/anthropic/claude-code (fuente secundaria) — consultado 2026-11-16; https://registry.npmjs.org/@anthropic-ai/claude-agent-sdk (0.3.330) — consultado 2026-11-23.
 
 ### Especificación MCP 2026-07-28 y MCP Apps
 - **Qué es:** la nueva versión del protocolo MCP: núcleo sin estado, autorización endurecida, marco formal de extensiones; MCP Apps permite que un servidor muestre interfaz interactiva en el cliente.
 - **Versión / fecha:** especificación final el 2026-07-28; MCP Apps 2026-01-26; autorización empresarial 2026-06-18; MCP pasó a la Agentic AI Foundation (2025-12-09).
 - **Anillo:** EVALUAR.
 - **Dónde le serviría a este ERP:** si se construye el servidor MCP propio de la app (entrada de Supabase), nacería sobre esta versión; el equipo ya usa MCP (Supabase) en el desarrollo.
-- **Costo o riesgo:** el SDK MCP de TypeScript está en 1.32.2 (2026-10-23, sin cambios al 2026-11-16); los conectores de Claude ya negocian la versión 2026-07-28 por defecto (fuente secundaria). Seguir la versión que soporte cada cliente.
-- **Fuente:** https://blog.modelcontextprotocol.io/ (entradas 2026-07-28, 2026-01-26, 2026-06-18) — consultado 2026-11-13.
+- **Costo o riesgo:** el SDK MCP de TypeScript está en 1.32.2 (2026-10-23, sin cambios al 2026-11-23); los conectores de Claude ya negocian la versión 2026-07-28 por defecto (fuente secundaria). No hay revisión nueva de la especificación: las próximas siguen un calendario semestral y la siguiente apunta al 2027-03-30; Roots, Sampling y Logging quedan deprecados (SEP-2577) — ambas cosas de fuente secundaria. Un servidor propio no debería apoyarse en esas tres. Seguir la versión que soporte cada cliente.
+- **Fuente:** https://blog.modelcontextprotocol.io/ (entradas 2026-07-28, 2026-01-26, 2026-06-18) — consultado 2026-11-13; https://releasebot.io/updates/modelcontextprotocol (fuente secundaria) — consultado 2026-11-23.
 
 ### AI SDK 7
 - **Qué es:** el SDK de Vercel para IA en TypeScript: `WorkflowAgent` (agente durable sobre Workflows), `HarnessAgent` (correr Claude Code u otros agentes por una sola API), telemetría nueva, timeouts finos; solo ESM y Node 22+.
-- **Versión / fecha:** AI SDK 6 (fines de 2025) y AI SDK 7 estable en junio de 2026 (2026-06-25 según una página de Vercel); hoy 7.0.173 (2026-11-13).
+- **Versión / fecha:** AI SDK 6 (fines de 2025) y AI SDK 7 estable en junio de 2026 (2026-06-25 según una página de Vercel); hoy 7.0.179 (al 2026-11-23).
 - **Anillo:** EVALUAR. El repo usa `@anthropic-ai/sdk` directo, que basta para un solo proveedor.
 - **Dónde le serviría a este ERP:** solo si se quiere cambiar de proveedor sin tocar código, o un agente durable sobre Vercel Workflows.
 - **Costo o riesgo:** una capa más entre el ERP y el modelo; migración con codemod si se adopta.

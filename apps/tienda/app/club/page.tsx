@@ -10,7 +10,8 @@ import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import "../estilos/ayuda.css";
 
 export const metadata: Metadata = {
-  title: "Club CAYLA · CAYLA",
+  alternates: { canonical: "/club" },
+  title: { absolute: "Club CAYLA" },
   description: "Gana puntos en cada compra en CAYLA, cámbialos por cupones y recibe puntos de regalo en tu cumpleaños.",
 };
 
@@ -69,7 +70,7 @@ export default async function ClubPublico() {
                   Crear mi cuenta
                 </Link>
                 <Link className="ay-enlace" href="/entrar">
-                  Ya tengo cuenta · Entrar <Icono nombre="flecha" />
+                  Entrar a mi cuenta <Icono nombre="flecha" />
                 </Link>
               </div>
             </section>

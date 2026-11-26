@@ -62,7 +62,7 @@
   .twc-faltan { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; }
   .twc-sw { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--color-taupe); }
   .twc-sw svg { width: 14px; height: 14px; }
-  .twc-sin-guardar { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-taupe); }
+  .twc-sin-guardar { font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-taupe); }
 
   /* ───────── La fachada: toldo de rayas del color de la sede ───────── */
   .twc-fachada { position: relative; height: 96px; overflow: hidden; background: var(--hundido-fondo); transition: opacity 260ms var(--ease-cayla), filter 260ms var(--ease-cayla); }
@@ -84,25 +84,25 @@
     .twc-taller { grid-template-columns: minmax(0, 1fr); }
     .twc-lado { position: static; }
   }
-  .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--color-taupe); }
+  .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: var(--text-detalle); font-weight: 600; color: var(--color-taupe); }
   .twc-nota-en-vivo svg { width: 14px; height: 14px; }
 
   .twc-cel { width: 300px; max-width: 100%; border: 1px solid var(--color-sand); border-radius: 34px; padding: 10px; background: var(--color-papel); }
   .twc-pant { display: grid; grid-template-rows: auto 1fr; min-height: 430px; overflow: hidden; border-radius: 26px; background: var(--color-crema); }
-  .twc-barra { display: flex; justify-content: center; padding: 10px 0 6px; font-family: var(--font-serif); font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-tinta); }
+  .twc-barra { display: flex; justify-content: center; padding: 10px 0 6px; font-family: var(--font-serif); font-size: var(--text-sm); letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-tinta); }
   .twc-tarjeta { display: grid; margin: 6px 12px 14px; overflow: hidden; border: 1px solid var(--color-sand); border-radius: 18px; background: var(--color-papel); transition: opacity 300ms var(--ease-cayla); }
   .twc-tarjeta[data-oculta] { opacity: 0.45; }
   .twc-tarjeta .twc-fachada { height: 118px; }
   .twc-tarjeta-c { display: grid; gap: 10px; padding: 14px; }
   .twc-tarjeta h3 { font-family: var(--font-serif); font-size: 26px; font-weight: 500; line-height: 1.05; color: var(--color-tinta); overflow-wrap: anywhere; }
-  .twc-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14px; color: var(--color-tinta); overflow-wrap: anywhere; }
+  .twc-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; font-size: var(--text-detalle); color: var(--color-tinta); overflow-wrap: anywhere; }
   .twc-dato svg { width: 14px; height: 14px; margin-top: 2px; color: var(--color-taupe); }
   .twc-dato[data-falta] { color: var(--color-taupe); font-style: italic; }
   .twc-botones { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); margin-top: 2px; }
   .twc-boton {
     display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 999px;
     border: 1px solid var(--color-tinta); background: var(--color-tinta); color: var(--color-crema);
-    font-size: 14px; font-weight: 700;
+    font-size: var(--text-detalle); font-weight: 700;
   }
   .twc-boton svg { width: 14px; height: 14px; }
   .twc-boton-claro { background: transparent; color: var(--color-tinta); }
@@ -126,7 +126,7 @@
   /* El texto va centrado con posición absoluta: el `label` de este contenedor recibe estilos globales y no confío en su `display`. */
   .twc-foto-texto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   .twc-foto[data-con-foto] .twc-foto-texto { inset: auto 0 8px 0; }
-  .twc-foto-pildora { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .twc-foto-pildora { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: var(--text-xs); font-weight: 600; }
   .twc-foto[data-con-foto] .twc-foto-pildora { background: color-mix(in srgb, var(--color-papel) 90%, transparent); color: var(--color-tinta); }
   .twc-foto-pildora svg { width: 16px; height: 16px; }
 
@@ -142,7 +142,7 @@
   .twc-boton[data-apagado] { opacity: 0.35; }
 
   /* «Abierta · cierra 9 p. m.»: el punto es verde si abre y ámbar si no (lleva la palabra escrita al lado). */
-  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--color-taupe); }
+  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-detalle); font-weight: 600; color: var(--color-taupe); }
   .twc-atencion::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-ambar); flex: none; }
   .twc-atencion[data-abierta] { color: var(--color-verde); }
   .twc-atencion[data-abierta]::before { background: var(--color-verde); }
@@ -150,15 +150,15 @@
   /* ───────── Stock en la web: arriba lo que queda, abajo lo que lee el cliente ───────── */
   .twc-escala-bloque { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-sand); }
   .twc-escala { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); grid-template-rows: 42px 36px; gap: 6px 10px; }
-  .twc-escala-t { align-self: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
+  .twc-escala-t { align-self: center; font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
   .twc-escala-opciones { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 6px; }
   .twc-celda { display: grid; grid-template-rows: 42px 36px; gap: 6px; padding: 0; text-align: center; }
   .twc-celda b, .twc-celda span {
     display: grid; place-items: center; padding: 0 4px;
     transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
   }
-  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--color-tinta); }
-  .twc-celda span { border-radius: 4px 4px 10px 10px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
+  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); font-family: var(--font-serif); font-size: var(--text-xl); font-weight: 600; color: var(--color-tinta); }
+  .twc-celda span { border-radius: 4px 4px 10px 10px; font-size: var(--text-xs); font-weight: 700; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
   .twc-celda[data-poco] span { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); color: var(--color-ambar); }
   .twc-celda[data-tope] b { background: var(--color-tinta); color: var(--color-crema); }
   button.twc-celda { cursor: pointer; }
@@ -169,7 +169,7 @@
     .twc-escala { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
     .twc-escala-t { display: none; }
     .twc-escala-opciones { grid-column: 1; grid-row: auto; }
-    .twc-celda span { font-size: 11px; }
+    .twc-celda span { font-size: var(--text-xs); }
   }
 
   /* ───────── Los cierres por fecha: pastillas con su día y un ✕ ───────── */
@@ -177,14 +177,14 @@
   .twc-cierres .twc-cierre-hoy { height: 40px; }
   /* «u otro día» y su campo van juntos: si no caben en la fila, bajan JUNTOS y no se separa la etiqueta de su caja. */
   .twc-cierres-otro { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-  .twc-cierres-o { font-size: 14px; color: var(--color-taupe); }
+  .twc-cierres-o { font-size: var(--text-detalle); color: var(--color-taupe); }
   .twc-cierres-fecha { width: 11rem; }
   /* El campo de fecha reserva un renglón vacío bajo su caja para un error; sin error no se dibuja, o la caja queda más arriba que el botón de al lado. */
   .twc-cierres-fecha .campo > div:last-child:empty { display: none; }
   .twc-cierre {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px 0 12px; border-radius: 999px;
     background: var(--hundido-fondo);
-    box-shadow: var(--hundido-sombra); font-size: 14px; font-weight: 600; color: var(--color-tinta);
+    box-shadow: var(--hundido-sombra); font-size: var(--text-detalle); font-weight: 600; color: var(--color-tinta);
   }
   .twc-cierre[data-hoy] { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
   .twc-cierre button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
@@ -194,16 +194,16 @@
   /* ───────── El horario por días: una barra por día, con asas ───────── */
   .twc-horario { container-type: inline-size; }
   .twc-horas { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }
-  .twc-eje { position: relative; grid-column: 2; height: 16px; font-size: 11px; font-weight: 600; color: var(--color-taupe); }
+  .twc-eje { position: relative; grid-column: 2; height: 16px; font-size: var(--text-xs); font-weight: 600; color: var(--color-taupe); }
   .twc-eje span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
   /* El día: su interruptor (abierto / cerrado) y su nombre; el de hoy lleva el anillo. */
-  .twc-dia { height: 34px; display: flex; align-items: center; padding-left: 4px; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta); }
+  .twc-dia { height: 34px; display: flex; align-items: center; padding-left: 4px; border-radius: 8px; font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta); }
   .twc-dia { grid-column: 1; }
   .twc-dia > div { width: 100%; }
   .twc-pista { grid-column: 2; }
   .twc-dia[data-hoy] { box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
   /* Las horas escritas, a la derecha: solo donde hay lugar (el celular las lee en la barra o en su título). */
-  .twc-horas-texto { grid-column: 3; display: none; font-size: 13px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; text-align: right; }
+  .twc-horas-texto { grid-column: 3; display: none; font-size: var(--text-xs); font-weight: 600; color: var(--color-tinta); white-space: nowrap; text-align: right; }
   @container (min-width: 600px) {
     .twc-horas { grid-template-columns: 76px minmax(0, 1fr) 138px; }
     .twc-horas-texto { display: block; }
@@ -216,13 +216,13 @@
   .twc-pista[data-cerrado] { cursor: default; }
   .twc-pista[data-cerrado]::after {
     content: "Cerrado"; position: absolute; inset: 0; display: grid; place-items: center;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
+    font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
   }
   .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); } /* beige-fijo: pista de horas, escala del dato */
   .twc-pista[data-cierre]::after { content: "Cerrado hoy"; color: var(--color-ambar); }
   .twc-tramo {
     position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
-    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
+    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
     transition: left 180ms var(--ease-cayla), width 180ms var(--ease-cayla);
   }
   .twc-tramo[data-moviendo] { transition: none; cursor: grabbing; }

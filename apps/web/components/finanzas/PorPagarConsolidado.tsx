@@ -398,7 +398,7 @@ export function PorPagarConsolidado({
           <p className="nota-cayla anim-entra" style={{ ["--i" as string]: 6 } as CSSProperties}>
             La planilla no está en esta lista porque la paga Dynamic.{" "}
             {esLider || pagaCompras
-              ? "«Pagar» abre el mismo pago de Compras o, para lo del Taller, el de Producción: el pago queda en su factura. Un servicio sin papel no tiene fecha: se debe desde que devolvió las prendas."
+              ? "«Pagar» abre el pago de Compras o, para lo del Taller, el de Producción. Un servicio sin papel se debe desde que devolvió las prendas."
               : "Los pagos los registra quien tiene Por pagar en Compras; aquí se ve cuándo vence cada uno."}
           </p>
         </>

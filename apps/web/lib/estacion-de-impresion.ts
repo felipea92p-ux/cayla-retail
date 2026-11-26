@@ -9,8 +9,13 @@ import type { Ventana } from "./ventana-de-impresion";
 
 const VALORES = ["si", "no"] as const;
 
-/** ¿Esta ventana imprime lo que se vende en el piso? Del equipo, apagado de fábrica. */
-export const estacionDeLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-estacion-de-la-caja", VALORES, "no");
+/**
+ * ¿Esta ventana imprime lo que se vende en el piso? Es del equipo y, **desde el 2026-11-24, viene encendida** (Felipe: la boleta del celular
+ * tiene que salir sola en la caja). No es un riesgo en otros equipos: solo trabaja donde se imprime sin cuadro (`estacionActiva`: la
+ * ventana «CAYLA Caja» o la Mac con la ticketera en su ayudante). En el celular o en la Mac de la oficina, que valga «si» no hace nada. Lo
+ * que alguien apagó a mano sigue apagado.
+ */
+export const estacionDeLaCaja = preferenciaLocal<(typeof VALORES)[number]>("cayla-estacion-de-la-caja", VALORES, "si");
 /** ¿La estación dice en voz alta cada boleta que sale? Encendida de fábrica: es lo que pidió Felipe; se apaga si molesta. */
 export const vozDeLaEstacion = preferenciaLocal<(typeof VALORES)[number]>("cayla-voz-de-la-estacion", VALORES, "si");
 

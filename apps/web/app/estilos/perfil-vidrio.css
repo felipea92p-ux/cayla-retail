@@ -182,7 +182,7 @@
   gap: 7px;
   height: 38px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 500;
   color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   transition: color 300ms;
@@ -238,7 +238,7 @@
   margin-top: 2px;
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 20px;
+  font-size: var(--text-xl);
   line-height: 1.2;
 }
 .vidrio-nota { background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px var(--placa-borde); }
@@ -257,7 +257,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 500;
   color: var(--color-verde);
 }

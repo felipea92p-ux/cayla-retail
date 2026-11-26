@@ -77,7 +77,7 @@ function Fila({ Icono, etiqueta, valor, copiar }: { Icono: LucideIcon; etiqueta:
         <Icono className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="label-cayla text-[10px] text-tinta/65">{etiqueta}</p>
+        <p className="label-cayla text-xs text-tinta/65">{etiqueta}</p>
         <p className="truncate text-sm text-tinta">{valor}</p>
       </div>
       {copiar && <BotonCopiar forma="icono" texto={valor} que={copiar} />}
@@ -267,7 +267,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                   </span>
                 </button>
                 <div className="min-w-0">
-                  <p className="label-cayla text-[11px] text-tinta/65">Mi perfil</p>
+                  <p className="label-cayla text-xs text-tinta/65">Mi perfil</p>
                   <p className="vidrio-nombre">
                     {/* Una palabra por ranura; el espacio va AFUERA de cada una (dentro de un inline-block se pierde). */}
                     {nombreCompleto.split(" ").map((palabra, i) => (
@@ -281,7 +281,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <Chip tono="tinta" versalitas={false}>{esLider ? "Líder" : "Colaborador"}</Chip>
                     <Chip tono={activo ? "verde" : "apagado"}>{activo ? "Activo" : "Inactivo"}</Chip>
                     {perfil.ubicacion_nombre && (
-                      <span className="inline-flex items-center gap-1 text-[12.5px] text-tinta/80">
+                      <span className="inline-flex items-center gap-1 text-xs text-tinta/80">
                         <MapPin aria-hidden className="h-3.5 w-3.5" />
                         {perfil.ubicacion_nombre}
                       </span>
@@ -326,7 +326,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                         vuelven a exigir; esto solo decide si se ofrece la puerta. */}
                     {(esLider || veAdministracion || veConfiguracion) && (
                       <>
-                        <p className="label-cayla mb-2 ml-1 mt-5 text-[10px] text-tinta/65">Administración</p>
+                        <p className="label-cayla mb-2 ml-1 mt-5 text-xs text-tinta/65">Administración</p>
                         <div className="grid gap-2">
                           {(esLider || veAdministracion) && (
                             <Destino Icono={Users} titulo="Colaboradores" frase="A quién de Dynamic se le abre la puerta de retail." href="/colaboradores" onClick={onClose} />
@@ -341,7 +341,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     {/* Demo (ADR-0389, Felipe 2026-10-07): la guía de cada pantalla se ofrece una sola vez; aquí se repite la que quieras. */}
                     {onDemo && (
                       <>
-                        <p className="label-cayla mb-2 ml-1 mt-5 text-[10px] text-tinta/65">Aprender</p>
+                        <p className="label-cayla mb-2 ml-1 mt-5 text-xs text-tinta/65">Aprender</p>
                         <Destino Icono={CirclePlay} titulo="Demo" frase="Elige un módulo y te mostramos, paso a paso, qué hace cada cosa." onClick={onDemo} />
                       </>
                     )}
@@ -350,7 +350,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
 
                 {pestana === "seguridad" && (
                   <div>
-                    <div className="mb-4 flex items-center gap-3 text-[13px] text-tinta/80">
+                    <div className="mb-4 flex items-center gap-3 text-xs text-tinta/80">
                       <span aria-hidden className="vidrio-escudo">
                         <ShieldCheck className="h-5 w-5" />
                       </span>
@@ -372,7 +372,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
 function Dato({ etiqueta, valor, tono }: { etiqueta: string; valor: string; tono?: "verde" }) {
   return (
     <div className="vidrio-fila vidrio-fila-dato">
-      <p className="label-cayla text-[10px] text-tinta/65">{etiqueta}</p>
+      <p className="label-cayla text-xs text-tinta/65">{etiqueta}</p>
       <p className={`vidrio-dato ${tono === "verde" ? "text-verde" : "text-tinta"}`}>{valor}</p>
     </div>
   );

@@ -175,6 +175,11 @@
   "tablename": "barrido_piso_lecturas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX barrido_piso_resueltos_pkey ON retail.barrido_piso_resueltos USING btree (id)",
+  "indexname": "barrido_piso_resueltos_pkey",
+  "tablename": "barrido_piso_resueltos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX barridos_piso_pkey ON retail.barridos_piso USING btree (id)",
   "indexname": "barridos_piso_pkey",
   "tablename": "barridos_piso"
@@ -1380,6 +1385,26 @@
   "tablename": "foto_recortes"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX fotos_por_qr_pkey ON retail.fotos_por_qr USING btree (id)",
+  "indexname": "fotos_por_qr_pkey",
+  "tablename": "fotos_por_qr"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX fotos_por_qr_token_hash_key ON retail.fotos_por_qr USING btree (token_hash)",
+  "indexname": "fotos_por_qr_token_hash_key",
+  "tablename": "fotos_por_qr"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX fotos_por_qr_archivos_pkey ON retail.fotos_por_qr_archivos USING btree (id)",
+  "indexname": "fotos_por_qr_archivos_pkey",
+  "tablename": "fotos_por_qr_archivos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX fotos_por_qr_archivos_ruta_key ON retail.fotos_por_qr_archivos USING btree (ruta)",
+  "indexname": "fotos_por_qr_archivos_ruta_key",
+  "tablename": "fotos_por_qr_archivos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_pkey ON retail.frescura_decisiones USING btree (id)",
   "indexname": "frescura_decisiones_pkey",
   "tablename": "frescura_decisiones"
@@ -2580,6 +2605,11 @@
   "tablename": "producto_procesos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX producto_rasgos_pkey ON retail.producto_rasgos USING btree (producto_id)",
+  "indexname": "producto_rasgos_pkey",
+  "tablename": "producto_rasgos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX producto_taller_pkey ON retail.producto_taller USING btree (producto_id)",
   "indexname": "producto_taller_pkey",
   "tablename": "producto_taller"
@@ -2698,6 +2728,11 @@
   "indexdef": "CREATE UNIQUE INDEX recomendaciones_web_pkey ON retail.recomendaciones_web USING btree (id)",
   "indexname": "recomendaciones_web_pkey",
   "tablename": "recomendaciones_web"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX reglas_de_precio_pkey ON retail.reglas_de_precio USING btree (id)",
+  "indexname": "reglas_de_precio_pkey",
+  "tablename": "reglas_de_precio"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX rendicion_fondo_items_pkey ON retail.rendicion_fondo_items USING btree (rendicion_id, clave)",
@@ -3008,6 +3043,11 @@
   "indexdef": "CREATE UNIQUE INDEX tickets_una_venta ON retail.tickets_abiertos USING btree (venta_id) WHERE (venta_id IS NOT NULL)",
   "indexname": "tickets_una_venta",
   "tablename": "tickets_abiertos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX tickets_compartidos_pkey ON retail.tickets_compartidos USING btree (id)",
+  "indexname": "tickets_compartidos_pkey",
+  "tablename": "tickets_compartidos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX tienda_push_envios_clave_unica ON retail.tienda_push_envios USING btree (cuenta_web_id, clave)",

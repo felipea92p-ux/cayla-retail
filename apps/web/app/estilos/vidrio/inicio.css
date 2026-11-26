@@ -23,7 +23,7 @@
 }
 [data-inicio] .inicio-titulo > .label-cayla {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
 }
 [data-inicio] .inicio-titulo > .titulo-cuenta { margin-left: -2px; }
@@ -172,7 +172,7 @@
 [data-inicio] .inicio-persona-ultima-icono { display: block; color: var(--color-taupe); }
 [data-inicio] .inicio-persona-monto {
   font-family: var(--font-serif);
-  font-size: 19px;
+  font-size: var(--text-lg);
   line-height: 1.2;
 }
 

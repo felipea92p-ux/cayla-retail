@@ -39,7 +39,7 @@ import { fondoDelPunto } from "@/lib/color-combinado";
 const BOTON = "btn-cayla btn-secundario min-h-10";
 // El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
 // Compacto, para que la línea de datos no crezca: 32 px con mouse y 44 con el dedo (ADR-0350).
-const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
+const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-xs leading-tight max-sm:min-h-11";
 
 /**
  * La vista rápida de una prenda (Catálogo ▸ Productos ▸ Grilla, al tocar una tarjeta). Maqueta A «Matriz», elegida por Felipe el 2026-10-05

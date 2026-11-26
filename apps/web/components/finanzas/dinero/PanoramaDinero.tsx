@@ -240,7 +240,7 @@ export function PanoramaDinero({
                 </span>
                 <TituloSeccion>{sel.nombre}</TituloSeccion>
                 {sel.detalle && (
-                  <p className="dp-tenue" style={{ fontSize: "15px", maxWidth: "52ch" }}>
+                  <p className="dp-tenue" style={{ fontSize: "var(--text-sm)", maxWidth: "52ch" }}>
                     {sel.detalle}
                   </p>
                 )}
@@ -285,7 +285,7 @@ export function PanoramaDinero({
               </Chip>
             </div>
             {items.length === 0 ? (
-              <p className="dp-tenue" style={{ padding: "0 24px 22px", fontSize: "15px" }}>
+              <p className="dp-tenue" style={{ padding: "0 24px 22px", fontSize: "var(--text-sm)" }}>
                 {atencion.frase}
               </p>
             ) : (
@@ -374,8 +374,8 @@ function MovimientosDeLaCuenta({ cuenta, movimientos, hoy }: { cuenta: { id: str
               <li key={m.id}>
                 <span className="dp-versalita">{fechaCorta(m.fecha)}</span>
                 <span className="min-w-0">
-                  <b style={{ display: "block", fontSize: "14px", fontWeight: 600 }}>{TEXTO_MOVIMIENTO[m.tipo]}</b>
-                  <small className="dp-tenue" style={{ fontSize: "14px" }}>
+                  <b style={{ display: "block", fontSize: "var(--text-detalle)", fontWeight: 600 }}>{TEXTO_MOVIMIENTO[m.tipo]}</b>
+                  <small className="dp-tenue" style={{ fontSize: "var(--text-detalle)" }}>
                     {m.origenNombre ?? "El dueño"} → {m.destinoNombre ?? "Sale del negocio"}
                   </small>
                 </span>

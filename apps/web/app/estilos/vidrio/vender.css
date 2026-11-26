@@ -59,15 +59,32 @@
 .pv-mesa .pv-ticket:not([data-en-hoja]) .pv-ticket-pie {
   background: transparent;
 }
-/* La hoja del ticket en un teléfono bajo (iPhone SE, 667 px): el pie fijo (Total, Responsable y Cobrar) se comía casi la mitad de la
-   hoja y el cobro quedaba en ~200 px. Se achica solo el número del Total y el aire del pie; el desglose y los datos no se tocan. */
-@media (max-height: 760px) {
-  .pv-ticket[data-en-hoja] .pv-ticket-pie {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+/* La hoja del ticket en el celular: el pie fijo (Total, Responsable y Cobrar) se comía casi la mitad de la hoja y las prendas quedaban
+   en una franja (nació en el iPhone SE, 667 px; desde el 2026-11-25, Felipe, en todo teléfono). Se achica solo el número del Total y el
+   aire del pie; el desglose y los datos no se tocan. */
+.pv-ticket[data-en-hoja] .pv-ticket-pie {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.pv-ticket[data-en-hoja] .pv-pie-total {
+  font-size: 2.25rem;
+}
+/* La hoja del ticket con el teléfono acostado (844 × 390): la cabecera, la lista (que no baja de 160 px) y el pie fijo no caben en los
+   ~360 px de la hoja, que es de alto fijo y corta lo que sobra: «Cobrar» y «Confirmar cobro» quedaban fuera de la pantalla, sin forma
+   de llegar a ellos (2026-11-24). Bajo 500 px de alto la hoja corre ENTERA, como cualquier otra: la lista toma su alto natural y el pie
+   va al final, a un desplazamiento. De pie ningún teléfono baja de 500 px, así que esto solo cambia el teléfono acostado. */
+@media (max-height: 500px) {
+  .pv-ticket[data-en-hoja] {
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
-  .pv-ticket[data-en-hoja] .pv-pie-total {
-    font-size: 2.25rem;
+  .pv-ticket[data-en-hoja] > form {
+    flex: none;
+  }
+  .pv-ticket[data-en-hoja] > form > [data-sin-reserva] {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
   }
 }
 
@@ -527,7 +544,7 @@
 .pv-desc-motivo {
   min-height: 1.25rem;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
 }
 
@@ -567,7 +584,7 @@
   justify-content: center;
 }
 .pv-desc-ayuda {
-  font-size: 0.875rem;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
 }
 
@@ -579,7 +596,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.25rem 0.875rem;
-  font-size: 14.5px;
+  font-size: var(--text-detalle);
   transition: background-color 200ms var(--ease-cayla);
 }
 .pv-desc-todo {
@@ -618,7 +635,7 @@
   justify-content: center;
   padding-inline: 0.25rem;
   border-radius: 1rem;
-  font-size: 1.0625rem;
+  font-size: var(--text-lg);
 }
 /* La ficha ya es grande y está sola en su caja: el ✓ delante de la puesta no hace falta (la cifra y el ahumado ya lo dicen). */
 .pv-desc-ficha.pildora-cayla::before {
@@ -638,7 +655,7 @@
   gap: 0.75rem;
   padding: 0.25rem 0.875rem;
   text-align: left;
-  font-size: 14.5px;
+  font-size: var(--text-detalle);
   transition: background-color 200ms var(--ease-cayla);
 }
 .pv-desc-opcion[aria-checked="true"] {

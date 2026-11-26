@@ -9,7 +9,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../estilos/entrada.css";
 import "../../estilos/mi-cuenta.css";
 
-export const metadata: Metadata = { title: "Eliminar mi cuenta · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Eliminar mi cuenta", robots: { index: false, follow: false } };
 
 /**
  * «Eliminar mi cuenta» (Felipe 2026-10-15): borra la cuenta y sus datos de la ficha del Club (la anonimización de siempre; deja de ser

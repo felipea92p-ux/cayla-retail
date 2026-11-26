@@ -2,6 +2,7 @@ import { z } from "zod";
 import { soles } from "./catalogo";
 import { leerCuponDelPedido, type CuponDelPedido } from "./cupon";
 import { enlaceWhatsapp } from "./tiendas";
+import { detalleDicho } from "./detalle-dicho";
 
 // Los pedidos web del cliente (ADR-0408, actividad 7): lo que devuelve `retail.tienda_mis_pedidos` (y, uno solo, `tienda_pedido`).
 // La base decide todo —el estado de hoy (un «por confirmar» pasado su plazo ya se lee vencido), cuánto falta, hasta cuándo se
@@ -227,9 +228,9 @@ export const nombreTienda = (nombreWeb: string) => (/^cayla\b/i.test(nombreWeb.t
 /** Las prendas que siguen en el pedido: las que la tienda quitó al confirmar (sin stock) ya no cuentan (maqueta, `vivos`). */
 export const vivas = (p: Pick<Pedido, "lineas">) => p.lineas.filter((l) => l.estado !== "quitada");
 
-/** «Color · Talla M», sin inventar lo que la prenda no tiene. */
+/** «Negro, talla M», sin inventar lo que la prenda no tiene. */
 export const detalleDeLaPrenda = (l: Pick<LineaPedido, "color" | "talla">) =>
-  [l.color.nombre, l.talla ? `Talla ${l.talla}` : null].filter(Boolean).join(" · ");
+  detalleDicho([l.color.nombre, l.talla ? `talla ${l.talla}` : null]);
 
 /**
  * El mensaje de WhatsApp que va escrito al tocar «Enviar por WhatsApp». Es la idea de Felipe, PALABRA POR PALABRA (maqueta,
@@ -262,7 +263,7 @@ export const solesEnFrase = (monto: number) => soles(monto).replace(" ", "\u00a0
 /** La insignia de cada estado en «Mis pedidos» (maqueta, `ESTADO_T`). */
 export const INSIGNIA: Record<EstadoPedido, { texto: string; tono: "ambar" | "verde" | "neutro" | "rojo" }> = {
   por_confirmar: { texto: "Por confirmar", tono: "ambar" },
-  confirmado: { texto: "Confirmado · falta pagar", tono: "verde" },
+  confirmado: { texto: "Confirmado, falta pagar", tono: "verde" },
   pagado: { texto: "Pagado", tono: "verde" },
   entregado: { texto: "Entregado", tono: "neutro" },
   vencido: { texto: "Se cerró sin confirmar", tono: "neutro" },

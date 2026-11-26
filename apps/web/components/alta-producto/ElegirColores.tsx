@@ -148,12 +148,12 @@ export function ElegirColores({
       {!sinElegidos && (
       <div className="flex min-h-9 flex-wrap items-center gap-1.5">
         {listaElegidos.length === 0 ? (
-          <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de abajo.</p>
+          <p className="text-xs text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de abajo.</p>
         ) : (
           listaElegidos.map((c) => (
             <span
               key={c.codigo}
-              className="inline-flex min-h-9 items-center gap-[7px] rounded-full border border-tinta bg-tinta/[0.07] py-1 pl-3 pr-1.5 text-[13.5px] text-tinta"
+              className="inline-flex min-h-9 items-center gap-[7px] rounded-full border border-tinta bg-tinta/[0.07] py-1 pl-3 pr-1.5 text-detalle text-tinta"
             >
               <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />
               {c.nombre}
@@ -166,7 +166,7 @@ export function ElegirColores({
                   }}
                   aria-label={`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase("es")}`}
                   title="Si la prenda tiene otro color además de este (hueso con azul), agrégalo aquí"
-                  className="btn-cayla btn-enlace ml-0.5 text-[12.5px]"
+                  className="btn-cayla btn-enlace ml-0.5 text-xs leading-tight"
                 >
                   + acompañante
                 </button>
@@ -175,7 +175,7 @@ export function ElegirColores({
                 type="button"
                 onClick={() => onAlternar(c.codigo)}
                 aria-label={`Quitar ${c.nombre}`}
-                className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+                className="area-dedo grid h-6 w-6 place-items-center rounded-full text-sm leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
               >
                 ×
               </button>
@@ -319,7 +319,7 @@ export function ElegirColores({
                 }`}
               >
                 {/* El nombre se alinea con la PRIMERA fila (los círculos miden 32 px), no con el centro del bloque. */}
-                <p className="text-[11.5px] text-taupe @md:flex @md:h-8 @md:items-center">{g.texto}</p>
+                <p className="text-xs text-taupe @md:flex @md:h-8 @md:items-center">{g.texto}</p>
                 {g.familia === GRUPO_ESTAMPADOS || g.familia === GRUPO_COMBINADOS ? (
                   // Un estampado se elige por su nombre (ADR-0634): su punto solo dice el color dominante, y dos azules distintos se verían iguales.
                   // Una mezcla también (ADR-0643): «Hueso con azul» y «Hueso con celeste» se distinguen por su nombre, no por medio círculo.
@@ -356,12 +356,12 @@ export function ElegirColores({
                             onBlur={() => setSenalado(null)}
                             style={{ background: fondoDeColor(c.hex, c.familiaColor, c.tipo), borderColor: bordeDeMuestra(c.hex) }}
                             // El círculo es el color de la prenda, que no cambia con el tema: el visto de encima usa la tinta y la crema fijas (ADR-0336). Con las del tema, en oscuro el ✓ sobre Blanco no se veía.
-                            className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-[12px] font-bold transition-transform duration-150 hover:scale-110 ${
+                            className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-xs font-bold transition-transform duration-150 hover:scale-110 ${
                               elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
                             } ${esColorClaro(c.hex) ? "text-tinta-fija" : "text-crema-fija"}`}
                           >
                             {elegido && <span aria-hidden>✓</span>}
-                            {!c.hex && !elegido && <span aria-hidden className="text-[9px] text-taupe">?</span>}
+                            {!c.hex && !elegido && <span aria-hidden className="text-xs text-taupe">?</span>}
                           </button>
                         );
                       })}

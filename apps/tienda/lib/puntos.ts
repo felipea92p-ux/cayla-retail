@@ -162,7 +162,7 @@ export const puntosDichos = (n: number) => `${Math.abs(n).toLocaleString("es-PE"
 /** Cuánto valen estos puntos: solo cuentan los cientos completos (100 puntos = `solesPor100`), igual que la base. */
 export const valorDePuntos = (puntos: number, cfg: Pick<ConfigPuntos, "solesPor100">) => Math.round(Math.floor(puntos / 100) * cfg.solesPor100 * 100) / 100;
 
-/** «Ganas 1 punto por cada S/ 1 que pagas · 100 puntos valen S/ 5» (la regla, con los números de hoy). */
+/** «Ganas 1 punto por cada S/ 1 que pagas, y 100 puntos valen S/ 5» (la regla, con los números de hoy). */
 export function reglaDeLosPuntos(cfg: ConfigPuntos): string {
   const por = cfg.puntosPorSol;
   const porSol = Number.isInteger(por) ? String(por) : String(por);
@@ -186,12 +186,12 @@ export function diasQueFaltan(venceEl: string, hoy: Dia): number {
   return Math.round(dias);
 }
 
-/** «Vence hoy», «Vence mañana», «Vence el 26 de octubre · te quedan 4 días». */
+/** «Vence hoy», «Vence mañana», «Vence el 26 de octubre, en 4 días». */
 export function venceDicho(venceEl: string, hoy: Dia): string {
   const faltan = diasQueFaltan(venceEl, hoy);
   if (faltan <= 0) return "Vence hoy";
   if (faltan === 1) return "Vence mañana";
-  return `Vence el ${fechaDicha(venceEl, hoy)} · te quedan ${faltan} días`;
+  return `Vence el ${fechaDicha(venceEl, hoy)}, en ${faltan} días`;
 }
 
 /** Lo que dice un cupón de su pedido web: «Reservado para tu pedido W-0012», «Volvió de tu pedido W-0012». null si no tiene que ver con uno. */
@@ -200,8 +200,8 @@ export function cuponYSuPedido(c: Pick<CuponWeb, "estado" | "pedido" | "volvioDe
   return c.volvioDe ? `Volvió de tu pedido ${c.volvioDe}: puedes usarlo de nuevo` : null;
 }
 
-/** El cupón en una línea: «S/ 10 · compra desde S/ 30». */
-export const cuponDicho = (c: Pick<CuponWeb, "valor" | "compraMinima">) => `${montoDicho(c.valor)} · para una compra desde ${montoDicho(c.compraMinima)}`;
+/** El cupón en una línea: «S/ 10 para una compra desde S/ 30». */
+export const cuponDicho = (c: Pick<CuponWeb, "valor" | "compraMinima">) => `${montoDicho(c.valor)} para una compra desde ${montoDicho(c.compraMinima)}`;
 
 const ETIQUETA: Record<MovimientoDePuntos["tipo"], string> = {
   compra: "Compra",
@@ -213,7 +213,7 @@ const ETIQUETA: Record<MovimientoDePuntos["tipo"], string> = {
   ajuste: "Ajuste del Club",
 };
 
-/** La línea de un movimiento: «Compra · 12 de octubre», «Canje por cupón CAY-4K7P-9H2M · 3 de octubre». */
+/** La línea de un movimiento: «Compra» y «12 de octubre», cada uno en su pieza. */
 export function movimientoDicho(m: MovimientoDePuntos, hoy: Dia): { titulo: string; dia: string; puntos: string; sube: boolean } {
   const titulo = m.codigo && (m.tipo === "canje" || m.tipo === "devuelve") ? `${ETIQUETA[m.tipo]} ${m.codigo}` : ETIQUETA[m.tipo];
   return { titulo, dia: fechaDicha(m.dia, hoy), puntos: `${m.puntos > 0 ? "+" : "−"}${Math.abs(m.puntos).toLocaleString("es-PE")}`, sube: m.puntos > 0 };

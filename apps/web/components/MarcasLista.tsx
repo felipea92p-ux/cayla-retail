@@ -456,7 +456,7 @@ export function MarcasLista({
       </section>
 
       <p className="nota-cayla">
-        Con productos activos, una marca no se desactiva. Se elimina solo si ningún producto la tuvo: así no se pierde historia.
+        Con productos activos, una marca no se desactiva. Solo se elimina si nunca tuvo productos.
       </p>
 
       {resumenAbierto && (

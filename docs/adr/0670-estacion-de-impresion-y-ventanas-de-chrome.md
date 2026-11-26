@@ -1,6 +1,6 @@
 # ADR-0670 — Imprimir sin cuadro: una ventana de Chrome por impresora, y la estación de la caja que imprime lo del piso
 
-- **Fecha:** 2026-11-16 · **Estado:** construido en la rama `claude/estacion-de-impresion` (seis actividades de `/construir`, una por
+- **Fecha:** 2026-11-16 (act. 2026-11-24: interruptores encendidos de fábrica) · **Estado:** construido en la rama `claude/estacion-de-impresion` (seis actividades de `/construir`, una por
   commit). La migración `20261116204000_cola_de_impresion.sql` está en producción desde el 2026-11-16 (con el sí de Felipe).
 - **Pidió:** Felipe, 2026-11-16: «cuando la venta es por efectivo que solo se haga clic en confirmar pago y ya te imprime la boleta» y
   «que al momento de mandar a imprimir cualquier cosa se imprima directamente sin abrir ningún cuadro de diálogo»; y, de su idea de
@@ -25,7 +25,8 @@ solo, sin cuadro, a 80 × 120 mm. La guía que había en el repo decía lo contr
 2. **La ventana sabe qué es.** El ícono abre el ERP con `?ventana=caja|etiquetas`; `MarcaDeVentana` (layout raíz, también en el login) la
    guarda en el `localStorage` de ese perfil y la quita de la dirección. Todo `window.print()` del ERP pasa por `imprimirEnEstaVentana`:
    lo que no va a la impresora de esa ventana no se imprime y un aviso dice dónde abrirlo (`lib/ventana-de-impresion.ts`, pura y probada).
-3. **«Imprimir solo al cobrar»** (PR #1889): confirmar el cobro ya imprime; sin vuelto vuelve sola a una venta nueva.
+3. **«Imprimir solo al cobrar»** (PR #1889): confirmar el cobro ya imprime; sin vuelto vuelve sola a una venta nueva. *(Cambió el
+   2026-11-25: encendido de fábrica en un computador y sin la hoja, haya vuelto o no; ver la actualización al final.)*
 4. **La cola de impresión en la base** (`retail.impresiones` + `pedir_impresion`, `tomar_impresion`, `marcar_impresion`,
    `fn_impresion_estado`): una pedida viva por venta; la caja toma con `for update skip locked` (dos cajas nunca la misma); una tomada sin
    marcar vuelve a los 2 min y se deja tras 5 intentos; no se toma lo pedido hace más de 12 h ni lo anulado. RLS sin políticas, permisos
@@ -96,3 +97,121 @@ SE ROMPE SI:
 3. **La Mac tiene un ayudante viejo (v2):** la boleta sigue saliendo por el cuadro, como antes; se vuelve a pegar la línea.
 4. **Una regla de impresión de la boleta deja de estar en `@media print` de un `.css` propio:** la medida no la ve y la boleta se partiría
    en dos hojas. Hoy todas viven en `globals.css`.
+
+## Actualización 2026-11-24: los dos interruptores vienen encendidos donde les toca
+
+Pedido de la cuenta del equipo, el 2026-11-24: «Cuando se hace boleta o comprobante desde celular no se imprime en la caja, debe estar
+marcado por defecto e imprimir de manera automática». En ocho días no salió ni una boleta del piso (0 filas en `retail.impresiones`,
+bitácora `2026-11-24-mobile-sales-flow-31a365`). Para que salga hacen falta los dos interruptores: el del celular («Imprimir en la caja»)
+y el de la caja («Imprimir lo que se vende en el piso»). Los dos nacían apagados y vivían al pie de «Venta registrada», donde nadie los
+encendió.
+
+1. **«Imprimir en la caja» viene encendido en el aparato sin mouse** (`(pointer: coarse) and (hover: none)`: celular y tablet) y apagado
+   en la computadora, que imprime donde cobra (`lib/imprimir-al-cobrar.ts`, `enLaCajaDeFabrica`). Para eso, `preferenciaLocal` acepta un
+   valor de fábrica que depende del aparato (`deFabricaDelEquipo`). Se pregunta solo si el equipo no tiene nada guardado, así que lo
+   elegido a mano gana. El servidor, que no sabe qué aparato es, sigue en «no».
+2. **«Imprimir lo que se vende en el piso» viene encendido** (`lib/estacion-de-impresion.ts`). En los demás equipos ese «si» no hace nada:
+   la estación solo trabaja donde se imprime sin cuadro (`estacionActiva`: la ventana «CAYLA Caja» o la Mac con la ticketera en su
+   ayudante). «Avisar con voz» sigue encendida. «Imprimir solo al cobrar» sigue apagado: no se pidió, y donde no hay `--kiosk-printing`
+   abriría el cuadro en cada venta. *(Se pidió al día siguiente: encendido en la computadora desde el 2026-11-25, ver abajo.)*
+3. **En el celular, «Venta registrada» ya no ofrece «Imprimir y nueva venta»**: con «Imprimir en la caja» encendido, la hoja pide la
+   boleta apenas se abre y muestra «Mandando a la caja» → «En la cola de la caja» → «Impresa en la caja». Su botón principal pasa a ser
+   «Nueva venta» y debajo queda «Imprimir aquí». Esa hoja ya existía: lo único que cambia es que llega sola.
+
+DESCARTÉ:
+- **Encender «Imprimir en la caja» en todo equipo:** la Mac de la caja sabe que es la caja preguntándole a su ayudante, y la respuesta
+  llega después de abrir la pantalla. Su primera venta podía irse a la cola en vez de imprimirse ahí. Una PC sin `?ventana=caja` se
+  mandaría sus propias boletas, y una Mac de oficina las dejaría en una cola que nadie toma.
+- **Decidir por el ancho de la pantalla (menos de 640 px):** una ventana angosta de la computadora mandaría la boleta a la caja. Una tablet,
+  que tampoco tiene impresora, se quedaría afuera.
+- **Pasarlo a la cuenta, en la base:** la decisión es del aparato y no de la persona (la misma colaboradora cobra en la Mac y en su
+  celular), y no vale una columna nueva.
+- **Encenderlo encima de lo que alguien apagó:** quien lo apagó tuvo un motivo, por ejemplo una impresora en el piso.
+
+SE ROMPE SI:
+1. **Una tablet que sí imprime (AirPrint) donde nadie tocó el interruptor:** su boleta va a la cola de la caja. Se apaga una vez en esa tablet.
+2. **La caja de la sede no tiene la estación activa:** puede ser una Mac sin el ayudante v3 con la ticketera, una PC sin `?ventana=caja`, o
+   una estación que alguien apagó. El celular dice «En la cola de la caja» y la boleta no sale. La pedida espera hasta 12 h y sale sola al
+   encender la estación. Mientras tanto quedan «Imprimir aquí» y la reimpresión desde Historial.
+3. **La caja tiene elegida otra sede:** la estación toma solo la cola de su sede activa, así que lo del piso de otra sede no sale ahí. Ya
+   pasaba antes de este cambio.
+
+**(b) La Mac vuelve a preguntar si es la caja.** Esa misma tarde, en producción, la estación de TRU imprimió cinco boletas del piso
+(17:10 a 17:38) y después se apagó sola: dos boletas quedaron en la cola sin que nadie las tomara (0 intentos) hasta recargar. La Mac
+sabe que es la caja preguntándole a su ayudante si ve la ticketera, y solo lo preguntaba al abrir la página. Bastaba que una respuesta
+fallara para que dejara de ser la caja hasta recargar, y nadie lo notaba. Pasaba de dos formas: el ayudante tardaba más de 5 s, o una
+boleta no salía y el código borraba la respuesta sin avisar. El comentario del código ya prometía «cada cuánto se vuelve a preguntar»,
+pero nada lo hacía. Ahora la pregunta vive en `lib/ayudante-de-boletas.ts`:
+
+- Mientras alguien escucha (la estación o «Venta registrada»), la Mac vuelve a preguntar cada 30 s y apenas la pestaña vuelve a verse.
+  Usa un solo reloj, solo en una Mac.
+- Si una boleta no sale, pregunta de nuevo enseguida y, hasta que llegue la respuesta, vale la última.
+- `lib/boletas-por-ayudante.test.ts` recorre el caso de TRU sin recargar. Sin el arreglo falla en 3 de sus 6 casos.
+
+Se probó en el navegador con un ayudante de mentira: la insignia se va a los 29 s de perder la ticketera, vuelve a los 30 s de
+recuperarla y, al volver a la pestaña, vuelve en el acto.
+
+## Actualización 2026-11-25: confirmar el cobro imprime y vuelve solo, sin la hoja «Venta registrada»
+
+El equipo, al ver la hoja en Vender: «debería imprimirse de manera automática cuando se confirme el cobro y ya omitirse que aparezca eso».
+Eligió (con las opciones a la vista) **sin hoja, salvo excepciones**, y **en todo equipo menos celular y tablet**. Cambia el punto 3.
+
+1. **«Imprimir solo al cobrar» nace encendido en la computadora y apagado en el celular o la tablet** (`lib/imprimir-al-cobrar.ts`): el
+   mismo criterio y el mismo mecanismo que «Imprimir en la caja» el 2026-11-24 (`MQ_SIN_IMPRESORA`, `deFabricaDelEquipo`), al revés. Lo
+   que un equipo ya guardó se respeta. Juntos: la computadora imprime sola donde cobra; el celular manda la boleta a la cola de la caja.
+2. **Encendido, Vender no abre la hoja:** monta el recibo sin dibujar nada (`components/punto-de-venta/ImpresionAlCobrar.tsx`), lo manda
+   a imprimir, vuelve a una venta nueva y, cuando la boleta ya se mandó, avisa «Venta de S/… registrada · Boleta B001-… · Vuelto S/…»
+   con «Reimprimir» (el aviso propio del ayudante se calla: `imprimirBoleta({ conAviso: false })`). El vuelto ya lo dijo la hoja de cobro.
+3. **La hoja aparece solo cuando hay algo que ver o hacer con ella** (`queHacerAlRegistrar`): sin conexión o sin comprobante, «Imprimir en
+   la caja», el WhatsApp de la boleta (imprime al abrirse y se queda), o la boleta que no salió (`frenada`: la ventana no imprime tickets;
+   la hoja dice «La boleta no salió» y espera el botón). El vuelto ya no la deja abierta.
+4. **Cambios** usa la misma preferencia: el comprobante nuevo de un cambio con diferencia también sale solo en un computador (#1910).
+
+DESCARTÉ:
+- **Sin hoja nunca:** una boleta que no sale (la ventana de etiquetas, el freno) quedaría sin nadie que lo note en el momento.
+- **Solo encender lo que ya existía:** con vuelto la hoja se quedaba abierta, y eso es justo lo que se pidió quitar.
+- **Encenderlo también en el celular:** abriría el cuadro de imprimir o guardar PDF en cada venta del piso.
+
+SE ROMPE SI:
+1. **Un computador sin impresión directa** (Windows sin `--kiosk-printing`, Mac sin el ayudante v3): cada venta abre el cuadro de
+   impresión. Es un clic en vez de los dos de antes; se arregla configurando la impresión directa, no apagando esto.
+2. **Hay que apagarlo en un equipo:** el interruptor vive en la hoja, que ahora casi no aparece. Se llega a ella con una venta con
+   WhatsApp o con «Imprimir en la caja»; si pasa seguido, el interruptor necesita otro lugar (pendiente en el backlog).
+3. **Una caja táctil sin mouse** (un todo en uno que el navegador ve como `(pointer: coarse) and (hover: none)`): arranca como un
+   celular, mandando a la caja; se cambia una vez en su hoja.
+
+## Actualización 2026-11-25 (b): el aviso al cobrar en vez de la hoja, también en el celular, y la tuerca de Vender
+
+Felipe, al revisar el PR anterior: «La idea es que se imprima de manera automática, entonces ese modal se hace innecesario, y las opciones
+para hacer un punto de impresión quizás colocarlas en otro lado, tanto para PC y móvil, pero ojo sin afectar lo actual, ya que Trujillo ya
+está usando el móvil para imprimir». Aprobó la maqueta `docs/maquetas/impresion-vender-2026-11/` (con la tuerca con texto y sin «Imprimir
+aquí» en el celular). En producción, el 2026-11-24, el celular de Trujillo mandó 10 boletas a la caja: 7 salieron en 2 a 5 s y 3 esperaron
+entre 40 y 53 minutos a que la Mac de la caja despertara. Cambian los puntos 2 y 3 de la actualización anterior y su «SE ROMPE SI» 2.
+
+1. **Al cobrar, un aviso reemplaza a la hoja «Venta registrada»** (`components/punto-de-venta/AvisoAlCobrar.tsx`, `<Modal>` angosta): dice
+   si la boleta salió, su número, el vuelto en grande y dos botones, «Nueva venta» (con Enter) y «Reimprimir». Si no salió: «La boleta no
+   salió» con «Reintentar». Lo que dice sale de la regla pura `caraDelAviso` (`lib/imprimir-al-cobrar.ts`). Se quitó de la hoja lo que no se
+   necesita al cobrar (subtotal, IGV, pagos, líneas, cliente, estado SUNAT): sale impreso y queda en «Ventas de hoy».
+2. **En el celular también va sin hoja** (`queHacerAlRegistrar` → `mandar-sin-hoja`): «Enviando a la caja», «Boleta impresa en la caja»
+   y, si la caja tarda más de 15 s (`ESPERA_LARGA_MS`), «Sigue en la cola de la caja», sin frenar la venta siguiente y sin «Imprimir aquí»
+   (el celular no tiene impresora). Con un WhatsApp que ofrecer, la hoja sigue (`mandar-a-la-caja`).
+3. **La cola del equipo vive fuera de la pantalla** (`components/impresion/colaDeLaCaja.ts`): pide una vez por venta y pregunta cada 3 s
+   los primeros 3 minutos y después cada 20 s hasta 3 horas. `usePedidaALaCaja` la usa. Al recargar la página la lista se pierde, no la
+   boleta: sigue en `retail.impresiones` y la caja la imprime igual.
+4. **Los interruptores salen de la hoja y viven en la tuerca de Vender** (`components/punto-de-venta/ImpresionDelEquipo.tsx`, junto a
+   «Más»): dice a dónde va la boleta de este equipo («Imprime aquí», «Va a la caja», «Esta es la caja», `destinoDelEquipo`) y cuántas
+   esperan a la caja («1 en cola», ámbar). Son las MISMAS preferencias, con el mismo nombre guardado y el mismo valor de fábrica: no cambia
+   cómo imprime ningún equipo. Abrir la tuerca no guarda nada. Lo vigila la prueba «la tuerca no cambia cómo imprime ningún equipo (foto
+   de Trujillo)». Su hoja no guarda nada: sale con la × (regla «Las hojas»), no con el «Listo» de la maqueta.
+
+DESCARTÉ:
+- **Un aviso de esquina (toast) en vez del aviso al centro:** el vuelto se pierde de vista justo cuando hay que entregarlo.
+- **«Imprimir aquí» en el celular cuando la caja tarda:** abriría el cuadro de imprimir o guardar PDF; Felipe lo quitó en la maqueta.
+- **Esperar en el aviso hasta que la caja imprima:** con la Mac dormida, la vendedora quedaba bloqueada hasta 53 minutos.
+
+SE ROMPE SI:
+1. **Se renombra una preferencia** (`cayla-imprimir-en-la-caja`, `cayla-imprimir-al-cobrar`, `cayla-estacion-de-la-caja`) o cambia su
+   valor de fábrica: los equipos que nunca la tocaron cambian solos. La prueba de la foto de Trujillo lo frena.
+2. **El celular recarga la página con boletas en la cola:** la tuerca deja de contarlas (la caja las imprime igual).
+3. **El título del aviso va a la izquierda**, no al centro como en la maqueta: `<Modal>` no centra su cabecera y no se le agregó una
+   opción para esto.

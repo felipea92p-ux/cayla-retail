@@ -418,7 +418,7 @@ function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: n
         <span className={celda("izq", "flex items-center gap-3")}>
           <MiniaturaDelProbador prenda={p} />
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-medium text-tinta">{p.nombre}</span>
+            <span className="block truncate text-sm font-medium text-tinta">{p.nombre}</span>
             <span className="block truncate text-sm text-taupe">{[p.codigo, p.categoria?.nombre].filter(Boolean).join(" · ")}</span>
             {faltanColores > 0 && (
               <span className="block truncate text-sm text-taupe xl:hidden">{faltanColores === 1 ? "Falta la foto de 1 color" : `Faltan las fotos de ${faltanColores} colores`}</span>

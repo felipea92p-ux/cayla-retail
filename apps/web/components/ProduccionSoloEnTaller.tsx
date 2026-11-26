@@ -16,8 +16,7 @@ export function ProduccionSoloEnTaller({ ubicacionActual, puedeCambiarUbicacion 
       <div className="card-cayla">
         {puedeCambiarUbicacion ? (
           <Vacio icono={<Factory />} titulo="Producción se trabaja desde el Taller">
-            Ahora estás mirando desde «{ubicacionActual}». Cambia la sede en el selector de arriba y elige el Taller para ver las órdenes y los
-            insumos.
+            Estás en «{ubicacionActual}». Elige el Taller en el selector de arriba.
           </Vacio>
         ) : (
           <Vacio icono={<Factory />} titulo="Producción se trabaja desde el Taller" acciones={<BotonVer href="/">Volver al inicio</BotonVer>}>

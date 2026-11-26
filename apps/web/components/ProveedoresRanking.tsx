@@ -68,7 +68,7 @@ export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, p
   const elegida = opciones.find((o) => o.m === medida) ?? opciones[0]!;
   return (
     <div data-guia="proveedores.medida" className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-      <span className="label-cayla text-[11px] text-tinta/65">Ordenar por</span>
+      <span className="label-cayla text-xs text-tinta/65">Ordenar por</span>
       <SegmentoDeslizante
         forma="modo"
         etiqueta="Ordenar el ranking por"
@@ -142,7 +142,7 @@ export function ProveedoresRanking({
       {/* Lo que el orden quiere decir y que las filas se marcan, a la vista (Formidable 2026-10-26): el «#1» se leía como «el mejor» y nada
           avisaba que marcar cambia la columna de la derecha. */}
       <p className="text-sm text-tinta/70">
-        Del que más te llegó al que menos{medida === "soles" ? ", a su costo" : ""}. Toca uno para ver su detalle; marca hasta {MAX_COMPARAR} para compararlos.
+        Del que más te llegó al que menos{medida === "soles" ? ", a su costo" : ""}. Marca hasta {MAX_COMPARAR} para compararlos.
       </p>
       <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
         <Encabezado plantilla={PLANTILLA} columnas={columnas(medida)} visible="hidden @2xl:grid" />
@@ -231,7 +231,7 @@ function FilaDelRanking({
           className="block min-w-0 max-w-full text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:[outline:var(--foco-ancho)_solid_var(--foco-color)] focus-visible:after:[outline-offset:calc(var(--foco-ancho)*-1)]"
         >
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-[15px] font-semibold text-tinta" title={titulo ? marcas.join(", ") : undefined}>
+            <span className="truncate text-sm font-semibold text-tinta" title={titulo ? marcas.join(", ") : undefined}>
               <Resaltado texto={titulo ?? f.nombre} busqueda={busqueda} />
             </span>
             {/* Cuántos puestos se movió al cambiar de medida: responde a esa acción y se queda hasta el próximo cambio. */}

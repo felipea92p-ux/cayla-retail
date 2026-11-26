@@ -225,7 +225,7 @@ function PasoModelosListo({
           Al costo
         </TarjetaCifra>
         <div className="card-cayla flex flex-col gap-2 p-4 sm:px-5" data-guia="paso2.repetir">
-          <p className="label-cayla block min-h-5 text-[11px] font-bold leading-5 text-taupe">Repetir lo que ya vendió</p>
+          <p className="label-cayla block min-h-5 text-xs font-bold leading-5 text-taupe">Repetir lo que ya vendió</p>
           <div className="flex flex-wrap items-center gap-2">
             <CantidadEditable valor={reparto.pct} onCambiar={(n) => setPct(n)} etiqueta="porcentaje a repetir de lo que ya vendió" tamano="fila" sufijo="%" max={100} deshabilitado={guardando} />
             {reparto.pct !== reparto.pctPorDefecto && (

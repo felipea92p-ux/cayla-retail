@@ -958,7 +958,11 @@ export const DECISIONES = {
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
       "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
     ],
-    "deuda": [],
+    "deuda": [
+      // Salió a la vista el 2026-11-23, al llevar su letra a la escala (ADR-0691): eran `text-[15px]` y la firma no los veía. Son las
+      // preguntas del paso «Reemplazo» de Cambios («¿Qué se lleva?», «¿Cuántas cambia?»), en letra de lectura: cómo se ven lo decide Felipe.
+      "components/CambioReemplazo.tsx"
+    ],
     "excepciones": []
   },
   "accion.exportar": {

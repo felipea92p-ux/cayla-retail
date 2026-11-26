@@ -208,7 +208,7 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
             ))}
           </div>
           <div className="space-y-2 border-t border-sand p-3">
-            <p className="label-cayla text-[10px] text-tinta/55">Otro período · día de llegada</p>
+            <p className="label-cayla text-xs text-tinta/55">Otro período · día de llegada</p>
             <CampoFecha etiqueta="Desde" valor={desde} onValor={(v) => cambiarExtremo("desde", v)} />
             <CampoFecha etiqueta="Hasta" valor={hasta} onValor={(v) => cambiarExtremo("hasta", v)} />
             {activa && (
@@ -218,7 +218,7 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
                   onCambiar("", "");
                   cerrar();
                 }}
-                className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                className="label-cayla text-xs text-tinta/65 transition-colors hover:text-rojo"
               >
                 Quitar fechas
               </button>

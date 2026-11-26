@@ -399,7 +399,7 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-medium text-tinta">
                   {a.titulo}
-                  {a.nivel === "urgente" && <span className="inicio-aviso-urgente text-[10px] font-bold tracking-[0.1em] text-rojo uppercase">Urgente</span>}
+                  {a.nivel === "urgente" && <span className="inicio-aviso-urgente text-xs font-bold tracking-[0.1em] text-rojo uppercase">Urgente</span>}
                   {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-sm font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
                 </p>
                 <p className="mt-0.5 text-sm text-tinta/65">{a.detalle}</p>
@@ -476,7 +476,7 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
         ) : (
           equipo.map((m) => (
             <div key={m.personaId} className="inicio-persona flex items-start gap-3 px-4 py-3">
-              <span className="inicio-avatar font-display relative grid size-[34px] shrink-0 place-items-center rounded-full vd-gota-chica text-[15px] text-tinta">
+              <span className="inicio-avatar font-display relative grid size-[34px] shrink-0 place-items-center rounded-full vd-gota-chica text-sm text-tinta">
                 {m.nombre.slice(0, 1)}
                 {m.estado === "presente" && <span className="inicio-avatar-turno absolute -right-px -bottom-px size-2.5 rounded-full border-2 border-papel bg-verde" />}
               </span>

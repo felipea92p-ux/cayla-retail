@@ -22,7 +22,7 @@ export function CabeceraReportes({
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
       <div className="min-w-0 max-w-[40rem] grow basis-[22rem]">
         <TituloSeccion>{titulo}</TituloSeccion>
-        {bajada && <p className="mt-1 text-[15px] leading-relaxed text-taupe">{bajada}</p>}
+        {bajada && <p className="mt-1 text-sm leading-relaxed text-taupe">{bajada}</p>}
         {children}
       </div>
       {acciones && <div className="flex flex-wrap items-center gap-2.5">{acciones}</div>}

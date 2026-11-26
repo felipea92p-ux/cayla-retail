@@ -1,20 +1,20 @@
 "use client";
 
 import "@/app/estilos/por-pantalla/analisis-pestanas.css";
-import { useMemo, useState } from "react";
-import { Check } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { Check, Store, Truck } from "lucide-react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, ICONO_ESTADO, nombreLargo, TilePrenda, type Estado } from "@/components/analisis/piezas";
 import { Respuesta, TarjetaPrenda, Tarjetas } from "@/components/analisis/Tarjetas";
-import { AccionesDeCompra } from "@/components/analisis/PestanaAcaba";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { Chip } from "@/components/ui/Chip";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { Vacio } from "@/components/ui/Vacio";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { queTiene } from "@/lib/analisis-modelo";
-import { detalleAcaba } from "@/lib/analisis-acaba";
+import { fechaCorta } from "@/lib/motor-demanda-reglas";
 import {
   alcanceConFiltros,
   baseConFiltros,
@@ -23,13 +23,19 @@ import {
   diasANavidad,
   diasEnteros,
   escalaRinde,
+  fechaEnQueSeAcaba,
   fraseAlcance,
-  modelosQueNoLlegan,
   notaRindeVacio,
   notaTiposSinRegistrar,
+  parteDeArriba,
+  marcaDePedir,
+  primerasQuePedir,
+  queHayQuePedir,
   RINDE_POCO,
   solesRinde,
   textoRitmo,
+  vendesPorSemana,
+  vendiste,
   tipRinde,
   tiposSinRegistrar,
   type CurvaTallas,
@@ -37,10 +43,12 @@ import {
 import { plural } from "@/lib/analisis-reglas";
 import { estadoSinNada } from "@/lib/analisis-hoy";
 
-// Análisis, cara B (ADR-0357, act. 2026-11-21): «Qué pedir», por MODELO (Felipe 2026-11-21: «el que muestra en las tarjetas debería ser
-// por modelo y no por tipo, para eso existe el filtro de tipo»). Abre con la respuesta («12 modelos · para la campaña: no te alcanzan hasta
-// Navidad, en 34 días», con el atajo al Plan de campaña) y sigue con una tarjeta por modelo que no llega: los días que le alcanzan (o «Ya
-// no hay»), qué talla falta, qué viene en camino y «Comprar →», como en «Se acaba» pero contra Navidad. Con un solo tipo en el filtro,
+// Análisis, cara B (ADR-0357, act. 2026-11-21 y 2026-11-24): «Qué pedir», por MODELO (Felipe 2026-11-21: «el que muestra en las tarjetas
+// debería ser por modelo y no por tipo, para eso existe el filtro de tipo»). Abre con la respuesta («12 modelos · para la campaña: no te
+// alcanzan hasta Navidad, en 34 días», con el atajo al Plan de campaña) y sigue en dos partes (Felipe 2026-11-24): «Ya se agotaron» (cuándo
+// se agotó y cuántas se vendieron en cuántos días: lo que dice si una prueba funcionó) y «Se acaban antes de Navidad» (hasta cuándo alcanza,
+// cuánto tienes y cuánto vendes por semana). Al pie, lo que viene en camino o la otra tienda que lo tiene. Sin botones ni «Faltan»: el detalle
+// por talla y «Pedir a…» están en la ficha, al tocar la tarjeta. Con un solo tipo en el filtro,
 // arriba va lo del tipo entero: para cuánto le alcanza (con lo vendido sin registrar, que no dice el modelo) y las tallas que se llevan.
 // La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta; la cantidad la elige quien pide, en Compras o en el Plan de campaña.
 // Con una talla o un color en los filtros, cuenta solo esas tallas de cada modelo. Las cuentas viven en `lib/analisis-pedir.ts`.
@@ -49,13 +57,16 @@ import { estadoSinNada } from "@/lib/analisis-hoy";
 const tonoDias = (d: number | null): Estado => ((d ?? 0) <= 7 ? "urg" : "ate");
 
 export function PestanaPedir() {
-  const { datos, acceso, prendas, filtros, orden, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
+  const { datos, acceso, prendas, filtros, orden, mostrarPedir, diasDeVentas, abrirFicha, sedeDe } = useAnalisis();
   const [rinde, setRinde] = useState(false);
   const hastaNavidad = diasANavidad(datos.hoy);
-  const piden = useMemo(() => modelosQueNoLlegan(prendas, filtros, diasDeVentas, hastaNavidad, orden.pedir), [prendas, filtros, diasDeVentas, hastaNavidad, orden.pedir]);
+  const { agotados, seAcaban } = useMemo(
+    () => queHayQuePedir(prendas, filtros, diasDeVentas, datos.hoy, orden.pedir),
+    [prendas, filtros, diasDeVentas, datos.hoy, orden.pedir],
+  );
   const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
   const ciudadDe = (id: string) => sedeDe(id)?.ciudad;
-  const n = piden.length;
+  const n = agotados.length + seAcaban.length;
   // Un solo tipo en el filtro: arriba, lo del tipo entero.
   const unTipo = filtros.tipo.length === 1 ? (filtros.tipo[0] ?? null) : null;
   const ayuda = [
@@ -65,6 +76,79 @@ export function PestanaPedir() {
   ]
     .filter(Boolean)
     .join(" ");
+
+  // La etiqueta bajo «qué tiene»: lo que viene en camino o la otra tienda que lo tiene.
+  const marca = (m: (typeof prendas)[number]) => {
+    const x = marcaDePedir(m, datos.hoy, ciudadDe);
+    if (!x) return { nodo: undefined, texto: "" };
+    const IconoMarca = x.tipo === "viene" ? Truck : Store;
+    return {
+      nodo: (
+        <Chip tono="neutro" versalitas={false}>
+          <IconoMarca aria-hidden className="h-3 w-3" />
+          {x.texto}
+        </Chip>
+      ),
+      texto: ` ${x.texto}.`,
+    };
+  };
+  // Lo agotado (cara «A», Felipe 2026-11-24): VENDISTE 12 en 8 días · SE AGOTÓ 23 oct., cada cifra con su rótulo.
+  const tarjetasAgotados = agotados.map((a, k) => {
+    const m = a.modelo;
+    const v = vendiste(a);
+    const cuando = a.agoto ? fechaCorta(a.agoto) : null;
+    const mk = marca(m);
+    return (
+      <TarjetaPrenda
+        key={m.varianteId}
+        i={5 + k}
+        miniatura={<TilePrenda prenda={m} tamano={72} />}
+        nombre={m.nombre}
+        que={queTiene(m)}
+        marca={mk.nodo}
+        cifras={[
+          { rotulo: "Vendiste", valor: v.valor, agregado: v.agregado },
+          { rotulo: "Se agotó", valor: cuando ?? "Ya no hay", est: "urg" },
+        ]}
+        est="urg"
+        etiqueta={`${nombreLargo(m)}: vendiste ${v.valor} ${v.agregado}; ${cuando ? `se agotó el ${cuando}` : "ya no hay"}.${mk.texto} Enter abre su ficha.`}
+        onAbrir={() => abrirFicha(m.varianteId)}
+      />
+    );
+  });
+  // Lo que todavía tiene algo y no llega a Navidad: TIENES 72 · VENDES 39 /sem. · SE ACABA 7 dic.
+  const tarjetasSeAcaban = seAcaban.map(({ modelo: m, dias, tiene, porDia }, k) => {
+    const d = diasEnteros(dias) ?? 1;
+    const hasta = fechaEnQueSeAcaba(datos.hoy, d);
+    const ritmo = vendesPorSemana(porDia);
+    const mk = marca(m);
+    return (
+      <TarjetaPrenda
+        key={m.varianteId}
+        i={5 + k}
+        miniatura={<TilePrenda prenda={m} tamano={72} />}
+        nombre={m.nombre}
+        que={queTiene(m)}
+        marca={mk.nodo}
+        cifras={[
+          { rotulo: "Tienes", valor: String(tiene) },
+          { rotulo: "Vendes", valor: ritmo.valor, agregado: ritmo.agregado },
+          { rotulo: "Se acaba", valor: hasta, est: tonoDias(d) },
+        ]}
+        est={tonoDias(d)}
+        etiqueta={`${nombreLargo(m)}: tienes ${tiene}, vendes ${ritmo.valor} por semana, se acaba el ${hasta}.${mk.texto} Enter abre su ficha.`}
+        onAbrir={() => abrirFicha(m.varianteId)}
+      />
+    );
+  });
+  const parteAgotados =
+    tarjetasAgotados.length > 0 ? (
+      <ParteQuePedir key="agotados" titulo="Ya se agotaron" guia="analisis.pedir-agotados" tarjetas={tarjetasAgotados} mostrar={mostrarPedir} />
+    ) : null;
+  const parteSeAcaban =
+    tarjetasSeAcaban.length > 0 ? (
+      <ParteQuePedir key="seAcaban" titulo="Se acaban antes de Navidad" guia="analisis.pedir-tarjetas" tarjetas={tarjetasSeAcaban} mostrar={mostrarPedir} />
+    ) : null;
 
   if (prendas.length === 0)
     return (
@@ -95,38 +179,30 @@ export function PestanaPedir() {
 
       {unTipo && <BloqueTipo categoria={unTipo} />}
 
-      {n > 0 && (
-        <Tarjetas guia="analisis.pedir-tarjetas">
-          {piden.map(({ modelo: m, dias }, k) => {
-            const d = diasEnteros(dias);
-            const numero = d === 0 ? "Ya no hay" : String(d);
-            const unidad = d === 0 ? "" : plural(d ?? 0, "día te alcanza", "días te alcanzan");
-            const detalle = detalleAcaba(m, datos.hoy, ciudadDe);
-            return (
-              <TarjetaPrenda
-                key={m.varianteId}
-                i={4 + k}
-                miniatura={<TilePrenda prenda={m} tamano={72} />}
-                nombre={m.nombre}
-                que={queTiene(m)}
-                numero={numero}
-                unidad={unidad}
-                est={tonoDias(d)}
-                detalle={detalle || undefined}
-                acciones={<AccionesDeCompra m={m} />}
-                etiqueta={`${nombreLargo(m)}: ${`${numero} ${unidad}`.trim()}. ${detalle.replace(/\.$/, "")}. Enter abre su ficha.`}
-                onAbrir={() => abrirFicha(m.varianteId)}
-              />
-            );
-          })}
-        </Tarjetas>
-      )}
+      {/* Las dos partes; arriba, la que responde el orden elegido (Felipe 2026-11-24): «no hay stock» → lo agotado, «quedan pocos» →
+          lo que se acaba antes de Navidad, con lo que se acaba en 2 semanas primero. Cada una muestra las que diga «Mostrar» (10 de entrada). */}
+      {(parteDeArriba(orden.pedir) === "agotados" ? [parteAgotados, parteSeAcaban] : [parteSeAcaban, parteAgotados])}
 
       <div className="entra flex flex-col gap-4" style={{ ["--i" as string]: 11 }}>
         <BotonVerMas abierto={rinde} onCambiar={setRinde} texto="Ver lo que más rinde" forma="enlace" />
         {rinde && <BloqueRinde />}
       </div>
     </>
+  );
+}
+
+/**
+ * Una parte de «Qué pedir»: su título con cuántos son en total y las tarjetas que diga «Mostrar» de la barra (10 de entrada; Felipe
+ * 2026-11-24: «por defecto el top 10», y que se pueda cambiar la cantidad).
+ */
+function ParteQuePedir({ titulo, guia, tarjetas, mostrar }: { titulo: string; guia: string; tarjetas: ReactNode[]; mostrar: string }) {
+  return (
+    <section className="flex flex-col gap-3" aria-label={titulo}>
+      <div className="entra" style={{ ["--i" as string]: 4 }}>
+        <TituloGrupo cuenta={tarjetas.length}>{titulo}</TituloGrupo>
+      </div>
+      <Tarjetas guia={guia}>{primerasQuePedir(tarjetas, mostrar)}</Tarjetas>
+    </section>
   );
 }
 

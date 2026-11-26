@@ -56,20 +56,26 @@ import { fondoDelPunto } from "@/lib/color-combinado";
 /** La banda que abre la planilla (Felipe eligió «1 · Banda bajo los números» en la ronda 2). */
 export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conResto: boolean; onAjustar: () => void }) {
   return (
-    <button type="button" data-guia="existencias.cajon-ajustar" aria-keyshortcuts="6" onClick={onAjustar} className="banda-ajustar">
+    <button type="button" data-guia="existencias.cajon-ajustar" aria-keyshortcuts="6" onClick={onAjustar} className="banda-ajustar group">
       <span aria-hidden className="banda-ajustar-icono">
         <PencilLine className="h-5 w-5" />
       </span>
       <span className="min-w-0">
-        <b className="block text-[14px] font-semibold text-tinta">¿No es lo que ves en la tienda?</b>
-        <small className="block text-[13px] text-taupe">
+        {/* En el celular, una línea (Felipe 2026-11-24, maqueta del modal liviano): la pregunta corta y el botón a su lado. */}
+        <b className="block text-detalle font-semibold text-tinta">
+          <span className="max-sm:hidden">¿No es lo que ves en la tienda?</span>
+          <span className="sm:hidden">¿No es lo que ves?</span>
+        </b>
+        <small className="block text-xs text-secundario max-sm:hidden">
           Corrige {que}
           {conResto ? " y, si quieres, el resto del modelo de una vez" : ""}.
         </small>
       </span>
-      <span className="btn-cayla btn-primario mov-boton banda-ajustar-boton">
+      {/* Claro: el botón oscuro del modal es solo el de la acción que el sistema sugiere (maqueta 2026-11-24). */}
+      <span className="btn-cayla btn-secundario mov-boton banda-ajustar-boton">
         Ajustar stock
-        <kbd className="hidden rounded border border-crema/40 px-1.5 text-[10.5px] text-crema/80 sm:inline">6</kbd>
+        {/* La tecla, solo con el mouse encima o con el foco del teclado (/formidable 2026-11-24). */}
+        <kbd className="invisible hidden rounded border border-sand px-1.5 text-xs text-secundario group-hover:visible group-focus-visible:visible sm:inline">6</kbd>
       </span>
     </button>
   );
@@ -429,7 +435,7 @@ export function PlanillaDelAjuste({
             </Aviso>
           </div>
         ) : !modelo ? (
-          <p role="status" className="bg-papel p-5 text-[13px] text-taupe">
+          <p role="status" className="bg-papel p-5 text-xs text-taupe">
             Leyendo el stock de {sedeNombre}…
           </p>
         ) : (
@@ -450,7 +456,7 @@ export function PlanillaDelAjuste({
                   <thead>
                     <tr>
                       <th scope="col" className="ajuste-col-color">
-                        <span className="label-cayla text-[11px] text-taupe">Color</span>
+                        <span className="label-cayla text-xs text-taupe">Color</span>
                       </th>
                       {modelo.tallas.map((t) => (
                         <th key={t ?? "unica"} scope="col">
@@ -458,7 +464,7 @@ export function PlanillaDelAjuste({
                         </th>
                       ))}
                       <th scope="col">
-                        <span className="label-cayla text-[11px] text-taupe">Total</span>
+                        <span className="label-cayla text-xs text-taupe">Total</span>
                       </th>
                       <th aria-hidden className="ajuste-relleno" />
                     </tr>
@@ -493,7 +499,7 @@ export function PlanillaDelAjuste({
                   <tfoot>
                     <tr>
                       <th scope="row" className="ajuste-col-color">
-                        <span className="label-cayla text-[11px] text-taupe">Total</span>
+                        <span className="label-cayla text-xs text-taupe">Total</span>
                       </th>
                       {modelo.tallas.map((t) => (
                         <td key={t ?? "unica"} className="tabular-nums">
@@ -513,19 +519,19 @@ export function PlanillaDelAjuste({
                   <thead>
                     <tr>
                       <th scope="col" className="ajuste-col-color">
-                        <span className="label-cayla text-[11px] text-taupe">Color</span>
+                        <span className="label-cayla text-xs text-taupe">Color</span>
                       </th>
                       <th scope="col" className="ajuste-hoy">
-                        <span className="label-cayla text-[11px] text-taupe">Hoy</span>
+                        <span className="label-cayla text-xs text-taupe">Hoy</span>
                       </th>
                       <th scope="col">
-                        <span className="label-cayla text-[11px] text-taupe">Contaste</span>
+                        <span className="label-cayla text-xs text-taupe">Contaste</span>
                       </th>
                       <th scope="col">
-                        <span className="label-cayla text-[11px] text-taupe">Cambio</span>
+                        <span className="label-cayla text-xs text-taupe">Cambio</span>
                       </th>
                       <th scope="col" className="ajuste-relleno">
-                        {control.separa && <span className="label-cayla text-[11px] text-taupe">En {otroLugar}</span>}
+                        {control.separa && <span className="label-cayla text-xs text-taupe">En {otroLugar}</span>}
                       </th>
                     </tr>
                   </thead>
@@ -718,7 +724,7 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
     // En el celular el talón no cabe: el pie ya dice cuántos cambios, cuánto entra y cuánto sale.
     <div className="grid min-h-0 content-start gap-2.5 overflow-y-auto max-sm:hidden">
       <p className="flex items-center gap-2">
-        <span className="label-cayla text-[11px] text-taupe">{guardadas ? "Lo que se guardó" : "Lo que vas a guardar"}</span>
+        <span className="label-cayla text-xs text-taupe">{guardadas ? "Lo que se guardó" : "Lo que vas a guardar"}</span>
         <Globito n={lineas.length} pide late etiqueta={`${lineas.length} ${lineas.length === 1 ? "talla tocada" : "tallas tocadas"}`} />
       </p>
       {lineas.length === 0 ? (
@@ -759,12 +765,12 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
               { clave: "salen", nombre: "Salen", valor: resumen.salen, clase: "bg-ambar" },
             ]}
           />
-          <p className="flex justify-between text-[12px] text-taupe">
+          <p className="flex justify-between text-xs text-taupe">
             <span>
-              <b className="font-display text-[18px] font-medium text-tinta">{resumen.entran}</b> entran
+              <b className="font-display text-lg font-medium text-tinta">{resumen.entran}</b> entran
             </span>
             <span>
-              <b className="font-display text-[18px] font-medium text-tinta">{resumen.salen}</b> salen
+              <b className="font-display text-lg font-medium text-tinta">{resumen.salen}</b> salen
             </span>
           </p>
         </>
@@ -799,7 +805,7 @@ export function PieDelAjuste({
         <CampoGuiado id="responsable" guia={guia}>
           <ComboResponsable control={control.responsable} compacto enLinea deshabilitado={control.enviando} />
         </CampoGuiado>
-        <div className="min-w-0 flex-1 text-[13px]">
+        <div className="min-w-0 flex-1 text-xs">
           {n === 0 ? (
             <span className="text-taupe max-sm:hidden">Nada cambia hasta que guardes.</span>
           ) : problema || control.faltaDueno ? (
@@ -866,7 +872,7 @@ export function ListoDelAjuste({
       <TituloSeccion>
         Stock ajustado en {tallas} {tallas === 1 ? "talla" : "tallas"}
       </TituloSeccion>
-      <p className="max-w-md text-[13.5px] text-taupe">
+      <p className="max-w-md text-detalle text-taupe">
         {[`Entraron ${entran} ${donde}`, salen > 0 && (salen === 1 ? "salió 1" : `salieron ${salen}`)].filter(Boolean).join(" · ")}. Queda en Movimientos como «
         {motivoPlanilla(guardado.motivo).texto}».
       </p>
@@ -884,7 +890,7 @@ export function ListoDelAjuste({
           }))}
         />
       </div>
-      <p className="text-[12.5px] text-taupe">Una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.</p>
+      <p className="text-xs text-taupe">Una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.</p>
       <PieAcciones className="w-full">
         <Boton peso="fantasma" onClick={onMasTarde}>
           Más tarde

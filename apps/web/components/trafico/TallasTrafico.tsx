@@ -105,7 +105,7 @@ function Resumen({ faltan, max, corto = false }: { faltan: ReturnType<typeof tal
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       {faltan.length > 0 ? <Chip tono="ambar">Falta stock</Chip> : max > 0 ? <Chip tono="verde">Hay stock</Chip> : null}
-      <p className="min-w-0 flex-1 basis-[16rem] text-[14px] text-tinta/70">
+      <p className="min-w-0 flex-1 basis-[16rem] text-detalle text-tinta/70">
         {top ? (
           <>
             Piden mucho y casi no queda:{" "}

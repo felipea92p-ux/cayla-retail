@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Trash2 } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
@@ -34,6 +34,9 @@ type Props = {
   alCerrarEnfocar: RefObject<HTMLElement | null>;
   /** Debajo de los colores, para el color que se está viendo: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
   pie?: (color: Color) => ReactNode;
+  /** La bajada de una talla del almacén se ofrece en una hoja ENCIMA de esta (celular y tablet): esta ventana se queda abierta
+   *  y, al volver, la talla ya lleva su visto. Sin esto (escritorio), tocarla cierra la ventana para no tapar el aviso. */
+  bajadaEnHoja?: boolean;
 };
 
 /** Primero lo que se cobra aquí, después lo del almacén, al final lo que no está: el orden en que se le ofrece al cliente. */
@@ -48,14 +51,26 @@ function rango(c: Color): number {
  * de un vistazo.
  *
  * Tocar una talla la AGREGA y la ventana se queda abierta (un cliente que lleva dos colores no la abre dos veces); la
- * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén cierra la ventana: el aviso de la caja
- * ofrece registrar la bajada (ADR-0321) y no debe quedar tapado. Reemplaza a `ElegirTallaModal` (un color a la vez).
+ * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén, en el escritorio, cierra la ventana: el
+ * aviso de la caja ofrece registrar la bajada (ADR-0321) y no debe quedar tapado; en el celular y la tablet la bajada sale en
+ * su hoja encima de esta, y la ventana sigue (`bajadaEnHoja`). Reemplaza a `ElegirTallaModal` (un color a la vez).
  */
-export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onQuitar, onClose, alCerrarEnfocar, pie }: Props) {
+export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onQuitar, onClose, alCerrarEnfocar, pie, bajadaEnHoja = false }: Props) {
   const inicial = prenda.colores.find((c) => c.clave === colorClave) ?? colorInicial(prenda);
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const [recien, setRecien] = useState<{ id: string; pulso: number } | null>(null);
+  // La talla del almacén que se agrega desde la hoja de la bajada (encima de esta, `bajadaEnHoja`): el ticket la suma recién cuando
+  // la base registra la bajada, así que su visto se dibuja entonces y no al tocarla. Si se cancela, nada sube y no se dibuja.
+  const porBajar = useRef<{ id: string; antes: number } | null>(null);
+  useEffect(() => {
+    const p = porBajar.current;
+    if (!p) return;
+    const ahora = carrito.find((it) => it.claveLinea === p.id)?.cantidad ?? 0;
+    if (ahora <= p.antes) return;
+    porBajar.current = null;
+    setRecien((r) => ({ id: p.id, pulso: (r?.pulso ?? 0) + 1 }));
+  }, [carrito]);
   // Abrir la hoja baja las fotos de todos los colores: pasar por una fila no espera a la red.
   useEffect(() => {
     precargarMiniaturas(prenda.colores.map((c) => c.fotoUrl), SIZES_FOTO);
@@ -96,7 +111,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 </div>
               </div>
               <div className="min-w-0 sm:mt-3.5">
-                <p className="label-cayla text-[10.5px] text-taupe">Color</p>
+                <p className="label-cayla text-xs text-taupe">Color</p>
                 <p key={mostrado.clave} className="anim-revelar truncate font-display text-xl leading-tight text-tinta">{mostrado.color ?? "Sin color"}</p>
                 {/* El precio es lo que más se mira al vender (Felipe 2026-11-13: «sale muy pequeño»): la cifra en serif de 30 px, la misma de
                     los montos de Vender (el total de «Hoy», el cupón), más grande que el nombre del color. */}
@@ -158,7 +173,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                           style={{ background: fondoDelPunto(estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo, c.tallas[0]?.variante.colorTonos) ?? "var(--color-hueso)" /* beige-fijo: muestra de prenda sin color, el beige es el dato */ }}
                         />
                       )}
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-tinta">{c.color ?? "Sin color"}</span>
                       {lleva > 0 && (
                         <span key={lleva} className="anim-revelar shrink-0 text-sm font-semibold text-rojo tabular-nums">
                           {lleva} en el ticket
@@ -176,7 +191,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                           recien={recien?.id === t.variante.varianteId ? recien.pulso : null}
                           onTocar={(bajable) => {
                             setFijo(c.clave);
+                            if (bajable && bajadaEnHoja) porBajar.current = { id: t.variante.varianteId, antes: enTicket(t.variante.varianteId) };
                             onAgregar(t.variante);
+                            if (bajable && bajadaEnHoja) return;
                             if (bajable) cerrar();
                             else setRecien((r) => ({ id: t.variante.varianteId, pulso: (r?.pulso ?? 0) + 1 }));
                           }}
@@ -268,7 +285,7 @@ function Casilla({
             : "border-sand bg-crema text-tinta hover:border-tinta/50 hover:[background:var(--gota-marca)] active:translate-y-px"
       }`}
     >
-      <span className={`font-display text-[17px] leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>
+      <span className={`font-display text-lg leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>
       <span aria-hidden className={`text-sm leading-snug ${apartada ? "text-pizarra" : ""}`}>
         <span className="@sm:hidden">{corto}</span>
         <span className="hidden @sm:inline">{texto}</span>

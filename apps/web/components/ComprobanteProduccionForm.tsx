@@ -214,7 +214,7 @@ export function ComprobanteProduccionForm({
         )}
 
         <div data-guia="prod-factura-nueva.documento">
-          <p className="label-cayla text-[11px] text-tinta/65">Documento</p>
+          <p className="label-cayla text-xs text-tinta/65">Documento</p>
           <div className="mt-1.5 grid gap-3 sm:grid-cols-[auto_6rem_1fr_9.5rem]">
             <SegmentoDeslizante
               etiqueta="Tipo de comprobante"
@@ -239,7 +239,7 @@ export function ComprobanteProduccionForm({
 
         <div data-guia="prod-factura-nueva.condicion" className="grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="label-cayla text-[11px] text-tinta/65">¿Cómo se paga?</p>
+            <p className="label-cayla text-xs text-tinta/65">¿Cómo se paga?</p>
             <SegmentoDeslizante
               className="mt-1.5"
               etiqueta="Condición de pago"
@@ -269,7 +269,7 @@ export function ComprobanteProduccionForm({
         </div>
 
         <fieldset data-guia="prod-factura-nueva.lineas">
-          <legend className="label-cayla text-[11px] text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
+          <legend className="label-cayla text-xs text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
           <ul className="mt-2 space-y-2 max-sm:space-y-3">
             {lineas.map((l, i) => {
               const insumo = insumos.find((x) => x.id === l.insumoId);
@@ -332,7 +332,7 @@ export function ComprobanteProduccionForm({
           <button
             type="button"
             onClick={() => setLineas((ls) => [...ls, { ...LINEA_VACIA }])}
-            className="btn-cayla btn-enlace mt-2 gap-1.5 text-[13px]"
+            className="btn-cayla btn-enlace mt-2 gap-1.5 text-xs leading-tight"
           >
             <Plus size={14} aria-hidden /> Agregar línea
           </button>

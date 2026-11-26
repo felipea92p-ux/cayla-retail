@@ -77,7 +77,7 @@ export function Buscador({
     const estado = estadoDeLaTarjeta(p, c, look);
     if (estado !== "en-tu-look") onProbar(p, codigo);
     window.clearTimeout(reloj.current);
-    setAviso({ titulo: `${p.nombre} · ${c.nombre}`, texto: estado === "en-tu-look" ? "Ya está en tu outfit." : AVISO_AL_PROBAR[p.zona] });
+    setAviso({ titulo: `${p.nombre} en ${c.nombre}`, texto: estado === "en-tu-look" ? "Ya está en tu outfit." : AVISO_AL_PROBAR[p.zona] });
     reloj.current = window.setTimeout(() => setAviso(null), DURACION_DEL_AVISO);
   }
 
@@ -139,7 +139,7 @@ export function Buscador({
         </span>
         {c.nota && (
           <span className={`pb-bus-hay pb-nota ${c.nota.tono}`}>
-            {c.nombre} · {c.nota.texto}
+            {c.nombre}: {c.nota.texto}
           </span>
         )}
         {deLaFoto && <span className="pb-bus-sin-foto">{deLaFoto}</span>}

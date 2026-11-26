@@ -16,7 +16,7 @@ import "@/app/estilos/inicio.css";
 // armó, con las prendas de la tienda de verdad, sin que lo vea nadie que no tenga el enlace. Nunca se indexa. Un enlace que no sirve (llave rara,
 // vencida, campaña terminada) dice solo eso: no revela si la llave existió.
 export const metadata: Metadata = {
-  title: "Vista previa · CAYLA",
+  title: "Vista previa",
   robots: { index: false, follow: false, nocache: true },
   referrer: "no-referrer",
 };
@@ -66,7 +66,7 @@ async function ContenidoDeLaVistaPrevia({ params }: { params: Promise<{ llave: s
   return (
     <div className="tienda">
       <div className="cp-previa-aviso" role="note">
-        <b>Vista previa privada</b> · «{campana.nombre}» · {vista.valeHasta ? `vale hasta el ${fechaCorta(vista.valeHasta)}` : "vale unos días"} · Solo la ve quien tiene este enlace. Las prendas son de la
+        <b>Vista previa privada</b> de «{campana.nombre}», {vista.valeHasta ? `vale hasta el ${fechaCorta(vista.valeHasta)}` : "vale unos días"}. Solo la ve quien tiene este enlace. Las prendas son de la
         tienda; el descuento se muestra como se verá cuando la campaña esté en vivo.
       </div>
       <Anuncio frases={anuncios({ nombre: campana.nombre, pct: campana.pct, hasta: campana.hasta }, (await leerAyuda()).diasParaCambiar)} diseno={diseno} />

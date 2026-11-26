@@ -58,7 +58,7 @@ export function DetalleRendimiento({
       <div className="mesa-medidas">
         {porHora && (
           <section className="mesa-placa liquido mesa-horas" aria-label="Ventas por hora de la tienda" data-guia="rendimiento.por-hora">
-            <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora de la tienda, {tramoTexto}</p>
+            <p className="label-cayla text-xs text-tinta/65">Ventas por hora de la tienda, {tramoTexto}</p>
             {porHora.mejor ? (
               <>
                 <BarrasTiempo
@@ -98,7 +98,7 @@ export function DetalleRendimiento({
 
       {metaSedeMes === null ? (
         <p className="nota-cayla">
-          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Metas</b> y se reparte sola, por horas.
+          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Metas</b>.
         </p>
       ) : (
         <p className="nota-cayla" data-guia="rendimiento.reparto">

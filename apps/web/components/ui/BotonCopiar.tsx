@@ -97,7 +97,7 @@ export function BotonCopiar({ texto, que, forma = "boton", icono = "copiar", chi
   async function copiar() {
     const valor = typeof texto === "function" ? texto() : texto;
     if (!(await alPortapapeles(valor))) {
-      avisar.error("No se pudo copiar", { detalle: "Selecciónalo y cópialo con Ctrl+C (o mantén pulsado en el celular)." });
+      avisar.error("No se pudo copiar", { detalle: "Cópialo con Ctrl+C, o mantén pulsado." });
       alFallar?.();
       return;
     }

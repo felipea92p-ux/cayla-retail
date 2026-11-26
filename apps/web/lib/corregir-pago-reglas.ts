@@ -229,7 +229,7 @@ export function puedeCorregirPago(d: {
     return {
       ok: false,
       motivo:
-        "La caja de esta venta ya se cerró: el pago ya no se corrige aquí. El líder lo ajusta con un ingreso o egreso de caja.",
+        "La caja ya se cerró: el líder lo ajusta desde Caja.",
     };
   return { ok: true };
 }

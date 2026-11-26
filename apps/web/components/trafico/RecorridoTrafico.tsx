@@ -35,7 +35,7 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
       </TituloSeccion>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="trafico.veredicto">
         {chip}
-        <p className="min-w-0 flex-1 basis-[18rem] text-[14.5px] text-tinta/70">
+        <p className="min-w-0 flex-1 basis-[18rem] text-detalle text-tinta/70">
           {!atora ? (
             "Todavía no entró nadie en estos días."
           ) : !atora.llegaron ? (

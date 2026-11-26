@@ -19,6 +19,7 @@ import { BotonAsistente } from "@/components/asistente/Asistente";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 import { BuscadorGlobal, abrirBuscadorGlobal } from "@/components/BuscadorGlobal";
 import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
@@ -419,7 +420,7 @@ function GrupoLateral({
       {/* Con un solo grupo el título sobra: sería una etiqueta para TODO el
           menú, que es justo el ruido que se estaba sacando. Una Encargada ve
           las tres filas sin encabezado; el Líder ve los dos nombres. */}
-      {titulo && <p className="label-cayla px-4 pb-3 text-[11px] text-tinta/65">{titulo}</p>}
+      {titulo && <p className="label-cayla px-4 pb-3 text-xs text-tinta/65">{titulo}</p>}
       {/* Sin `gap`: las hijas de un grupo cerrado miden 0 pero seguirían pagando su separación. */}
       <div className="relative flex flex-col">
         {items.map((it, n) => {
@@ -538,6 +539,8 @@ function CajonGrupo({
   onSalir: () => void;
 }) {
   const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+  // El cajón flota sobre la pantalla: dobla lo de atrás en su canto y conserva su relleno (lleva nombres que se leen). ADR-0681.
+  const dobla = useVidrioQueDobla<HTMLDivElement>({ desenfoque: 24, asienta: true });
   // Solo las PANTALLAS, a cualquier profundidad (D-84: un subgrupo como Abastecimiento se aplana acá en vez de abrir
   // un segundo cajón en cascada — el cajón ya es la vista rápida y plegada, no vale la pena otro nivel de flotante
   // para un menú de cuatro filas). El teclado (flechas, Inicio/Fin) navega entre PANTALLAS, nunca entre etiquetas.
@@ -596,7 +599,7 @@ function CajonGrupo({
       if (esGrupo(h)) {
         return (
           <div key={h.id} className="mt-1.5">
-            <p aria-hidden className="label-cayla px-3 pb-1 pt-1.5 text-[10px] text-tinta/50">{h.etiqueta}</p>
+            <p aria-hidden className="label-cayla px-3 pb-1 pt-1.5 text-xs text-tinta/50">{h.etiqueta}</p>
             {pintarFilas(h.hijos)}
           </div>
         );
@@ -618,6 +621,7 @@ function CajonGrupo({
 
   return (
     <div
+      ref={dobla}
       role="menu"
       aria-label={grupo.etiqueta}
       onKeyDown={alTeclado}
@@ -626,7 +630,7 @@ function CajonGrupo({
       style={{ top, left }}
       className="anim-flota marco-cajon-grupo fixed z-[60] w-[15rem] p-2"
     >
-      <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-[11px] text-tinta/65">{grupo.etiqueta}</p>
+      <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-xs text-tinta/65">{grupo.etiqueta}</p>
       {pintarFilas(grupo.hijos)}
     </div>
   );
@@ -713,6 +717,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   };
   const asideRef = useRef<HTMLElement | null>(null);
   const veloRef = useRef<HTMLDivElement | null>(null);
+  // La cabecera dobla lo que pasa por debajo (ADR-0681): una barra a ras, por su borde de abajo, con el relleno claro de una pieza de control.
+  const doblaCabecera = useVidrioQueDobla<HTMLDivElement>({ lados: "abajo", relleno: "claro" });
   // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
   useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
@@ -962,14 +968,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
-    // Sin fondo propio: el crema es el del <body> y, encima, la aurora (que vive DETRÁS del contenido, marco.css).
+    // Sin fondo propio: el crema es el del <body> y, encima, Seda (que vive DETRÁS del contenido, marco.css).
     <div className="min-h-screen" data-lateral={plegado ? "plegado" : undefined}>
-      {/* El fondo con vidrio (ADR-0596, «B · Aurora»): tres nubes muy tenues, quietas, para que el vidrio tenga algo que desenfocar. */}
-      <div aria-hidden className="marco-aurora">
-        <i />
-        <i />
-        <i />
-      </div>
+      {/* El fondo con vidrio (ADR-0681, «Seda»): cuatro pliegues enormes, quietos, para que el vidrio tenga algo que doblar. Solo CSS. */}
+      <div aria-hidden className="marco-seda" />
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. Su tinte y su desenfoque son del vidrio (`vidrio/marco.css`, «A · Hoja con
           profundidad»). */}
@@ -1012,7 +1014,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
           <span
             aria-hidden
-            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "hidden" : ""}`}
+            className={`label-cayla -mt-0.5 text-xs text-taupe-profundo transition-opacity duration-200 ${compacto ? "hidden" : ""}`}
             style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 2}rem` }}
           >
             Retail
@@ -1158,7 +1160,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         <div
           role="tooltip"
           style={{ top: etiqueta.top, left: etiqueta.left }}
-          className="anim-revelar pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-tinta px-3 py-1.5 text-[13px] font-medium text-crema"
+          className="anim-revelar pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-tinta px-3 py-1.5 text-xs font-medium text-crema"
         >
           {etiqueta.texto}
         </div>
@@ -1203,7 +1205,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos (ADR-0479,
           components/ui/fondoDeLaHoja.ts). */}
       <header data-cabecera-app data-fondo-hoja="borde" className="marco-cabecera">
-        <div className="marco-cabecera-fila">
+        <div ref={doblaCabecera} className="marco-cabecera-fila">
           <div className="marco-isla marco-isla-izq">
             {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del colibrí. */}
             <button
@@ -1258,7 +1260,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                   enVistaGlobal={persona.vista === "global"}
                 />
               ) : (
-                <span className="label-cayla px-1.5 text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+                <span className="label-cayla px-1.5 text-xs text-tinta/65">{persona.ubicacionEtiqueta}</span>
               )}
             </div>
             {/* Celular: la lupa abre el mismo buscador de pantallas del menú que «Buscar…» en escritorio (Felipe 2026-11-07). Antes

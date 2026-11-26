@@ -257,7 +257,7 @@ export function CerrarCajaModalV2({
 
   const barraPasos = (n: 1 | 2) => (
     <div className="space-y-1.5" aria-hidden>
-      <p className="label-cayla text-[10px] text-taupe-profundo">
+      <p className="label-cayla text-xs text-taupe-profundo">
         Paso {n} de 3 · {n === 1 ? "Contar" : "Trasladar"}
       </p>
       <div className="flex gap-1.5">
@@ -274,7 +274,7 @@ export function CerrarCajaModalV2({
       <Modal titulo="Caja cerrada" onClose={cerrarYRefrescar}>
         {(cerrar) => (
           <div className="space-y-4 text-center">
-            <p className={`label-cayla text-[11px] ${cuadro ? "text-verde-profundo" : "text-rojo"}`}>
+            <p className={`label-cayla text-xs ${cuadro ? "text-verde-profundo" : "text-rojo"}`}>
               {cuadro ? "Cuadró" : "No cuadró"}
             </p>
             <p className={`font-display text-3xl ${cuadro ? "text-tinta" : "text-rojo"}`}>
@@ -346,11 +346,8 @@ export function CerrarCajaModalV2({
   return (
     <Modal
       titulo={paso === "contar" ? "Cerrar caja" : "¿Qué haces con el efectivo?"}
-      subtitulo={
-        paso === "contar"
-          ? "Cuenta el efectivo del cajón y escribe cuánto hay. Solo efectivo: tarjeta, Yape y Plin no se cuentan."
-          : "Escribe cuánto vas a trasladar. Lo que no traslades se queda en el cajón para el próximo turno."
-      }
+      // El paso de trasladar no lleva frase: su campo y la caja «Queda en el cajón para el próximo turno» ya lo dicen.
+      subtitulo={paso === "contar" ? "Cuenta solo el efectivo del cajón." : undefined}
       onClose={onClose}
       tamano="mediana"
     >
@@ -562,7 +559,7 @@ export function CerrarCajaModalV2({
             </div>
           )}
           <div /* unificar-fijo: la cifra de lo que queda en el cajón, no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
-            <span className="label-cayla text-[10px] leading-snug text-ambar-profundo">
+            <span className="label-cayla text-xs leading-snug text-ambar-profundo">
               Queda en el cajón
               <br />
               para el próximo turno

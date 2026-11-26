@@ -58,7 +58,6 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
     <section className="dn-heroe" aria-labelledby="dn-lo-nuevo">
       <div className="dn-heroe-rejilla">
         <div className="dn-heroe-texto">
-          <span className="dn-ceja">New in · CAYLA</span>
           <h1 id="dn-lo-nuevo">Lo nuevo</h1>
           <p className="dn-heroe-bajada">Prendas que inspiran tu estilo.</p>
           <Link className="t-btn" href={hrefNuevo}>
@@ -75,14 +74,16 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
         <div className="dn-escena" data-cambiando={cambiando ? "" : undefined} onMouseEnter={() => (pausa.current = true)} onMouseLeave={() => (pausa.current = false)}>
           <div className="dn-arco" />
           <div className="dn-podios">
+            {/* El pedestal es del lugar, no de la prenda: su clave es la posición, así sigue puesto al rotar y solo cambia la foto de encima. */}
             {ordenDeLaEscena(actual.prendas).map((p, i) => (
-              <Link key={p.id} className={`dn-podio${i === 1 ? " alto" : ""}`} href={p.href} aria-label={`${p.nombre}, ${p.precio}`}>
+              <Link key={i} className={`dn-podio${i === 1 ? " alto" : ""}`} href={p.href} aria-label={`${p.nombre}, ${p.precio}`}>
                 <img className="dn-base" src={`/escenario/pedestal-${i === 1 ? "alto" : "bajo"}.webp`} alt="" width={760} height={i === 1 ? 351 : 268} />
                 <span className="dn-contacto" />
                 {i !== 1 && (
                   <img className="dn-flor" data-lado={i === 0 ? "izq" : "der"} src={`/escenario/flor-${i === 0 ? "izquierda" : "derecha"}.webp`} alt="" width={420} height={420} />
                 )}
                 <img
+                  key={p.id}
                   className="dn-prenda"
                   src={urlDeRecorte(p.foto, 640) ?? p.foto}
                   data-original={p.foto}
@@ -108,7 +109,6 @@ export function EscenaEnEspera() {
     <div className="dn-heroe">
       <div className="dn-heroe-rejilla">
         <div className="dn-heroe-texto">
-          <span className="dn-ceja">New in · CAYLA</span>
           <div className="dn-titulo-espera">Lo nuevo</div>
           <p className="dn-heroe-bajada">Prendas que inspiran tu estilo.</p>
           <span className="t-btn">

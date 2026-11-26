@@ -815,7 +815,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                   <Plus className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[15px] font-semibold leading-tight text-tinta">{lineas.length > 0 ? "Anotar otra prenda" : "Anotar una prenda"}</span>
+                  <span className="block text-sm font-semibold leading-tight text-tinta">{lineas.length > 0 ? "Anotar otra prenda" : "Anotar una prenda"}</span>
                   <span className="block truncate text-sm text-taupe">Escribe qué compraste</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
@@ -934,7 +934,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     {fraseGanancia(ganancia)}
                     <span className="block text-sm text-taupe">Vendes {soles(ganancia.vendes)}</span>
                   </span>
-                  <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
+                  <b className="text-lg tabular-nums text-verde">{soles(ganancia.ganas)}</b>
                 </p>
               )}
             </div>
@@ -1722,7 +1722,7 @@ function ListaDeLaCompra({
                 <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} tamano="lg" />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[14.5px] font-semibold leading-tight text-tinta">{l.nombre}</span>
+                <span className="block truncate text-detalle font-semibold leading-tight text-tinta">{l.nombre}</span>
                 <span className="mt-0.5 block text-sm leading-snug text-taupe">
                   {piezas.map((p, n) => (
                     <span key={p.etiqueta}>

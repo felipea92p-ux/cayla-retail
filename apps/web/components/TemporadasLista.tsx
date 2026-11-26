@@ -235,7 +235,7 @@ function Atajo({ accion, punto, onClick, children, guia }: { accion: string; pun
     <button type="button" onClick={onClick} data-guia={guia} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
       <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />
       <span>{children}</span>
-      <span className="label-cayla whitespace-nowrap text-[10.5px] text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
+      <span className="label-cayla whitespace-nowrap text-xs text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
         {accion} ›
       </span>
     </button>
@@ -1162,7 +1162,7 @@ function GrupoPorCompletar({
         <div className="pb-3">
           <div className="card-cayla @container overflow-hidden transition-colors hover:border-taupe/35">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 vd-hundido px-5 py-3">
-              <p className="text-[15px] font-semibold text-tinta">
+              <p className="text-sm font-semibold text-tinta">
                 {g.categoria}
                 <span className="ml-1.5 text-sm font-normal text-taupe">
                   {n} {n === 1 ? "prenda" : "prendas"}

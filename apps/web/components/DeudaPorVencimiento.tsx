@@ -48,7 +48,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
 
   return (
     <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra @container min-w-0 p-5" style={{ ["--i" as string]: indice }}>
-      <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
+      <p className="label-cayla flex items-baseline justify-between gap-3 text-xs text-tinta/65">
         Deuda por vencimiento
       </p>
       {total <= 0 ? (
@@ -80,7 +80,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
                   <MuestraTramo clase={COLOR[f.k]} />
                   {TITULO[f.k]}
                 </span>
-                <span className="font-display mt-0.5 block text-[19px] tabular-nums text-tinta">
+                <span className="font-display mt-0.5 block text-lg tabular-nums text-tinta">
                   <CifraQueCuenta valor={f.monto} formato="soles" alMontar />
                 </span>
                 <span className="block text-sm tabular-nums text-tinta/70">{Math.round((f.monto / total) * 100)} %</span>

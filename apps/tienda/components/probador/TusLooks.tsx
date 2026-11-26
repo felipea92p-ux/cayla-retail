@@ -34,7 +34,7 @@ export function TusLooks({ looks, prendas, sede }: { looks: readonly LookGuardad
               <span>
                 {cuantas === 0
                   ? "Sus prendas ya no están"
-                  : `${cuantas} ${cuantas === 1 ? "prenda" : "prendas"} · ${total.desde ? "desde " : ""}${soles(total.final)}`}
+                  : `${cuantas} ${cuantas === 1 ? "prenda" : "prendas"} ${total.desde ? "desde" : "por"} ${soles(total.final)}`}
               </span>
             </Link>
           );

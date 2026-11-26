@@ -290,7 +290,7 @@ export function ApartarVista({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lo dejó el ticket en la pestaña: leerlo al iniciar el estado rompería la hidratación (misma decisión que BajarAlPisoForm)
     setDescuentos(delTicket);
     // Si alguna prenda no entró (aviso de error), ese aviso manda; si no, se dice que el descuento llegó.
-    setMensaje((m) => (m?.tono === "info" ? { tono: "info", texto: "Las prendas del ticket ya están en la lista, con su descuento. Revisa y sigue con los datos del cliente." } : m));
+    setMensaje((m) => (m?.tono === "info" ? { tono: "info", texto: "Las prendas del ticket ya están aquí, con su descuento." } : m));
   }, [lineasIniciales, pedido, guardado]);
   const [nota, setNota] = useState(guardado?.nota ?? "");
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
@@ -464,10 +464,13 @@ export function ApartarVista({
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, prendas);
     if (!v) return { estado: "no-encontrada", codigo };
+    const antes = lineas.find((l) => l.varianteId === v.varianteId)?.cantidad ?? 0;
     const estado = agregar(v.varianteId, { silencioso: true });
     return {
       estado,
       codigo,
+      clave: v.varianteId,
+      ...(estado === "agregada" ? { lleva: antes + 1 } : {}),
       nombre: [v.referencia, v.talla].filter(Boolean).join(" · "),
       prenda: { referencia: v.referencia, detalle: variante(v), precio: precioFinal(v), fotoUrl: v.fotoUrl },
       almacen: v.almacenAqui,
@@ -823,7 +826,7 @@ export function ApartarVista({
                   <>
                     {disponibles.map((v, i) => filaResultado(v, i))}
                     {agotadas.length > 0 && (
-                      <li role="presentation" className="label-cayla vd-hundido px-4 py-2 text-[10.5px] text-tinta/50">
+                      <li role="presentation" className="label-cayla vd-hundido px-4 py-2 text-xs text-tinta/50">
                         Sin disponible en {ubicacionEtiqueta}
                       </li>
                     )}
@@ -858,7 +861,7 @@ export function ApartarVista({
             <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
               <div className="text-center @lg:text-left">
-                <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
+                <p className="label-cayla text-xs text-tinta/60">Recién escaneada</p>
                 <h3 className="font-display mt-1 text-2xl text-tinta">{/* unificar-fijo: el nombre de la prenda es un dato, no un título */}{p.referencia}</h3>
                 <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
               </div>
@@ -885,7 +888,7 @@ export function ApartarVista({
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
-                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="btn-cayla btn-secundario h-8 px-2.5 text-[12.5px]">
+                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="btn-cayla btn-secundario h-8 px-2.5 text-xs leading-tight">
                         Pedir a {t.nombre} para apartar
                       </button>
                     ))}
@@ -903,16 +906,14 @@ export function ApartarVista({
         ) : (
           <div className="flex min-h-[260px] flex-1 items-center justify-center">
             <Vacio icono={<ScanBarcode />} titulo="Escanea la prenda que el cliente quiere apartar">
-              {esTelefono
-                ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
-                : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
+              {esTelefono ? "Con la cámara, o escribe su nombre o color." : "Con la pistola, o escribe su nombre o color."}
             </Vacio>
           </div>
         )}
 
         {recientes.length > 0 && (
           <div>
-            <p className="label-cayla mb-2 text-[11px] text-tinta/60">Escaneadas hace poco</p>
+            <p className="label-cayla mb-2 text-xs text-tinta/60">Escaneadas hace poco</p>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
               {recientes.map((id) => {
                 const r = porId.get(id)!;
@@ -1041,12 +1042,12 @@ export function ApartarVista({
                   <br />hasta el {fechaCorta(vence)}
                 </p>
                 <div className="text-right">
-                  <p className="label-cayla text-[11px] text-tinta/60">Total</p>
+                  <p className="label-cayla text-xs text-tinta/60">Total</p>
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(total)}</p>
                 </div>
               </div>
               <button type="button" disabled={lineas.length === 0 || faltaDuenoEn.length > 0} title={faltaDuenoEn.length > 0 ? "Marca de quién es lo que apartas." : undefined} onClick={seguirDelTicket} className={BOTON_PRINCIPAL}>
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
+                <span className="label-cayla flex items-center gap-2.5 text-xs"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
                 <span className="font-display text-xl tabular-nums">{money(total)}</span>
               </button>
               {lineas.length === 0 && <p className="text-center text-sm text-tinta/55">Agrega una prenda para apartar.</p>}
@@ -1065,7 +1066,7 @@ export function ApartarVista({
               />
               <div className="anim-revelar min-w-0 flex-1 text-right">
                 <p className="flex items-baseline justify-end gap-2.5">
-                  <span className="label-cayla text-[11px] text-tinta/60">Apartado</span>
+                  <span className="label-cayla text-xs text-tinta/60">Apartado</span>
                   <span key={total} className="anim-asentar font-display text-[34px] leading-none text-tinta tabular-nums">{money(total)}</span>
                 </p>
                 <p className="mt-1 text-sm text-tinta/60">
@@ -1157,7 +1158,7 @@ export function ApartarVista({
                           </span>
                           <div role="group" aria-label="Comprobante al entregar" className="ml-auto grid w-44 shrink-0 grid-cols-2 gap-1 rounded-xl vd-hundido p-1">
                             {(["boleta", "factura"] as const).map((k) => (
-                              <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-[11px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                              <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-xs ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                                 {k}
                               </button>
                             ))}
@@ -1261,7 +1262,7 @@ export function ApartarVista({
                       </span>
                       {vuelto > 0 && (
                         <span className="ml-auto flex items-baseline gap-2">
-                          <span className="label-cayla text-[11px] text-tinta/70">Vuelto</span>
+                          <span className="label-cayla text-xs text-tinta/70">Vuelto</span>
                           <span className="font-display text-2xl leading-none tabular-nums">{money(vuelto)}</span>
                         </span>
                       )}
@@ -1287,7 +1288,7 @@ export function ApartarVista({
                   <div className="flex flex-wrap items-start gap-2">
                     <div role="group" aria-label="Le devolvemos por" className="grid shrink-0 grid-cols-3 gap-1 rounded-xl vd-hundido p-1">
                       {(["yape", "plin", "transferencia"] as const).map((k) => (
-                        <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-[11px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                        <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-xs ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                           {NOMBRE_MEDIO_CORTO[k]}
                         </button>
                       ))}
@@ -1319,7 +1320,7 @@ export function ApartarVista({
                   hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={`${BOTON_PRINCIPAL} max-lg:hidden`}>
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Check className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-xs"><Check className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
               {mensajeDelPie && (
@@ -1405,6 +1406,17 @@ export function ApartarVista({
         <EscanerCamara
           onCodigo={alEscanear}
           ticket={{ prendas: prendasEnTicket, total }}
+          // La bandeja «Escaneadas» es lo que se aparta: una fila por prenda con su cantidad, y su tacho quita de a una.
+          lineas={lineas.flatMap((l) => {
+            const p = porId.get(l.varianteId);
+            const d = descuentoDe.get(l.varianteId);
+            return p ? [{ clave: l.varianteId, referencia: p.referencia, detalle: variante(p), fotoUrl: p.fotoUrl, cantidad: l.cantidad, importe: d ? totalDeLineas([d]) : l.cantidad * p.precio }] : [];
+          })}
+          onQuitar={(clave) => {
+            const enTicket = lineas.find((l) => l.varianteId === clave)?.cantidad ?? 0;
+            if (enTicket > 1) setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: x.cantidad - 1 } : x)));
+            else quitarPrenda(clave);
+          }}
           onBuscarPorNombre={() => {
             setCamaraAbierta(false);
             escaner.current?.focus();

@@ -422,7 +422,7 @@ function CabezaDeGrupo({
     <div className="etq-fila etq-entra" data-saliendo={saliendo || undefined} style={estilo}>
       <div className="etq-fila-dentro">
         <div className="etq-cabeza flex items-center gap-3 px-5 pt-4 pb-1.5" role="row">
-          <span className="font-display min-w-0 flex-1 truncate text-[17px] leading-tight text-tinta" role="rowheader">
+          <span className="font-display min-w-0 flex-1 truncate text-lg leading-tight text-tinta" role="rowheader">
             {prenda}
           </span>
           <span className="shrink-0 text-xs text-taupe tabular-nums">
@@ -481,7 +481,7 @@ function FilaEtiqueta({
               <span className="block truncate text-sm text-tinta" title={e.color ?? undefined}>
                 {e.color ?? <span className="text-tinta/45">Sin color</span>}
               </span>
-              <span className="block truncate font-mono text-[11px] text-taupe">{e.codigo}</span>
+              <span className="block truncate font-mono text-xs text-taupe">{e.codigo}</span>
             </span>
           </span>
           <span className="min-w-0 justify-self-end @min-[37rem]:justify-self-auto @min-[37rem]:text-center">
@@ -512,7 +512,7 @@ function FilaEtiqueta({
                 así el paso no se corre al aparecer (ADR-0185). */}
             <button
               type="button"
-              className="etq-volver-a text-[11px] text-taupe tabular-nums hover:text-tinta"
+              className="etq-volver-a text-xs text-taupe tabular-nums hover:text-tinta"
               data-visible={cambiado || undefined}
               tabIndex={cambiado ? 0 : -1}
               aria-hidden={!cambiado}

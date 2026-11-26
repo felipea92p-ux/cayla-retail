@@ -38,7 +38,7 @@
     height: 32px;
     padding: 0 6px;
     border-radius: 9px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -74,7 +74,7 @@
      y flechas de 24: antes eran cuadrados de 32 px con flechas de 16, pegados a la izquierda con el espacio sobrante vacío. */
   @media (max-width: 639px) {
     .paginas { display: flex; width: 100%; justify-content: center; gap: 4px; }
-    .paginas .paginas-n { min-width: 44px; height: 44px; border-radius: 12px; font-size: 15px; }
+    .paginas .paginas-n { min-width: 44px; height: 44px; border-radius: 12px; font-size: var(--text-sm); }
     .paginas .paginas-pista { border-radius: 12px; }
     .paginas .paginas-n svg { width: 24px; height: 24px; }
     .paginas .paginas-corte { width: 24px; }
@@ -109,9 +109,9 @@
     border-radius: inherit;
   }
   .avatar-terminal { background: color-mix(in srgb, var(--color-tinta) 10%, transparent); color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
-  .avatar-24 { width: 24px; height: 24px; font-size: 10.5px; }
-  .avatar-32 { width: 32px; height: 32px; font-size: 13px; }
-  .avatar-40 { width: 40px; height: 40px; font-size: 15.5px; }
+  .avatar-24 { width: 24px; height: 24px; font-size: 10.5px; } /* letra-fija: las iniciales van dentro de su círculo y crecen con él */
+  .avatar-32 { width: 32px; height: 32px; font-size: 13px; } /* letra-fija: las iniciales van dentro de su círculo y crecen con él */
+  .avatar-40 { width: 40px; height: 40px; font-size: 15.5px; } /* letra-fija: las iniciales van dentro de su círculo y crecen con él */
   .avatar-80 { width: 80px; height: 80px; font-size: 29px; }
   /* La foto entra con un fundido (no salta sobre las iniciales). */
   .avatar-foto { opacity: 0; transition: opacity 420ms var(--ease-cayla); }
@@ -135,7 +135,7 @@
   @media (hover: hover) {
     .pila-personas:hover > .avatar + .avatar { margin-left: 2px; }
   }
-  .pila-personas-mas { margin-left: 6px; font-size: 12.5px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
+  .pila-personas-mas { margin-left: 6px; font-size: var(--text-xs); color: var(--color-taupe); font-variant-numeric: tabular-nums; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -151,7 +151,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     letter-spacing: 0.13em;
     text-transform: uppercase;
     font-weight: 600;

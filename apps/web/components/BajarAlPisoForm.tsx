@@ -116,7 +116,7 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 const TEXTOS_CAMARA: Omit<TextosEscaner, "contador"> = {
   titulo: "Bajar con la cámara",
   subtitulo: "Pasa las etiquetas una tras otra. Si una se repite, te pregunto antes de sumarla.",
-  etiqueta: "Bajar · si se repite, te pregunto",
+  etiqueta: "Bajar al piso",
   ayuda: "Pasa las etiquetas una tras otra · suena y vibra en cada una",
   enCurso: "Estás bajando",
   vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
@@ -479,8 +479,8 @@ export function BajarAlPisoForm({
       if (decision.tipo === "pregunta") {
         if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
-        // El tono grave de siempre: «mira la pantalla».
-        avisarLectura("desconocida");
+        // «Ya la escaneaste» suena distinto de «este código no existe» (ADR-0690): mirando el estante se sabe cuál de las dos.
+        avisarLectura("repetida");
         setAviso(null);
         setEnMano(null);
         setUltimaLeida(p.varianteId);
@@ -1031,12 +1031,11 @@ export function BajarAlPisoForm({
           </button>
         </div>
         <p id="bajar-ayuda" className="mt-2 text-sm text-taupe">
-          La primera lectura de una prenda suma 1; si la misma vuelve a leerse, te pregunto antes de sumarla.
-          Si tienes 12 iguales, toca «Cambiar cantidad». Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista.
+          Si una prenda se repite, te pregunto. Si la etiqueta no se lee, escribe el modelo, la talla o el color.
         </p>
         {sugerencias.length > 0 && (
           <div id="bajar-por-nombre" className="anim-revelar mt-3">
-            <p className="label-cayla text-[10px] text-taupe">Toca la prenda que tienes en la mano</p>
+            <p className="label-cayla text-xs text-taupe">Toca la prenda que tienes en la mano</p>
             <ul className="mt-1.5 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel">
               {sugerencias.map((p) => (
                 <li key={p.varianteId}>
@@ -1052,7 +1051,7 @@ export function BajarAlPisoForm({
                       <span className="block truncate text-sm text-tinta">{p.referencia}</span>
                       <span className="block truncate text-sm text-tinta/70">
                         {[p.talla, p.color].map((t) => (t ?? "").trim()).filter(Boolean).join(" · ")}
-                        {p.sku && <span className="ml-2 font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                        {p.sku && <span className="ml-2 font-mono text-xs text-tinta/60">{p.sku}</span>}
                       </span>
                     </span>
                     <span className="shrink-0 text-right text-sm tabular-nums text-taupe">{textoDeExistencia(p)}</span>
@@ -1110,7 +1109,7 @@ export function BajarAlPisoForm({
 
       {(hechas.length > 0 || marcasALaVista.length > 0) && (
         <section className="card-cayla anim-revelar p-4 sm:px-5">
-          <p className="label-cayla text-[11px] text-taupe">Corregidas y colgadas aquí</p>
+          <p className="label-cayla text-xs text-taupe">Corregidas y colgadas aquí</p>
           <ul className="mt-2 space-y-1.5">
             {/* Lo que quedó en duda va primero: es lo único de esta lista que pide hacer algo. */}
             {marcasALaVista.map(({ marca, prenda }) => (

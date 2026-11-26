@@ -46,7 +46,7 @@ import "../estilos/catalogo.css";
 import "../estilos/bolsa.css";
 import "../estilos/campana.css";
 
-export const metadata: Metadata = { title: "Tu bolsa · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Tu bolsa", robots: { index: false, follow: false } };
 
 /** Lo que dice cada carril de la bolsa vacía y a qué lista lleva su «Ver todo». */
 const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; titulo: [string, string]; href: string }> = {
@@ -225,13 +225,13 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                       {grupo && (
                         <small className="t-bolsa-grupo">
                           <b>{grupo.titular}</b>
-                          {grupo.campana ? ` · ${grupo.campana}` : ""}:{" "}
+                          {grupo.campana ? ` (${grupo.campana})` : ""}:{" "}
                           {grupo.monto !== undefined ? (
                             // Un monto (actividad 8): lo que ahorra, y cuánto le falta a la compra para el escalón que sigue.
                             grupo.ahorro > 0 ? (
                               <>
                                 ahorras <span className="num">{soles(grupo.ahorro)}</span>
-                                {grupo.monto ? <> · con <span className="num">{soles(grupo.monto.falta)}</span> más, {grupo.monto.siguiente}</> : null}
+                                {grupo.monto ? <>; con <span className="num">{soles(grupo.monto.falta)}</span> más, {grupo.monto.siguiente}</> : null}
                               </>
                             ) : grupo.monto ? (
                               <>te faltan <span className="num">{soles(grupo.monto.falta)}</span></>

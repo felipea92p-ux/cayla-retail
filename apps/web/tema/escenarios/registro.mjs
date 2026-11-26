@@ -610,6 +610,18 @@ ESCENARIOS.push(
       await pagina.getByRole("button", { name: /^Más/ }).first().click();
       await esperar(pagina, 900);
     },
+  },  {
+    // La tuerca (ADR-0670 act. 2026-11-25 b): la hoja «Impresión de este equipo» con sus interruptores. Solo lee: no toca ninguno.
+    id: "vender.impresion",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[data-guia='vender.impresion-panel']",
+    nombre: "Vender · la tuerca: «Impresión de este equipo»",
+    async preparar(pagina) {
+      await pagina.locator("[data-guia='vender.impresion']").first().click();
+      await esperar(pagina, 900);
+    },
   },
 );
 
@@ -1202,6 +1214,13 @@ ESCENARIOS.push(
 );
 
 // ---------- Inventario I: Existencias, Movimientos, Traslados y Recibir (actividad 9) ----------
+/** Abre el modal de la primera prenda de Existencias: foco en su tarjeta y Enter. */
+const abrirPrenda = async (pagina) => {
+  const tarjeta = pagina.locator("article[data-guia='existencias.prenda']").first();
+  await tarjeta.focus({ timeout: 8000 });
+  await pagina.keyboard.press("Enter");
+  await esperar(pagina, 1100);
+};
 const INVENTARIO = ["admin", "integrante", "terminal-administrativa"];
 const verDetalle = (nombre) => async (pagina) => {
   await pagina.getByRole("button", { name: nombre }).first().evaluate((el) => el.click());
@@ -1226,9 +1245,11 @@ ESCENARIOS.push(
   { id: "existencias.acciones", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · «Colgar en el piso» (la tabla de Colgar varias)", preparar: clicRol("button", /^Colgar en el piso/i) },
   { id: "existencias.mas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=menu]", nombre: "Existencias · el menú «Más» de una tarjeta", preparar: clicRol("button", /^Más acciones de/i) },
   // El detalle de la prenda es un modal desde el 2026-10-12 (ADR-0391): la foto grande, la fila de la prenda, «Dónde está» y «Qué hago».
-  { id: "existencias.modal", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] [data-guia='existencias.cajon-donde']", nombre: "Existencias · el modal de la prenda («Esta talla»)", preparar: async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); } },
-  { id: "existencias.todas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · el modal en «Todas» (colgadas y guardadas por talla, con totales)", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/)) },
-  { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
+  // La tarjeta Vitrina (ADR-0589) ya no es `card-cayla` y su centro es un botón («Colgar en el piso»): se abre como lo haría una persona con el
+  // teclado, enfocando la tarjeta y con Enter («Enter abre el detalle»).
+  { id: "existencias.modal", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] [data-guia='existencias.cajon-donde']", nombre: "Existencias · el modal de la prenda («Esta talla»)", preparar: abrirPrenda },
+  { id: "existencias.todas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · el modal en «Todas» (colgadas y guardadas por talla, con totales)", preparar: secuencia(abrirPrenda, clicRol("tab", /^Todas$/)) },
+  { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(abrirPrenda, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
   { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
   { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
   // Solo en el celular (bajo 640 px): el aviso del piso sin cuadrar es un ícono de la cabecera que abre su hoja (2026-11-17). Necesita una

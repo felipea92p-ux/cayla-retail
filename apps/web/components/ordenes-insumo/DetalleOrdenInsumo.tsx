@@ -159,7 +159,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
       {d.versiones.length > 0 && (
         <details data-guia="oi.versiones" className="text-sm text-tinta/80">
           {/* Sin anillo propio: el foco de teclado es el anillo común de globals.css (ADR-0351). */}
-          <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 hover:text-tinta [&::-webkit-details-marker]:hidden">
+          <summary className="label-cayla cursor-pointer list-none text-xs text-tinta/65 hover:text-tinta [&::-webkit-details-marker]:hidden">
             Lo que decía antes · {d.versiones.length === 1 ? "1 versión" : `${d.versiones.length} versiones`} ›
           </summary>
           <ol className="mt-3 space-y-3">

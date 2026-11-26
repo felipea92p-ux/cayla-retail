@@ -1,7 +1,11 @@
 ---
 name: unificar
-description: Unifica el diseño del ERP CAYLA (ADR-0358, «una función, una pieza»). Recorre el ERP en LOCAL módulo por módulo con un motor que mide el DOM y captura cada pieza (botones por lo que hacen —Guardar, Cancelar, Volver…—, insignias de estado, pestañas, tablas, tarjetas de cifra, campos, combos, iconos, gráficos, avisos, estados vacíos, títulos, hojas), cuenta cuántas formas distintas hay de hacer lo mismo y dónde vive cada una, y le muestra a Felipe una lámina con las capturas lado a lado, qué cambia entre ellas y una PROPUESTA nueva dibujada con los tokens reales en claro y oscuro. Felipe elige; la elegida queda como la única pieza para todo el sistema y las pantallas nuevas, y una prueba del CI la hace cumplir. Úsala cuando Felipe diga «unificar», «hay dos botones distintos que hacen lo mismo», «que todo se vea igual», «estandarizar componentes», «sistema de diseño», o al terminar un módulo. Con un módulo (`inventario`) analiza ese módulo contra el resto; con `familia=<id>` profundiza una familia; con `todo` arma el tablero; con `migrar <familia> [módulo]` aplica una decisión ya tomada.
+description: "Obligatoria. Censa cuántas formas distintas tiene cada pieza del ERP (botones, pestañas, chips, tablas…), arma una lámina para que Felipe elija mirando y migra lo elegido. Úsala con «unificar», «dos botones hacen lo mismo» o al cerrar un módulo."
 ---
+
+## Qué hace y cuándo se usa
+
+Unifica el diseño del ERP CAYLA (ADR-0358, «una función, una pieza»). Recorre el ERP en LOCAL módulo por módulo con un motor que mide el DOM y captura cada pieza (botones por lo que hacen —Guardar, Cancelar, Volver…—, insignias de estado, pestañas, tablas, tarjetas de cifra, campos, combos, iconos, gráficos, avisos, estados vacíos, títulos, hojas), cuenta cuántas formas distintas hay de hacer lo mismo y dónde vive cada una, y le muestra a Felipe una lámina con las capturas lado a lado, qué cambia entre ellas y una PROPUESTA nueva dibujada con los tokens reales en claro y oscuro. Felipe elige; la elegida queda como la única pieza para todo el sistema y las pantallas nuevas, y una prueba del CI la hace cumplir. Úsala cuando Felipe diga «unificar», «hay dos botones distintos que hacen lo mismo», «que todo se vea igual», «estandarizar componentes», «sistema de diseño», o al terminar un módulo. Con un módulo (`inventario`) analiza ese módulo contra el resto; con `familia=<id>` profundiza una familia; con `todo` arma el tablero; con `migrar <familia> [módulo]` aplica una decisión ya tomada.
 
 Unifica: $ARGUMENTS   (un módulo como `inventario`, `familia=pestanas`, `todo`, `migrar accion.cancelar inventario`, o sin argumento = pregunta cuál)
 
@@ -44,7 +48,7 @@ El motor **encuentra y cuenta**; **tú juzgas**: qué es de verdad la misma func
 
 ## Método
 
-**0. Terreno.** `git status --short`, `git fetch origin` y cuánto va detrás de `main` (se mide el código de la rama); `docs/SESIONES-ACTIVAS.md`
+**0. Terreno.** `git status --short`, `git fetch origin` y cuánto va detrás de `main` (se mide el código de la rama); `pnpm sesiones`
 (si otra sesión está rediseñando ese módulo, avísalo: unificar encima de un rediseño en curso choca); `docs/unificar/README.md` (lo ya decidido).
 Servidor de esta worktree: `preview_start` con **`cayla-retail-dev-libre`** (toma un puerto libre; `cayla-retail-dev` fija el 3010 y suele
 estar ocupado por otra worktree). La base local responde (`curl -s -o /dev/null -w "%{http_code}" http://localhost:54421/rest/v1/`).

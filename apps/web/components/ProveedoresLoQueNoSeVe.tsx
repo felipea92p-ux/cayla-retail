@@ -41,7 +41,7 @@ function FilaTarea({ t, i }: { t: Tarea; i: number }) {
       <span aria-hidden className={`grid place-items-center ${t.tono === "urgente" ? "prov-gota-roja" : TONO_ICONO[t.tono]}`}>
         {t.icono}
       </span>
-      <span className="min-w-0 text-[14.5px] leading-snug text-tinta">
+      <span className="min-w-0 text-detalle leading-snug text-tinta">
         <b className="font-semibold">{t.verbo}</b> {t.resto}
       </span>
       <span className={`text-sm font-semibold tabular-nums ${t.tono === "urgente" ? "text-rojo-profundo" : "text-tinta"}`}>{t.cifra}</span>

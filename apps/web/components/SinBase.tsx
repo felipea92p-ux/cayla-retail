@@ -91,7 +91,7 @@ export function SinBase({ desde }: { desde: string }) {
 
   return (
     <PantallaAventurero motivo="error">
-      <p className="label-cayla text-[11px] text-taupe-profundo">Sin conexión con la base</p>
+      <p className="label-cayla text-xs text-taupe-profundo">Sin conexión con la base</p>
       <h1 className="font-display mt-2 text-2xl text-tinta sm:text-3xl">No logramos conectar con el sistema</h1>
       <p className="mt-3 text-sm text-tinta/75 sm:text-base">
         Tu sesión sigue abierta y lo que ya habías guardado no se pierde. Esta pantalla vuelve sola cuando el sistema responda: no hace falta

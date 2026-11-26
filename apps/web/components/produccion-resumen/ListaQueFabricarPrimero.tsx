@@ -31,7 +31,7 @@ function FilaFirme({ f, primera, presentaciones, hojas }: { f: FilaPrimero; prim
           <FotoModelo productoId={f.productoId} presentaciones={presentaciones} ancho={56} className="w-14" />
           <span className="min-w-0">
             {primera && <Chip tono="ambar">Empieza por aquí</Chip>}
-            <span className="line-clamp-2 break-words text-[15px] font-medium leading-snug text-tinta">{f.referencia}</span>
+            <span className="line-clamp-2 break-words text-sm font-medium leading-snug text-tinta">{f.referencia}</span>
             <span className="block text-sm text-tinta/70">{f.frase}</span>
           </span>
         </FilaQueAbreLaHoja>
@@ -57,7 +57,7 @@ function FilaVigilar({ f, presentaciones, hojas }: { f: FilaPrimero } & Comunes)
     <li className="border-b border-tinta/10 last:border-b-0">
       <FilaQueAbreLaHoja hoja={hojas[f.productoId]} presentacion={presentaciones[f.productoId]} className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors vd-pasa focus-visible:-outline-offset-2">
         <FotoModelo productoId={f.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
-        <span className="min-w-0 flex-1 truncate text-[14px] text-tinta">{f.referencia}</span>
+        <span className="min-w-0 flex-1 truncate text-detalle text-tinta">{f.referencia}</span>
         <span className="hidden text-sm text-tinta/65 sm:block">{f.frase}</span>
       </FilaQueAbreLaHoja>
     </li>
@@ -100,7 +100,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
           <FilasQuePlegan
             cabecera={
               <div className="px-4 py-3.5">
-                <p className="text-[15px] font-medium text-tinta">{vigilar.length === 1 ? "1 modelo para vigilar" : `${vigilar.length} modelos para vigilar`}</p>
+                <p className="text-sm font-medium text-tinta">{vigilar.length === 1 ? "1 modelo para vigilar" : `${vigilar.length} modelos para vigilar`}</p>
                 <p className="mt-0.5 text-sm text-tinta/70">{TEXTO_PARA_VIGILAR}</p>
               </div>
             }

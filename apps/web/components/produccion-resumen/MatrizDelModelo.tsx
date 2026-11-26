@@ -21,12 +21,12 @@ function CabeceraDeColor({ nombre, hex, fotoUrl, presentacion, enFoto }: { nombr
         <FotoPrenda fotoUrl={fotoUrl} referencia="" ancho={56} colorHex={hex} categoria={presentacion?.categoria} categoriaPrefijo={presentacion?.categoriaPrefijo} categoriaFamilia={presentacion?.categoriaFamilia} className="w-14" />
       </span>
       <span className="flex min-w-0 flex-col items-start gap-0.5">
-        <span className="flex min-w-0 items-center gap-1.5 text-[13.5px] leading-snug text-tinta">
+        <span className="flex min-w-0 items-center gap-1.5 text-detalle leading-snug text-tinta">
           {hex && <span aria-hidden data-color-dato className="size-2.5 shrink-0 rounded-full border border-tinta/20" style={{ backgroundColor: hex }} />}
           <span className="min-w-0 break-words">{nombre}</span>
         </span>
         {/* Cuál es el color que la foto de la izquierda muestra, y si es de paso: el estado se dice con palabras, no solo con un fondo. */}
-        {enFoto && <span className="text-[11px] text-taupe">{enFoto === "fijado" ? "en la foto" : "vista previa"}</span>}
+        {enFoto && <span className="text-xs text-taupe">{enFoto === "fijado" ? "en la foto" : "vista previa"}</span>}
       </span>
     </span>
   );
@@ -92,15 +92,15 @@ export function MatrizDelModelo({
             </caption>
             <thead>
               <tr>
-                <th scope="col" className="label-cayla py-2 pr-3 text-left text-[11px] font-normal text-tinta/65">
+                <th scope="col" className="label-cayla py-2 pr-3 text-left text-xs font-normal text-tinta/65">
                   Color
                 </th>
                 {tallas.map((t) => (
-                  <th key={t} scope="col" className="label-cayla px-2 py-2 text-right text-[11px] font-normal text-tinta/65">
+                  <th key={t} scope="col" className="label-cayla px-2 py-2 text-right text-xs font-normal text-tinta/65">
                     {t}
                   </th>
                 ))}
-                <th scope="col" className="label-cayla py-2 pl-3 text-right text-[11px] font-normal text-tinta/65">
+                <th scope="col" className="label-cayla py-2 pl-3 text-right text-xs font-normal text-tinta/65">
                   Total
                 </th>
               </tr>
@@ -135,7 +135,7 @@ export function MatrizDelModelo({
             </tbody>
             <tfoot>
               <tr>
-                <th scope="row" className="border-t border-tinta/25 py-2 pr-3 text-left text-[13.5px] font-medium text-tinta">
+                <th scope="row" className="border-t border-tinta/25 py-2 pr-3 text-left text-detalle font-medium text-tinta">
                   Total
                 </th>
                 {matriz.porTalla.map((t, i) => (

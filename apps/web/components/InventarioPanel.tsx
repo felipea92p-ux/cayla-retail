@@ -202,7 +202,7 @@ function CeldaCoberturaPiso({ f, calculando }: { f: FilaExistencias; calculando:
     .filter(Boolean)
     .join("\n");
   return etiqueta ? (
-    <span className={`inline-flex min-w-[3.1rem] items-center justify-center rounded-lg px-2.5 py-1 text-[13px] font-semibold tabular-nums ${etiqueta}`} title={ayuda}>
+    <span className={`inline-flex min-w-[3.1rem] items-center justify-center rounded-lg px-2.5 py-1 text-xs font-semibold tabular-nums ${etiqueta}`} title={ayuda}>
       {textoCoberturaPiso(c)}
     </span>
   ) : (
@@ -1023,7 +1023,7 @@ export function InventarioPanel({
                   data-guia="existencias.pendientes"
                   onClick={() => setViendoPendientes(true)}
                   title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
-                  className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
+                  className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-xs leading-tight text-taupe"
                 >
                   <ListChecks aria-hidden className="h-4 w-4" />
                   <span className="max-sm:sr-only">Pendientes</span>
@@ -1220,7 +1220,7 @@ export function InventarioPanel({
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <b className="text-[15px] font-semibold text-tinta">2</b> en piso
+                  <b className="text-sm font-semibold text-tinta">2</b> en piso
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <b className="text-sm font-bold text-tinta">+1</b> en almacén
@@ -1373,11 +1373,11 @@ export function InventarioPanel({
                   <span className="flex min-w-0 flex-1 items-center gap-3.5">
                     <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="md" {...categoriaDe(f)} />
                     <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-semibold leading-snug text-tinta" title={mostrarMarca && f.marca ? `${f.referencia} · ${f.marca}` : f.referencia}>
+                      <span className="block truncate text-sm font-semibold leading-snug text-tinta" title={mostrarMarca && f.marca ? `${f.referencia} · ${f.marca}` : f.referencia}>
                         {f.referencia}
                         {mostrarMarca && f.marca && <span className="font-normal text-taupe"> · {f.marca}</span>}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] tracking-wide text-taupe/80">{f.sku}</span>
+                      <span className="mt-0.5 block truncate text-xs tracking-wide text-taupe/80">{f.sku}</span>
                       {/* Solo celular: el color y la talla, que en escritorio tienen su propia columna. */}
                       <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe @min-[880px]:hidden">
                         {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} tonos={f.colorTonos} compacta />}
@@ -1402,14 +1402,14 @@ export function InventarioPanel({
                       (`pisoDisponible`/`almacenDisponible`, 2026-09-26): las mismas que decide «Acción hoy» y que muestra el modal de
                       Reponer; lo apartado va debajo. */}
                   <span
-                    className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 text-[15px] tabular-nums")}
+                    className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 text-sm tabular-nums")}
                     title={
                       separa
                         ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientes: ${f.apartado}` : ""}`
                         : undefined
                     }
                   >
-                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Stock actual</span>
+                    <span className="label-cayla mb-0.5 block text-xs text-tinta/45 @min-[880px]:hidden">Stock actual</span>
                     {separa ? (
                       <>
                         <span className="text-tinta">{f.pisoDisponible}</span>
@@ -1427,7 +1427,7 @@ export function InventarioPanel({
                   </span>
                   {separa && (
                     <span className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0")}>
-                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Cobertura piso</span>
+                      <span className="label-cayla mb-0.5 block text-xs text-tinta/45 @min-[880px]:hidden">Cobertura piso</span>
                       <CeldaCoberturaPiso f={f} calculando={ritmoCalculando.has(f.varianteId)} />
                     </span>
                   )}
@@ -1437,7 +1437,7 @@ export function InventarioPanel({
                       onClick={(e) => e.stopPropagation()}
                       className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 overflow-visible")}
                     >
-                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">Ritmo reciente</span>
+                      <span className="label-cayla mb-0.5 block text-xs text-tinta/45 @min-[880px]:hidden">Ritmo reciente</span>
                       {ritmoCalculando.has(f.varianteId) ? (
                         <Calculando className="h-6 w-14 rounded-lg" />
                       ) : (
@@ -1446,7 +1446,7 @@ export function InventarioPanel({
                     </span>
                   )}
                   <span className={celda("centro", "vd-hundido rounded-lg px-2 py-1.5 @max-[880px]:text-left @min-[880px]:rounded-none @min-[880px]:bg-transparent @min-[880px]:shadow-none @min-[880px]:px-0 @min-[880px]:py-0 text-sm tabular-nums text-tinta")}>
-                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 @min-[880px]:hidden">En camino</span>
+                    <span className="label-cayla mb-0.5 block text-xs text-tinta/45 @min-[880px]:hidden">En camino</span>
                     {f.enTransito}
                   </span>
                 </div>
@@ -1456,7 +1456,7 @@ export function InventarioPanel({
                   {separa && (
                     <span className={celda("izq", "col-start-2 row-start-1 overflow-visible whitespace-normal @min-[880px]:[grid-area:auto]")}>
                       <span className="flex flex-col items-end gap-1.5 @min-[880px]:flex-row @min-[880px]:flex-wrap @min-[880px]:items-center @min-[880px]:gap-x-2 @min-[880px]:gap-y-1">
-                        <span className="label-cayla text-[10px] text-tinta/45 @min-[880px]:hidden">Hoy</span>
+                        <span className="label-cayla text-xs text-tinta/45 @min-[880px]:hidden">Hoy</span>
                         {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS palabras del filtro «Hoy» y de la
                             tarjeta (`lib/existencias-hoy.ts`, Felipe 2026-10-03). En «Por colgar», lo que se puede bajar (disponible, neto
                             de apartados): la suma de estos chips es la del resumen de arriba. En «Sin stock atrás», si viene algo en camino. */}
@@ -1491,7 +1491,7 @@ export function InventarioPanel({
                     )}
                     title={red?.detalle}
                   >
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 @min-[880px]:hidden">En la red</span>
+                    <span className="label-cayla mr-1 text-xs text-tinta/45 @min-[880px]:hidden">En la red</span>
                     {red ? red.linea : <span className="text-tinta/35">—</span>}
                   </span>
                 </div>

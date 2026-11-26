@@ -293,7 +293,7 @@ describe("la lista: categorías y orden", () => {
     expect(conteoDeLista(1, sin)).toBe("1 prenda");
     expect(conteoDeLista(12, sin)).toBe("12 prendas");
     expect(conteoDeLista(12, { ...sin, categoria: "Faldas" })).toBe("12 prendas en Faldas");
-    expect(conteoDeLista(5, { ...sin, tienda: "Trujillo", enOtras: 3 })).toBe("5 prendas en Trujillo · 3 más en otras tiendas");
+    expect(conteoDeLista(5, { ...sin, tienda: "Trujillo", enOtras: 3 })).toBe("5 prendas en Trujillo y 3 más en otras tiendas");
     expect(conteoDeLista(2, { categoria: "Faldas", tienda: "Trujillo", enOtras: 0 })).toBe("2 prendas de Faldas en Trujillo");
     // Sin tienda elegida no hay «otras tiendas».
     expect(conteoDeLista(4, { ...sin, enOtras: 3 })).toBe("4 prendas");

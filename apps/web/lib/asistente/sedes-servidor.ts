@@ -14,7 +14,7 @@ export async function getAsistenteEncendido(ubicacionId: string | null): Promise
     const { data, error } = await supabase.rpc("fn_asistente_encendido" as never, { p_ubicacion_id: ubicacionId } as never);
     return !error && (data as unknown) === true;
   } catch (e) {
-    unstable_rethrow(e); // lo que es de Next (página dinámica, redirect) sigue su camino; un error de verdad deja el botón apagado
+    unstable_rethrow(e); // relleno-a-proposito: lo que es de Next (página dinámica, redirect) sigue su camino; un error de verdad deja el botón apagado
     return false;
   }
 }

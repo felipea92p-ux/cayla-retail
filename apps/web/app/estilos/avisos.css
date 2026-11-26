@@ -55,7 +55,7 @@
   /* ---- Texto: el título dice QUÉ pasó; el detalle, sobre qué ---- */
   .aviso-tit {
     padding-top: 0.375rem;
-    font-size: 0.875rem;
+    font-size: var(--text-detalle);
     font-weight: 600;
     line-height: 1.35;
     color: var(--color-tinta);
@@ -64,7 +64,7 @@
   .aviso-tit:has(+ .aviso-det) { padding-top: 0.25rem; }
   .aviso-det {
     margin-top: 1px;
-    font-size: 0.8125rem;
+    font-size: var(--text-xs);
     line-height: 1.4;
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
     animation: cayla-aviso-revela 360ms var(--ease-cayla) 255ms both;
@@ -340,7 +340,7 @@
     /* Sin fondo propio: lo pone el líquido (`.agua`), así que al caer solo se ve la gota. */
     background: transparent;
     color: var(--color-crema);
-    font-size: 13px;
+    font-size: var(--text-xs);
     transform-origin: 50% 100%;
     animation:
       cayla-version-cae 1000ms linear both,

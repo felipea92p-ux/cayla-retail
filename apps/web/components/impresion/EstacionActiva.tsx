@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { useSedeActiva } from "@/components/SedeActiva";
-import { boletasPorAyudante, imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
+import { boletasPorAyudante } from "@/lib/ayudante-de-boletas";
 import { Chip } from "@/components/ui/Chip";
 import { createClient } from "@/lib/supabase/client";
 import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
@@ -22,7 +23,7 @@ const darleUnMomento = () => new Promise<void>((listo) => window.setTimeout(list
 /** Las imágenes del recibo (logo, QR) decodificadas, con tope: una que no carga no frena la boleta. */
 const imagenesListas = () =>
   Promise.race([
-    Promise.all([...document.querySelectorAll<HTMLImageElement>("#comprobante-print img")].map((i) => i.decode().catch(() => undefined))),
+    Promise.all([...document.querySelectorAll<HTMLImageElement>("#comprobante-print img")].map((i) => i.decode().catch(() => undefined))), // relleno-a-proposito: una imagen que no carga no frena la boleta
     new Promise((listo) => window.setTimeout(listo, 1500)),
   ]);
 

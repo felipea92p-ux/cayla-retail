@@ -41,8 +41,8 @@ export function NuevoEnOtrasSedes({
     const aplicar = () => setFiltro(siguiente);
     const vt = (document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> } }).startViewTransition;
     if (!vt || prefiereQuieto()) return aplicar();
-    // Dos clics seguidos hacen que el navegador aborte la transición anterior y lo avise por promesa: no es un error.
     const t = vt.call(document, aplicar);
+    // relleno-a-proposito: dos clics seguidos hacen que el navegador aborte la transición anterior y lo avise por promesa: no es un error.
     [t.ready, t.finished, t.updateCallbackDone].forEach((p) => p.catch(() => {}));
   }
 
@@ -58,7 +58,7 @@ export function NuevoEnOtrasSedes({
     <section id="nuevos" className="ia-rv" data-guia="inicio.almacen-nuevos">
       <div className="ia-sec-h">
         <div className="ia-l">
-          <p className="label-cayla text-[11px] text-tinta/65">{titulo.seccion}</p>
+          <p className="label-cayla text-xs text-tinta/65">{titulo.seccion}</p>
           {items && <span className="ia-cnt">{items.length}</span>}
           <span className="text-sm text-tinta/65">hoy y ayer</span>
         </div>

@@ -58,8 +58,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-lista-cabeza { position: relative; z-index: 3; display: grid; gap: 8px; padding: 16px 16px 12px; border-bottom: 1px solid var(--hilo-cabeza); }
 /* Cómo va todo el envío: la barra y una línea. Lo que hacía la columna «Resumen del envío». */
 .rc-avance { display: grid; gap: 6px; }
-.rc-avance p { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
-.rc-avance b { display: inline-flex; align-items: baseline; gap: 0.3em; color: var(--color-tinta); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-avance p { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
+.rc-avance b { display: inline-flex; align-items: baseline; gap: 0.3em; color: var(--color-tinta); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
 .rc-avance span[data-tono] { font-weight: 600; }
 .rc-avance span[data-tono="verde"] { color: var(--color-verde-profundo); }
 .rc-avance span[data-tono="ambar"] { color: var(--color-ambar-profundo); }
@@ -75,7 +75,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 }
 .rc-filtro-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .rc-puestos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.rc-puestos-titulo { color: var(--color-taupe); font-size: 14px; }
+.rc-puestos-titulo { color: var(--color-taupe); font-size: var(--text-detalle); }
 /* Con la columna angosta, el botón «Filtros» sin su palabra: el buscador conserva su ancho. */
 @container rc-lista (max-width: 359px) {
   .rc-buscar .pildora-filtro-nombre { display: none; }
@@ -95,20 +95,22 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-tira { position: relative; padding: 4px 0; }
 /* La abierta se queda pegada arriba mientras pasan sus modelos: casi llena, para que no se lean a través de ella. */
 .rc-cat[data-abierta] > .rc-cat-tira { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--color-papel) 94%, transparent); }
-.rc-cat-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 10px 8px 8px; border-radius: 14px; background: var(--rc-cat-fondo); box-shadow: inset 0 0 0 1px var(--rc-cat-filo), 0 2px 6px -4px color-mix(in srgb, var(--color-sombra) 30%, transparent); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-cat-cabeza { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 10px 6px 14px; border-radius: 14px; background: var(--rc-cat-fondo); box-shadow: inset 0 0 0 1px var(--rc-cat-filo), 0 2px 6px -4px color-mix(in srgb, var(--color-sombra) 30%, transparent); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-cabeza { background: var(--rc-cat-encima); }
 @media (hover: hover) {
   .rc-cat:not([data-abierta]) .rc-cat-cabeza:hover { background: var(--rc-cat-encima); }
 }
 .rc-cat-cabeza:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-cat-cabeza .rc-cat-ic { flex: none; background: var(--color-vidrio); box-shadow: none; color: var(--color-pizarra); }
-.rc-cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
-.rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+/* Una sola línea (Felipe 2026-11-24, maqueta `recibir-terminar-en-el-contador`): el nombre a la izquierda y cómo va a la derecha. */
+.rc-cat-textos { display: flex; flex: 1 1 0; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: var(--text-sm); font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
 /* Hace falta leerlo entero («Dijeron 20 · Contaste 12 · Faltan 8»): baja a otra línea en vez de cortarse. */
-.rc-cat-resumen { color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
-.rc-cat-barra { display: block; margin-top: 3px; }
-/* Las barras chicas, un poco más gruesas: el color tiene que leerse desde lejos. */
-.rc-cat-barra .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 11px; }
+.rc-cat-resumen { overflow: hidden; min-width: 0; color: var(--rc-cat-suave); font-size: var(--text-detalle); line-height: 1.3; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+/* El avance de la categoría, como filo al pie de su cabecera (Felipe 2026-11-24): dice cómo va sin sumar alto. */
+.rc-cat-barra { position: absolute; right: 12px; bottom: 0; left: 12px; display: block; }
+/* El filo: 4 px, lo más fino en que el color (rojo, ámbar, verde) todavía se lee desde lejos. Antes era una barra de 11 px bajo el nombre. */
+.rc-cat-barra .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 0px; height: 4px; }
 /* El «+» de otro modelo, al lado del check. Vive fuera del botón de la categoría y se apoya sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
 .rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
 .rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
@@ -125,7 +127,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 }
 .rc-cat-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: 14px; }
+.rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: var(--text-detalle); }
 .rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-flecha { transform: rotate(180deg); }
 .rc-cat-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
@@ -155,8 +157,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-modelo[data-activa] { background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
 .rc-modelo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
 .rc-modelo-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: var(--text-detalle); font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .rc-modelo-cifras b { color: var(--color-tinta); font-weight: 600; }
 .rc-modelo .chip-cayla { flex: none; }
 /* Con la columna angosta el nombre va en su propia línea y el estado junto a las cifras: al lado de dos chips, «Vestido Sofía» se leía «Ve…». */
@@ -180,7 +182,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 
 /* El pie de la lista: lo del envío entero. A la izquierda lo que falta; a la derecha quién cuenta y el único «Revisar y cerrar». */
 .rc-lista-pie { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 64px; padding: 12px 16px; border-top: 1px solid var(--hilo-cabeza); background: var(--vidrio-pie-fondo); }
-.rc-pie-falta { flex: 1 1 0; min-width: 0; min-height: 24px; color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-pie-falta { flex: 1 1 0; min-width: 0; min-height: 24px; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
 .rc-pie-falta > div, .rc-pie-falta p { padding-top: 0; }
 .rc-pie-accion { flex: none; display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; min-height: 44px; }
 /* Por abajo y no al centro (Felipe 2026-11-12): el combo «Responsable» lleva su título encima, y centrados, «Facturas» y el «?» quedaban más altos que su caja. */
@@ -211,7 +213,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-textos { display: grid; flex: 1 1 0; gap: 4px; min-width: 0; }
 .rc-placa-textos .titulo-seccion { flex-wrap: wrap; }
 .rc-placa-textos .titulo-seccion-texto { font-size: 28px; font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; }
-.rc-placa-textos > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-placa-textos > p { color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
 .rc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
 .rc-chips:empty { display: none; }
 /* La foto que abre «Lo que anotó Compras» (Felipe 2026-11-12): se nota que se toca, sin cambiar su dibujo. */
@@ -220,13 +222,23 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-placa-foto:hover { scale: 1.03; box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
 }
 .rc-placa-foto:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+/* La caja de la foto tomada (Felipe 2026-11-24): mientras se trae del celular o se le quita el fondo, un velo de papel con lo que pasa y el hilo
+   que barre (la señal de espera de siempre, sigue con las animaciones apagadas); la × para quitarla, en su esquina como en «Fotos y colores». */
+.rc-placa-foto-caja { position: relative; flex: none; border-radius: 14px; }
+.rc-placa-foto-estado {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 6px; overflow: hidden; border-radius: 14px;
+  background: color-mix(in srgb, var(--color-papel) 86%, transparent); color: var(--color-tinta);
+  font-size: var(--text-xs); font-weight: 600; line-height: 1.2; text-align: center;
+}
+.rc-placa-foto-quitar { position: absolute; top: -8px; right: -8px; }
+.rc-placa-sin-fondo { display: flex; align-items: center; min-height: 24px; }
 /* Las cifras de la compra en palabras, en una línea (antes, una píldora de costo junto a la de marca). */
-.rc-placa-cifras { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; color: var(--color-taupe); font-size: 14px; }
+.rc-placa-cifras { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; color: var(--color-taupe); font-size: var(--text-detalle); }
 .rc-placa-cifras > span { display: inline-flex; align-items: center; gap: 6px; }
 .rc-placa-cifras b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
 .rc-placa-derecha { flex: none; display: grid; justify-items: end; align-content: space-between; gap: 6px; align-self: stretch; }
 .rc-placa-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 14px; }
-.rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: 14px; white-space: nowrap; }
+.rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: var(--text-detalle); white-space: nowrap; }
 .rc-placa-observaciones { padding: 0; }
 .rc-placa-error { padding: 0; }
 
@@ -235,13 +247,13 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-cuerpo > .rc-bloque:first-child { border-top: 0; }
 .rc-bloque + .rc-bloque { animation-delay: 70ms; }
 .rc-bloque-titulo { display: flex; align-items: center; gap: 10px; min-height: 32px; }
-.rc-bloque-nombre { flex: 1 1 0; min-width: 0; color: var(--color-tinta); font-size: 16px; font-weight: 600; line-height: 1.3; }
+.rc-bloque-nombre { flex: 1 1 0; min-width: 0; color: var(--color-tinta); font-size: var(--text-sm); font-weight: 600; line-height: 1.3; }
 .rc-bloque-estado { flex: none; display: inline-flex; align-items: center; }
-.rc-bloque-nota { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-bloque-nota { color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
 .rc-bloque-suelto { display: flex; }
 .rc-paso {
   flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--gota-chica-borde); border-radius: 50%;
-  background: var(--gota-chica-fondo); box-shadow: var(--lente-luz); color: var(--color-taupe-profundo); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--gota-chica-fondo); box-shadow: var(--lente-luz); color: var(--color-taupe-profundo); font-size: var(--text-detalle); font-weight: 700; font-variant-numeric: tabular-nums;
   transition: background-color 300ms var(--ease-cayla), border-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), color 300ms var(--ease-cayla);
 }
 .rc-paso[data-estado="toca"] { border-color: transparent; background: var(--color-tinta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-tinta) 10%, transparent); color: var(--color-crema); }
@@ -253,6 +265,23 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 
 /* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, en la mesa del contador: «una línea separará al medio el paso 1 y el paso 2;
    de esta manera los botones de abajo ya no quedan fuera de vista»). El paso 1 mide lo que piden el dial y sus botones; el paso 2 toma el resto. */
+/* Los pasos del modelo, uno bajo otro (ADR-0699, forma A que eligió Felipe 2026-11-24): el que toca abierto con su contenido; lo hecho, una línea con
+   su resumen y «Cambiar»; lo que viene, apagado. No se eligen como pestañas: el camino se ve entero y el primero no se salta. */
+.rc-pasos-v { display: grid; border-top: 1px solid var(--hilo-fila); }
+.rc-placa-cuerpo > .rc-pasos-v:first-child { border-top: 0; }
+.rc-paso-v { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 16px; }
+.rc-paso-v + .rc-paso-v { border-top: 1px solid var(--hilo-fila); }
+.rc-paso-num { display: grid; width: 28px; height: 28px; place-items: center; border: 1.5px solid var(--color-borde-control); border-radius: 999px; color: var(--color-secundario); font-size: var(--text-detalle); font-weight: 700; }
+.rc-paso-v[data-estado="hecho"] .rc-paso-num { border-color: var(--color-verde); background: var(--color-verde); color: var(--color-crema); }
+.rc-paso-v[data-estado="abierto"] .rc-paso-num { border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+.rc-paso-v-fila { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-height: 28px; margin: 0; padding-top: 3px; color: var(--color-secundario); font-size: var(--text-detalle); font-variant-numeric: tabular-nums; }
+.rc-paso-v-fila b { color: var(--color-tinta); font-size: var(--text-sm); font-weight: 600; }
+.rc-paso-v[data-estado="falta"] .rc-paso-v-fila, .rc-paso-v[data-estado="falta"] .rc-paso-v-fila b { color: var(--color-tenue); }
+.rc-paso-v-fila .btn-enlace { margin-left: auto; }
+.rc-paso-v-cuerpo { min-width: 0; }
+.rc-paso-v-cuerpo > .rc-bloque { padding: 2px 0 0; border-top: 0; }
+/* El número del paso ya lo dice la lista: el círculo del bloque sobra (sigue en el DOM, la placa lo lee para bajar a las tallas). */
+.rc-paso-v-cuerpo .rc-bloque-titulo > .rc-paso { display: none; }
 .rc-pasos { display: grid; grid-template-columns: max-content minmax(0, 1fr); border-top: 1px solid var(--hilo-fila); }
 .rc-placa-cuerpo > .rc-pasos:first-child { border-top: 0; }
 .rc-pasos > .rc-bloque { border-top: 0; align-content: start; }
@@ -275,7 +304,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cuenta { display: grid; grid-template-columns: 192px max-content; align-items: center; gap: 12px 24px; }
 .rc-cuenta > .rc-dial { grid-column: 1; }
 .rc-cuenta-lado { grid-column: 2; display: grid; align-content: center; gap: 10px; min-width: 0; }
-.rc-pista, .rc-pista-stock { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-pista, .rc-pista-stock { color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
 /* Un renglón reservado: bajo el dial cabe en una línea, y si apareciera otra, lo de abajo se movería bajo el mouse. */
 .rc-pista { min-height: 1.35em; }
 /* Con el número abierto la pista dice cómo dejarlo: con teclado, Enter; con el dedo, tocar fuera. «Toca el número…» ya no corresponde. */
@@ -291,11 +320,11 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-atajos .rc-suma { display: flex; }
 .rc-atajos .rc-suma button { flex: 1 1 0; }
 .rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
-.rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
-.rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+.rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: var(--text-detalle); font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+.rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: var(--text-detalle); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
 .rc-atajo svg { flex: none; }
 /* «Llegaron las N», el botón grande del bloque. Va después de `.rc-atajo`: con la misma fuerza, el orden decide, y escrito antes se quedaba en 40 px. */
-.rc-atajo-grande { width: 100%; min-height: 52px; border-radius: 14px; font-size: 16px; }
+.rc-atajo-grande { width: 100%; min-height: 52px; border-radius: 14px; font-size: var(--text-sm); }
 /* Con el dedo, 44 px (ADR-0611, mejora 5): «No llegó nada» medía 40 y «+5» y «+10», 32. */
 @media (pointer: coarse) {
   .rc-atajo:not(.rc-atajo-grande) { min-height: 44px; }
@@ -324,7 +353,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* El anillo del enlace (2 px a 2 px del botón) sobresale 4 px de la línea de 24: 6 px de relleno arriba y abajo le hacen lugar dentro del recorte, y el
    margen negativo devuelve esos 6 px, así el pie no cambia de alto ni nada se mueve. El enlace se aparta 4 px más del texto para que el anillo no pise los
    dos puntos (auditoría al milímetro, M3, 2026-11-14). */
-.rc-pie-sigue { flex: 1 1 0; min-width: 0; margin-block: -6px; padding-block: 6px; overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
+.rc-pie-sigue { flex: 1 1 0; min-width: 0; margin-block: -6px; padding-block: 6px; overflow: hidden; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
 .rc-pie-sigue > .btn-cayla { margin-inline-start: 4px; }
 .rc-pie-sigue b { color: var(--color-tinta); font-weight: 600; }
 .rc-pie-pasos { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; min-height: 44px; }
@@ -361,8 +390,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-tarjeta { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 14px; padding: 14px; border: 1px solid var(--placa-borde); border-radius: 16px; background: var(--placa-fondo); box-shadow: var(--placa-luz); animation: cayla-entrada 320ms var(--ease-cayla) backwards; transition: background-color 250ms var(--ease-cayla), border-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla); }
 .rc-tarjeta-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-taupe-profundo); }
 .rc-tarjeta-textos { flex: 1 1 14rem; display: grid; gap: 2px; min-width: 0; }
-.rc-tarjeta-textos > b { color: var(--color-tinta); font-size: 15px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
-.rc-tarjeta-textos > span { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-tarjeta-textos > b { color: var(--color-tinta); font-size: var(--text-sm); font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.rc-tarjeta-textos > span { color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.35; }
 .rc-tarjeta-acciones { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .rc-tarjeta-acciones .btn-cayla:not(.btn-enlace) { white-space: nowrap; }
 .rc-tarjeta[data-tono="espera"] { border-style: dashed; border-color: var(--color-borde-control); background: transparent; box-shadow: none; }
@@ -375,7 +404,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-tarjeta[data-tono="despues"] .rc-tarjeta-ic { color: var(--color-pizarra); }
 /* Lo repartido, en etiquetas: color, talla y cuántas. */
 .rc-reparto { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.rc-reparto li { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; white-space: nowrap; }
+.rc-reparto li { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: var(--text-xs); white-space: nowrap; }
 .rc-reparto li b { font-weight: 700; font-variant-numeric: tabular-nums; }
 .rc-reparto .rc-reparto-mas { border-color: transparent; background: transparent; box-shadow: none; color: var(--color-taupe); }
 
@@ -388,17 +417,17 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-repartir { display: grid; gap: 14px; min-width: 0; }
 .rc-reparto-tabla { display: grid; gap: 10px; min-width: 0; }
 .rc-reparto-cabeza { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
-.rc-reparto-cabeza .rc-matriz-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 15px; }
+.rc-reparto-cabeza .rc-matriz-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--text-sm); }
 .rc-reparto-cabeza .rc-matriz-total b { font-size: 28px; line-height: 1; }
 /* En la hoja hay lugar: las casillas son más altas y anchas que cuando vivían en la placa. */
-.rc-repartir .rc-tabla-tallas { font-size: 15px; }
-.rc-repartir .rc-celda, .rc-repartir .rc-celda-falta { height: 40px; max-width: 88px; font-size: 15px; }
+.rc-repartir .rc-tabla-tallas { font-size: var(--text-sm); }
+.rc-repartir .rc-celda, .rc-repartir .rc-celda-falta { height: 40px; max-width: 88px; font-size: var(--text-sm); }
 .rc-repartir-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
 
 .rc-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .rc-opcion { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--placa-borde); border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
-.rc-opcion b { display: block; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.3; }
-.rc-opcion small { display: block; color: var(--color-taupe); font-size: 14px; line-height: 1.3; }
+.rc-opcion b { display: block; color: var(--color-tinta); font-size: var(--text-detalle); font-weight: 600; line-height: 1.3; }
+.rc-opcion small { display: block; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.3; }
 .rc-opcion > .rc-radio { margin-top: 1px; width: 20px; height: 20px; }
 .rc-opcion[aria-checked="true"] { border-color: transparent; background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
 @media (hover: hover) {
@@ -424,21 +453,21 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-galeria-visto { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); }
 .rc-galeria-en-lista { display: flex; }
 /* El porqué de que esté arriba («Llegó el 2 nov · mismo costo y precio»): una línea, en verde suave porque es una buena pista, no un estado. */
-.rc-galeria-porque { color: var(--color-verde); font-size: 14px; line-height: 1.3; }
-.rc-galeria-nombre { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.3; }
-.rc-galeria-dato { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.rc-galeria-colores { display: flex; align-items: center; gap: 4px; color: var(--color-taupe); font-size: 14px; }
+.rc-galeria-porque { color: var(--color-verde); font-size: var(--text-detalle); line-height: 1.3; }
+.rc-galeria-nombre { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--color-tinta); font-size: var(--text-detalle); font-weight: 600; line-height: 1.3; }
+.rc-galeria-dato { overflow: hidden; color: var(--color-taupe); font-size: var(--text-detalle); line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.rc-galeria-colores { display: flex; align-items: center; gap: 4px; color: var(--color-taupe); font-size: var(--text-detalle); }
 .rc-galeria-punto { width: 12px; height: 12px; border-radius: 999px; background: var(--gota-fondo-encima); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-tinta) 30%, transparent); } /* contraste: gráfico sobre vidrio claro — el filo sigue al tema: un punto negro o blanco no desaparece en ninguno */
 
 /* Tallas y colores, en la misma pantalla. */
 .rc-matriz-caja { overflow-x: auto; border: 1px solid var(--hilo-cabeza); border-radius: 14px; }
-.rc-tabla-tallas { width: 100%; border-collapse: collapse; font-size: 14px; }
-.rc-tabla-tallas th { padding: 7px 4px; border-bottom: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap; }
+.rc-tabla-tallas { width: 100%; border-collapse: collapse; font-size: var(--text-detalle); }
+.rc-tabla-tallas th { padding: 7px 4px; border-bottom: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: var(--text-xs); font-weight: 600; text-align: center; white-space: nowrap; }
 .rc-tabla-tallas thead th:first-child { padding-left: 12px; text-align: left; }
 /* La columna del color no se va al desplazar la tabla: con muchas tallas se sigue sabiendo de qué color es cada fila. */
 .rc-matriz-caja[data-desborda] .rc-tabla-tallas :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: color-mix(in srgb, var(--color-papel) 92%, transparent); }
 /* Cada talla es una etiqueta que se quita, a la vista (nunca solo al pasar el mouse): en el teléfono no hay mouse. */
-.rc-talla { display: inline-flex; align-items: center; gap: 1px; min-height: 26px; padding: 0 2px 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; font-weight: 600; white-space: nowrap; animation: cayla-entrada 240ms var(--ease-cayla) both; }
+.rc-talla { display: inline-flex; align-items: center; gap: 1px; min-height: 26px; padding: 0 2px 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; animation: cayla-entrada 240ms var(--ease-cayla) both; }
 .rc-talla > span:only-child { padding-right: 7px; }
 .rc-talla-quitar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
@@ -468,15 +497,15 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-fila-pie th:first-child { padding-left: 12px; text-align: left; }
 .rc-matriz-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
 .rc-matriz-botones { display: flex; flex-wrap: wrap; gap: 6px; }
-.rc-matriz-total { color: var(--color-taupe); font-size: 14px; font-variant-numeric: tabular-nums; }
-.rc-matriz-total b { font-family: var(--font-serif); font-size: 20px; font-weight: 600; }
+.rc-matriz-total { color: var(--color-taupe); font-size: var(--text-detalle); font-variant-numeric: tabular-nums; }
+.rc-matriz-total b { font-family: var(--font-serif); font-size: var(--text-xl); font-weight: 600; }
 .rc-matriz-total[data-tono="verde"] b { color: var(--color-verde-profundo); }
 .rc-matriz-total[data-tono="ambar"] b { color: var(--color-ambar-profundo); }
 
 .rc-otra { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); animation: cayla-entrada 300ms var(--ease-cayla) both; }
 .rc-otra:empty { display: none; }
 .rc-chipitos { display: flex; flex-wrap: wrap; gap: 6px; }
-.rc-etiqueta-chica { color: var(--color-taupe); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.rc-etiqueta-chica { color: var(--color-taupe); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
 
 /* ---------- El celular (ADR-0645): el contador a la vista, la lista en su hoja y la isla abajo ----------
    Bajo 640 px la lista no va en la pantalla: se abre desde la isla, en una hoja que sube desde el borde (como toda hoja en el celular). */
@@ -533,14 +562,14 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-tabla-stock tbody th, .rc-tabla-stock tfoot th { padding: 4px 4px 4px 12px; font-weight: 500; text-align: left; white-space: nowrap; }
 .rc-tabla-stock tbody th { border-bottom: 1px solid var(--hilo-fila); color: var(--color-tinta); }
 .rc-tabla-stock tbody tr:last-child th { border-bottom: 0; }
-.rc-tabla-stock tfoot :is(th, td) { padding-block: 7px; border-top: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.rc-tabla-stock tfoot :is(th, td) { padding-block: 7px; border-top: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: var(--text-xs); font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
 .rc-tabla-stock tfoot th { text-align: left; }
 /* El número va suelto, sin caja (formidable 2026-11-07): con el fondo hundido de la celda del contador parecía que se podía escribir. El 0 en taupe, que pasa contraste. */
 .rc-stock-celda { display: inline-block; min-width: 30px; line-height: 28px; color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
 .rc-stock-cero { color: var(--color-taupe); font-weight: 400; }
 /* Los números entran en ola al abrir, una vez. */
 .rc-stock[data-abierta] .rc-stock-celda { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--j, 0), 12) * 30ms); }
-.rc-stock-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; color: var(--color-taupe); font-size: 13px; }
+.rc-stock-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; color: var(--color-taupe); font-size: var(--text-xs); }
 .rc-stock-dentro > .rc-stock-pie { margin-top: 8px; }
 .rc-stock-divisor { margin: 6px 0 2px 6px; list-style: none; }
 /* Con la columna angosta: la flecha a la derecha de las dos líneas, el chip queda en su candado, y la matriz se desplaza si no cabe (el color no se va). */
@@ -564,6 +593,6 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 }
 
 /* «Llenar todas con» sobre la tabla de tallas (Felipe 2026-11-12, como en Nuevo producto): una caja chica con su título al lado. */
-.rc-llenar { display: inline-flex; align-items: center; gap: 8px; color: var(--color-taupe); font-size: 14px; }
+.rc-llenar { display: inline-flex; align-items: center; gap: 8px; color: var(--color-taupe); font-size: var(--text-detalle); }
 .rc-llenar .caja-campo { width: 72px; height: 36px; min-height: 0; padding: 0 8px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
 .rc-llenar .caja-campo[aria-invalid="true"] { border-color: var(--color-rojo); }

@@ -20,7 +20,7 @@ const SIN_LEER = "No se pudo leer";
 function Cabecera({ titulo }: { titulo: string }) {
   return (
     <div className="ia-sec-h">
-      <p className="label-cayla text-[11px] text-tinta/65">{titulo}</p>
+      <p className="label-cayla text-xs text-tinta/65">{titulo}</p>
     </div>
   );
 }

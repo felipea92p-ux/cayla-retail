@@ -50,3 +50,8 @@ Felipe se lleva: ya puede editar CLAURE en producción y cargarle RUC y régimen
 Qué hice: el diccionario quedó con la foto de producción del 2026-11-23: 102 grupos nuevos o cambiados, entre ellos las columnas de Empresas aliadas y `gasto_reparto_aliadas`; las 2319 huellas coinciden. Ocho tablas nuevas, varias de otras ramas ya publicadas, recibieron su pájaro en el aviario. Sumé la fila de la hoja de la aliada al tablero de /chaos.
 Por qué así: la consulta del repo pesa 100 KB de ida y otro tanto de vuelta. La partí en tres lecturas: huellas por cubos, la lista de lo que cambió y su contenido. Después la aplicó `pnpm datos:refrescar`, que vuelve a verificar todas las huellas contra producción.
 Felipe se lleva: la rama queda lista para revisar. Sin correr: `tema:auditar` y `guias:recorrer` (en el backlog).
+
+## 2026-11-26 (la rama, otra vez junto a main)
+Qué hice: traje `main` y resolví 20 choques. En Vender, Cuentas con Claudia y el reparto por empresa quedaron los dos cambios (aliadas, y la letra y los tickets compartidos de main); el diccionario es el de main (24-nov), que ya incluye las aliadas. En una base propia con las 1304 migraciones en orden: las pruebas de aliadas, CLAURE, barrido y tickets compartidos en verde, y a 375 px un cobro de prueba por Yape quedó en la cuenta de CLAURE. Apagué el auto-merge.
+Por qué así: git había juntado solo dos veces las mismas siete tablas en el aviario (una por rama) y el candado lo marcó; los checks verdes del 23-nov eran contra un `main` que ya no existe.
+Felipe se lleva: sigue sin guardarse el número elegido en una venta sin conexión (se sella en CAYLA, anotado en el backlog). Sin correr: `tema:auditar` y `guias:recorrer`.

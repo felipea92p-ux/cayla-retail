@@ -150,7 +150,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
                 </div>
                 <div className="text-right" data-guia="buscar.stock">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
-                  <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
+                  <p className="label-cayla text-xs text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
                   <p className="mt-1 text-sm text-tinta/70">S/{(preciosAqui[v.varianteId] ?? v.precio).toFixed(2)}</p>
                 </div>
               </div>

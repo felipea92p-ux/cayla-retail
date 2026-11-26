@@ -426,7 +426,7 @@ function FilaInsumo({
         className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] @max-[32rem]:grid-cols-[1fr_auto]"
       >
         <div className="min-w-0">
-          <p className="truncate text-[15px] text-tinta">{i.nombre}</p>
+          <p className="truncate text-sm text-tinta">{i.nombre}</p>
           <p className="truncate text-sm text-tinta/65">
             <span className="font-mono">{i.codigo}</span> · {detalle}
           </p>

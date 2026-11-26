@@ -123,7 +123,7 @@ export function SeriesPanel({
               lo lleva el sistema.
             </Ayuda>
           </TituloSeccion>
-          <p className="mt-0.5 text-sm text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
+          <p className="mt-0.5 text-sm text-tinta/65">El número con que sale el siguiente comprobante.</p>
         </div>
         {esLider && (
           <BotonCompacto variante="primario" data-guia="series.nueva" onClick={() => abrir()}>
@@ -150,7 +150,7 @@ export function SeriesPanel({
                 return (
                   <article key={s.id} data-guia="series.serie" className="card-cayla flex flex-col gap-2 px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="label-cayla text-[11px] text-tinta/65">{nombreDelTipo(s.tipo)}</span>
+                      <span className="label-cayla text-xs text-tinta/65">{nombreDelTipo(s.tipo)}</span>
                       {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin emitir</Chip>}
                     </div>
                     <p data-guia="series.codigo" className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
@@ -181,7 +181,7 @@ export function SeriesPanel({
                   <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-sm text-tinta/70">
                     <p>
                       Sin serie de <b className="font-semibold text-tinta">{ETIQUETA_TIPO[t].toLowerCase()}</b>
-                      {t === "nota_credito" ? ": las devoluciones de esta tienda no pueden emitir su nota de crédito." : "."}
+                      {t === "nota_credito" ? ": las devoluciones no pueden emitirla." : "."}
                     </p>
                     {esLider && (
                       <BotonCompacto variante="fila" className="self-start" onClick={() => abrir(g.tienda.id, t)}>
@@ -197,7 +197,7 @@ export function SeriesPanel({
 
       {archivadas && archivadas.length > 0 && !busqueda && (
         <details data-guia="series.archivadas" className="anim-sube" style={{ "--i": 4 + grupos.length } as CSSProperties}>
-          <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 outline-none hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
+          <summary className="label-cayla cursor-pointer list-none text-xs text-tinta/65 outline-none hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
             {archivadas.length === 1 ? "1 serie archivada" : `${archivadas.length} series archivadas`} ›
           </summary>
           <ul className="mt-3 space-y-1.5 text-sm text-tinta/70">

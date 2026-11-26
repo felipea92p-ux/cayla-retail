@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   crearJuntador,
   filtroDeUbicacion,
+  nombreDeCanal,
   queHacerConUnCambio,
   sePuedeEscuchar,
   VUELTAS_DE_RESPALDO_CONECTADO,
@@ -102,5 +103,17 @@ describe("queHacerConUnCambio (Existencias)", () => {
   });
   it("a la vista y sin hojas: refresca", () => {
     expect(queHacerConUnCambio({ oculta: false, hojaAbierta: false })).toBe("refrescar");
+  });
+});
+
+describe("nombreDeCanal", () => {
+  it("dos oyentes de la misma tabla y sede tienen canales distintos (la Caja y la estación de impresión de TRU)", () => {
+    const caja = nombreDeCanal("ventas", UUID, ":r1:");
+    const estacion = nombreDeCanal("ventas", UUID, ":r2:");
+    expect(caja).not.toBe(estacion);
+    expect(caja).toContain(`ventas:${UUID}`);
+  });
+  it("sin sede dice «todas»", () => {
+    expect(nombreDeCanal("stock", null, "a")).toBe("en-vivo:stock:todas:a");
   });
 });

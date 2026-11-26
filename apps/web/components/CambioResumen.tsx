@@ -48,7 +48,7 @@ function FichaPrenda({ titulo, prenda, vacia, lado }: { titulo: string; prenda: 
     <div className="posv-ficha flex min-w-0 flex-col gap-2.5" data-lado={lado}>
       {prenda ? <FotoDeBalanza prenda={prenda} /> : <div className="posv-hueco aspect-square" aria-hidden />}
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">{titulo}</p>
+        <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-tinta/65">{titulo}</p>
         {prenda ? (
           <>
             <p className="posv-ficha-nombre font-display truncate leading-tight text-tinta">{prenda.referencia}</p>
@@ -99,13 +99,13 @@ export function ComparacionPrendas({
       </div>
       {nueva && otras.length > 0 && (
         <div className="rounded-[18px] bg-tinta/[0.06] p-[18px]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">Y también se lleva</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-tinta/65">Y también se lleva</p>
           <ul className="mt-3 space-y-3">
             {otras.map((p, i) => (
               <li key={`${p.referencia}-${p.talla}-${p.color}-${i}`} className="flex items-center gap-3.5">
                 <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="lg" />
                 <div className="min-w-0">
-                  <p className="font-display truncate text-[19px] leading-tight text-tinta">
+                  <p className="font-display truncate text-lg leading-tight text-tinta">
                     {p.referencia}
                     {p.cantidad > 1 ? ` (×${p.cantidad})` : ""}
                   </p>

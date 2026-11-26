@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maqueta · Entrar y Crear cuenta más profesionales (2026-11-25)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens de la tienda (apps/tienda/app/estilos/diseno-nuevo.css), copiados tal cual. Solo maqueta: no se importa nada de la app. */
+:root {
+  --crema: #faf7f3; --papel: #ffffff; --hueso: #f2e4e0; --sand: #e6d9d0; --tinta: #35201e; --taupe: #6f5a55;
+  --rojo: #d13730; --rojo-hondo: #ad2a24; --acento: #a8281f; --vino: #7f1d16; --marfil: #fbf3ee; --borde-control: #958079;
+  --verde: #2f7a4b; --ambar: #b7791f;
+  --serif: "Playfair Display", Georgia, serif; --sans: "Public Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--sans); color: var(--tinta); background: #e9e4de; -webkit-font-smoothing: antialiased; }
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.marca { fill: currentColor; display: block; }
+
+/* ---- La hoja de la maqueta ---- */
+.doc { max-width: 1360px; margin: 0 auto; padding: 40px 24px 80px; }
+.doc > header h1 { font-family: var(--serif); font-weight: 400; font-size: 40px; margin: 0 0 8px; }
+.doc > header p { margin: 0 0 6px; max-width: 80ch; line-height: 1.55; color: var(--taupe); }
+.doc h2.sec { font-family: var(--serif); font-weight: 400; font-size: 28px; margin: 56px 0 6px; }
+.doc p.sec-d { margin: 0 0 18px; color: var(--taupe); max-width: 90ch; line-height: 1.5; }
+.rot { display: inline-block; margin: 18px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.marco { width: 1280px; max-width: 100%; height: 640px; overflow: hidden; background: var(--crema); border-radius: 10px; box-shadow: 0 20px 50px -30px rgba(53,32,30,.45); position: relative; }
+.marco.alto { height: 980px; }
+.celus { display: flex; gap: 28px; flex-wrap: wrap; }
+.celu { width: 375px; height: 812px; overflow: hidden; background: var(--crema); border-radius: 28px; box-shadow: 0 20px 50px -30px rgba(53,32,30,.45); position: relative; }
+.antes { width: 1280px; max-width: 100%; border-radius: 10px; display: block; box-shadow: 0 20px 50px -30px rgba(53,32,30,.45); }
+.notas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px 28px; margin: 18px 0 0; padding: 0; list-style: none; }
+.notas li { font-size: 14px; line-height: 1.5; padding-left: 16px; position: relative; }
+.notas li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); }
+
+/* ---- La cabecera de las páginas de entrar: el logo y, a la derecha, volver a la tienda ---- */
+.cab { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; border-bottom: 1px solid var(--sand); background: var(--crema); }
+.cab .logo { color: var(--rojo); width: 112px; }
+.cab a { font-size: 14px; font-weight: 500; color: var(--tinta); text-decoration: none; display: inline-flex; gap: 8px; align-items: center; }
+.cab a .ic { width: 16px; height: 16px; }
+.celu .cab { height: 60px; padding: 0 16px; }
+.celu .cab .logo { width: 96px; }
+
+/* ---- Piezas del formulario ---- */
+.ceja { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin: 0 0 14px; }
+.ceja .colibri { width: 26px; color: var(--acento); }
+.tit { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1.08; margin: 0; letter-spacing: -.005em; }
+.sub { margin: 10px 0 0; font-size: 15.5px; line-height: 1.5; color: var(--taupe); }
+.form { display: grid; gap: 18px; margin-top: 30px; }
+.campo { display: grid; gap: 7px; }
+.campo label, .campo .lab { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; }
+.caja { height: 48px; border: 1px solid var(--borde-control); border-radius: 8px; background: var(--papel); display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: var(--taupe); }
+.caja.foco { border-color: var(--tinta); box-shadow: 0 0 0 3px rgba(209,55,48,.12); color: var(--tinta); }
+.caja .ver { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; font-size: 14px; font-weight: 500; color: var(--tinta); }
+.caja .ver .ic { width: 18px; height: 18px; }
+.ayuda { font-size: 13.5px; line-height: 1.45; color: var(--taupe); margin: 0; }
+.fila-caja { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.olvide { justify-self: end; font-size: 14px; font-weight: 500; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--borde-control); margin-top: -6px; }
+.btn { height: 48px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font: 600 15px var(--sans); padding: 0 24px; border: 1px solid transparent; width: 100%; }
+.btn-p { background: var(--rojo); color: #fff; }
+.btn-s { background: transparent; color: var(--tinta); border-color: var(--tinta); }
+.btn-g { background: var(--papel); color: var(--tinta); border-color: var(--borde-control); }
+.btn-chico { width: auto; height: 48px; padding: 0 18px; font-size: 14px; }
+.btn .g { width: 18px; height: 18px; }
+.o { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--taupe); }
+.o::before, .o::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
+.check { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--taupe); }
+.check i { width: 20px; height: 20px; border: 1px solid var(--borde-control); border-radius: 5px; background: var(--papel); margin-top: 1px; }
+.check a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; }
+.sigue { font-size: 12.5px; font-weight: 600; color: var(--ambar); }
+.otra { margin: 4px 0 0; font-size: 14.5px; color: var(--taupe); text-align: center; }
+.otra a { color: var(--tinta); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Los beneficios: el ícono en su círculo suave, el título y una línea */
+.benef { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.benef li { display: grid; grid-template-columns: 44px 1fr; gap: 16px; align-items: center; }
+.benef .bi { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--acento); }
+.benef b { display: block; font-size: 15.5px; font-weight: 600; }
+.benef small { display: block; margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--taupe); }
+
+/* La tarjeta del Club, rehecha: una tarjeta de verdad (proporción de tarjeta, 1,586), vino con letra marfil, el logo grabado */
+.tarjeta { width: 340px; aspect-ratio: 1.586; border-radius: 16px; background: radial-gradient(120% 90% at 85% 0%, #9a2a20 0%, var(--vino) 55%, #5e140f 100%); color: var(--marfil); padding: 22px 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 30px 50px -28px rgba(53,32,30,.65), inset 0 0 0 1px rgba(251,243,238,.14); position: relative; overflow: hidden; }
+.tarjeta::after { content: ""; position: absolute; right: -40px; bottom: -70px; width: 230px; height: 230px; border-radius: 50%; border: 1px solid rgba(251,243,238,.12); }
+.tarjeta .tj-arriba { display: flex; justify-content: space-between; align-items: flex-start; }
+.tarjeta .palabra { width: 92px; }
+.tarjeta .colibri { width: 38px; opacity: .9; }
+.tarjeta .tj-club { font-size: 10.5px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; opacity: .75; margin-top: 8px; }
+.tarjeta .tj-abajo { display: flex; justify-content: space-between; align-items: flex-end; }
+.tarjeta .tj-et { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .7; }
+.tarjeta .tj-nombre { font-family: var(--serif); font-style: italic; font-size: 24px; margin-top: 4px; }
+.tarjeta .tj-anio { text-align: right; font-family: var(--serif); font-size: 18px; }
+.tarjeta.marfil { background: var(--marfil); color: var(--vino); box-shadow: 0 30px 50px -26px rgba(0,0,0,.55); }
+.tarjeta.marfil::after { border-color: rgba(127,29,22,.12); }
+.pie-tarjeta { margin: 14px 0 0; font-size: 13.5px; color: var(--taupe); }
+
+/* ======================= A · Mostrador ======================= */
+.a-entrar { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 88px; max-width: 1000px; margin: 0 auto; padding: 72px 40px 0; }
+.a-entrar .raya { background: var(--sand); }
+.a-entrar .club .tit { font-size: 32px; }
+.a-entrar .club .benef { margin: 30px 0 32px; }
+.a-crear { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 400px); gap: 104px; justify-content: center; padding: 56px 40px 0; }
+.a-crear .lado { padding-top: 64px; }
+.a-crear .lado .benef { margin-top: 36px; }
+.pie-fijo { position: sticky; bottom: 0; background: var(--crema); border-top: 1px solid var(--sand); padding: 14px 0 0; display: grid; gap: 10px; }
+.pie-fijo .falta { font-size: 13.5px; color: var(--taupe); }
+.pie-fijo .falta b { color: var(--tinta); font-weight: 600; }
+.pie-fijo .avance { height: 2px; background: var(--sand); margin-top: -15px; margin-bottom: 4px; }
+.pie-fijo .avance span { display: block; width: 0%; height: 100%; background: var(--verde); }
+
+/* ======================= B · Vino ======================= */
+.b { display: grid; grid-template-columns: 44fr 56fr; height: calc(100% - 72px); }
+.b .panel { background: var(--vino); color: var(--marfil); padding: 64px 64px 48px; display: flex; flex-direction: column; justify-content: center; gap: 30px; }
+.b .panel .ceja { color: rgba(251,243,238,.8); margin: 0; }
+.b .panel .ceja .colibri { color: var(--marfil); }
+.b .panel .prom { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1.08; margin: 0; }
+.b .panel .prom em { display: block; font-style: italic; }
+.b .panel .benef .bi { background: rgba(251,243,238,.1); color: var(--marfil); box-shadow: inset 0 0 0 1px rgba(251,243,238,.22); }
+.b .panel .benef small { color: rgba(251,243,238,.78); }
+.b .lado-form { display: flex; justify-content: center; align-items: center; padding: 40px; }
+.b .lado-form > div { width: 100%; max-width: 420px; }
+.b.largo .lado-form { align-items: flex-start; padding-top: 48px; }
+
+/* ======================= Celular ======================= */
+.m { padding: 28px 16px 32px; }
+.m .tit { font-size: 32px; }
+.m .club { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--sand); }
+.m .club .tit { font-size: 26px; }
+.m .club .benef { margin: 22px 0 24px; gap: 16px; }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Entrar y Crear cuenta, más profesionales</h1>
+  <p>Maqueta del 2026-11-25. Dos direcciones para las mismas dos pantallas de la tienda (<b>/entrar</b> y <b>/crear-cuenta</b>). Mismos campos, mismos botones y mismo orden de pasos que hoy: cambia cómo se ve, no qué hace.</p>
+  <p>Ningún dato es real: «Tu nombre aquí» y los textos de ayuda son los mismos que ya usa la tienda.</p>
+</header>
+
+<h2 class="sec">Hoy</h2>
+<p class="sec-d">Lo que hace que se vea poco profesional:</p>
+<ul class="notas">
+  <li>Tres rojos peleando: el fondo rojo de toda la pantalla, la tarjeta blanca y el panel vino. Parece un aviso de oferta, no una marca de ropa.</li>
+  <li>La tarjeta del Club es un rectángulo blanco casi vacío y torcido: se ve a medio terminar.</li>
+  <li>Los íconos de los beneficios van en cuadritos con borde, sin línea de apoyo: se ven sueltos.</li>
+  <li>«Crear mi cuenta» sale dos veces (arriba y abajo) y la cabecera tiene un enlace huérfano.</li>
+  <li>En «Crear cuenta», el formulario flota a la izquierda y el texto del panel apenas se lee sobre el rojo.</li>
+  <li>«Crear cuenta» pide aceptar los términos dos veces (una para Google y otra para el correo).</li>
+</ul>
+
+<h2 class="sec">A · Mostrador <small style="font-family:var(--sans);font-size:14px;color:var(--acento);font-weight:600;letter-spacing:.04em">RECOMENDADA</small></h2>
+<p class="sec-d">Como entran las tiendas de moda grandes: fondo marfil tranquilo, sin rojo de fondo. En «Entrar», las dos puertas lado a lado: a la izquierda entrar, a la derecha «¿Primera vez?» con lo que gana. El rojo queda solo para el botón principal.</p>
+
+<span class="rot">Entrar · escritorio 1280 px</span>
+<div class="marco">
+  <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Volver a la tienda</a></div>
+  <div class="a-entrar">
+    <section>
+      <p class="ceja">Mi cuenta</p>
+      <h1 class="tit">Entra a tu cuenta</h1>
+      <p class="sub">Con tu correo y tu contraseña.</p>
+      <div class="form">
+        <div class="campo"><label>Correo</label><div class="caja"></div></div>
+        <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div></div>
+        <a class="olvide" href="#">Olvidé mi contraseña</a>
+        <span class="btn btn-p">Entrar</span>
+        <div class="o">o</div>
+        <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Continuar con Google</span>
+      </div>
+    </section>
+    <div class="raya"></div>
+    <section class="club">
+      <p class="ceja"><svg class="marca colibri" viewBox="-2 -2 862 582"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1z"/></svg>Club CAYLA</p>
+      <h2 class="tit">¿Primera vez en CAYLA?</h2>
+      <p class="sub">Crea tu cuenta y únete al Club.</p>
+      <ul class="benef">
+        <li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" /></svg></span><span><b>Guarda tus favoritos y outfits</b><small>Lo que te gusta queda en tu cuenta, en cualquier aparato.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span><span><b>Separa sin pagar aquí</b><small>Coordinas el pago por WhatsApp y lo recoges en tu tienda.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></svg></span><span><b>Puntos en cada compra</b><small>Los cambias por cupones; en tu cumpleaños, más puntos.</small></span></li>
+      </ul>
+      <span class="btn btn-s">Crear mi cuenta</span>
+    </section>
+  </div>
+</div>
+
+<span class="rot">Crear cuenta · escritorio 1280 px</span>
+<div class="marco alto">
+  <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#">¿Ya tienes cuenta? <u>Entrar</u></a></div>
+  <div class="a-crear">
+    <section>
+      <p class="ceja">Mi cuenta</p>
+      <h1 class="tit">Crea tu cuenta</h1>
+      <p class="sub">Toma un minuto.</p>
+      <div class="form">
+  <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Crear mi cuenta con Google</span>
+  <div class="o">o con tu correo</div>
+  <div class="campo"><span class="lab">Correo <span class="sigue">Sigue aquí</span></span><div class="fila-caja"><div class="caja foco">tucorreo@gmail.com</div><span class="btn btn-s btn-chico">Obtener código</span></div><p class="ayuda">Escríbelo bien: si olvidas tu contraseña, te llega un enlace a este correo.</p></div>
+  <div class="campo"><label>Tu nombre</label><div class="caja"></div><p class="ayuda">Cómo te llamamos. Con tu nombre alcanza.</p></div>
+  <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div><p class="ayuda">8 caracteres o más. Solo tú la sabes.</p></div>
+  <div class="check"><i></i><span>Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la <a href="#">política de privacidad</a> y los <a href="#">términos</a>. <em style="font-style:normal;color:var(--acento)">(una sola vez, vale para Google y para el correo)</em></span></div>
+  <div class="pie-fijo"><div class="avance"><span></span></div><span class="falta">Falta: <b>tu correo, confirmar tu correo, tu nombre</b> y 2 más</span><span class="btn btn-p">Crear mi cuenta</span></div>
+</div>
+    </section>
+    <aside class="lado">
+      <div class="tarjeta "><div class="tj-arriba"><div><svg class="marca palabra" viewBox="671 222 1329 279"><path fill-rule="evenodd" d="M774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><div class="tj-club">Club CAYLA</div></div><svg class="marca colibri" viewBox="-2 -2 862 582"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1z"/></svg></div><div class="tj-abajo"><div><div class="tj-et">Miembro del club</div><div class="tj-nombre">Tu nombre aquí</div></div><div><div class="tj-et">Desde</div><div class="tj-anio">2026</div></div></div></div>
+      <p class="pie-tarjeta">Tu tarjeta del Club se activa cuando separas tu primera prenda.</p>
+      <ul class="benef">
+        <li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" /></svg></span><span><b>Guarda tus favoritos y outfits</b><small>Lo que te gusta queda en tu cuenta, en cualquier aparato.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span><span><b>Separa sin pagar aquí</b><small>Coordinas el pago por WhatsApp y lo recoges en tu tienda.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></svg></span><span><b>Puntos en cada compra</b><small>Los cambias por cupones; en tu cumpleaños, más puntos.</small></span></li>
+      </ul>
+    </aside>
+  </div>
+</div>
+
+<span class="rot">Celular 375 px · Entrar y Crear cuenta (sin panel, como decidiste el 2026-10-19)</span>
+<div class="celus">
+  <div class="celu">
+    <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#">Volver</a></div>
+    <div class="m">
+      <h1 class="tit">Entra a tu cuenta</h1>
+      <div class="form" style="margin-top:22px">
+        <div class="campo"><label>Correo</label><div class="caja"></div></div>
+        <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div></div>
+        <a class="olvide" href="#">Olvidé mi contraseña</a>
+        <span class="btn btn-p">Entrar</span>
+        <div class="o">o</div>
+        <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Continuar con Google</span>
+      </div>
+      <section class="club">
+        <h2 class="tit">¿Primera vez en CAYLA?</h2>
+        <ul class="benef"><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" /></svg></span><span><b>Guarda tus favoritos y outfits</b></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span><span><b>Separa sin pagar aquí</b></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></svg></span><span><b>Puntos en cada compra</b></span></li></ul>
+        <span class="btn btn-s">Crear mi cuenta</span>
+      </section>
+    </div>
+  </div>
+  <div class="celu">
+    <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#">Entrar</a></div>
+    <div class="m">
+      <h1 class="tit">Crea tu cuenta</h1>
+      <p class="sub">Toma un minuto.</p>
+      <div class="form">
+  <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Crear mi cuenta con Google</span>
+  <div class="o">o con tu correo</div>
+  <div class="campo"><span class="lab">Correo <span class="sigue">Sigue aquí</span></span><div class="fila-caja"><div class="caja foco">tucorreo@gmail.com</div><span class="btn btn-s btn-chico">Obtener código</span></div><p class="ayuda">Escríbelo bien: si olvidas tu contraseña, te llega un enlace a este correo.</p></div>
+  <div class="campo"><label>Tu nombre</label><div class="caja"></div><p class="ayuda">Cómo te llamamos. Con tu nombre alcanza.</p></div>
+  <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div><p class="ayuda">8 caracteres o más. Solo tú la sabes.</p></div>
+  <div class="check"><i></i><span>Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la <a href="#">política de privacidad</a> y los <a href="#">términos</a>. <em style="font-style:normal;color:var(--acento)">(una sola vez, vale para Google y para el correo)</em></span></div>
+  <div class="pie-fijo"><div class="avance"><span></span></div><span class="falta">Falta: <b>tu correo, confirmar tu correo, tu nombre</b> y 2 más</span><span class="btn btn-p">Crear mi cuenta</span></div>
+</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">B · Vino</h2>
+<p class="sec-d">Más cerca de lo de hoy: el panel del Club se queda, pero ocupa todo el alto a la izquierda en vino (sin rojo de fondo ni tarjeta flotando), con la tarjeta del Club rehecha. El formulario respira solo sobre marfil. En el celular, igual que A.</p>
+
+<span class="rot">Entrar · escritorio 1280 px</span>
+<div class="marco">
+  <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Volver a la tienda</a></div>
+  <div class="b">
+    <aside class="panel">
+      <p class="ceja"><svg class="marca colibri" viewBox="-2 -2 862 582"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1z"/></svg>Club CAYLA</p>
+      <h2 class="prom">Separa hoy, <em>recoge en tu tienda.</em></h2>
+      <ul class="benef"><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" /></svg></span><span><b>Guarda tus favoritos y outfits</b><small>Lo que te gusta queda en tu cuenta, en cualquier aparato.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span><span><b>Separa sin pagar aquí</b><small>Coordinas el pago por WhatsApp y lo recoges en tu tienda.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></svg></span><span><b>Puntos en cada compra</b><small>Los cambias por cupones; en tu cumpleaños, más puntos.</small></span></li></ul>
+    </aside>
+    <div class="lado-form"><div>
+      <h1 class="tit">Entra a tu cuenta</h1>
+      <p class="sub">Con tu correo y tu contraseña.</p>
+      <div class="form">
+        <div class="campo"><label>Correo</label><div class="caja"></div></div>
+        <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div></div>
+        <a class="olvide" href="#">Olvidé mi contraseña</a>
+        <span class="btn btn-p">Entrar</span>
+        <div class="o">o</div>
+        <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Continuar con Google</span>
+        <p class="otra">¿Primera vez en CAYLA? <a href="#">Crear mi cuenta</a></p>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<span class="rot">Crear cuenta · escritorio 1280 px</span>
+<div class="marco alto">
+  <div class="cab"><svg class="marca logo" viewBox="0 0 2000 580"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><a href="#">¿Ya tienes cuenta? <u>Entrar</u></a></div>
+  <div class="b largo">
+    <aside class="panel">
+      <p class="ceja"><svg class="marca colibri" viewBox="-2 -2 862 582"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1z"/></svg>Club CAYLA</p>
+      <h2 class="prom">Separa hoy, <em>recoge en tu tienda.</em></h2>
+      <div class="tarjeta marfil"><div class="tj-arriba"><div><svg class="marca palabra" viewBox="671 222 1329 279"><path fill-rule="evenodd" d="M774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z"/></svg><div class="tj-club">Club CAYLA</div></div><svg class="marca colibri" viewBox="-2 -2 862 582"><path fill-rule="evenodd" d="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1z"/></svg></div><div class="tj-abajo"><div><div class="tj-et">Miembro del club</div><div class="tj-nombre">Tu nombre aquí</div></div><div><div class="tj-et">Desde</div><div class="tj-anio">2026</div></div></div></div>
+      <ul class="benef"><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" /></svg></span><span><b>Guarda tus favoritos y outfits</b><small>Lo que te gusta queda en tu cuenta, en cualquier aparato.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg></span><span><b>Separa sin pagar aquí</b><small>Coordinas el pago por WhatsApp y lo recoges en tu tienda.</small></span></li><li><span class="bi"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></svg></span><span><b>Puntos en cada compra</b><small>Los cambias por cupones; en tu cumpleaños, más puntos.</small></span></li></ul>
+    </aside>
+    <div class="lado-form"><div>
+      <h1 class="tit">Crea tu cuenta</h1>
+      <p class="sub">Toma un minuto.</p>
+      <div class="form">
+  <span class="btn btn-g"><svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.5 1.2-4 1.2-3.1 0-5.7-2.1-6.7-4.9H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.4a7.2 7.2 0 0 1 0-4.8V6.5H1.3a12 12 0 0 0 0 11l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"/></svg>Crear mi cuenta con Google</span>
+  <div class="o">o con tu correo</div>
+  <div class="campo"><span class="lab">Correo <span class="sigue">Sigue aquí</span></span><div class="fila-caja"><div class="caja foco">tucorreo@gmail.com</div><span class="btn btn-s btn-chico">Obtener código</span></div><p class="ayuda">Escríbelo bien: si olvidas tu contraseña, te llega un enlace a este correo.</p></div>
+  <div class="campo"><label>Tu nombre</label><div class="caja"></div><p class="ayuda">Cómo te llamamos. Con tu nombre alcanza.</p></div>
+  <div class="campo"><label>Contraseña</label><div class="caja"><span class="ver"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver</span></div><p class="ayuda">8 caracteres o más. Solo tú la sabes.</p></div>
+  <div class="check"><i></i><span>Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la <a href="#">política de privacidad</a> y los <a href="#">términos</a>. <em style="font-style:normal;color:var(--acento)">(una sola vez, vale para Google y para el correo)</em></span></div>
+  <div class="pie-fijo"><div class="avance"><span></span></div><span class="falta">Falta: <b>tu correo, confirmar tu correo, tu nombre</b> y 2 más</span><span class="btn btn-p">Crear mi cuenta</span></div>
+</div>
+    </div></div>
+  </div>
+</div>
+</div>
+</body>
+</html>

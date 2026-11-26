@@ -8,7 +8,6 @@ import {
   numeroAcaba,
   prendasQueSeAcaban,
   TEXTO_VACIO_ACABA,
-  textoPedirA,
   textoProveedor,
   textoViene,
   UNA_SEMANA,
@@ -81,9 +80,6 @@ describe("las otras píldoras y el botón de pedir", () => {
     expect(textoProveedor("taller")).toBe("Proveedor taller");
     expect(textoProveedor("terceros")).toBe("Proveedor terceros");
     expect(textoProveedor(null)).toBeNull();
-  });
-  it("el botón de pedir nombra la ciudad", () => {
-    expect(textoPedirA({ ciudad: "Ciudad Prueba" })).toBe("o pedir a Ciudad Prueba");
   });
 });
 

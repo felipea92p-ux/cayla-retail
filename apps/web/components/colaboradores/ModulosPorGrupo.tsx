@@ -12,7 +12,7 @@ export function ModulosPorGrupo({ modulos }: { modulos: readonly ClaveModulo[] }
     <div className="overflow-hidden rounded-xl border border-sand">
       {filas.map((f, i) => (
         <div key={f.grupo} className={`grid grid-cols-[5.25rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-3 py-2 max-sm:grid-cols-1 ${i > 0 ? "border-t border-sand" : ""} ${i % 2 === 0 ? "vd-placa" : ""}`}>
-          <span className="pt-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-tinta/60">{f.grupo}</span>
+          <span className="pt-0.5 text-xs font-bold uppercase tracking-[0.08em] text-tinta/60">{f.grupo}</span>
           <span className="flex flex-wrap gap-1.5">
             {f.ms.map((m) => (
               <Chip key={m.clave} versalitas={false}>

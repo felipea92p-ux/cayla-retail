@@ -5,6 +5,9 @@
  * Dos niveles. (1) INFRAESTRUCTURA del repo: ¿existe algo que mida, registre y una peticiones? (2) HIGIENE por archivo, con AST:
  *   · rpc-descartada / rpc-ignora-error   una `.rpc(…)` cuyo resultado se descarta, o se lee `{ data }` sin `error` (la falla se vuelve «sin datos»);
  *   · catch-mudo        un `catch` vacío, o que solo hace `console.*` (se traga el error: no lo registra bien ni lo relanza);
+ *   · relleno-silencioso   `.catch(() => null)` (o `[]`, `{}`, `() => {}`…) o un `catch { return [] }`: pone un valor en lugar del error y
+ *                       nadie se entera; el historial «vacío» que en verdad no cargó. ES UN CANDADO DEL CI (ADR-0693): el que es a propósito
+ *                       lo dice en su línea con `// relleno-a-proposito: <motivo>`, y lo de antes es deuda en `apps/web/lib/relleno-silencioso-archivos.ts`;
  *   · console-suelto    `console.log/warn/error` en código de servidor: sin nivel ni campos ni correlación;
  *   · fetch-sin-tope    `fetch(` sin `signal` (si el proveedor se cuelga, la petición también);
  *   · dato-personal-en-log   un `console.*` cuyos argumentos nombran dni, ruc, teléfono, correo, nombre o dirección;
@@ -17,10 +20,20 @@
  * USO   node scripts/rendimiento/observabilidad.mjs [--top 25] [--json] [--estricto]
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { RAIZ, WEB, cargarTS, leer, leerArgs, lineaDe, listarFuentes, parsear, rel, tabla } from "./comun.mjs";
 
 const PERSONAL = /\b(dni|ruc|tel[eé]fono|celular|correo|email|nombres?|apellidos?|direcci[oó]n|documento)\b/i;
+
+/**
+ * La marca de un relleno a propósito (ADR-0693): `relleno-a-proposito: <motivo de 10 caracteres o más>`. Se llama así y no
+ * `relleno-fijo` como `tema-fijo` o `sugerir-fijo` porque aquí nada queda «fijo»: lo que se declara es la intención («si falla, la
+ * ficha se pinta sin el historial»), y la marca se lee como la frase que es. Sin tilde, como todas las marcas del repo.
+ */
+export const MARCA_RELLENO = /relleno-a-proposito:\s*\S.{9,}/;
+
+/** Lo que se lee del cuerpo de una respuesta: si no es JSON, la falla de la petición ya se ve en `res.ok` (no es un relleno). */
+const CUERPO_DE_RESPUESTA = /^(json|text|blob|arrayBuffer|formData)$/;
 
 /** Higiene de UN archivo (pura). */
 export function analizarArchivo(texto, nombre = "x.ts") {
@@ -76,8 +89,97 @@ export function analizarArchivo(texto, nombre = "x.ts") {
     return null;
   };
 
+  /**
+   * RELLENO SILENCIOSO (ADR-0693). Un relleno es un manejador que SOLO pone un valor en lugar del error: `() => null`, `() => []`,
+   * `() => ({ data: null })`, `() => fallback`, `() => {}` o `catch { return [] }`. Lo que hace algo más ya no es silencioso y no se
+   * marca: avisar o registrar (`console.error`, `capturarError`, `avisar.*`), relanzar, usar el error (`({ error: String(e) })`) o
+   * dejar una señal que la pantalla lee (`incompleto = true`, `setFallo(true)`). Una referencia (`.catch(manejar)`) tampoco: lo
+   * decide quien la escribe. `unstable_rethrow(e)` no cuenta como tratar el error: solo deja pasar los avisos internos de Next.
+   */
+  const lineas = texto.split("\n");
+  const sinEnvoltorio = (e) => {
+    while (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isNonNullExpression(e) || (ts.isSatisfiesExpression?.(e) ?? false)) e = e.expression;
+    return e;
+  };
+  /**
+   * ¿Es un valor puesto en lugar del error? Literales, vacíos, `new Map()`, objetos o arreglos de eso, o un nombre (el respaldo ya
+   * calculado: `() => fallback`). NO lo es lo que lleva el aviso dentro: un texto con algo escrito («No se pudo hablar con el
+   * servidor») o un objeto con su `error`/`fallo`/`mensaje` puesto (`{ datos: null, fallo: TEXTO }`): eso ya se lo dice a la persona.
+   */
+  const LLEVA_EL_AVISO = /^(error|errores|fallo|mensaje|aviso|motivo)$/i;
+  const esVacio = (e) => {
+    e = sinEnvoltorio(e);
+    return e.kind === ts.SyntaxKind.NullKeyword || e.kind === ts.SyntaxKind.FalseKeyword || ts.isVoidExpression(e) || (ts.isIdentifier(e) && e.text === "undefined");
+  };
+  const esValorDeRelleno = (e) => {
+    e = sinEnvoltorio(e);
+    const k = e.kind;
+    if (k === ts.SyntaxKind.NullKeyword || k === ts.SyntaxKind.TrueKeyword || k === ts.SyntaxKind.FalseKeyword) return true;
+    if (ts.isIdentifier(e) || ts.isNumericLiteral(e) || ts.isVoidExpression(e)) return true;
+    if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return e.text.trim() === "";
+    if (ts.isPrefixUnaryExpression(e) && ts.isNumericLiteral(e.operand)) return true;
+    if (ts.isArrayLiteralExpression(e)) return e.elements.every(esValorDeRelleno);
+    if (ts.isObjectLiteralExpression(e))
+      return e.properties.every(
+        (p) => ts.isPropertyAssignment(p) && esValorDeRelleno(p.initializer) && !(LLEVA_EL_AVISO.test(p.name.getText(sf)) && !esVacio(p.initializer))
+      );
+    if (ts.isNewExpression(e)) return ts.isIdentifier(e.expression) && /^(Map|Set|Array|WeakMap|WeakSet)$/.test(e.expression.text) && !(e.arguments?.length);
+    return false;
+  };
+  const corto = (s) => (s.length > 40 ? `${s.slice(0, 40)}…` : s).replace(/\s+/g, " ");
+  /** Lo que el bloque hace de verdad: sin los `unstable_rethrow(…)`. */
+  const sentenciasReales = (bloque) =>
+    bloque.statements.filter((s) => !(ts.isExpressionStatement(s) && ts.isCallExpression(s.expression) && s.expression.expression.getText(sf) === "unstable_rethrow"));
+  /** ¿Un bloque que solo devuelve un relleno? Devuelve lo que pone (para el detalle) o `null`. */
+  const rellenoDeBloque = (bloque, vacioCuenta) => {
+    const st = sentenciasReales(bloque);
+    if (st.length === 0) return vacioCuenta ? "vacío" : null;
+    if (st.length !== 1 || !ts.isReturnStatement(st[0])) return null;
+    if (!st[0].expression) return "return;";
+    return esValorDeRelleno(st[0].expression) ? corto(st[0].expression.getText(sf)) : null;
+  };
+  /** ¿Se usa el error dentro? (fuera de `unstable_rethrow`). Un patrón `{ message }` cuenta como usado. */
+  const usaElError = (decl, cuerpo) => {
+    if (!decl) return false;
+    if (!ts.isIdentifier(decl.name)) return true;
+    const nombre = decl.name.text;
+    let usa = false;
+    const mira = (n) => {
+      if (usa) return;
+      if (ts.isCallExpression(n) && n.expression.getText(sf) === "unstable_rethrow") return;
+      if (ts.isIdentifier(n) && n.text === nombre && n !== decl.name) usa = true;
+      ts.forEachChild(n, mira);
+    };
+    mira(cuerpo);
+    return usa;
+  };
+  /** La marca vale en la línea del `catch`, en el comentario pegado arriba o en cualquier línea del manejador. */
+  const tieneMarca = (desde, hasta) => {
+    for (let i = desde; i <= hasta; i++) if (MARCA_RELLENO.test(lineas[i - 1] ?? "")) return true;
+    for (let i = desde - 1; i >= 1; i--) {
+      const l = (lineas[i - 1] ?? "").trim();
+      if (!/^(\/\/|\/\*|\*|\{\/\*)/.test(l) && !/\*\/\}?$/.test(l)) break;
+      if (MARCA_RELLENO.test(l)) return true;
+    }
+    return false;
+  };
+  const lineaDePos = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
+  const relleno = (lineaCatch, fin, detalle) => {
+    if (!tieneMarca(lineaCatch, lineaDePos(fin))) hallazgos.push({ tipo: "relleno-silencioso", linea: lineaCatch, detalle });
+  };
+
   const lee = (n) => {
     if (ts.isThrowStatement(n)) hayThrowOError = true;
+    // `.catch(() => …)`, salvo sobre el cuerpo de una respuesta (`res.json().catch(() => null)`).
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === "catch" && n.arguments.length === 1) {
+      const h = n.arguments[0];
+      const sobre = n.expression.expression;
+      const esCuerpo = ts.isCallExpression(sobre) && ts.isPropertyAccessExpression(sobre.expression) && CUERPO_DE_RESPUESTA.test(sobre.expression.name.text);
+      if (!esCuerpo && (ts.isArrowFunction(h) || ts.isFunctionExpression(h)) && !usaElError(h.parameters[0], h.body)) {
+        const pone = ts.isBlock(h.body) ? rellenoDeBloque(h.body, true) : esValorDeRelleno(h.body) ? corto(h.body.getText(sf)) : null;
+        if (pone) relleno(lineaDePos(n.expression.name.getStart(sf)), h.getEnd(), pone);
+      }
+    }
     if (ts.isCallExpression(n)) {
       const f = n.expression.getText(sf);
       if (/^console\.(log|warn|error|info|debug)$/.test(f)) {
@@ -104,6 +206,11 @@ export function analizarArchivo(texto, nombre = "x.ts") {
       const soloLog = st.length > 0 && st.every((s) => ts.isExpressionStatement(s) && /^console\./.test(s.expression.getText(sf)));
       const relanza = st.some((s) => ts.isThrowStatement(s) || ts.isReturnStatement(s));
       if (st.length === 0 || (soloLog && !relanza)) marca(n, "catch-mudo", st.length === 0 ? "vacío" : "solo console");
+      // Un `catch { return [] }` devuelve, pero no trata nada: es un relleno (el vacío ya es `catch-mudo`).
+      else if (!usaElError(n.variableDeclaration, n.block)) {
+        const pone = rellenoDeBloque(n.block, false);
+        if (pone) relleno(lineaDe(sf, n), n.getEnd(), pone);
+      }
     }
     ts.forEachChild(n, lee);
   };
@@ -132,6 +239,19 @@ export function infraestructura() {
   ];
   function texto_contiene(s) { return archivos.some((f) => leer(f).includes(s)); }
   return { items: items.map(([que, ok]) => ({ que, ok })), segmentos, errorTsx };
+}
+
+/**
+ * Los rellenos SIN marca de la web, por archivo (ruta relativa a `apps/web/` → líneas). Es la única definición de qué se mira: la usa
+ * el candado del CI, `apps/web/lib/relleno-silencioso.test.ts`, contra la deuda de `apps/web/lib/relleno-silencioso-archivos.ts`.
+ */
+export function rellenosSinMarca() {
+  const por = {};
+  for (const f of [...listarFuentes(join(WEB, "app")), ...listarFuentes(join(WEB, "lib")), ...listarFuentes(join(WEB, "components"))]) {
+    const lineas = analizarArchivo(leer(f), f).filter((h) => h.tipo === "relleno-silencioso").map((h) => h.linea);
+    if (lineas.length) por[relative(WEB, f).split("\\").join("/")] = lineas;
+  }
+  return por;
 }
 
 export function escanear() {

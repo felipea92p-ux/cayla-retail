@@ -9,7 +9,7 @@
 export function Etiqueta({ children, cuenta, accion }: { children: React.ReactNode; cuenta?: number; accion?: React.ReactNode }) {
   return (
     <div className="inicio-titulo mb-2.5">
-      <p className="label-cayla text-[11px] text-tinta/65">{children}</p>
+      <p className="label-cayla text-xs text-tinta/65">{children}</p>
       {cuenta !== undefined && <span className="titulo-cuenta">{cuenta.toLocaleString("es-PE")}</span>}
       <span aria-hidden className="inicio-titulo-hilo" />
       {accion}

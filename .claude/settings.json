@@ -1,11 +1,62 @@
 {
   "enabledPlugins": {
-    "agent-skills@addy-agent-skills": true
+    "agent-skills@addy-agent-skills": true,
+    "frontend-design@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+  },
+  "extraKnownMarketplaces": {
+    "addy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/claude/carpeta-principal.mjs\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/sesiones/al-abrir.mjs\"",
+            "timeout": 12
+          }
+        ]
+      }
+    ]
   },
   "permissions": {
     "allow": [
       "Bash(npx -y modern-web-guidance@latest *)",
       "Bash(pnpx modern-web-guidance@latest *)"
+    ],
+    "ask": [
+      "mcp__supabase__apply_migration",
+      "mcp__b51755a7-026b-42c7-bbc1-dda8845fbe34__apply_migration",
+      "Bash(supabase db push*)",
+      "Bash(supabase migration up*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git stash pop*)",
+      "Bash(git clean*)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit -n*)",
+      "Bash(git commit * --no-verify*)"
     ]
   }
 }

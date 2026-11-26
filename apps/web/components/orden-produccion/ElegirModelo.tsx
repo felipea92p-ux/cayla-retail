@@ -118,7 +118,7 @@ export function ElegirModelo({
                     >
                       <Prenda modelo={m} tamano="md" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-display text-[17px] leading-tight text-tinta">{m.referencia}</span>
+                        <span className="block truncate font-display text-lg leading-tight text-tinta">{m.referencia}</span>
                         <span className="block truncate text-sm text-tinta/65">
                           {m.categoria ? `${m.categoria} · ` : ""}
                           {resumenDeModelo(m)}

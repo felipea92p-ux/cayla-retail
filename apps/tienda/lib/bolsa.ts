@@ -564,7 +564,7 @@ export function respuestaDeSeparar(
 
 /** El aviso de abajo al agregar (maqueta, `agregarABolsa`). */
 export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "talla">) =>
-  `Agregaste ${[p.nombre, p.color.nombre, p.talla].filter(Boolean).join(" · ")} a tu bolsa.`;
+  `Agregaste ${p.nombre}${p.color.nombre ? ` en ${p.color.nombre}` : ""}${p.talla ? `, talla ${p.talla},` : ""} a tu bolsa.`;
 /** Cada tienda maneja lo suyo (2026-10-19): se agotó en la tienda que se mira o en la de la bolsa. */
 export const AGREGAR_AGOTADA = "Esa talla se agotó en esta tienda.";
 /** Quedan, pero todas las que quedan ya están en su bolsa (agregar otra más no se puede). */

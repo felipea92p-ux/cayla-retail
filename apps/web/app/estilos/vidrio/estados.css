@@ -141,12 +141,12 @@
   line-height: 1.2;
 }
 .estados-fecha-texto b {
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
 }
 .estados-fecha-texto small {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
   white-space: nowrap;
 }
@@ -200,7 +200,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
   transition: color var(--t-cambio) var(--ease-cayla);
 }
@@ -269,12 +269,12 @@
   transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
 }
 .estados-cal-atajo b {
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1.25;
 }
 .estados-cal-atajo small {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.25;
   color: var(--estados-secundario);
 }
@@ -294,14 +294,14 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 2px 12px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-tinta);
 }
 .estados-cal-hilo-titulo span {
   font-weight: 500;
 }
 .estados-cal-hilo-titulo small {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-cal-hilo {
@@ -326,7 +326,7 @@
   gap: 3px;
   padding: 5px 1px 4px;
   border-radius: 13px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
   user-select: none;
   transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
@@ -336,7 +336,7 @@
   position: absolute;
   top: 3px;
   left: 4px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
 }
 .estados-cal-hilo-barra {
@@ -391,7 +391,7 @@
   display: flex;
   height: 36px;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-tinta);
 }
@@ -403,14 +403,14 @@
 .estados-cal-semana span {
   padding-bottom: 4px;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
 }
 .estados-cal-dia {
   position: relative;
   isolation: isolate;
   height: 36px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 500;
   color: var(--color-tinta);
 }
@@ -484,7 +484,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 18px;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-cal-leyenda-ventas,
@@ -576,7 +576,7 @@
   }
   /* La fecha no se corta: una fecha a medias es otra fecha. Si no cabe, baja de línea. */
   .estados-fecha-texto b {
-    font-size: 15px;
+    font-size: var(--text-sm);
     white-space: normal;
     text-wrap: balance;
   }
@@ -706,7 +706,7 @@
   container-type: inline-size;
 }
 .estados-heroe-nombre {
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--estados-secundario);
 }
@@ -762,7 +762,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
   transition: color var(--t-cambio) var(--ease-cayla);
 }
@@ -781,7 +781,7 @@
   position: absolute;
   top: -20px;
   left: 0;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
 }
 .estados-linea-franja {
@@ -831,7 +831,7 @@
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   box-shadow: inset 0 1px 0 var(--estados-luz), 0 10px 22px -10px var(--color-sombra);
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.25;
   white-space: nowrap;
   pointer-events: none;
@@ -839,7 +839,7 @@
 }
 .estados-linea-globo b {
   display: block;
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-tinta);
 }
@@ -852,7 +852,7 @@
 .estados-linea-sin-datos {
   position: absolute;
   inset: auto 32px 24px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--estados-secundario);
 }
 .estados-linea-espera {
@@ -904,7 +904,7 @@
   box-shadow: 0 0 0 1.5px var(--estados-luz);
 }
 .estados-cc-val {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 600;
   white-space: nowrap;
   color: var(--color-tinta);
@@ -918,7 +918,7 @@
 .estados-cc-nombre {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -964,12 +964,12 @@
   margin-bottom: 14px;
 }
 .estados-debajo-titulo h2 {
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-tinta);
 }
 .estados-debajo-titulo small {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-tubo {
@@ -1040,7 +1040,7 @@
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   box-shadow: inset 0 1px 0 var(--estados-luz), 0 12px 24px -10px var(--color-sombra);
-  font-size: 14px;
+  font-size: var(--text-detalle);
   line-height: 1.25;
   text-align: center;
   white-space: nowrap;
@@ -1048,7 +1048,7 @@
 }
 .estados-seg-globo b {
   display: block;
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-tinta);
 }
@@ -1083,7 +1083,7 @@
   box-shadow: inset 0 1px 0 var(--estados-luz-suave);
 }
 .estados-parte > span {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-parte b {
@@ -1094,7 +1094,7 @@
 }
 .estados-parte small {
   grid-column: 2;
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-parte b[data-tono="bien"] {
@@ -1192,7 +1192,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--estados-secundario);
 }
@@ -1209,7 +1209,7 @@
 .estados-det-que {
   max-width: 34ch;
   margin-top: 8px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   line-height: 1.4;
   color: var(--color-tinta);
 }
@@ -1225,7 +1225,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 4px 12px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--color-tinta);
   transition: opacity var(--t-resp) var(--ease-cayla);
 }
@@ -1255,11 +1255,11 @@
   background: var(--f);
 }
 .estados-det-sin-filas {
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--estados-secundario);
 }
 .estados-det-aviso {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-ambar);
 }
 .estados-det-columnas {
@@ -1268,7 +1268,7 @@
   flex-direction: column;
 }
 .estados-det-columnas > span {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-det-columnas > div {
@@ -1301,7 +1301,7 @@
   opacity: 1;
 }
 .estados-det-columnas small {
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--estados-secundario);
 }
 .estados-det-columnas [data-actual] small {
@@ -1309,7 +1309,7 @@
   color: var(--color-tinta);
 }
 .estados-det-columnas em {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
   font-style: normal;
   color: var(--color-tinta);
@@ -1333,7 +1333,7 @@
   flex: 1 1 340px;
   align-items: flex-start;
   gap: 10px;
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.35;
   color: var(--color-tinta);
 }
@@ -1365,7 +1365,7 @@
   color: var(--color-tinta);
 }
 .estados-libro-cabeza span {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--estados-secundario);
 }
 .estados-libro-filas {
@@ -1395,7 +1395,7 @@
   gap: 16px;
   padding: 6px 14px;
   border-radius: 14px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--color-tinta);
 }
 .estados-libro-fila::before {
@@ -1446,7 +1446,7 @@
   font-weight: 600;
 }
 .estados-libro-fila[data-tipo="total"] > b {
-  font-size: 21px;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 .estados-libro-fila[data-tipo="total"]::before {
@@ -1465,7 +1465,7 @@
 }
 .estados-libro-dos h4 {
   margin-bottom: 8px;
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--estados-secundario);
 }
@@ -1486,12 +1486,12 @@
   padding: 12px 16px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--color-verde) 10%, transparent);
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-verde);
 }
 .estados-ecuacion small {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 400;
   color: var(--estados-secundario);
 }
@@ -1777,13 +1777,13 @@
 .estados-informe-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
 .estados-informe-tabla thead th {
   padding: 0 10px 10px;
   border-bottom: 1px solid var(--hilo-fila);
   text-align: right;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1820,7 +1820,7 @@
 .estados-informe-fila[data-tipo="seccion"] > th {
   padding: 22px 0 8px;
   font-family: var(--font-serif);
-  font-size: 21px;
+  font-size: var(--text-xl);
   color: var(--color-tinta);
 }
 tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
@@ -1840,7 +1840,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
 .estados-informe-fila[data-tipo="total"] > * {
   padding-top: 18px;
   border-bottom: 0;
-  font-size: 17px;
+  font-size: var(--text-lg);
 }
 .estados-informe-fila[data-tipo="total"] > [data-actual] {
   font-family: var(--font-serif);
@@ -1854,7 +1854,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
   color: var(--color-verde);
 }
 .estados-informe-peso {
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 /* En el celular solo cabe la cifra de ahora: las de antes y el peso se van, nunca ella. */
 @media (max-width: 639px) {
@@ -1929,7 +1929,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
   padding: 14px 16px;
   border-radius: 14px;
   background: var(--hundido-fondo);
-  font-size: 14px;
+  font-size: var(--text-detalle);
 }
 .estados-informe-detalle p {
   color: var(--color-taupe);
@@ -1954,7 +1954,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
   gap: 12px;
 }
 .estados-respuesta-nombre {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   font-weight: 500;
   color: var(--color-taupe);
 }
@@ -1963,7 +1963,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
 }
 .estados-respuesta-frase {
   max-width: 40ch;
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.4;
   text-wrap: pretty;
 }
@@ -1977,7 +1977,7 @@ tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
   left: 0;
 }
 .estados-respuesta-nota {
-  font-size: 14px;
+  font-size: var(--text-detalle);
   color: var(--color-taupe);
 }
 

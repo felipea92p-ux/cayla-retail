@@ -14,7 +14,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import "../../../estilos/catalogo.css";
 import "../../../estilos/bolsa.css";
 
-export const metadata: Metadata = { title: "¡Listo, lo separaste! · CAYLA", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "¡Listo, lo separaste!", robots: { index: false, follow: false } };
 
 /**
  * «¡Listo, lo separaste!» (maqueta v4, `vSeparado`): el número del pedido, cuánto falta para que se cierre solo si nadie lo confirma,
@@ -48,7 +48,7 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
               <span className="t-codigo">
                 <CodigoQueCuenta codigo={p.codigo} />
               </span>{" "}
-              · por confirmar
+              por confirmar
             </span>
             <h1 className="w-titulo">
               ¡Listo, <em>lo separaste!</em>
@@ -102,7 +102,7 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
             )}
           </div>
           <div className="w-tarjeta">
-            <span className="w-lbl">Tu pedido · {tienda}</span>
+            <span className="w-lbl">Tu pedido en {tienda}</span>
             {vivas(p).map((l, i) => (
               <PrendaDelPedido key={`${l.varianteId}-${i}`} linea={l} />
             ))}
