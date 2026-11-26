@@ -226,7 +226,7 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   const unida =
     arribaFinal && abajo && urlArriba && urlAbajo && completa
       ? cajaDeAbajoUnida(
-          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida },
+          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida, porElPecho: porElPecho !== null },
           { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo), falda: abajo.p.falda },
         )
       : null;

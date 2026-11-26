@@ -25,6 +25,10 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
 1. **La prenda de arriba (blusa, camisa, polo, top, corset) se dimensiona por su PECHO, no por su bajo.** El pecho es el ancho del torso un poco bajo las axilas
    (`anchoDelPecho`: la mediana de tres filas, 4 % bajo la axila); se lleva a 44 cm planos (`PECHO_ESTANDAR`) × su holgura (ajustada 1, normal 1,05, holgada 1,18),
    con topes 0,7–1,45. Crece o se encoge desde el centro de los hombros, sin subir, como antes. El nudo, el volado o el corte del bajo ya no cuentan.
+   **Y la prenda de abajo deja de seguir al bajo de esa blusa:** con la blusa medida por su pecho, la pretina es la cintura estándar (36 cm,
+   `cajaDeAbajoUnida` con `porElPecho`) y la blusa cuelga encima, como en una persona. Sin esto no alcanzaba (Felipe, 2026-11-26: «lo sigo viendo igual»): la
+   blusa se achicaba, pero el bajo angosto del nudo arrastraba la pretina del jean al mínimo (30,6 cm) y el jean se achicaba con ella; la proporción pasaba de
+   1,70 a 1,53 nada más. Con la cintura del cuerpo pasa a 1,31 (un cuerpo real anda en 1,2–1,3).
 2. **Las axilas las dice una IA, una vez por recorte, sola.** `GET /api/fotos/medir-recortes` (cron cada 10 min, `CRON_SECRET`, llave de servicio) toma hasta 12
    recortes sin medida (`retail.recortes_sin_medida_ia`), le manda a OpenAI la URL pública del recorte en baja resolución y guarda lo que responde
    (`retail.anotar_medida_ia`): tipo, zona, holgura, si va metida y la altura de las axilas (fracción del alto). Nadie del equipo hace nada.
@@ -39,6 +43,9 @@ strapless, un body y una falda cargada como «Polos» (POL-0065); la axila sali�
    línea más en `recortes_prenda`.
 
 ## Medido (simulación con las funciones reales de la tienda; láminas en `docs/maquetas/probador-puntos-2026-11/prueba-ia/`)
+
+Pecho de la blusa ÷ cintura de lo de abajo (cm planos): Camisa Dalia + jean, **hoy 63 ÷ 37 = 1,70 → 47 ÷ 36 = 1,31**; Blusa Brillo + pantalón, 1,62 → 1,44;
+Blusa Akira + pantalón, 1,11 → 1,26 (su pantalón medía 41,5 de cintura y ahora 36).
 
 | Outfit | Factor de hoy (por el bajo) | Factor nuevo (por el pecho) |
 |---|---|---|
@@ -70,5 +77,6 @@ borrado; las demás son las de la IA.
 
 - Otra rama reescribe `tienda_probador` desde la versión del repo de 20261017025000: pierde el `ia` (y las mejoras de rendimiento de producción).
 - Alguien quita `anchos` de `medirRecorte` sin subir `VERSION_DE_LA_MEDIDA`: las medidas guardadas un año en el navegador no traerían el pecho.
+- La pretina vuelve a seguir al bajo de una blusa medida por su pecho: el nudo arrastra al pantalón y la proporción no cambia (lo vigila `union-prendas.test.ts`).
 - `cajaPorElPecho` vuelve a devolver `null` cuando la prenda ya está en su medida: manda la regla del bajo y el nudo la agranda otra vez (lo vigila
   `union-prendas.test.ts`).

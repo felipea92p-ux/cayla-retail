@@ -443,7 +443,7 @@ export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelReco
  * (`falda`) además no se ve más de ×1,05 el ancho de la blusa, sin que su pretina baje del 92 % de ese bajo.
  */
 export function cajaDeAbajoUnida(
-  arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean },
+  arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean; porElPecho?: boolean },
   abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined; falda?: boolean },
 ): Caja | null {
   const a = arriba.medida;
@@ -454,7 +454,11 @@ export function cajaDeAbajoUnida(
   // El ancho del bajo es el mayor entre el de su última fila y el de toda su zona del bajo (ver `anchoDelBajo`).
   const bordeAncho = Math.max(a.borde, anchoDelBajo(a) ?? 0);
   const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
-  const pretinaSegunElBorde = Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
+  // ADR-0705: si la de arriba ya se dimensionó por su pecho, el cuerpo manda: la pretina es la cintura estándar y NO sigue al bajo de la blusa (un nudo
+  // angosta ese bajo y arrastraba al pantalón: la blusa se achicaba y el jean con ella, y la proporción no cambiaba). La blusa cuelga encima, como en una persona.
+  const pretinaSegunElBorde = arriba.porElPecho
+    ? estandar
+    : Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
   // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
   const pretinaPx = abajo.falda
     ? Math.max(
