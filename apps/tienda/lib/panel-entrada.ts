@@ -1,13 +1,10 @@
 import { CAMPOS_CUENTA, estadoNombre, type EstadoCuenta } from "./cuentas";
 
-// El panel de marca de «Entrar», «Crear cuenta» y las páginas para volver a entrar (revisión «a nivel mundial», 2026-10-16): desde
+// El panel de marca de las páginas para volver a entrar y el lado de «Entrar» y «Crear cuenta» («A · Mostrador», 2026-11-25). Desde
 // 960 px va a la izquierda, con los colores de la campaña de la portada; en el celular, debajo del formulario (el formulario va
 // primero). Aquí, lo que dice: la promesa, los tres beneficios (hechos que la tienda ya cumple, con las mismas palabras de «Así se
 // separa» y del Club), los pasos para volver a entrar, el nombre de la tarjeta del Club mientras se crea la cuenta y cuánto del
 // registro está listo. Solo textos y presentación: ninguna regla de negocio vive aquí (las del registro están en `lib/cuentas.ts`).
-
-/** La promesa del panel del Club: la primera línea y la que va en cursiva. */
-export const PROMESA_CLUB = { ceja: "Club CAYLA", linea: "Separa hoy,", cursiva: "recoge en tu tienda." } as const;
 
 export type Beneficio = { icono: "corazon" | "bolsa" | "regalo"; titulo: string; texto: string };
 

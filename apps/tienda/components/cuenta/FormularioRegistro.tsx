@@ -33,9 +33,11 @@ import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
 import { useNombreEnLaTarjeta } from "./EntradaViva";
+import { CabezaDeCuenta } from "./CabezaDeCuenta";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`; ADR-0438: solo lo necesario). Correo (con su código), nombre, contraseña y
-// aceptar los términos; o «Continuar con Google», que solo pide su propia casilla de aceptar (revisión legal 2026-11-18). El documento y el celular se piden después, al separar por
+// aceptar los términos; o «Continuar con Google». Una sola casilla de aceptar, arriba, vale para los dos caminos (Felipe 2026-11-25; antes
+// Google tenía la suya: revisión legal 2026-11-18). El documento y el celular se piden después, al separar por
 // primera vez, y recién entonces se entra al Club CAYLA (`FormularioUnirseAlClub`). Cada campo dice su estado en su título (✓ Listo ·
 // Sigue aquí · Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y
 // cuánto más, y el botón se enciende cuando no falta nada.
@@ -280,9 +282,36 @@ export function FormularioRegistro() {
         crear();
       }}
     >
-      <h1 className="w-titulo">Crear cuenta</h1>
+      <CabezaDeCuenta titulo="Crea tu cuenta" linea="Toma un minuto." />
 
-      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" casilla />
+      {/* Una sola casilla de aceptar, arriba de los dos caminos (Felipe 2026-11-25): vale para Google y para el correo. */}
+      <div className="w-casillas">
+        <div className="w-campo" data-campo="acepta" data-estado={marca("acepta")}>
+          <label className="w-check" htmlFor={ID.acepta}>
+            <input
+              id={ID.acepta}
+              type="checkbox"
+              checked={r.acepta}
+              onChange={(e) => cambiar({ acepta: e.target.checked })}
+              onFocus={() => setEnFoco("acepta")}
+              onBlur={() => setEnFoco(null)}
+            />
+            <span>
+              Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la{" "}
+              <Link href="/privacidad" target="_blank">
+                política de privacidad
+              </Link>{" "}
+              y los{" "}
+              <Link href="/terminos-del-club" target="_blank">
+                términos
+              </Link>
+              . <span className="w-marca">{TEXTO_MARCA[marca("acepta")]}</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" aceptacion={{ acepta: r.acepta, idCasilla: ID.acepta }} />
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
         {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. La misma
@@ -428,32 +457,6 @@ export function FormularioRegistro() {
           <p className="w-ayuda">{r.clave.length > CLAVE_MAXIMA ? MENSAJES.claveLarga : (faltanCaracteres(r.clave) ?? MENSAJES.claveAyuda)}</p>
         </Resultado>
       </Campo>
-
-      <div className="w-casillas">
-        <div className="w-campo" data-campo="acepta" data-estado={marca("acepta")}>
-          <label className="w-check" htmlFor={ID.acepta}>
-            <input
-              id={ID.acepta}
-              type="checkbox"
-              checked={r.acepta}
-              onChange={(e) => cambiar({ acepta: e.target.checked })}
-              onFocus={() => setEnFoco("acepta")}
-              onBlur={() => setEnFoco(null)}
-            />
-            <span>
-              Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la{" "}
-              <Link href="/privacidad" target="_blank">
-                política de privacidad
-              </Link>{" "}
-              y los{" "}
-              <Link href="/terminos-del-club" target="_blank">
-                términos
-              </Link>
-              . <span className="w-marca">{TEXTO_MARCA[marca("acepta")]}</span>
-            </span>
-          </label>
-        </div>
-      </div>
 
       <p className="w-texto-sec">
         ¿Ya tienes cuenta?{" "}
