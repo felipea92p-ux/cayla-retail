@@ -229,10 +229,11 @@ caso(
    select concat_ws(',',
      (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_compra_validar(uuid,uuid,date,text,jsonb,jsonb)'::regprocedure), 'fn_orden_compra_validar_sugerido', 'g')),
      (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_compra_huella(uuid,uuid,date,text,jsonb)'::regprocedure), 'sugerido_motivos', 'g')),
-     (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_compra_escribir_lineas(uuid,jsonb)'::regprocedure), 'precio_venta_sugerido', 'g')),
+     -- Su parche en el valor de los motivos (no la palabra «precio_venta_sugerido»: 20261124181000 la usa en su propio update).
+     (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_compra_escribir_lineas(uuid,jsonb)'::regprocedure), 'fn_orden_compra_motivos\\(l\\.valor', 'g')),
      (select count(*) from regexp_matches(pg_get_functiondef('retail.registrar_comprobante_orden(uuid,text,text,text,jsonb,date,text,date,boolean,numeric,jsonb,text,uuid)'::regprocedure), 'v_item.precio_venta_sugerido', 'g')),
      (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_envio_detalle(uuid)'::regprocedure), 'i.precio_venta_sugerido\\)', 'g')));`,
-  "1,2,2,1,1",
+  "1,2,1,1,1",
 );
 
 // V. VALIDAR Y GUARDAR ----------------------------------------------------------------------------------------------------

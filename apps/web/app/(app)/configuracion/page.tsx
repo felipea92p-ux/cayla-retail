@@ -20,6 +20,8 @@ import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
 import { getRepartoAliadas } from "@/lib/reparto-claure";
 import { getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
+import { getListasDePrecio, getReglasDePrecio } from "@/lib/reglas-de-precio-datos";
+import { VistaPrecios } from "@/components/vistas-config/VistaPrecios";
 import { getEmpresasAliadas } from "@/lib/empresas-aliadas";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
@@ -35,6 +37,8 @@ const PESTANAS = [
   { clave: "dinero", etiqueta: "Dinero", href: "/configuracion?tab=dinero", guia: "config.tab-dinero" },
   { clave: "gastos", etiqueta: "Gastos", href: "/configuracion?tab=gastos", guia: "config.tab-gastos" },
   { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
+  // ADR-0700: la base del margen, los puntos de cada casilla y las listas de tejidos y marcas que suben el precio sugerido. Solo un Admin los cambia.
+  { clave: "precios", etiqueta: "Precios", href: "/configuracion?tab=precios", guia: "config.tab-precios" },
 ] as const;
 
 // Una dirección vieja sigue llegando (Felipe 2026-11-05): de 8 pestañas quedaron 5.
@@ -60,6 +64,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       {pestana === "dinero" && <SeccionDinero />}
       {pestana === "gastos" && <SeccionGastos mes={mes} esLider={persona.rol === "lider"} />}
       {pestana === "impuestos" && <SeccionImpuestos />}
+      {pestana === "precios" && <SeccionPrecios esAdmin={persona.esAdmin} />}
     </div>
   );
 }
@@ -164,5 +169,22 @@ async function SeccionImpuestos() {
       {parametros.falla && <FallaDeSeccion falla={parametros.falla} />}
       <VistaImpuestos parametros={parametros.datos} anioActual={anioLima()} umbral={panel?.datos?.umbral ?? null} />
     </>
+  );
+}
+
+// Precios (ADR-0700): con qué reglas se sugiere el precio de venta de una prenda de proveedor. Sin la regla, la sección no se dibuja con la de
+// fábrica como si fuera la guardada: avisa. Sin las listas, la regla se ve igual.
+async function SeccionPrecios({ esAdmin }: { esAdmin: boolean }) {
+  const [reglas, listas] = await Promise.all([getReglasDePrecio(), getListasDePrecio()]);
+  if (!reglas.datos) return <FallaDeSeccion falla={reglas.falla ?? "sin reglas"} />;
+  if (listas.falla) console.error(`Configuración: ${listas.falla}`);
+  return (
+    <VistaPrecios
+      reglas={reglas.datos.reglas}
+      apagadas={reglas.datos.apagadas}
+      registradoPor={reglas.datos.registradoPor}
+      listas={listas.datos}
+      esAdmin={esAdmin}
+    />
   );
 }

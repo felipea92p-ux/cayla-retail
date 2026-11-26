@@ -14,13 +14,15 @@ import {
   type PropuestaLista,
 } from "@/lib/precio-propuesto-ia";
 import { seLlegoAlTopePrecios, textoSinPropuesta, type MotivoSinPropuesta } from "@/lib/precio-propuesto-reglas";
+import { leerReglas, margenObjetivo, REGLAS_DE_FABRICA, type Rasgo } from "@/lib/margen-por-rasgos";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 
 // POST /api/precio/proponer  →  { propuesta } | { sinPropuesta: { motivo, texto } }
 //
 // Precio propuesto con IA (ADR-0641, Felipe 2026-11-10): Claude propone el precio de etiqueta de una prenda, mirando su costo y sus
-// parecidas; la regla fija (`precio-propuesto-reglas.ts`) lo lleva a .90 y nunca lo deja bajo el piso que aguanta una rebaja de 35 % (ADR-0668).
+// parecidas; la regla fija (`precio-propuesto-reglas.ts`) lo lleva a .90 y nunca lo deja bajo el margen objetivo de la prenda (ADR-0700: la
+// base del Admin más lo que la prenda tiene; lo manda la pantalla, o en una revisión lo dice la base).
 //
 // CONTRATO
 //   PROMETE: responder 200 con algo que mostrar. Sin clave, con el tope del mes gastado (US$ 20), sin costo, sin respuesta en 45 s,
@@ -41,6 +43,9 @@ const Cuerpo = z.object({
   referencia: z.string().trim().max(120).nullish(),
   descripcion: z.string().trim().max(300).nullish(),
   costo: z.number().positive().max(5000).nullish(),
+  // ADR-0700: lo que la prenda tiene en efecto, como lo ve la pantalla (alta y recepción). Sin la clave, el de la prenda guardada (o ninguno).
+  // Los códigos de la lista del Admin; uno que ya no está prendido no suma (`margenObjetivo` solo mira las casillas de la regla).
+  rasgos: z.array(z.string().regex(/^[a-z][a-z0-9_]{1,39}$/)).max(20).nullish(),
 });
 
 // Freno de mano contra un bucle (no es el tope del mes, ese lo cuenta la base).
@@ -96,6 +101,17 @@ export async function POST(request: Request) {
     return Response.json({ sinPropuesta: { motivo: "sin_respuesta", texto: textoSinPropuesta("sin_respuesta") } } satisfies RespuestaProponer);
   }
   const contexto = ctxData as unknown as ContextoPrecio;
+  // El margen objetivo de la prenda (ADR-0700). Si la base no responde, la regla de fábrica y solo lo que mandó la pantalla: la propuesta
+  // sale igual, medida con la base, y nunca bajo el 30 %.
+  const { data: reglasData, error: reglasError } = await supabase.rpc("fn_reglas_de_precio" as never);
+  if (reglasError) console.error(`[precio] no se pudieron leer las reglas: ${reglasError.code ?? "sin código"}`);
+  let rasgos: readonly Rasgo[] = d.rasgos ?? [];
+  if (!d.rasgos && d.productoId) {
+    const { data: r, error: rasgosError } = await supabase.rpc("fn_rasgos_de_producto" as never, { p_producto_id: d.productoId } as never);
+    if (rasgosError) console.error(`[precio] no se pudo leer lo que tiene la prenda: ${rasgosError.code ?? "sin código"}`);
+    rasgos = Array.isArray(r) ? (r as unknown[]).filter((x): x is Rasgo => typeof x === "string") : [];
+  }
+  const objetivo = margenObjetivo(reglasError ? REGLAS_DE_FABRICA : leerReglas(reglasData), rasgos);
   // En el alta y al recibir manda el costo escrito (el de esta compra); en una revisión, el de la prenda.
   const costo = costoDelContexto(contexto, d.origen === "revision" ? null : (d.costo ?? null));
   const precioActual = contexto.producto?.precio ?? null;
@@ -159,7 +175,7 @@ export async function POST(request: Request) {
       system: [{ type: "text", text: INSTRUCCIONES_PRECIO, cache_control: { type: "ephemeral" } }],
       thinking: { type: "adaptive" },
       output_config: { format: betaZodOutputFormat(RespuestaPrecioIA), effort: "medium" },
-      messages: [{ role: "user", content: mensajePrecio({ origen: d.origen, contexto, costo, referencia: d.referencia, descripcion: d.descripcion, tejido }) }],
+      messages: [{ role: "user", content: mensajePrecio({ origen: d.origen, contexto, costo, margenObjetivo: objetivo, referencia: d.referencia, descripcion: d.descripcion, tejido }) }],
     });
   } catch (error) {
     console.error(`[precio] sin respuesta de la IA: ${error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status ?? ""}` : error instanceof Error ? error.name : "desconocido"}`);
@@ -178,7 +194,7 @@ export async function POST(request: Request) {
     console.info(`[precio] ${respuesta.model} · ${gasto.ms} ms · entrada ${gasto.tokensEntrada} · salida ${gasto.tokensSalida} · US$${gasto.costoUsd.toFixed(4)}`);
   }
   if (respuesta.stop_reason === "refusal") return sin("rechazo", gasto);
-  const propuesta = leerRespuestaPrecio(respuesta.parsed_output ?? null, costo, contexto);
+  const propuesta = leerRespuestaPrecio(respuesta.parsed_output ?? null, costo, contexto, objetivo);
   if (!propuesta) return sin("respuesta_invalida", gasto);
   const id = await anotar({ propuesta, motivo: null, gasto });
   return Response.json({ propuesta: { ...propuesta, id } } satisfies RespuestaProponer);

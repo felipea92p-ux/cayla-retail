@@ -37,7 +37,6 @@ import {
   fotosComoSeVen,
   leerEstadoVariantes,
   marcarEtiquetasGuardadas,
-  margenDeFila,
   moverTemporadas,
   mudanzasAlGuardar,
   NACEN_SIN_UNIDADES,
@@ -647,7 +646,6 @@ describe("precio y costo en bloque", () => {
     const [f] = filasDeProducto([variante("a", "NEG", "t-s", { precio: 100, costo: 40 })], N);
     const vacia = { ...f, costo: "" };
     expect(costoEfectivo(vacia)).toBe("40.00");
-    expect(margenDeFila(vacia)).toBe(60);
   });
 });
 

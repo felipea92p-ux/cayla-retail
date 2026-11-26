@@ -1,12 +1,13 @@
 // Lo que se le pide a la IA para proponer un precio y cómo se lee lo que devuelve (ADR-0641).
 //
 // PROMETE: unas instrucciones fijas (la API las guarda en caché), un mensaje con los datos de la prenda y sus parecidas, el formato
-//   exacto de la respuesta y la lectura de esa respuesta contra la regla fija (`precio-propuesto-reglas.ts`): la IA propone, el piso
-//   de costo + 30 % y el .90 mandan.
+//   exacto de la respuesta y la lectura de esa respuesta contra la regla fija (`precio-propuesto-reglas.ts`): la IA propone, el margen
+//   objetivo de la prenda (ADR-0700, nunca bajo costo + 30 %) y el .90 mandan.
 // ASUME: el contexto viene de `fn_precio_contexto` (sin clientes ni personas). NO HACE: no llama a la IA (eso es `/api/precio/proponer`).
 
 import * as z from "zod/v4";
-import { elegirCosto, revisarPrecioDeLaIA, type CostoUsado, type PrecioRevisado } from "./precio-propuesto-reglas";
+import { elegirCosto, pisoDePrecio, revisarPrecioDeLaIA, type CostoUsado, type PrecioRevisado } from "./precio-propuesto-reglas";
+import { precioConMargen } from "./margen-por-rasgos";
 
 /** El modelo que propone precios: el de fábrica para trabajo que pide criterio (Felipe eligió que la IA proponga el precio). */
 export const MODELO_PRECIO = "claude-opus-5-5";
@@ -47,7 +48,7 @@ export const INSTRUCCIONES_PRECIO = `Pones los precios de etiqueta de CAYLA, una
 Te dan una prenda (su categoría, su nombre si ya lo tiene, su costo) y hasta 12 prendas parecidas de la misma categoría con su precio, su costo, cuántas se vendieron en los últimos 90 días y cuántas quedan en stock. Propón UN precio de etiqueta en soles.
 
 Cómo decidir:
-- El costo manda: el precio, rebajado 35 %, todavía tiene que dejar ganancia después del IGV: más o menos el costo × 2,3. Si con eso queda por encima de las parecidas, propón ese piso y dilo.
+- El costo manda: la prenda trae su margen objetivo (lo que tiene que quedar del precio sin IGV después del costo) y el precio mínimo que lo cumple. Nunca propongas debajo de ese mínimo. Si con eso queda por encima de las parecidas, propón el mínimo y dilo.
 - Los precios de CAYLA terminan en .90 (S/\u00a049.90, S/\u00a089.90).
 - Mira primero las parecidas del mismo tejido. Una parecida que se vende bien a un precio es buena referencia; una con mucho stock y pocas ventas probablemente está cara.
 - Si el costo es "estimado" (es el promedio de la categoría, no el de esta prenda), propón igual pero dilo en la razón.
@@ -60,6 +61,8 @@ export function mensajePrecio(p: {
   origen: "alta" | "revision" | "recepcion";
   contexto: ContextoPrecio;
   costo: CostoUsado;
+  /** El margen objetivo de la prenda, en % (base + lo que tiene, ADR-0700). */
+  margenObjetivo: number;
   referencia?: string | null;
   descripcion?: string | null;
   tejido?: string | null;
@@ -72,6 +75,8 @@ export function mensajePrecio(p: {
     tejido: p.tejido ?? null,
     costo: p.costo.costo,
     costo_es: p.costo.estimado ? "estimado (promedio de la categoría)" : "real",
+    margen_objetivo: `${p.margenObjetivo} %`,
+    precio_minimo: Math.max(pisoDePrecio(p.costo.costo), precioConMargen(p.costo.costo, p.margenObjetivo) ?? 0),
     // Una prenda que ya existe (revisión, o la que llegó otra vez al recibir): su precio de hoy y cómo se vende.
     ...(p.contexto.producto
       ? {
@@ -107,10 +112,15 @@ export type PropuestaLista = PrecioRevisado & {
   parecidas: { referencia: string; precio: number }[];
 };
 
-/** Lo que devolvió la IA, revisado: el precio por la regla fija y las parecidas contra la lista. `null` si no se le puede creer. */
-export function leerRespuestaPrecio(cruda: RespuestaPrecioIA | null, costo: CostoUsado, contexto: ContextoPrecio): PropuestaLista | null {
+/** Lo que devolvió la IA, revisado: el precio contra el objetivo de la prenda y las parecidas contra la lista. `null` si no se le puede creer. */
+export function leerRespuestaPrecio(
+  cruda: RespuestaPrecioIA | null,
+  costo: CostoUsado,
+  contexto: ContextoPrecio,
+  margenObjetivo: number,
+): PropuestaLista | null {
   if (!cruda) return null;
-  const revisado = revisarPrecioDeLaIA(cruda.precio, costo.costo);
+  const revisado = revisarPrecioDeLaIA(cruda.precio, costo.costo, margenObjetivo);
   if (!revisado) return null;
   const razon = cruda.razon.replace(/\s+/g, " ").trim().slice(0, 600);
   if (razon.length < 10) return null;

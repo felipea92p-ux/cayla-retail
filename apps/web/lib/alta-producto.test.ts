@@ -23,8 +23,6 @@ import {
   pasoDeProblema,
   pasoHecho,
   leerErrorAlta,
-  margenPorcentaje,
-  nivelMargen,
   ordenarColores,
   problemasAlta,
   repartirFamilias,
@@ -115,22 +113,6 @@ describe("construirCeldas", () => {
   it("solo colores o solo tallas", () => {
     expect(construirCeldas([], ["NEG", "ROJ"])).toHaveLength(2);
     expect(construirCeldas(["s", "m", "l"], [])).toHaveLength(3);
-  });
-});
-
-describe("margen", () => {
-  it("se calcula sobre el precio de venta", () => {
-    expect(margenPorcentaje(100, 40)).toBe(60);
-  });
-  it("sin precio no hay margen", () => {
-    expect(margenPorcentaje(0, 10)).toBeNull();
-    expect(margenPorcentaje(NaN, 10)).toBeNull();
-  });
-  it("clasifica negativo, bajo y normal", () => {
-    expect(nivelMargen(-5)).toBe("negativo");
-    expect(nivelMargen(12)).toBe("bajo");
-    expect(nivelMargen(45)).toBe("normal");
-    expect(nivelMargen(null)).toBeNull();
   });
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 // «Proponer precio» (ADR-0641): Claude mira el costo y las prendas parecidas y propone el precio de etiqueta; la regla fija lo lleva a .90 y
-// nunca lo deja bajo el piso que aguanta una rebaja de 35 % (`pisoDelPrecio`, ADR-0668). La propuesta no se guarda sola: «Usar S/ …» llena el campo y la persona confirma al crear la
+// nunca lo deja bajo el margen objetivo de la prenda (ADR-0700: la base del Admin más lo que tiene). La propuesta no se guarda sola: «Usar S/ …» llena el campo y la persona confirma al crear la
 // prenda, como siempre.
 //
 // Dos lugares: Nuevo producto (con el botón, Felipe 2026-11-10) y la hoja de la prenda nueva de Recibir mercadería, donde sale SOLA al llegar
@@ -19,6 +19,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Boton } from "@/components/ui/campos";
 import { soles } from "@/lib/compras-reglas";
+import type { Rasgo } from "@/lib/margen-por-rasgos";
 
 type Estado = { tipo: "nada" } | { tipo: "pidiendo" } | { tipo: "error"; texto: string } | RespuestaEnPantalla;
 type RespuestaEnPantalla = { tipo: "listo"; respuesta: RespuestaProponer };
@@ -29,6 +30,8 @@ type Final = Exclude<Estado, { tipo: "nada" } | { tipo: "pidiendo" }>;
 type DatosPropuesta = {
   origen: "alta" | "recepcion";
   productoId?: string;
+  /** Lo que la prenda tiene en efecto, como lo ve la pantalla (ADR-0700). Sin él, el servidor usa el de la prenda guardada (o ninguno). */
+  rasgos?: readonly Rasgo[];
   categoriaId: string;
   tejidoId: string;
   referencia: string;
@@ -43,7 +46,7 @@ const ADELANTADAS = new Map<string, Promise<Final>>();
 
 // Una propuesta se calculó con un costo y una categoría: si cambian, ya no vale (podría quedar bajo el piso del costo nuevo).
 function claveDe(d: DatosPropuesta): string {
-  return `${d.origen}|${d.productoId ?? ""}|${d.categoriaId}|${d.tejidoId}|${d.costoBase}`;
+  return `${d.origen}|${d.productoId ?? ""}|${d.categoriaId}|${d.tejidoId}|${d.costoBase}|${d.rasgos ? d.rasgos.join(",") : "-"}`;
 }
 
 async function pedirAlServidor(d: DatosPropuesta): Promise<Final> {
@@ -61,6 +64,7 @@ async function pedirAlServidor(d: DatosPropuesta): Promise<Final> {
         referencia: d.referencia.trim() || null,
         descripcion: d.descripcion.trim() || null,
         costo: d.costoBase.trim() !== "" && Number.isFinite(costo) && costo > 0 ? costo : null,
+        ...(d.rasgos ? { rasgos: d.rasgos } : {}),
       }),
     });
     const datos = (await r.json().catch(() => null)) as (RespuestaProponer & { error?: string }) | null;
@@ -96,6 +100,7 @@ export function PropuestaDePrecio({
   automatica = false,
   onDejar,
   productoId,
+  rasgos,
 }: {
   categoriaId: string;
   tejidoId: string;
@@ -113,9 +118,11 @@ export function PropuestaDePrecio({
   onDejar?: () => void;
   /** Una prenda que ya existe (el cierre de Recibir): la IA mira su precio de hoy y cómo se vende. La categoría puede venir vacía. */
   productoId?: string;
+  /** Lo que la prenda tiene (ADR-0700): sube el objetivo bajo el que la propuesta nunca baja. */
+  rasgos?: readonly Rasgo[];
 }) {
   // Cada estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
-  const datosDePropuesta: DatosPropuesta = { origen, productoId, categoriaId, tejidoId, referencia, descripcion, costoBase };
+  const datosDePropuesta: DatosPropuesta = { origen, productoId, rasgos, categoriaId, tejidoId, referencia, descripcion, costoBase };
   const clave = claveDe(datosDePropuesta);
   // Nace con lo ya respondido para estos datos, si lo hay: la hoja de Recibir adelanta la consulta al abrirse y, si la respuesta llegaba ANTES de llegar a este
   // paso, la pieza aparecía vacía (su clave coincide, así que no leía `recordada`) y el efecto de abajo no la pedía porque ya estaba respondida. Quedaba solo el
@@ -165,7 +172,7 @@ export function PropuestaDePrecio({
               {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Proponer de nuevo" : "Proponer precio"}
             </span>
           </Boton>
-          <p className="text-sm text-taupe">Nunca baja de lo que aguanta la rebaja.</p>
+          <p className="text-sm text-taupe">Nunca baja de tu objetivo.</p>
         </div>
       )}
 
@@ -197,7 +204,7 @@ export function PropuestaDePrecio({
           </div>
           <p className="text-sm">{propuesta.razon}</p>
           {propuesta.subidoAlPiso && (
-            <p className="text-sm text-taupe">Es el mínimo que aguanta una rebaja de 35 %.</p>
+            <p className="text-sm text-taupe">Es el mínimo para tu objetivo de {propuesta.objetivo} %.</p>
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">

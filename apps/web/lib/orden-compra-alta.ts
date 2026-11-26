@@ -10,7 +10,7 @@
 // llegar al `numeric` de Postgres.
 
 import type { CampoDeGuia } from "./guia-campos";
-import type { DetalleOrden } from "./ordenes-compra-reglas";
+import type { DeLaCompra, DetalleOrden } from "./ordenes-compra-reglas";
 
 /** Lo que la base acepta (mismo tope que `crear_orden_compra`). */
 export const TOPES = {
@@ -39,6 +39,8 @@ export type LineaBorrador = {
   /** Lo que se tipeó en el modo activo (`modoDescuento`). */
   descuento: string;
   modoDescuento: ModoDescuento;
+  /** Lo que la línea trajo de «Compré ropa» al abrirla para editar: no se muestra, vuelve tal cual al guardar. Una línea nueva no lo tiene. */
+  deLaCompra?: DeLaCompra;
 };
 
 export type OrdenBorrador = {
@@ -361,6 +363,13 @@ export type LineaParaBase = {
   precio_unitario: string;
   descuento_pct?: string;
   descuento?: string;
+  // Lo de «Compré ropa» (solo si la línea lo trae; la base lo revisa otra vez al escribirlo, 20261124181000).
+  precio_venta_sugerido?: string;
+  sugerido_motivos?: string[];
+  producto_id?: string;
+  precio_por_definir?: true;
+  rasgos?: string[];
+  precio_visto_afuera?: string;
 };
 
 export type ArgsCrearOrden = {
@@ -420,6 +429,7 @@ export function borradorDeDetalle(d: DetalleOrden): OrdenBorrador {
         : l.descuento > 0
           ? { modoDescuento: "soles" as const, descuento: conDecimales(l.descuento, 2) }
           : { modoDescuento: "pct" as const, descuento: "" }),
+      ...(l.deLaCompra ? { deLaCompra: l.deLaCompra } : {}),
     })),
   };
 }
@@ -443,6 +453,19 @@ function lineasParaBase(lineas: readonly LineaBorrador[]): LineaParaBase[] {
       const s = leerNumero(l.descuento, 2);
       if (s.tipo === "ok" && s.escalado > 0) linea.descuento = aTexto(s.escalado, 2);
     }
-    return linea;
+    return l.deLaCompra ? { ...linea, ...deLaCompraParaBase(l.deLaCompra) } : linea;
   });
+}
+
+/** Lo de «Compré ropa» tal como viaja: solo lo que la línea trae, con los montos en dos decimales (como los guarda la base). */
+function deLaCompraParaBase(d: DeLaCompra): Partial<LineaParaBase> {
+  const soles = (n: number) => aTexto(Math.round(n * 100), 2);
+  return {
+    ...(d.precioVentaSugerido != null ? { precio_venta_sugerido: soles(d.precioVentaSugerido) } : {}),
+    ...(d.sugeridoMotivos ? { sugerido_motivos: d.sugeridoMotivos } : {}),
+    ...(d.productoId ? { producto_id: d.productoId } : {}),
+    ...(d.precioPorDefinir ? { precio_por_definir: true as const } : {}),
+    ...(d.rasgos ? { rasgos: d.rasgos } : {}),
+    ...(d.precioVistoAfuera != null ? { precio_visto_afuera: soles(d.precioVistoAfuera) } : {}),
+  };
 }

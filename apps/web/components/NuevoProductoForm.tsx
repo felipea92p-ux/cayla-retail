@@ -1,7 +1,11 @@
 "use client";
 
 import { LineaMargen } from "@/components/ui/LineaMargen";
-import { margenALaVista } from "@/lib/margen-a-la-vista";
+import { useListasDeRasgos, useMargenObjetivo, useReglasDePrecio } from "@/components/ReglasDePrecio";
+import { QueTieneLaPrenda } from "@/components/QueTieneLaPrenda";
+import { margenALaVista, montoEscrito } from "@/lib/margen-a-la-vista";
+import { eleccionParaGuardar, rasgosEfectivos, sugerirPrecio, type EleccionDeRasgos } from "@/lib/margen-por-rasgos";
+import { soles } from "@/lib/compras-reglas";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -238,6 +242,8 @@ export function NuevoProductoForm({
   const [existeRespuesta, setExisteRespuesta] = useState<boolean | null>(null);
   // Cómo llama el proveedor a la prenda (ADR-0556, Felipe 2026-10-28): se guarda aparte para compras y, si sirve como nombre, se sugiere primero.
   const [nombreProveedor, setNombreProveedor] = useState("");
+  // Lo que la prenda tiene (ADR-0700): solo lo que la persona marcó; la tela por su tejido y la marca por su lista se suman solas.
+  const [eleccionRasgos, setEleccionRasgos] = useState<EleccionDeRasgos>({});
   const [descripcion, setDescripcion] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
@@ -581,8 +587,18 @@ export function NuevoProductoForm({
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
   // La cuenta única (ADR-0668, Felipe 2026-11-15): la cifra grande, su línea en soles y la ficha dicen lo mismo que Recibir. Todas las
-  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio no aguanta una rebaja de 35 %.
-  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase);
+  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio queda bajo el objetivo (ADR-0700).
+  const listasDeRasgos = useListasDeRasgos();
+  const reglasDePrecio = useReglasDePrecio();
+  const rasgos = rasgosEfectivos(eleccionRasgos, reglasDePrecio.casillas, {
+    tejidoSeNota: !!tejidoId && listasDeRasgos.tejidosQueSeNotan.has(tejidoId),
+    marcaConocida: !!marcaId && listasDeRasgos.marcasConocidas.has(marcaId),
+  });
+  const margenObjetivo = useMargenObjetivo(rasgos);
+  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase, margenObjetivo);
+  // El sugerido de la regla (base + lo que la prenda tiene), para escribirlo de un toque. Sin costo no hay de dónde sacarlo.
+  const costoLeido = montoEscrito(costoBase);
+  const precioSugerido = costoLeido !== null && costoLeido > 0 ? sugerirPrecio({ costo: costoLeido, reglas: reglasDePrecio, rasgos }) : null;
   const margen = margenVivo?.pct ?? null;
   const nivel = margenVivo ? (margenVivo.tono === "pierdes" ? "negativo" : margenVivo.tono) : null;
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
@@ -820,6 +836,12 @@ export function NuevoProductoForm({
       const { error: errorProveedor } = await firmar(supabase.rpc("fijar_nombre_proveedor", { p_producto_id: productoId, p_nombre: nombreProveedor.trim() }), firma);
       if (errorProveedor) avisar.aviso("La prenda se creó, pero no se guardó cómo la llama el proveedor.", { detalle: "Agrégalo en Editar producto." });
     }
+    // Lo que la prenda tiene (ADR-0700), igual: aparte y después. Si falla, la prenda se mide con la base hasta que se marque en Editar producto.
+    const rasgosParaGuardar = eleccionParaGuardar(eleccionRasgos, reglasDePrecio.casillas);
+    if (rasgosParaGuardar) {
+      const { error: errorRasgos } = await firmar(supabase.rpc("guardar_rasgos_de_producto" as never, { p_producto_id: productoId, ...rasgosParaGuardar } as never), firma);
+      if (errorRasgos) avisar.aviso("La prenda se creó, pero no se guardó lo que tiene.", { detalle: "Márcalo en Editar producto." });
+    }
 
     // Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito. Antes se espera a la IA: si una foto de
     // catálogo venía en camino, se sube ella (con su real al lado) y no la real sola.
@@ -873,6 +895,7 @@ export function NuevoProductoForm({
     setReferencia("");
     setExisteRespuesta(null);
     setNombreProveedor("");
+    setEleccionRasgos({});
     setDescripcion("");
     parecidos.reiniciar();
     setColoresElegidos([]);
@@ -893,7 +916,7 @@ export function NuevoProductoForm({
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Aguanta poca rebaja", normal: "Buen precio" } as const;
+  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Bajo tu objetivo", normal: "Buen precio" } as const;
 
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
@@ -1338,9 +1361,36 @@ export function NuevoProductoForm({
                   {margen === null ? "—" : `${margen.toFixed(0)} %`}
                 </p>
                 {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
-                {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
-                <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+                {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} rasgos={rasgos} soloSoles className="mt-1" />}
+                <p className="mt-1 text-sm text-taupe">
+                  {margen === null ? "Con el costo, se calcula" : nivel === "bajo" ? `Bajo tu objetivo de ${margenObjetivo} %` : nivel ? etiquetaNivel[nivel] : ""}
+                </p>
+                {/* Solo con el precio vacío: con uno bajo, la línea de arriba ya dice «Sube a S/ …»; con uno alto, nunca se invita a bajarlo. */}
+                {precioSugerido && montoEscrito(precioBase) === null && (
+                  <button
+                    type="button"
+                    className="btn-cayla btn-sutil btn-chico mt-1.5"
+                    data-guia="alta.precio-sugerido"
+                    title={`Tu objetivo para esta prenda es ${precioSugerido.margen} %.`}
+                    disabled={cargando}
+                    onClick={() => setPrecioBase(precioSugerido.precio.toFixed(2))}
+                  >
+                    Sugerido {soles(precioSugerido.precio)}
+                  </button>
+                )}
               </div>
+            </div>
+          </div>
+          {/* ADR-0700: lo que la prenda tiene sube su margen objetivo. Opcional: nunca frena el alta. */}
+          <div className="mt-4 max-w-xl">
+            <p className="label-cayla text-xs text-tinta/65">¿Qué tiene esta prenda? <span className="normal-case tracking-normal text-tenue">· opcional</span></p>
+            <div className="mt-2">
+              <QueTieneLaPrenda
+                rasgos={rasgos}
+                alCambiar={(r, v) => setEleccionRasgos((e) => ({ ...e, [r]: v }))}
+                guia="alta.que-tiene"
+                disabled={cargando}
+              />
             </div>
           </div>
           {nivel === "negativo" && (
@@ -1356,6 +1406,7 @@ export function NuevoProductoForm({
             <PropuestaDePrecio
               categoriaId={categoriaId}
               tejidoId={tejidoId}
+              rasgos={rasgos}
               referencia={referencia}
               descripcion={descripcion}
               costoBase={costoBase}

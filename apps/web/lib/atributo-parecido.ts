@@ -140,6 +140,8 @@ export const VOCABLOS = {
   patron: { lo: "lo", un: "un patrón", otro: "otro patrón", mismo: "el mismo patrón", existente: "el que ya existe", consecuencia: "con dos nombres, los filtros y el análisis cuentan cada uno por separado" },
   familia: { lo: "la", un: "una familia", otro: "otra familia", mismo: "la misma familia", existente: "la que ya existe", consecuencia: "con dos familias iguales, sus categorías y el análisis se reparten en dos" },
   categoria: { lo: "la", un: "una categoría", otro: "otra categoría", mismo: "la misma categoría", existente: "la que ya existe", consecuencia: "con dos categorías iguales, las prendas del mismo tipo quedan repartidas en dos" },
+  // Las casillas de «¿Qué tiene esta prenda?» (ADR-0700): dos que dicen lo mismo cobran dos veces el mismo motivo.
+  casilla: { lo: "la", un: "una casilla", otro: "otra casilla", mismo: "la misma casilla", existente: "la que ya existe", consecuencia: "con dos casillas que dicen lo mismo, una prenda suma dos veces el mismo motivo" },
 } as const;
 
 export type Vocablo = keyof typeof VOCABLOS;
