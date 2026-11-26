@@ -190,14 +190,14 @@ describe("el CSS liviano es la cara maciza del vidrio, sin diseño propio", () =
     expect(Object.fromEntries(liviano), "Copia a `app/estilos/liviano.css` la receta maciza que cambió o nació").toEqual(Object.fromEntries(claro));
   });
 
-  it("vale para los dos temas, sin desenfoque y sin los pliegues del fondo", () => {
+  it("vale para los dos temas, sin desenfoque y sin la capa del fondo", () => {
     expect(bloqueLiviano).toContain(':root[data-liviano="si"][data-tema="oscuro"]');
     expect(css).toMatch(/:root\[data-liviano="si"\] \*,[\s\S]*?backdrop-filter: none !important;/);
-    expect(css).toMatch(/:root\[data-liviano="si"\] \.marco-seda \{\s*display: none;/);
+    expect(css).toMatch(/:root\[data-liviano="si"\] \.marco-lienzo \{\s*display: none;/);
   });
 
-  // Desde el 2026-11-19 el menú lateral de escritorio no tiene fondo propio: deja ver Seda (vidrio/marco.css). Sin Seda, vuelve al liso.
-  it("sin los pliegues, el menú lateral de escritorio vuelve a su fondo liso", () => {
+  // Desde el 2026-11-19 el menú lateral de escritorio no tiene fondo propio: deja ver el Lienzo (vidrio/marco.css). Sin él, vuelve al liso.
+  it("sin la capa del fondo, el menú lateral de escritorio vuelve a su fondo liso", () => {
     const marco = readFileSync("app/estilos/vidrio/marco.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     expect(marco).toMatch(/@media \(min-width: 640px\) \{\s*\.marco-riel \{\s*background: transparent;/);
     expect(css).toMatch(/@media \(min-width: 640px\) \{\s*:root\[data-liviano="si"\] \.marco-riel \{\s*background: var\(--riel-fondo\);/);

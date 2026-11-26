@@ -338,34 +338,7 @@ export function hrefTuFondo(ve: (modulo: "ordenes_compra" | "por_pagar") => bool
   return undefined;
 }
 
-// ---------- Las cifras de arriba ----------
-
-export type CifrasFondos = {
-  /** Lo que tienen en la mano las personas con plata (un fondo en negativo no resta: es otra cosa, lo que CAYLA les debe). */
-  enMano: number;
-  conPlata: number;
-  /** Lo que CAYLA les debe a quienes pagaron de su bolsillo (decisión 32): los fondos en negativo. */
-  teDebe: number;
-  conDeuda: number;
-  entregado: number;
-  devuelto: number;
-  gastado: number;
-};
-
 const redondo = (n: number) => Math.round(n * 100) / 100;
-
-export function cifrasDeFondos(fondos: readonly FondoFila[]): CifrasFondos {
-  const suma = (f: (x: FondoFila) => number) => redondo(fondos.reduce((a, x) => a + f(x), 0));
-  return {
-    enMano: suma((x) => Math.max(x.saldo, 0)),
-    conPlata: fondos.filter((x) => x.saldo > 0.005).length,
-    teDebe: suma((x) => Math.max(-x.saldo, 0)),
-    conDeuda: fondos.filter((x) => x.saldo < -0.005).length,
-    entregado: suma((x) => x.entregado),
-    devuelto: suma((x) => x.devuelto),
-    gastado: suma((x) => x.gastado),
-  };
-}
 
 // ---------- Textos ----------
 
@@ -532,20 +505,6 @@ export function camposDevolver(
 }
 
 // ---------- Las hojas de Revisar compras (diseño «A · Bandeja serena», Felipe 2026-10-23) ----------
-
-/**
- * La barra de cada persona en «Quién tiene plata»: lo que le entregaron, partido en lo que gastó, lo que devolvió y lo que tiene. Un fondo
- * en negativo (pagó de su bolsillo) no tiene plata en la mano: su tramo es 0 y lo gastado pasa de lo entregado, así que la pista crece
- * hasta lo gastado y la barra nunca se sale de su lugar.
- */
-export type TramosFondo = { gasto: number; devolvio: number; tiene: number; total: number };
-
-export function tramosDelFondo(f: Pick<FondoFila, "entregado" | "devuelto" | "gastado" | "saldo">): TramosFondo {
-  const gasto = redondo(Math.max(f.gastado, 0));
-  const devolvio = redondo(Math.max(f.devuelto, 0));
-  const tiene = redondo(Math.max(f.saldo, 0));
-  return { gasto, devolvio, tiene, total: redondo(Math.max(f.entregado, gasto + devolvio + tiene)) };
-}
 
 /** La plata que VUELVE a CAYLA (una devolución, el pago de una deuda) se escribe con «+» y en verde; una entrega sale. */
 export const VUELVE_A_CAYLA: Record<TipoMovimientoFondo, boolean> = {

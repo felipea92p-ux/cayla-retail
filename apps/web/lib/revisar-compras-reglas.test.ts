@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   renglonesCuaderno,
-  porRecibirDe,
   detalleRondaAbierta,
   pagoPapel,
   notaNoCuadra,
@@ -357,15 +356,7 @@ describe("las rondas en Revisar compras (20261023210000)", () => {
     expect(renglonesCuaderno({ cuaderno: { ...cuaderno, dieron: 0 }, decision: "le_deben", monto: 415 }).map((x) => x.clave)).toEqual(["dieron", "compro", "gasto"]);
     expect(renglonesCuaderno({ cuaderno: null, decision: "devuelve", monto: 85 })).toEqual([]);
   });
-  it("lo que tiene por recibir cada persona: lo que devuelve menos lo que le debemos", () => {
-    const cierres = [
-      { personaId: "a", decision: "devuelve" as const, monto: 85 },
-      { personaId: "b", decision: "le_deben" as const, monto: 20 },
-    ];
-    expect(porRecibirDe(cierres, "a")).toEqual({ decision: "devuelve", monto: 85 });
-    expect(porRecibirDe(cierres, "b")).toEqual({ decision: "le_deben", monto: 20 });
-    expect(porRecibirDe(cierres, "c")).toBeNull();
-  });
+
   it("una ronda abierta dice cuánto lleva", () => {
     expect(detalleRondaAbierta({ compras: 3, prendas: 47 })).toBe("3 compras · 47 prendas");
     expect(detalleRondaAbierta({ compras: 1, prendas: 0 })).toBe("1 compra");

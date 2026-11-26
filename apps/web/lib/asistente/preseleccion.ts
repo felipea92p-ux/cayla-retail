@@ -206,7 +206,6 @@ export const PIDEN_OTRO_MODULO: ReadonlySet<string> = new Set([
   "/compras/por-pagar",
   "/compras/ordenes",
   "/compras/ordenes/nueva",
-  "/compras/fondos",
   "/compras/ordenes/comprobante/[id]",
   "/compras/ordenes/editar/[id]",
   "/compras/ordenes/envio/[id]",

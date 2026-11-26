@@ -247,12 +247,12 @@ describe("modo oscuro: contraste medido", () => {
   });
 });
 
-// El fondo Seda (ADR-0681, `.marco-seda` en estilos/vidrio/marco.css). Sobre el fondo va texto directo: la línea de sede de la cabecera,
-// una bajada, un enlace rojo. Cada uno de sus tonos tiene que dejar leer todo color de texto, en los dos temas. La maqueta llegaba a un
-// tostado donde el rojo quedaba en 2,7:1; por eso en el ERP Seda es más pálida, y por eso este número vive aquí y no en el gusto de nadie.
-describe("el fondo Seda: todo color de texto se lee sobre cada uno de sus tonos (≥ 4.5), en claro y en oscuro", () => {
+// El fondo Lienzo (ADR-0706, `.marco-lienzo` en estilos/vidrio/marco.css; antes Seda, ADR-0681). Sobre el fondo va texto directo: la línea
+// de sede de la cabecera, una bajada, un enlace rojo. Sus dos tonos (arriba y abajo del degradado) tienen que dejar leer todo color de
+// texto, en los dos temas: entre los dos extremos de un degradado no hay nada más oscuro ni más claro que ellos.
+describe("el fondo Lienzo: todo color de texto se lee sobre cada uno de sus tonos (≥ 4.5), en claro y en oscuro", () => {
   const marco = leer("app/estilos/vidrio/marco.css");
-  const TONOS = ["hondo", "medio", "claro", "brillo"];
+  const TONOS = ["alto", "bajo"];
   // `taupe-profundo` ya no es un hex (ADR-0694: es la tinta al 80 %); él y los dos tonos del texto se miden abajo, mezclados sobre cada tono.
   const textos = [
     "tinta", "tinta-60", "taupe", "rojo", "rojo-profundo", "verde", "verde-profundo", "ambar", "ambar-profundo",
@@ -260,33 +260,33 @@ describe("el fondo Seda: todo color de texto se lee sobre cada uno de sus tonos 
   ];
   /** Cuánta tinta lleva un tono del texto (`secundario`, `tenue`), leído de su token en globals.css. */
   const tintaDe = (token: string) => Number((claro[token] ?? "").match(/var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%/)?.[1] ?? 0) / 100;
-  /** Un tono de Seda es un token, o la mezcla de dos tokens. Otra forma no se sabe medir: mejor que falle a que pase sin mirar. */
+  /** Un tono del Lienzo es un token, o la mezcla de dos tokens. Otra forma no se sabe medir: mejor que falle a que pase sin mirar. */
   function resolver(valor: string, paleta: Record<string, string>): string {
     const mix = valor.match(/^color-mix\(in srgb, var\(--color-([a-z0-9-]+)\) (\d+)%, var\(--color-([a-z0-9-]+)\)\)$/);
     if (mix) return mezcla(paleta[mix[1]], paleta[mix[3]], Number(mix[2]) / 100);
     const uno = valor.match(/^var\(--color-([a-z0-9-]+)\)$/);
     if (uno) return paleta[uno[1]];
-    throw new Error(`Seda usa un valor que esta prueba no sabe medir: «${valor}»`);
+    throw new Error(`El Lienzo usa un valor que esta prueba no sabe medir: «${valor}»`);
   }
   function tonos(cabecera: string, paleta: Record<string, string>): [string, string][] {
     const cuerpo = cuerpoDe(marco, cabecera);
     return TONOS.map((t) => {
-      const m = cuerpo.match(new RegExp(`--seda-${t}:\\s*([^;]+);`));
-      if (!m) throw new Error(`«${cabecera}» no declara --seda-${t}`);
+      const m = cuerpo.match(new RegExp(`--lienzo-${t}:\\s*([^;]+);`));
+      if (!m) throw new Error(`«${cabecera}» no declara --lienzo-${t}`);
       return [t, resolver(m[1].trim(), paleta)];
     });
   }
   const temas: [string, Record<string, string>, [string, string][]][] = [
-    ["claro", claro, tonos(".marco-seda {", claro)],
-    ["oscuro", oscuro, tonos(':root[data-tema="oscuro"] .marco-seda {', oscuro)],
+    ["claro", claro, tonos(".marco-lienzo {", claro)],
+    ["oscuro", oscuro, tonos(':root[data-tema="oscuro"] .marco-lienzo {', oscuro)],
   ];
 
   for (const [nombre, paleta, lista] of temas) {
-    it(`${nombre}: los cuatro tonos se resuelven a un color`, () => {
-      expect(lista.map(([, hex]) => esHex(hex))).toEqual([true, true, true, true]);
+    it(`${nombre}: los dos tonos se resuelven a un color`, () => {
+      expect(lista.map(([, hex]) => esHex(hex))).toEqual([true, true]);
     });
     for (const [tono, hex] of lista) {
-      it(`${nombre}: todo texto sobre el tono ${tono} de Seda`, () => {
+      it(`${nombre}: todo texto sobre el tono ${tono} del Lienzo`, () => {
         for (const t of textos) expect(contraste(paleta[t], hex), `${t} sobre ${tono} (${hex})`).toBeGreaterThanOrEqual(4.5);
         for (const t of ["secundario", "tenue"]) {
           expect(tintaDe(t), `no pude leer cuánta tinta lleva «${t}»`).toBeGreaterThan(0);
@@ -296,12 +296,14 @@ describe("el fondo Seda: todo color de texto se lee sobre cada uno de sus tonos 
     }
   }
 
-  it("en claro la sombra de un pliegue tiñe hacia el tono hondo y no más allá (un negro translúcido oscurecería bajo el piso)", () => {
-    expect(cuerpoDe(marco, ".marco-seda {")).toMatch(/--seda-sombra:\s*color-mix\(in srgb, var\(--seda-hondo\) \d+%, transparent\);/);
+  it("no dibuja formas: un solo degradado recto, sin curvas ni imágenes (ADR-0706: detrás del vidrio se veían como manchas)", () => {
+    const cuerpo = cuerpoDe(marco, ".marco-lienzo {");
+    expect(cuerpo).toMatch(/background:\s*linear-gradient\(180deg, var\(--lienzo-alto\), var\(--lienzo-bajo\)\);/);
+    expect(cuerpo).not.toMatch(/radial-gradient|conic-gradient|url\(/);
   });
 
-  it("no lleva `filter`: la suavidad va en el degradado (ADR-0623, lo que está fijo detrás de todo no se desenfoca)", () => {
-    expect(cuerpoDe(marco, ".marco-seda {")).not.toMatch(/(^|[;\s])filter\s*:/);
+  it("no lleva `filter`: (ADR-0623, lo que está fijo detrás de todo no se desenfoca)", () => {
+    expect(cuerpoDe(marco, ".marco-lienzo {")).not.toMatch(/(^|[;\s])filter\s*:/);
   });
 });
 
