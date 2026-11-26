@@ -41,7 +41,8 @@ export function DetalleComprador({
   plata,
   personaId,
 }: {
-  nombre: string;
+  /** `null`: el id no es de nadie que compre o tenga un fondo. */
+  nombre: string | null;
   personaId: string;
   /** La ronda que se mira; `null` si la persona no tiene ninguna en los últimos 60 días. */
   ronda: RondaDeCompras | null;
@@ -69,7 +70,7 @@ export function DetalleComprador({
     <div className="space-y-6">
       <EncabezadoPagina
         sede="Compradores"
-        titulo={nombre}
+        titulo={nombre ?? "Persona no encontrada"}
         detalle={detalle}
         subtitulo="Lo que compró con la plata que le diste."
         volver={<Volver href="/compras/compradores" a="Compradores" />}
@@ -78,9 +79,15 @@ export function DetalleComprador({
 
       {!ronda ? (
         <div className="card-cayla">
-          <Vacio icono={<ShoppingBag />} titulo={`${nombre} no compró en los últimos dos meses`}>
-            Cuando abra su ronda en «Mis compras», sus compras aparecen aquí.
-          </Vacio>
+          {nombre ? (
+            <Vacio icono={<ShoppingBag />} titulo={`${nombre} no compró en los últimos dos meses`}>
+              Cuando abra su ronda en «Mis compras», sus compras aparecen aquí.
+            </Vacio>
+          ) : (
+            <Vacio icono={<ShoppingBag />} titulo="No encontramos a esta persona">
+              Vuelve a Compradores y elígela de la lista.
+            </Vacio>
+          )}
         </div>
       ) : (
         <>
@@ -92,7 +99,7 @@ export function DetalleComprador({
               <TarjetaCifra etiqueta="Gastó" valor={soles(gastoDeRonda(ronda.cuenta))}>
                 {`En ${ronda.cuenta.compras} ${ronda.cuenta.compras === 1 ? "compra" : "compras"}${ronda.cuenta.gastaste > 0 ? ` y ${soles(ronda.cuenta.gastaste)} de gastos` : ""}`}
               </TarjetaCifra>
-              <TarjetaCifra etiqueta={noCuadra ? "No cuadra" : "Le queda"} valor={soles(Math.abs(queda))} punto={noCuadra ? "ambar" : undefined}>
+              <TarjetaCifra etiqueta={noCuadra ? (ronda.cuenta.dieron > 0 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} punto={noCuadra ? "ambar" : undefined}>
                 {noCuadra ? (ronda.cuenta.dieron > 0 ? "Pagó más de lo que le diste" : "Pagó sin plata registrada") : ronda.cerradaEn ? textoCierre(ronda) : "En la mano"}
               </TarjetaCifra>
             </div>

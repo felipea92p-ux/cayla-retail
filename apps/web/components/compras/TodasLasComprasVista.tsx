@@ -86,7 +86,9 @@ export function TodasLasComprasVista({
         </Aviso>
       ) : compras.length === 0 ? (
         <div className="card-cayla">
-          {busqueda ? (
+          {personaId ? (
+            <Vacio icono={<SearchX />} titulo={`${nombreDe(personas, personaId)} no tiene compras este mes${busqueda ? ` con «${busqueda}»` : ""}`} tamano="chico" />
+          ) : busqueda ? (
             <Vacio icono={<SearchX />} titulo={`Nada con «${busqueda}» este mes`} tamano="chico" />
           ) : (
             <Vacio icono={<ShoppingBag />} titulo="Sin compras este mes" tamano="chico">
@@ -126,6 +128,12 @@ export function hrefDeCompra(c: Pick<CompraDelLibro, "comprobante" | "personaId"
   return `/compras/factura/${c.id}`;
 }
 
+/** El nombre de la persona del filtro; si la búsqueda la dejó fuera de la lista, «Esa persona». */
+const nombreDe = (personas: readonly PersonaDelFiltro[], id: string) => {
+  const p = personas.find((x) => x.id === id);
+  return p ? primerNombre(p.nombre) : "Esa persona";
+};
+
 const MEDIOS: Record<string, string> = { yape: "Yape", efectivo: "Efectivo", transferencia: "Transferencia" };
 
 function FilaDelLibro({ c }: { c: CompraDelLibro }) {
@@ -144,7 +152,7 @@ function FilaDelLibro({ c }: { c: CompraDelLibro }) {
             <span className="truncate">{primerNombre(c.persona ?? "")}</span>
           </>
         ) : (
-          <span className="text-secundario">Oficina</span>
+          <span className="text-secundario">La oficina</span>
         )}
       </span>
       <span className={celda("izq", "min-w-0")}>

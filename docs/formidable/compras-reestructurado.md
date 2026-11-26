@@ -29,7 +29,7 @@ a 1440 px y 4 tareas de tienda. Sin escéptico ni colaboradora real.
 | **Leyes** | **7,0** | |
 | **Oficio** (medido) | **8** | 0 graves en `/milimetro`; lo que marca está en el marco o en piezas comunes |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (Felipe dio el OK a los 3 el 2026-11-26: hechos)
 1. **Las personas primero** (leyes 2 y 5). Compradores: «Por definir» baja debajo de las tarjetas de quien compra (sigue igual, solo cambia de lugar).
    Se verifica: la primera vista a 1440 px muestra las tarjetas.
 2. **Una sola palabra para revisar, y sin ceros** (leyes 4 y 8). «Por revisar» en todo Compradores (la portada dice «Falta revisar su papel»; la lista del
@@ -41,3 +41,10 @@ a 1440 px y 4 tareas de tienda. Sin escéptico ni colaboradora real.
 
 **Lo que sobra (ley 8):** las tres cifras en cero de la bandeja de una persona; la lista de proveedores dentro de cada tarjeta podría bajar a una sola línea.
 **Lo que Felipe no pidió y importa más:** la portada mezcla dos trabajos (quién compra y qué prenda definir); si «Por definir» crece, merece su propio lugar.
+
+## Hecho (2026-11-26, con el OK de Felipe)
+1. «Por definir» bajó debajo de las tarjetas: la primera vista a 1440 px muestra las personas (medido en el banco).
+2. «Por revisar» en la portada («Falta revisar su papel»), en la lista del detalle y en la cifra; la bandeja de una persona solo muestra las cifras con algo
+   (Rosa: una, «Compras 3») y sus filas ya no repiten el nombre.
+3. «Gastaron en noviembre» con «2 personas, sin la oficina»; «Sin plata» en vez de «No cuadra» cuando no se le dio nada; «Cierra su ronda desde su
+   detalle»; «La oficina». Sin repetir la ciega.

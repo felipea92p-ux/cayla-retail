@@ -65,16 +65,15 @@ export function CompradoresVista({
               <TarjetaCifra etiqueta="Comprando ahora" valor={abiertas.length} unidad={abiertas.length === 1 ? "persona" : "personas"}>
                 Con su ronda abierta
               </TarjetaCifra>
-              <TarjetaCifra etiqueta={`Gastado en ${mesNombre}`} valor={soles(gastadoMes)}>
-                {comprasDelMes.length === 0 ? "Sin compras este mes" : `En ${comprasDelMes.length} ${comprasDelMes.length === 1 ? "compra" : "compras"} de ${personasMes} ${personasMes === 1 ? "persona" : "personas"}`}
+              <TarjetaCifra etiqueta={`Gastaron en ${mesNombre}`} valor={soles(gastadoMes)}>
+                {comprasDelMes.length === 0 ? "Sin compras este mes" : `${personasMes} ${personasMes === 1 ? "persona" : "personas"}, sin la oficina`}
               </TarjetaCifra>
               <TarjetaCifra etiqueta="Por revisar" valor={porRevisar} unidad={porRevisar === 1 ? "compra" : "compras"} punto={porRevisar > 0 ? "ambar" : "verde"}>
-                {porRevisar > 0 ? "Falta pasar su papel a los libros" : "Todo revisado"}
+                {porRevisar > 0 ? "Falta revisar su papel" : "Todo revisado"}
               </TarjetaCifra>
             </div>
           </div>
 
-          {porDefinir}
           {rendiciones}
 
           <section className="space-y-3">
@@ -93,6 +92,9 @@ export function CompradoresVista({
               </div>
             )}
           </section>
+
+          {/* «Por definir» va DESPUÉS de las personas (/formidable 2026-11-26): la pantalla responde primero quién compra. */}
+          {porDefinir}
 
           {cerradas.length > 0 && (
             <section className="space-y-3" data-guia="compradores.cerradas">

@@ -30,8 +30,9 @@ export default async function CompradorPage({ params, searchParams }: { params: 
   ]);
   const suyas = (rondas ?? []).filter((r) => r.personaId === personaId);
   const ronda = rondaElegida(suyas, pedida);
-  const nombreCompleto = ronda?.persona ?? datos.fondos.find((f) => f.personaId === personaId)?.persona ?? "Sin nombre";
-  const nombre = primerNombre(nombreCompleto);
+  // Un id que no es de nadie (o mal escrito) no inventa un nombre: la vista dice que no encontró a la persona (/chaos 2026-11-26, NAV-07).
+  const nombreCompleto = ronda?.persona ?? datos.fondos.find((f) => f.personaId === personaId)?.persona ?? null;
+  const nombre = nombreCompleto ? primerNombre(nombreCompleto) : null;
 
   // Lo suyo de la bandeja de Revisar compras: la plata que anotó, sus compras por completar, sus gastos y su cierre por recibir.
   const deEl = <T extends { personaId: string }>(xs: readonly T[] | undefined) => (xs ?? []).filter((x) => x.personaId === personaId);
@@ -66,7 +67,7 @@ export default async function CompradorPage({ params, searchParams }: { params: 
       hoy={hoy}
       acciones={acciones}
       plata={susMovimientos.length > 0 ? <MovimientosDeFondo movimientos={susMovimientos} /> : undefined}
-      cerrarRonda={ronda && puedeCerrarseDesdeCompras(ronda) ? <CerrarRonda rondaId={ronda.id} nombre={nombre} /> : undefined}
+      cerrarRonda={ronda && nombre && puedeCerrarseDesdeCompras(ronda) ? <CerrarRonda rondaId={ronda.id} nombre={nombre} /> : undefined}
       bandeja={
         hayQueRevisar ? (
           <BandejaRevisar

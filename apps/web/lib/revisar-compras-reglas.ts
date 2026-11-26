@@ -566,7 +566,7 @@ export const TIPOS_BANDEJA: readonly TipoBandeja[] = ["plata", "papel", "gasto",
 /** Cada cifra: su nombre largo (el de la lista para el lector), el corto de la tarjeta y la cabecera de su lista (diseño A, 2026-10-23). */
 export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; corto: string; cabecera: string }> = {
   plata: { nombre: "Plata por confirmar", corto: "Plata", cabecera: "Por confirmar" },
-  papel: { nombre: "Compras por completar", corto: "Compras", cabecera: "Por completar" },
+  papel: { nombre: "Compras por revisar", corto: "Compras", cabecera: "Por revisar" },
   gasto: { nombre: "Gastos por revisar", corto: "Gastos", cabecera: "Por revisar" },
   cierre: { nombre: "Rondas cerradas", corto: "Rondas", cabecera: "Por recibir" },
 };

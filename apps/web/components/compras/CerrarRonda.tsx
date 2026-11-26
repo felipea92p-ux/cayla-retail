@@ -107,7 +107,7 @@ function CerrarRondaModal({ rondaId, nombre, onClose, volverA }: { rondaId: stri
               {rechazo.texto}
             </Aviso>
           )}
-          <PieGuia guia={guia} listo="Todo listo para cerrarla." conFrase />
+          {!rechazo && <PieGuia guia={guia} listo="Todo listo para cerrarla." conFrase />}
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar

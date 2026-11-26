@@ -38,7 +38,7 @@ export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy
       <span className="grid grid-cols-3 gap-2 border-y border-sand py-3">
         <Numero etiqueta="Le diste" valor={soles(r.cuenta.dieron)} />
         <Numero etiqueta="Gastó" valor={soles(gastoDeRonda(r.cuenta))} />
-        <Numero etiqueta={noCuadra ? "No cuadra" : "Le queda"} valor={soles(Math.abs(queda))} ambar={noCuadra} />
+        <Numero etiqueta={noCuadra ? (r.cuenta.dieron > 0 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} ambar={noCuadra} />
       </span>
 
       {aviso && (
@@ -50,7 +50,7 @@ export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy
           )}
           <span>
             {aviso.texto}
-            {aviso.cerrarRonda && <span className="font-semibold"> Ciérrala desde su detalle.</span>}
+            {aviso.cerrarRonda && <span className="font-semibold"> Cierra su ronda desde su detalle.</span>}
           </span>
         </span>
       )}
