@@ -172,7 +172,7 @@ function FilaCompra({ c }: { c: CompraDelLibro }) {
       <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(c.fecha)}</span>
       <span className={celda("izq", "min-w-0")}>
         <span className="block truncate text-sm font-medium text-tinta">{c.proveedor}</span>
-        <span className="block truncate text-sm text-secundario">
+        <span className="block whitespace-normal text-sm text-secundario">
           {[nombreDelPapel(c.tipo), `${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"}`, medio(c.medioPago)].filter(Boolean).join(" · ")}
         </span>
       </span>

@@ -149,7 +149,7 @@ function FilaDelLibro({ c }: { c: CompraDelLibro }) {
       </span>
       <span className={celda("izq", "min-w-0")}>
         <span className="block truncate text-sm font-medium text-tinta">{c.proveedor}</span>
-        <span className="block truncate text-sm text-secundario">{c.comprobante?.documento ? `${detalle} · ${c.comprobante.documento}` : detalle}</span>
+        <span className="block whitespace-normal text-sm text-secundario">{c.comprobante?.documento ? `${detalle} · ${c.comprobante.documento}` : detalle}</span>
       </span>
       <span className={celda("izq", "whitespace-normal text-sm")}>
         {envio ? (
