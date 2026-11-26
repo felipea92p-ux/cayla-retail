@@ -7,30 +7,11 @@ import {
   buzonDelCorreo,
   CONFIANZA_ACCESO,
   estadoDelPaso,
-  nombreParaLaTarjeta,
   PASOS_DE_ACCESO,
-  PIE_DE_TARJETA,
   PROMESA_ACCESO,
 } from "./panel-entrada";
 
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
-
-describe("el nombre de la tarjeta del Club mientras se crea la cuenta", () => {
-  it("antes de saberlo no hay nombre: la tarjeta dice «Tu nombre aquí»", () => {
-    expect(nombreParaLaTarjeta("")).toBeNull();
-    expect(nombreParaLaTarjeta("   ")).toBeNull();
-    expect(nombreParaLaTarjeta("A")).toBeNull();
-  });
-
-  it("con el nombre que escribe, tal cual y sin espacios de más", () => {
-    expect(nombreParaLaTarjeta("María")).toBe("María");
-    expect(nombreParaLaTarjeta("  María   Fernanda ")).toBe("María Fernanda");
-  });
-
-  it("un nombre demasiado largo no va a la tarjeta (el campo ya dice «Revisa»)", () => {
-    expect(nombreParaLaTarjeta("x".repeat(121))).toBeNull();
-  });
-});
 
 describe("cuánto de crear la cuenta está listo (la línea del pie)", () => {
   const consultas = { correo: "sin_revisar" as const, codigo: SIN_PEDIR };
@@ -68,8 +49,6 @@ describe("los pasos para volver a entrar", () => {
 
 describe("los textos del panel", () => {
   const todos = [
-    PIE_DE_TARJETA.sin,
-    PIE_DE_TARJETA.con,
     PROMESA_ACCESO.ceja,
     PROMESA_ACCESO.linea,
     PROMESA_ACCESO.cursiva,

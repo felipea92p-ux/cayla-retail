@@ -2,25 +2,52 @@ import type { ReactNode } from "react";
 import { BENEFICIOS_DE_ENTRADA, CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
-import { EntradaViva, PasosDeAcceso, TarjetaConTuNombre } from "./EntradaViva";
+import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
 import { BotonCrearCuenta } from "./BotonCrearCuenta";
 
 // «Entrar» y «Crear cuenta» en la dirección «A · Mostrador» (Felipe 2026-11-25, maqueta docs/maquetas/cuenta-profesional-2026-11): la
-// pantalla marfil y tranquila de las tiendas de moda grandes, sin el rojo de fondo ni la tarjeta flotando. En «Entrar», las dos puertas
-// lado a lado (entrar a la izquierda, «¿Primera vez en CAYLA?» a la derecha); en «Crear cuenta», el formulario y, al lado, la tarjeta del
-// Club con el nombre de quien la crea y lo que gana. En el celular, una columna: el formulario primero. El rojo, solo en el botón
-// principal. Estilos: app/estilos/cuenta-mostrador.css. Las páginas para volver a entrar («Olvidé mi contraseña», «Contraseña nueva»,
-// «Restablecer mi acceso») usan el mismo marco desde el 2026-11-26, con los tres pasos al lado (`LadoDeAcceso`).
+// pantalla marfil y tranquila de las tiendas de moda grandes, sin el rojo de fondo ni la tarjeta flotando. Desde el 2026-11-26, como Zara
+// y Aritzia, llevan una foto de campaña a media pantalla a la izquierda (`foto`): en «Entrar», a su lado van entrar y, debajo,
+// «¿Primera vez en CAYLA?»; en «Crear cuenta», el formulario (la foto reemplazó a la tarjeta del Club). En el celular, sin foto: el
+// formulario primero. El rojo, solo en el botón principal. Estilos: app/estilos/cuenta-mostrador.css. Las páginas para volver a entrar
+// («Olvidé mi contraseña», «Contraseña nueva», «Restablecer mi acceso») usan el mismo marco, con los tres pasos al lado (`LadoDeAcceso`).
 
 /**
  * El marco. `forma`: «entrar» (dos columnas iguales con una raya entre las dos), «crear» (el formulario y su lado, que se queda quieto;
  * en el celular, sin lado), «acceso» (como «crear», pero en el celular el lado va debajo: los pasos dicen qué toca) o «sola» (una columna
  * sin lado: «Cambiar mi correo» y «Eliminar mi cuenta», 2026-11-26).
  */
-export function PantallaDeCuenta({ forma, lado, children }: { forma: "entrar" | "crear" | "acceso" | "sola"; lado?: ReactNode; children: ReactNode }) {
+export function PantallaDeCuenta({
+  forma,
+  lado,
+  foto = false,
+  children,
+}: {
+  forma: "entrar" | "crear" | "acceso" | "sola";
+  lado?: ReactNode;
+  /** La foto de campaña a media pantalla, a la izquierda (como Zara y Aritzia; Felipe 2026-11-26). Solo desde 960 px. */
+  foto?: boolean;
+  children: ReactNode;
+}) {
   return (
     <EntradaViva>
-      <div className="cu-pantalla" data-forma={forma}>
+      <div className="cu-pantalla" data-forma={forma} data-foto={foto ? "" : undefined}>
+        {foto && (
+          // Decorativa: el lector de pantalla no la anuncia. Recorte «B» (centrada en la persona), elegido mirando el 2026-11-26.
+          <div className="cu-foto" aria-hidden="true">
+            {/* Archivo fijo de `public/escenario/`, ya en WebP y en dos anchos, como las demás fotos que no son de una prenda. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- ya viene optimizada; el optimizador solo acepta las fotos de prendas. */}
+            <img
+              src="/escenario/foto-de-entrada.webp"
+              srcSet="/escenario/foto-de-entrada-1200.webp 1200w, /escenario/foto-de-entrada.webp 2000w"
+              sizes="50vw"
+              alt=""
+              width={2000}
+              height={1333}
+              fetchPriority="high"
+            />
+          </div>
+        )}
         <div className="cu-form">{children}</div>
         {lado && (
           <>
@@ -67,18 +94,6 @@ export function LadoPrimeraVez() {
       <Beneficios />
       <BotonCrearCuenta />
     </section>
-  );
-}
-
-/** El lado de «Crear cuenta»: la tarjeta del Club, con el nombre apenas el formulario lo sabe, y lo que se gana. */
-export function LadoDelClub({ desde }: { desde: number }) {
-  return (
-    <aside className="cu-lado" aria-label="Lo que ganas con tu cuenta">
-      <div className="cu-tarjeta">
-        <TarjetaConTuNombre desde={desde} />
-      </div>
-      <Beneficios />
-    </aside>
   );
 }
 
