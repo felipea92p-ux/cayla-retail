@@ -19,7 +19,7 @@
 .tarjeta-valor {
   padding-top: 0;
   overflow: hidden; /* recorta la muestra en las esquinas de arriba */
-  border-radius: 16px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);

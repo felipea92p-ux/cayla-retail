@@ -36,7 +36,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
           <p className="text-sm text-crema/75">{uso.texto}</p>
         </div>
       )}
-      {negativa && <p className="mc-billetera-nota rounded-[10px] px-2.5 py-2 text-sm">{negativa}</p>}
+      {negativa && <p className="mc-billetera-nota rounded-md px-2.5 py-2 text-sm">{negativa}</p>}
       {cuenta && (
         <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-sm">
           {[
@@ -60,7 +60,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
         </p>
       )}
       {revisando && (
-        <p className="flex items-center gap-2 mc-billetera-nota rounded-[10px] px-2.5 py-2 text-sm" data-guia="mi-plata.revisando">
+        <p className="flex items-center gap-2 mc-billetera-nota rounded-md px-2.5 py-2 text-sm" data-guia="mi-plata.revisando">
           <HandCoins className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {revisando}
         </p>

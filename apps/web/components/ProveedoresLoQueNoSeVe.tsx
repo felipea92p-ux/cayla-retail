@@ -53,7 +53,7 @@ function FilaTarea({ t, i }: { t: Tarea; i: number }) {
     </>
   );
   const clase =
-    "prov-tarea group anim-entra grid w-full grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left transition-colors duration-200";
+    "prov-tarea group anim-entra grid w-full grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left transition-colors duration-200";
   const estilo = { ["--i" as string]: i };
   if (t.href)
     return (

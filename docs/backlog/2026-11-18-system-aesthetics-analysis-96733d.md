@@ -80,7 +80,8 @@ Con `/construir`: una actividad, un commit; cada una en su PR chico, porque `mai
 - [ ] **5 · Letra y texto de Inventario y Catálogo.**
 - [ ] **6 · Letra y texto de Compras, Gestión y Rendimiento.**
 - [ ] **7 · Letra y texto de Finanzas, Clientes, Tienda web y Configuración.** La deuda de la prueba llega a cero.
-- [ ] **8 · Esquinas:** cuatro radios, y concéntricas.
+- [x] **8 · Esquinas:** cuatro radios, y concéntricas. Hecho el 2026-11-23 (ADR-0698, `docs/backlog/2026-11-23-esquinas-cuatro-radios.md`). Quedan las
+      piezas de diseño propio, que decide Felipe.
 - [ ] **9 · Animaciones encendidas de fábrica** (mejora 3). Reabre ADR-0625.
 - [ ] **10 · La cabecera que se pliega al bajar** (mejora 6).
 - [ ] **11 · La foto que viaja a la hoja** (mejora 5), con la subida de React a 19.3. Cambia ADR-0136.

@@ -222,7 +222,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
               // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
               if (e.key === "Enter") e.preventDefault();
             }}
-            className={`h-10 w-[72px] rounded-[9px] border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} vd-hundido px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
+            className={`h-10 w-[72px] rounded-md border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} vd-hundido px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
               rellenoInvalido ? "focus:border-rojo" : "focus:border-taupe"
             }`}
           />
@@ -394,8 +394,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                             <span
                               className={
                                 invalida
-                                  ? "inline-flex items-center gap-0.5 rounded-[7px] border border-rojo bg-papel pl-0.5 pr-0.5"
-                                  : "inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control vd-hundido pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
+                                  ? "inline-flex items-center gap-0.5 rounded-sm border border-rojo bg-papel pl-0.5 pr-0.5"
+                                  : "inline-flex items-center gap-0.5 rounded-sm border border-borde-control vd-hundido pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
                               }
                             >
                               <input
@@ -418,7 +418,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               onKeyDown={numero.onKeyDown}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
+                              className={`w-[58px] rounded-sm border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />

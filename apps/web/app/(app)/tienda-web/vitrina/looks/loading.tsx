@@ -8,9 +8,9 @@ export default function LoadingVitrinaLooks() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando los looks">
         <div>
-          <div className="h-3 w-64 max-w-full rounded bg-sand" />
-          <div className="mt-3 h-9 w-56 max-w-full rounded bg-sand sm:h-[46px]" />
-          <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-64 max-w-full rounded-sm bg-sand" />
+          <div className="mt-3 h-9 w-56 max-w-full rounded-sm bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="h-10 w-52 rounded-full bg-sand/60" />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -20,18 +20,18 @@ export default function LoadingVitrinaLooks() {
         </div>
         <div className="card-cayla divide-y divide-sand">
           <div className="flex flex-wrap items-center gap-2.5 p-4">
-            <div className="h-3 w-96 max-w-full rounded bg-sand/70" />
+            <div className="h-3 w-96 max-w-full rounded-sm bg-sand/70" />
             <div className="ml-auto h-10 w-32 rounded-md bg-sand/70" />
           </div>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="h-5 w-5 rounded bg-sand/70" />
+              <div className="h-5 w-5 rounded-sm bg-sand/70" />
               <div className="flex -space-x-1.5">
                 {[0, 1, 2].map((k) => (
                   <div key={k} className="h-11 w-11 rounded-md bg-sand/70" />
                 ))}
               </div>
-              <div className="h-3 w-44 rounded bg-sand" />
+              <div className="h-3 w-44 rounded-sm bg-sand" />
               <div className="ml-auto h-6 w-11 rounded-full bg-sand/70" />
             </div>
           ))}

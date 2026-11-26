@@ -8,9 +8,9 @@ export default function LoadingVitrina() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando la vitrina web">
         <div>
-          <div className="h-3 w-64 max-w-full rounded bg-sand" />
-          <div className="mt-3 h-9 w-56 max-w-full rounded bg-sand sm:h-[46px]" />
-          <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-64 max-w-full rounded-sm bg-sand" />
+          <div className="mt-3 h-9 w-56 max-w-full rounded-sm bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="h-10 w-72 max-w-full rounded-full bg-sand/60" />
         <div className="grid gap-3 sm:grid-cols-3">

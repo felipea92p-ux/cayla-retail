@@ -301,7 +301,7 @@
 .hilo-caja {
   margin: -0.5rem;
   padding: 0.5rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-tarjeta);
 }
 /* Una tarjeta entera (las fotos) que es lo que sigue: la misma luz que un campo (arriba, «La luz del control que sigue»). */
 

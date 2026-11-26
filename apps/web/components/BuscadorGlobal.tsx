@@ -177,8 +177,8 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
         <span className="marco-buscador-texto truncate">Buscar…</span>
         {/* El atajo es de teclado: con el dedo no hay Ctrl. Con el iPhone de lado (ADR-0479) además dejaba la sede bajo la muesca. */}
         <span className="marco-buscador-tecla ml-auto flex items-center gap-0.5 pointer-coarse:hidden">
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">Ctrl</span>
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">K</span>
+          <span className="rounded-sm border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">Ctrl</span>
+          <span className="rounded-sm border border-sand bg-papel px-1.5 py-px text-xs font-semibold text-tinta/70">K</span>
         </span>
       </button>
 

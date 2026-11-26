@@ -28,7 +28,7 @@
    papel y la Aurora): el título ámbar profundo, 4,8:1 o más en claro y 6,0:1 en oscuro; el nombre, 14,5:1 y 6,7:1; la sede, 7,6:1 y 4,8:1. */
 .colab-ok {
   --c: var(--color-ambar);
-  border-radius: 18px;
+  border-radius: var(--radius-tarjeta);
   border-color: color-mix(in srgb, var(--c) var(--lente-tono-grande-filo), transparent);
   background: linear-gradient(
     180deg,
@@ -64,7 +64,7 @@
     flex-wrap: wrap;
     justify-content: flex-start;
     row-gap: 8px;
-    border-radius: 16px;
+    border-radius: var(--radius-campo);
     padding: 8px 8px 8px 12px;
   }
   .colab-ok-alta > strong {
@@ -97,7 +97,7 @@
   pointer-events: none;
 }
 .colab-fila {
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   transition: background 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
 @media (hover: hover) {

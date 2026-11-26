@@ -28,7 +28,7 @@ function IconoTipo({ tipo }: { tipo: string }) {
   return (
     <span
       aria-hidden
-      className={`label-cayla inline-flex h-7 w-9 shrink-0 items-center justify-center rounded border text-xs ${
+      className={`label-cayla inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-sm border text-xs ${
         esPdf ? "border-rojo/30 text-rojo-profundo" : "border-tinta/20 text-tinta/65"
       }`}
     >

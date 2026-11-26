@@ -68,7 +68,7 @@ export function BoletaA4({
         </div>
       </header>
 
-      {leyenda && <p className="mt-3 rounded border border-black/60 px-3 py-1.5 text-center text-[8.5pt] font-semibold">{leyenda}</p>}
+      {leyenda && <p className="mt-3 rounded-sm border border-black/60 px-3 py-1.5 text-center text-[8.5pt] font-semibold">{leyenda}</p>}
 
       {/* ---------- Clienta y fechas ---------- */}
       <section className="mt-5 grid grid-cols-[1fr_auto] gap-x-8 rounded-md border border-black/50 px-4 py-3 text-[8.5pt]">

@@ -33,7 +33,7 @@
     overflow: hidden;
     pointer-events: auto;
     border: 1px solid var(--color-sand);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-campo);
     background: var(--color-papel);
     padding: 0.75rem 0.625rem 0.75rem 0.75rem;
     box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--color-sombra) 18%, transparent), 0 2px 4px color-mix(in srgb, var(--color-sombra) 6%, transparent);
@@ -84,7 +84,7 @@
     .aviso-acc:hover { text-decoration: none; }
   }
   .aviso-x {
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     padding: 0.25rem;
     line-height: 0;
     color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel */

@@ -177,7 +177,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
       {pulgar && (
         <span
           aria-hidden
-          className={`segmento-campo__gota absolute inset-y-0 left-0 rounded-[7px] bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
+          className={`segmento-campo__gota absolute inset-y-0 left-0 rounded-sm bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
           style={{ width: pulgar.w, transform: `translateX(${pulgar.x}px)` }}
         />
       )}

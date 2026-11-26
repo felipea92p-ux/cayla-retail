@@ -172,7 +172,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
             // Mientras llega la lectura: tres filas quietas (sin movimiento en bucle, ADR-0136).
             <div aria-hidden className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div /* beige-fijo: esqueleto de carga, no es superficie */ key={i} className="h-16 rounded-[14px] bg-hueso" />
+                <div /* beige-fijo: esqueleto de carga, no es superficie */ key={i} className="h-16 rounded-campo bg-hueso" />
               ))}
             </div>
           ) : compra === null ? (
@@ -231,7 +231,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                           type="button"
                           disabled={!compra.sePuede}
                           onClick={() => setAbierta(p.id)}
-                          className={`grid w-full grid-cols-[36px_minmax(0,1fr)_auto_16px] items-center gap-2.5 rounded-[14px] border px-3 py-2.5 text-left transition-colors disabled:cursor-default ${
+                          className={`grid w-full grid-cols-[36px_minmax(0,1fr)_auto_16px] items-center gap-2.5 rounded-campo border px-3 py-2.5 text-left transition-colors disabled:cursor-default ${
                             seQuita ? "border-sand vd-hundido" : cambio ? "border-ambar bg-ambar/10" : "border-sand bg-papel"
                           } ${compra.sePuede ? "vd-pasa" : ""}`}
                         >
@@ -272,7 +272,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                   type="button"
                   disabled={!compra.sePuede}
                   onClick={() => setAbierta(PAPEL)}
-                  className={`grid w-full grid-cols-[minmax(0,1fr)_auto_16px] items-center gap-2.5 rounded-[14px] border px-3 py-2.5 text-left transition-colors disabled:cursor-default ${
+                  className={`grid w-full grid-cols-[minmax(0,1fr)_auto_16px] items-center gap-2.5 rounded-campo border px-3 py-2.5 text-left transition-colors disabled:cursor-default ${
                     papel !== null || cuenta.monto !== compra.monto || cuenta.pagado !== compra.pagado ? "border-ambar bg-ambar/10" : "border-sand bg-papel"
                   } ${compra.sePuede ? "vd-pasa" : ""}`}
                 >
@@ -617,7 +617,7 @@ function PantallaDelPapel({
 function RevisarYGuardar({ lineas, cuenta }: { lineas: ReturnType<typeof lineasAntesAhora>; cuenta: NonNullable<ReturnType<typeof cuentaDeLaCorreccion>> }) {
   return (
     <div className="space-y-3.5">
-      <ul className="rounded-[14px] vd-placa px-3.5 py-1.5 text-sm" aria-label="Lo que cambia">
+      <ul className="rounded-campo vd-placa px-3.5 py-1.5 text-sm" aria-label="Lo que cambia">
         {lineas.map((l) => (
           <li key={l.clave} className="border-t border-sand py-2 first:border-t-0">
             <span className="block text-sm text-taupe">{l.titulo}</span>
@@ -630,7 +630,7 @@ function RevisarYGuardar({ lineas, cuenta }: { lineas: ReturnType<typeof lineasA
           </li>
         ))}
       </ul>
-      <dl className="rounded-[14px] vd-hundido px-3.5 py-1.5 text-sm tabular-nums">
+      <dl className="rounded-campo vd-hundido px-3.5 py-1.5 text-sm tabular-nums">
         <div className="flex justify-between gap-4 border-t border-sand py-2 first:border-t-0">
           <dt className="text-taupe">{textoDeLaPlata(cuenta.plata)}</dt>
           <dd className="text-right font-semibold text-tinta">{cuenta.plata === 0 ? "" : `${cuenta.plata > 0 ? "+" : "−"} ${soles(Math.abs(cuenta.plata))}`}</dd>

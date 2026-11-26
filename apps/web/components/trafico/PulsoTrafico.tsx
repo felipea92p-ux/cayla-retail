@@ -208,7 +208,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
   return (
     <aside className="trafico-lectura flex flex-col gap-3.5 p-[18px] sm:p-[22px]" aria-label="Lo que dice el período">
       <div className="flex items-center gap-3">
-        <span aria-hidden className={`grid h-[46px] w-[46px] place-items-center rounded-[14px] ${tonoMedalla}`}>
+        <span aria-hidden className={`grid h-[46px] w-[46px] place-items-center rounded-campo ${tonoMedalla}`}>
           <Icono className="h-5 w-5" />
         </span>
         {periodo.clave === "hoy" && r.ahora > 0 && (

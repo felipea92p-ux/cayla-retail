@@ -66,7 +66,7 @@ export function CodigoEnCasillas({
           onPaste={(e) => alPegar(i, e)}
           onKeyDown={(e) => alTeclear(i, e)}
           onFocus={(e) => e.currentTarget.select()}
-          className={`h-16 w-14 tw-casilla-codigo rounded-[14px] border text-center font-display text-3xl tabular-nums text-tinta outline-none transition-colors focus:border-tinta disabled:opacity-50 ${
+          className={`h-16 w-14 tw-casilla-codigo rounded-campo border text-center font-display text-3xl tabular-nums text-tinta outline-none transition-colors focus:border-tinta disabled:opacity-50 ${
             error ? "border-rojo" : "border-transparent"
           }`}
         />

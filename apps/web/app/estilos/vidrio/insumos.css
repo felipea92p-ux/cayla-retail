@@ -44,7 +44,7 @@
 /* La fila abierta se hunde (la que sigue conserva su raya: el margen la separa). */
 .insumo-fila.card-cayla[data-abierto] {
   margin: 6px;
-  border-radius: 16px;
+  border-radius: calc(var(--radius-tarjeta) - 6px);
   background: var(--insumo-abierta-fondo);
   box-shadow: var(--insumo-abierta-sombra);
 }

@@ -25,7 +25,7 @@
     gap: 2px;
     max-width: 100%;
     padding: 4px;
-    border-radius: 14px;
+    border-radius: var(--radius-campo);
     overflow-x: auto;
     scroll-padding-inline: 6rem; /* la pestaña enfocada que asoma se corre hacia adentro (WCAG 2.4.11), como en `.pildoras-desliza` */
     scrollbar-width: none;
@@ -43,7 +43,7 @@
     min-height: 36px;
     padding: 0 15px;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: none;
     font-size: var(--text-xs);
     font-weight: 600;
@@ -80,7 +80,7 @@
     z-index: 0;
     top: 4px;
     bottom: 4px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--color-tinta);
     box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
     transition-duration: var(--t-hoja);

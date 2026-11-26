@@ -178,7 +178,7 @@ export function SeriesPanel({
               })}
               {!busqueda &&
                 g.faltan.map((t) => (
-                  <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-sm text-tinta/70">
+                  <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-campo border border-dashed border-tinta/25 px-4 py-3.5 text-sm text-tinta/70">
                     <p>
                       Sin serie de <b className="font-semibold text-tinta">{ETIQUETA_TIPO[t].toLowerCase()}</b>
                       {t === "nota_credito" ? ": las devoluciones no pueden emitirla." : "."}

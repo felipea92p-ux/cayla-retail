@@ -233,7 +233,7 @@ export function HojaComprobanteDeGasto({
           </div>
         )}
 
-        <div className="mb-3 rounded-[12px] vd-placa px-3 py-2 text-sm">
+        <div className="mb-3 rounded-campo vd-placa px-3 py-2 text-sm">
           <span className="campo-etiqueta">Lo que pasa al guardar</span>
           <ul className="mt-1 space-y-0.5 text-tinta">
             {pasa.map((l) => (

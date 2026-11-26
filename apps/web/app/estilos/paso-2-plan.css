@@ -63,6 +63,6 @@
 .p2-nuevos {
   padding: 16px 20px;
   border: 1px solid color-mix(in srgb, var(--color-verde) 40%, transparent);
-  border-radius: 16px;
+  border-radius: var(--radius-tarjeta);
   background: color-mix(in srgb, var(--color-verde) 7%, var(--color-papel));
 }
