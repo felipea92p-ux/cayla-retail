@@ -1560,7 +1560,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   Comprobantes y Recepciones, que filtran el proveedor dentro de sus RPC (`listar_compras_operativo` y la de recepciones).
 - **Registrar factura (`/compras/nueva`) se retiró el 2026-10-23** (ADR-0480 act.): la compra nace en «Mis compras». `getCatalogoMarcas`
   (`lib/marcas-datos.ts`: alta y edición de producto, conteo) sigue filtrando con `proveedoresParaPedir`.
-- `/compras` (Historial de compras, solo lectura), `/compras/factura/[compraId]`,
+- `/compras` (Todas las compras desde ADR-0704; antes Historial de compras), `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
   `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
@@ -1570,11 +1570,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/marcas-de-compras.ts:getMarcasDeCompras` → RPC `fn_marcas_de_compras(p_compras, p_papeles)` (solo lectura; sin ella, las filas se ven como
   antes). «Compré ropa» (`components/mi-plata/RegistrarCompra.tsx`) arma la lista por marca con `marcas` + `marca_proveedores`
   (`lib/compra-rapida.ts`, `marcasConProveedores`).
-- **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
-  `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
-  contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
-  `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
-  `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
+- **Compras reestructurado (ADR-0704, 2026-11-26):** el menú queda en Compradores, Todas las compras, Mis compras, Plan de campaña y Proveedores,
+  sin pestañas. `/compras/compradores` (módulo `fondos`) → `lib/compradores.ts:getCompradores` → RPC `fn_compradores()` + `lib/compradores-reglas.ts`
+  (puro: lectura, aviso de la ronda, la ronda elegida) → `components/compras/CompradoresVista.tsx` + `TarjetaComprador.tsx`; las rendiciones
+  por aprobar, `RendicionesPorAprobar.tsx`. `/compras/compradores/[personaId]` → la misma lectura + `getRevisarCompras`, `getPlataPorConfirmar`
+  y `getDatosFondos` filtrados a la persona → `DetalleComprador.tsx` con `BandejaRevisar`, `MovimientosDeFondo.tsx` y `CerrarRonda.tsx`
+  (`lib/compradores-acciones.ts` → `cerrar_ronda_sin_movimiento`). `/compras` («Todas las compras», módulo `facturas_compra`) →
+  `getTodasLasCompras` → RPC `fn_todas_las_compras(desde, hasta, persona, busqueda, limite)` → `TodasLasComprasVista.tsx` + `BuscadorCompras.tsx`.
+  `/compras/fondos` redirige a Compradores; `/compras/por-pagar` sigue, fuera del menú, con su vuelta a Todas las compras.
 - **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
   `/compras/mi-plata` («Mis compras», antes «Mi plata para compras»; módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
   de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
@@ -2492,6 +2495,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
   `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
   `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+- `/api/fotos/medir-recortes` → `GET` del cron (cada 10 min, `CRON_SECRET`, ADR-0705): la IA mide los recortes del probador sin medida (`recortes_sin_medida_ia` →
+  OpenAI → `anotar_medida_ia`, `lib/medida-ia-reglas.ts`); `tienda_probador` entrega esa medida (`ia`) y la tienda dimensiona la prenda de arriba por su pecho.
   **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
   `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
   `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).

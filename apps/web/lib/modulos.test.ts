@@ -215,6 +215,9 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "ordenes_compra" as const, completo: false },
         { clave: "plan_compra" as const, completo: false },
         { clave: "fondos" as const, completo: false },
+        // ADR-0704: «fondos» ya no abre la fila del Historial (ahora «Todas las compras»): abre Compradores. Para ver las dos, como en la foto, hace
+        // falta también `facturas_compra`.
+        { clave: "facturas_compra" as const, completo: false },
         { clave: "vitrina_web" as const, completo: false },
         { clave: "pedidos_web" as const, completo: false },
         { clave: "campanas_web" as const, completo: false },
@@ -243,7 +246,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/campanas", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/gestion/preguntas", "/tienda-web/libro-de-reclamaciones"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/campanas", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/compras", "/compras/compradores", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/gestion/preguntas", "/tienda-web/libro-de-reclamaciones"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);

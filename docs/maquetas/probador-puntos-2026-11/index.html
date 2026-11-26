@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cara="dos" data-pr="blusa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisar recortes con sus puntos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Tienda web ▸ Vitrina ▸ Probador ▸ «Revisar recortes» con los PUNTOS de cada prenda (2026-11-25)
+   Hoy (components/vitrina/RevisarRecorteHoja.tsx): el nombre y el color de la prenda, su estado («Por revisar»), «1 de N», el motivo, el
+   recorte sobre claro y sobre oscuro, quién revisa (ComboResponsable) y Cancelar · Descartar · Usar en el probador.
+   Lo nuevo: sobre la foto, los puntos que propuso el sistema (hombros y borde de abajo en una prenda de arriba, pretina y bajo en una de
+   abajo, asa y base en una cartera). Se arrastran si están mal y, al lado, «Así queda» muestra la prenda puesta en la figura con esos
+   puntos. «Usar en el probador» guarda los puntos. Datos INVENTADOS (las prendas son dibujos, no fotos reales). Solo tokens; el color de
+   cada prenda es un dato (data-color-dato).
+   ==================================================================== */
+.pv-lista{margin-top:18px;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--vidrio) 45%,transparent);overflow:hidden}
+.pv-fila{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 18px;border-top:1px solid var(--t12)}
+.pv-fila:first-child{border-top:0}.pv-fila b{font-weight:500}.pv-fila small{display:block;color:var(--taupe);font-size:13px}
+.pv-mini{width:44px;height:55px;border-radius:10px;background:var(--hueso)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.chip.ambar{--c:var(--ambar)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+
+/* ---- la hoja ---- */
+.capa-pt{position:absolute;inset:0;z-index:20;display:flex;justify-content:center;align-items:flex-start;padding:28px 24px 24px;overflow:auto}
+.hoja.pt{width:min(720px,100%);padding:28px}
+[data-cara="tres"] .hoja.pt{width:min(860px,100%)}
+.hoja.pt .sub{max-width:56ch}
+.pt-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.pt-cab b{font-size:16px;font-weight:500}.pt-cab .col{font-size:14px;color:var(--taupe)}.pt-cab .n{margin-left:auto;font-size:14px;color:var(--taupe)}
+.pt-motivo{margin:8px 0 14px;font-size:14px}
+.pt-vistas{display:grid;gap:12px;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+[data-cara="tres"] .pt-vistas{grid-template-columns:repeat(3,minmax(0,1fr))}
+[data-cara="ahora"] .pt-vistas{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pt-panel{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pt-panel .vs{display:flex;align-items:center;gap:8px;min-height:22px;white-space:nowrap}
+.pt-foto{position:relative;height:300px;border-radius:16px;overflow:hidden;border:1px solid var(--sand);touch-action:none}
+.pt-foto.claro{background:var(--crema-fija);border-color:transparent} /* tema-fijo: la foto se mira sobre claro, no se oscurece */
+.pt-foto.oscuro{background:var(--tinta-fija);border-color:transparent}
+.pt-foto svg{position:absolute;inset:0;width:100%;height:100%}
+.pt-asi{background:radial-gradient(90% 70% at 50% 40%,var(--crema-fija),color-mix(in srgb,var(--crema-fija) 88%,var(--tinta-fija)));border-color:transparent} /* tema-fijo: el estudio del probador es igual en claro y oscuro */
+.pt-asi .maniqui{stroke:var(--tinta-fija)}
+/* el interruptor claro/oscuro de la cara B, sobre la foto */
+.pt-fondo{margin-left:auto;display:inline-flex;padding:2px;border-radius:999px;border:1px solid var(--borde);background:color-mix(in srgb,var(--vidrio) 50%,transparent)}
+.pt-fondo button{height:24px;padding:0 10px;border-radius:999px;font-size:12px;color:var(--t65)}
+.hoja.pt .pt-fondo button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+[data-cara="tres"] .pt-fondo,[data-cara="ahora"] .pt-fondo{display:none}
+/* los puntos */
+.pt-guia{stroke:var(--tinta-fija);stroke-width:1;stroke-dasharray:3 3;opacity:.55;fill:none}
+.oscuro .pt-guia{stroke:var(--crema-fija)}
+.pt-pto{cursor:grab}
+.pt-pto circle.halo{fill:transparent}
+.pt-pto circle.c{fill:var(--tinta-fija);stroke:var(--crema-fija);stroke-width:2}
+.pt-pto[data-duda] circle.c{fill:var(--ambar);animation:duda 1.8s var(--ease) 3}
+.pt-pto.arrastra{cursor:grabbing}.pt-pto.arrastra circle.c{r:7}
+@keyframes duda{0%,100%{stroke-width:2}50%{stroke-width:4.5}}
+.pt-et{font:600 7.5px 'DM Sans',sans-serif;fill:var(--tinta-fija);paint-order:stroke;stroke:var(--crema-fija);stroke-width:2.6px;stroke-linejoin:round}
+.oscuro .pt-et{fill:var(--crema-fija);stroke:var(--tinta-fija)}
+.pt-ayuda{font-size:13px;color:var(--taupe)}
+.pt-ayuda button{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.pt-cuadra{font-size:13px;color:var(--verde)}.pt-cuadra.no{color:var(--ambar)}
+.maniqui{fill:none;stroke:var(--tinta);opacity:.16;stroke-width:1.2}
+.pt-campo{margin-top:16px}
+.pt-guia-pie{font-size:13px;color:var(--taupe);margin-right:auto}
+.pt-guia-pie b{color:var(--tinta);font-weight:500}
+.hoja.pt .pie{flex-wrap:wrap;align-items:center;margin-top:16px}
+/* el celular: la hoja sube desde abajo y ocupa el ancho */
+@container disp (max-width:620px){
+  .capa-pt{padding:44px 0 0;align-items:flex-end}
+  .hoja.pt,[data-cara="tres"] .hoja.pt{width:100%;border-radius:28px 28px 0 0;padding:20px 16px 18px}
+  .hoja.pt h2{font-size:23px}.hoja.pt .sub{display:none}
+  [data-cara="tres"] .pt-vistas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  [data-cara="tres"] .pt-panel.solo-oscuro{display:none}
+  .pt-vistas{gap:8px}.pt-foto{height:220px}
+  .pt-fondo button{padding:0 7px}.pt-panel .vs{letter-spacing:.06em}
+  .hoja.pt .pie .b{flex:1 1 auto;padding:0 12px}
+  .pt-guia-pie{flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){.pt-pto[data-duda] circle.c{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Vitrina ▸ Probador ▸ «Revisar recortes», con los puntos de cada prenda (datos inventados)</span>
+  <span class="tag">Prenda</span><div class="seg-m" data-ctl="pr"><button data-v="blusa">Blusa (dudosa)</button><button data-v="jean">Jean</button><button data-v="cartera">Cartera</button></div>
+  <span class="tag">La hoja</span><div class="seg-m" data-ctl="cara"><button data-v="ahora">Como ahora</button><button data-v="dos">A · Puntos y «Así queda» ✓</button><button data-v="tres">B · Claro, oscuro y «Así queda»</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="capa-pt" id="capa-pt"><div class="velo"></div><section class="hoja pt" id="hoja" role="dialog" aria-labelledby="pt-t"></section></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La hoja</b> (<code>components/vitrina/RevisarRecorteHoja.tsx</code>): el nombre y el color, «Por revisar», «1 de N», el motivo, el recorte <b>sobre claro y sobre oscuro</b>, quién revisa y Cancelar · Descartar · Usar en el probador.</li>
+      <li><b>El probador de la tienda adivina</b> dónde están los hombros y la cintura midiendo los píxeles de la foto, cada vez que la muestra. Una blusa con las mangas abiertas lo confunde y sale enorme junto al jean.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Lo nuevo, en la misma hoja</h2>
+    <ul>
+      <li>Sobre la foto, <b>los puntos que propuso el sistema</b>. El que está en duda late en ámbar. Se arrastra con el dedo o con el mouse.</li>
+      <li><b>«Así queda»</b>: la prenda puesta en la figura con esos puntos, al lado de otra ya confirmada. Cambia mientras arrastras.</li>
+      <li><b>«Usar en el probador» guarda los puntos.</b> Las fotos cuyos puntos salen claros se aceptan solas y no llegan a esta hoja.</li>
+    </ul>
+    <table>
+      <tr><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td>A · Puntos y «Así queda» <span class="ev">Recomendada</span></td><td>La foto con puntos sale grande, que es lo que se toca. Claro u oscuro se cambia con un toque sobre la foto. En el celular caben las dos vistas lado a lado.</td><td>El oscuro ya no se ve al mismo tiempo: hay que tocarlo para buscar un borde con fondo.</td></tr>
+      <tr><td>B · Claro, oscuro y «Así queda»</td><td>Igual que hoy más una vista: el claro y el oscuro siguen juntos.</td><td>Tres vistas chicas: los puntos se agarran peor. En el celular el oscuro no cabe y se esconde.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Dónde está (Vitrina ▸ Probador), quién revisa, Descartar con su «Deshacer», pasar sola a la siguiente foto y el botón «Usar en el probador».</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+(() => {
+  // ---------- las prendas (dibujos en una foto de 200×250, como el recorte) ----------
+  const PRENDAS = {
+    blusa: { nombre: 'Blusa Nudo', color: 'Amarillo', zona: 'arriba', hex: '#EFE3A0', borde: '#C9B865',
+      dibujo: `<path d="M70 38 L88 31 Q100 45 112 31 L130 38 L151 62 L172 136 L157 141 L140 84 L138 150 L62 150 L60 84 L43 141 L28 136 L49 62 Z"/><path d="M80 150 Q100 132 120 150" fill="none" stroke-opacity=".5"/>`,
+      // lo que propuso el sistema (mal: midió el escote, por eso sale enorme) y lo correcto
+      propuesta: { hi: [87, 35], hd: [113, 35], bi: [64, 148], bd: [136, 148] }, duda: ['hi', 'hd'],
+      motivo: 'Los hombros salieron en duda: las mangas abiertas confunden la medida.',
+      nombres: { hi: 'Hombro', hd: 'Hombro', bi: 'Borde de abajo', bd: 'Borde de abajo' }, pares: [['hi', 'hd'], ['bi', 'bd']] },
+    jean: { nombre: 'Jean Wide Leg', color: 'Celeste', zona: 'abajo', hex: '#A9C2DC', borde: '#7C9BBB',
+      dibujo: `<path d="M70 28 L130 28 L134 62 L147 232 L106 232 L100 112 L94 232 L53 232 L66 62 Z"/><path d="M70 28 L130 28 L131 40 L69 40 Z" fill-opacity=".9"/><path d="M100 40 L100 70" fill="none"/>`,
+      propuesta: { pi: [70, 31], pd: [130, 31], ba: [100, 231] }, duda: [],
+      motivo: null,
+      nombres: { pi: 'Pretina', pd: 'Pretina', ba: 'Bajo' }, pares: [['pi', 'pd']] },
+    cartera: { nombre: 'Cartera Lino', color: 'Beige', zona: 'bolso', hex: '#E3D3B5', borde: '#8A5A3B',
+      dibujo: `<path d="M78 112 Q100 52 122 112" fill="none" stroke-width="7"/><path d="M58 112 L142 112 L148 192 L52 192 Z"/><path d="M92 140 L108 140 L108 156 L92 156 Z" fill="#8A5A3B"/>`,
+      propuesta: { as: [100, 84], bs: [100, 191] }, duda: [],
+      motivo: null,
+      nombres: { as: 'Asa', bs: 'Base' }, pares: [['as', 'bs']] },
+  };
+  const ORDEN = ['blusa', 'jean', 'cartera'];
+  const puntos = Object.fromEntries(ORDEN.map((k) => [k, JSON.parse(JSON.stringify(PRENDAS[k].propuesta))]));
+  // lo ya confirmado de las otras prendas, para «Así queda»
+  const BIEN = { blusa: { hi: [71, 39], hd: [129, 39], bi: [64, 148], bd: [136, 148] }, jean: PRENDAS.jean.propuesta, cartera: PRENDAS.cartera.propuesta };
+  const movidos = Object.fromEntries(ORDEN.map((k) => [k, new Set()]));
+  let fondo = 'claro';
+
+  // ---------- la figura de «Así queda» (200×260): hombros de 48, cintura de 36 ----------
+  const FIG = { hombros: { y: 50, ancho: 48 }, cintura: { y: 118, ancho: 36 }, mano: { x: 152, y: 112 }, alto: 260 };
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  function transforma(k, p) {
+    if (k === 'blusa') { const s = FIG.hombros.ancho / dist(p.hi, p.hd), m = mid(p.hi, p.hd); return { s, tx: 100 - m[0] * s, ty: FIG.hombros.y - m[1] * s }; }
+    if (k === 'jean') { const s = FIG.cintura.ancho / dist(p.pi, p.pd), m = mid(p.pi, p.pd); return { s, tx: 100 - m[0] * s, ty: FIG.cintura.y - m[1] * s }; }
+    // la cartera: 62 de alto desde el asa, colgada de la mano y SIEMPRE dentro del marco
+    const s = 62 / Math.max(10, p.bs[1] - p.as[1]);
+    let tx = FIG.mano.x - p.as[0] * s; const der = tx + 150 * s; if (der > 196) tx -= der - 196;
+    return { s, tx, ty: FIG.mano.y - p.as[1] * s };
+  }
+  const prendaSvg = (k) => { const P = PRENDAS[k]; return `<g data-color-dato fill="${P.hex}" stroke="${P.borde}" stroke-width="1.4" stroke-linejoin="round">${P.dibujo}</g>`; };
+  function asiQueda(actual) {
+    const capas = ['jean', 'blusa', 'cartera'].map((k) => {
+      const p = k === actual ? puntos[k] : BIEN[k], t = transforma(k, p);
+      return `<g transform="translate(${t.tx.toFixed(1)} ${t.ty.toFixed(1)}) scale(${t.s.toFixed(3)})" ${k === actual ? '' : 'opacity=".55"'}>${prendaSvg(k)}</g>`;
+    }).join('');
+    const maniqui = `<g class="maniqui"><circle cx="100" cy="24" r="12"/><path d="M94 36 L94 44 L76 50 L70 112 M106 36 L106 44 L124 50 L130 112 M82 52 L82 118 L80 250 M118 52 L118 118 L120 250"/></g>`;
+    return `<svg viewBox="0 0 200 ${FIG.alto}" preserveAspectRatio="xMidYMid meet" aria-label="Así queda en el probador">${maniqui}${capas}</svg>`;
+  }
+  function cuadra(k) {
+    const t = transforma(k, puntos[k]);
+    if (k === 'blusa') return t.s > 1.25 ? ['no', 'La blusa sale más grande que el jean: revisa los hombros.'] : t.s < 0.6 ? ['no', 'La blusa sale muy chica: revisa los hombros.'] : ['si', 'Los hombros calzan con la figura.'];
+    if (k === 'jean') return ['si', 'La pretina calza con la cintura.'];
+    return ['si', 'La cartera queda dentro del marco.'];
+  }
+
+  // ---------- la foto con sus puntos ----------
+  function fotoSvg(k, conPuntos) {
+    const P = PRENDAS[k], p = puntos[k];
+    let extra = '';
+    if (conPuntos) {
+      const lineas = P.pares.map(([a, b]) => `<line class="pt-guia" x1="${p[a][0]}" y1="${p[a][1]}" x2="${p[b][0]}" y2="${p[b][1]}"/>`).join('');
+      const ya = new Set();
+      const ptos = Object.keys(p).map((id) => {
+        const [x, y] = p[id], duda = P.duda.includes(id) && !movidos[k].has(id);
+        const nom = P.nombres[id]; const et = ya.has(nom) ? '' : `<text class="pt-et" x="${x + (x > 100 ? 9 : -9)}" y="${y - 7}" text-anchor="${x > 100 ? 'start' : 'end'}">${nom}</text>`; ya.add(nom);
+        return `<g class="pt-pto" data-id="${id}" ${duda ? 'data-duda' : ''} role="slider" tabindex="0" aria-label="${nom} ${x > 100 ? 'derecho' : x < 100 ? 'izquierdo' : ''}: arrástralo a su lugar"><circle class="halo" cx="${x}" cy="${y}" r="16"/><circle class="c" cx="${x}" cy="${y}" r="5.5"/>${et}</g>`;
+      }).join('');
+      extra = lineas + ptos;
+    }
+    return `<svg viewBox="0 0 200 250" data-prenda="${k}">${prendaSvg(k)}${extra}</svg>`;
+  }
+
+  function hoja() {
+    const k = estado.pr, P = PRENDAS[k], cara = estado.cara, i = ORDEN.indexOf(k);
+    const conPuntos = cara !== 'ahora';
+    const [ok, txt] = cuadra(k);
+    const motivo = conPuntos ? (P.duda.some((d) => !movidos[k].has(d)) ? P.motivo : null) : (k === 'blusa' ? 'Revisa si se ve un hueco o un borde con fondo.' : null);
+    const fondoBtn = `<span class="pt-fondo" role="group" aria-label="Fondo de la foto"><button data-fondo-foto="claro" aria-pressed="${fondo === 'claro'}">Claro</button><button data-fondo-foto="oscuro" aria-pressed="${fondo === 'oscuro'}">Oscuro</button></span>`;
+    let vistas;
+    if (cara === 'ahora') {
+      vistas = `<div class="pt-panel"><div class="pt-foto claro">${fotoSvg(k, false)}</div></div><div class="pt-panel"><div class="pt-foto oscuro">${fotoSvg(k, false)}</div></div>`;
+    } else if (cara === 'tres') {
+      vistas = `<div class="pt-panel"><p class="vs">Los puntos</p><div class="pt-foto claro" data-arrastre>${fotoSvg(k, true)}</div></div>
+        <div class="pt-panel solo-oscuro"><p class="vs">Sobre oscuro</p><div class="pt-foto oscuro">${fotoSvg(k, false)}</div></div>
+        <div class="pt-panel"><p class="vs">Así queda</p><div class="pt-foto pt-asi">${asiQueda(k)}</div></div>`;
+    } else {
+      vistas = `<div class="pt-panel"><p class="vs">Los puntos ${fondoBtn}</p><div class="pt-foto ${fondo}" data-arrastre>${fotoSvg(k, true)}</div></div>
+        <div class="pt-panel"><p class="vs">Así queda</p><div class="pt-foto pt-asi">${asiQueda(k)}</div></div>`;
+    }
+    const tocados = movidos[k].size > 0;
+    $('#hoja').innerHTML = `<h2 id="pt-t">Revisar recortes</h2>
+      <p class="sub">${conPuntos ? 'Arrastra un punto si no está en su lugar. «Así queda» muestra cómo se verá en el probador.' : 'Míralo sobre claro y sobre oscuro: ahí se nota un hueco o un borde con fondo. Descarta el que muestre el gancho o un pedazo de fondo; la foto de la tienda no cambia.'}</p>
+      <div class="pt-cab"><b>${P.nombre}</b><span class="col">${P.color}</span><span class="chip ambar">Por revisar</span><span class="n">${i + 1} de ${ORDEN.length}</span></div>
+      ${motivo ? `<p class="pt-motivo">${motivo}</p>` : '<div style="height:14px"></div>'}
+      <div class="pt-vistas">${vistas}</div>
+      ${conPuntos ? `<p class="pt-ayuda" style="margin-top:10px"><span class="pt-cuadra ${ok === 'no' ? 'no' : ''}">${txt}</span>${tocados ? ` · <button data-acc2="volver">Volver a los puntos del sistema</button>` : ''}</p>` : ''}
+      <div class="pt-campo"><p class="et">Quién revisa</p><div class="caja">Felipe Alvarez</div></div>
+      <div class="pie"><p class="pt-guia-pie">${conPuntos ? (ok === 'no' ? 'Sigue: <b>los puntos</b>' : 'Listo: <b>los puntos</b> · Falta confirmar') : 'Falta confirmar'}</p>
+        <button class="b sec" data-acc2="cerrar">Cancelar</button><button class="b sec" data-acc2="sig">Descartar</button><button class="b pri" data-acc2="sig">Usar en el probador</button></div>`;
+  }
+
+  function pantalla() {
+    activa = 'tiendaWeb.vitrina';
+    $('#cont').innerHTML = `<div class="pag">${encabezado({ sede: 'Tienda web', detalle: 'Vitrina', titulo: 'Probador', cifras: [['3', 'Por revisar', 'alerta', true], ['335', 'En el probador', 'percha']] })}
+      <div class="pv-lista">${[['Blusa Nudo', 'Amarillo', '#EFE3A0'], ['Jean Wide Leg', 'Celeste', '#A9C2DC'], ['Cartera Lino', 'Beige', '#E3D3B5'], ['Polo Basic Ori', 'Blanco', '#F4F1EA'], ['Falda Jean', 'Azul', '#7F9CC0']]
+        .map(([n, c, h], j) => `<div class="pv-fila"><span class="pv-mini" data-color-dato style="background:${h}"></span><div><b>${n}</b><small>${c}</small></div>${j < 3 ? '<span class="chip ambar">Por revisar</span>' : '<span class="chip">En el probador</span>'}<button class="btn sec">Revisar</button></div>`).join('')}</div></div>`;
+    hoja();
+  }
+
+  // ---------- arrastrar un punto ----------
+  let arr = null;
+  document.addEventListener('pointerdown', (e) => {
+    const g = e.target.closest('.pt-pto'); if (!g) return;
+    const svg = g.ownerSVGElement; arr = { id: g.dataset.id, svg, k: svg.dataset.prenda };
+    g.classList.add('arrastra'); svg.setPointerCapture?.(e.pointerId); e.preventDefault();
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!arr) return;
+    const pt = arr.svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const q = pt.matrixTransform(arr.svg.getScreenCTM().inverse());
+    puntos[arr.k][arr.id] = [Math.max(4, Math.min(196, Math.round(q.x))), Math.max(4, Math.min(246, Math.round(q.y)))];
+    movidos[arr.k].add(arr.id);
+    // se repinta la foto y «Así queda» sin perder el arrastre
+    const foto = arr.svg.parentElement; foto.innerHTML = fotoSvg(arr.k, true); arr.svg = foto.querySelector('svg');
+    arr.svg.querySelector(`[data-id="${arr.id}"]`).classList.add('arrastra');
+    const asi = $('#hoja .pt-asi'); if (asi) asi.innerHTML = asiQueda(arr.k);
+    const [ok, txt] = cuadra(arr.k); const c = $('#hoja .pt-cuadra'); if (c) { c.textContent = txt; c.classList.toggle('no', ok === 'no'); }
+  });
+  document.addEventListener('pointerup', () => { if (arr) { arr = null; hoja(); } });
+  document.addEventListener('click', (e) => {
+    const f = e.target.closest("[data-fondo-foto]"); if (f) { fondo = f.dataset.fondoFoto; hoja(); return; }
+    const a = e.target.closest('[data-acc2]'); if (!a) return;
+    const k = estado.pr;
+    if (a.dataset.acc2 === 'volver') { puntos[k] = JSON.parse(JSON.stringify(PRENDAS[k].propuesta)); movidos[k].clear(); hoja(); }
+    if (a.dataset.acc2 === 'sig') { estado.pr = ORDEN[(ORDEN.indexOf(k) + 1) % ORDEN.length]; pintar(); }
+  });
+  // solo para las capturas de la maqueta
+  window.maquetaPuntos = (k, id, x, y) => { puntos[k][id] = [x, y]; movidos[k].add(id); hoja(); };
+  activa = 'tiendaWeb.vitrina';
+  Marco.iniciar({ estado: { pr: 'blusa', cara: 'dos' }, alPintar: () => pantalla() });
+})();
+</script>
+</body>
+</html>
