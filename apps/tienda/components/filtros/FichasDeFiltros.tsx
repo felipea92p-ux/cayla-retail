@@ -82,7 +82,7 @@ export function FichasDeFiltros() {
                     >
                       {x.hex && <i className="fp-pto" style={{ "--hex": x.hex } as React.CSSProperties} />}
                       <span>{x.nombre}</span>
-                      {muerta && <span className="fp-ficha-nota">· sin prendas con lo otro elegido</span>}
+                      {muerta && <span className="fp-ficha-nota">(sin prendas con lo otro elegido)</span>}
                       <Equis />
                     </button>
                   </li>

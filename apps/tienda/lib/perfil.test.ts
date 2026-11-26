@@ -50,7 +50,7 @@ describe("el cuadro de «Mis pedidos»", () => {
 
   it("uno en curso dice en qué está, con la misma insignia de su fila", () => {
     expect(resumenPedidos([ped("por_confirmar"), ped("entregado")])).toEqual({ texto: "Por confirmar", tono: "ambar" });
-    expect(resumenPedidos([ped("confirmado")])).toEqual({ texto: "Confirmado · falta pagar", tono: "verde" });
+    expect(resumenPedidos([ped("confirmado")])).toEqual({ texto: "Confirmado, falta pagar", tono: "verde" });
     expect(resumenPedidos([ped("pagado")])).toEqual({ texto: "Pagado", tono: "verde" });
   });
 

@@ -298,3 +298,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .t-vacio .ic { width: 40px; height: 40px; color: var(--taupe); }
 .t-vacio h3 { margin: 0; font-family: var(--display); text-transform: none; font-size: clamp(29px, 2.6cqi, 39px); font-weight: 400; letter-spacing: -.01em; }
 .t-vacio p { margin: 0; color: var(--tinta-60); max-width: 40ch; }
+
+/* Los datos de la línea legal, cada uno su pieza (Felipe 2026-11-25: nada de «·» entre datos). */
+.t-pie-legal-datos { display: flex; flex-wrap: wrap; gap: 4px 18px; }

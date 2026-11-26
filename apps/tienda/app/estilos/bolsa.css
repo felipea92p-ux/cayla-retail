@@ -274,3 +274,5 @@
 }
 @keyframes t-sube-k { from { opacity: 0; transform: translateY(26px); } }
 @keyframes t-voltea { from { transform: rotateY(-180deg) translateY(30px); opacity: 0; } 40% { opacity: 1; } to { transform: none; } }
+/* El código del pedido y su total, dos piezas en la misma línea (antes, «W-0012 · S/ 120.00»). */
+.w-ped-total { margin-left: 12px; }

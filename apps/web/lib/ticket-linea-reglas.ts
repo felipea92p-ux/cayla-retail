@@ -30,7 +30,13 @@ export type LineaParaFila = {
 
 /** Color y talla de la variante, tal como los trae el catálogo de la caja. La línea del carrito no los guarda:
  *  un ticket en espera o una prenda que ya no está en el catálogo llega sin ellos y la fila muestra el código. */
-export type DetalleVariante = { color: string | null; talla: string | null };
+export type DetalleVariante = {
+  color: string | null;
+  talla: string | null;
+  /** Lo que dibuja la miniatura de la fila en el celular (Felipe 2026-11-25): la foto de la variante o, sin foto, su categoría sobre su
+   *  color. Ausente = la fila va sin miniatura (Apartados, que no la trae). */
+  miniatura?: { fotoUrl: string | null; colorHex: string | null; categoria: { prefijo?: string | null; familia?: string | null; categoria?: string | null } };
+};
 
 /** Desde cuántas unidades en la sede el punto del stock es verde (el del spike: `s.piso >= 3`). Menos, ámbar: quedan pocas. */
 export const STOCK_HOLGADO = 3;
@@ -43,6 +49,8 @@ export type FilaDelTicket = {
   sinRegistrar: boolean;
   /** «Rosa · Talla M»; si no se conoce ninguno de los dos, el código de la etiqueta (lo que se veía antes). */
   detalle: string;
+  /** El mismo detalle en piezas («Rosa», «Talla M»): el celular las separa con aire, no con «·» (Felipe 2026-11-24). */
+  detallePartes: string[];
   /** Para el `title` del nombre: el código de la etiqueta que antes se leía en la fila. */
   titulo: string;
   /** El «● Stock: N» (ex «Máximo disponible en sede: N»); null en una prenda sin registrar. */
@@ -55,6 +63,9 @@ export type FilaDelTicket = {
   pct: number;
   /** «−25 % · Black Friday» o «−20 % · Prenda con desperfecto»; null sin descuento. */
   nota: string | null;
+  /** Solo el porqué del descuento («Black Friday», «Prenda con desperfecto»), sin el porcentaje: en el celular va bajo el nombre y el
+   *  porcentaje lo dice su insignia junto al precio (Felipe 2026-11-25). null sin descuento. */
+  motivo: string | null;
   importe: number;
   /** El importe de lista, tachado debajo del que se cobra; null sin descuento. */
   importeLista: number | null;
@@ -88,12 +99,14 @@ export function filaDelTicket(l: LineaParaFila, detalle?: DetalleVariante | null
   return {
     sinRegistrar,
     detalle: sinRegistrar ? "Prenda sin registrar · almacén la regulariza después" : colorYTalla || codigoPrenda(l),
+    detallePartes: sinRegistrar ? ["Prenda sin registrar"] : colorYTalla ? colorYTalla.split(" · ") : [codigoPrenda(l)],
     titulo: sinRegistrar ? l.referencia : `${l.referencia} · ${codigoPrenda(l)}`,
     stock: sinRegistrar ? null : { cantidad: l.stockAqui, tono: tonoDelStock(l.cantidad, l.stockAqui) },
     alTope: l.cantidad >= l.stockAqui,
     conPaso: !sinRegistrar,
     pct,
     nota: pct > 0 ? `−${pct} % · ${motivoDeLaLinea(l)}` : null,
+    motivo: pct > 0 ? motivoDeLaLinea(l) : null,
     importe: l.cantidad * neto,
     importeLista: pct > 0 ? l.cantidad * l.precioUnitario : null,
   };

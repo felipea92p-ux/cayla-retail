@@ -18,7 +18,7 @@ export default function ErrorGeneral({ retry, reset }: { error: Error & { digest
   return (
     <html lang="es" data-diseno="nuevo" style={{ "--font-public": '"Public Sans"', "--font-titulos": '"Playfair Display"' } as React.CSSProperties}>
       <body>
-        <title>CAYLA · Tienda online</title>
+        <title>CAYLA | Tienda online</title>
         <div className="tienda">
           <CabeceraNeutra recargar />
           <main className="t-pagina ay-pagina-sola">

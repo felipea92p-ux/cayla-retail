@@ -212,7 +212,7 @@ describe("al elegir color y talla", () => {
   });
 
   it("la campaña que se ve: la de la talla que decide el precio o la del modelo; su chip", () => {
-    expect(chipCampana(campanaDeLaFicha(ficha, null))).toBe("−20 % · Aniversario CAYLA");
+    expect(chipCampana(campanaDeLaFicha(ficha, null))).toBe("−20 % por Aniversario CAYLA");
     expect(campanaDeLaFicha(ficha, ficha.variantes[0])?.hasta).toBe("2026-10-21");
     expect(campanaDeLaFicha(ficha, ficha.variantes[3])).toBeNull();
     expect(chipCampana(null)).toBeNull();
@@ -232,11 +232,11 @@ describe("al elegir color y talla", () => {
 describe("los chips que salen del catálogo (actividad 5)", () => {
   it("«Nuevo» con hace cuántos días llegó (o «llegó hoy»), solo «Nuevo» si está fijado sin días, y su puesto en Más vendidos", () => {
     expect(chipsDelCatalogo({ nuevo: { dias: 4 }, vendidos: 3 })).toEqual([
-      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo", icono: "nuevo" },
+      { texto: "Nuevo, llegó hace 4 días", tono: "nuevo", icono: "nuevo" },
       { texto: "N.º 3 en más vendidos" },
     ]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo", icono: "nuevo" }]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo, llegó hace 1 día", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo, llegó hoy", tono: "nuevo", icono: "nuevo" }]);
     expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo", icono: "nuevo" }]);
     expect(chipsDelCatalogo({ nuevo: null, vendidos: 1 })).toEqual([{ texto: "N.º 1 en más vendidos" }]);
     // Sin la prenda en el catálogo (o sin base), ningún chip: nunca se afirma lo que no se sabe.
@@ -267,7 +267,7 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
 
   it("las insignias van después de «Nuevo» y antes de «N.º … en más vendidos», con la misma cara entre ellas", () => {
     expect(chipsDelCatalogo({ nuevo: { dias: 3 }, vendidos: 2 }, [HALLOWEEN, REEDICION])).toEqual([
-      { texto: "Nuevo · llegó hace 3 días", tono: "nuevo", icono: "nuevo" },
+      { texto: "Nuevo, llegó hace 3 días", tono: "nuevo", icono: "nuevo" },
       { texto: "Halloween", tono: "insignia", icono: "halloween" },
       { texto: "Reedición", tono: "insignia", icono: "reedicion" },
       { texto: "N.º 2 en más vendidos" },
@@ -279,10 +279,10 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [])).toEqual([]);
   });
 
-  it("la insignia «Nuevo» no repite a «Nuevo · llegó hace…», pero sí se ve si la tienda no lo dice (llegó hace más de 30 días)", () => {
+  it("la insignia «Nuevo» no repite a «Nuevo, llegó hace…», pero sí se ve si la tienda no lo dice (llegó hace más de 30 días)", () => {
     const nuevo = { id: "7b7b7b7b-1111-4222-8333-444444444443", nombre: "Nuevo" };
     expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null }, [nuevo, HALLOWEEN])).toEqual([
-      { texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" },
+      { texto: "Nuevo, llegó hoy", tono: "nuevo", icono: "nuevo" },
       { texto: "Halloween", tono: "insignia", icono: "halloween" },
     ]);
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [nuevo])).toEqual([{ texto: "Nuevo", tono: "insignia", icono: "nuevo" }]);
@@ -379,7 +379,7 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
 
   it("una insignia que solo se parece a «Nuevo» (otro nombre) se ve siempre", () => {
     const otra = { id: "7b7b7b7b-1111-4222-8333-444444444446", nombre: "Colección nueva" };
-    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null }, [otra]).map((c) => c.texto)).toEqual(["Nuevo · llegó hace 1 día", "Colección nueva"]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null }, [otra]).map((c) => c.texto)).toEqual(["Nuevo, llegó hace 1 día", "Colección nueva"]);
   });
 });
 
@@ -434,7 +434,7 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
   });
 
   it("lo que dice la ficha junto al botón al agregar: corto y con la talla; si no entró, la frase del servidor", () => {
-    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Blusa Emma · Negro · M a tu bolsa." }, "M", true)).toBe("La talla M ya está en tu bolsa.");
+    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Blusa Emma en Negro, talla M, a tu bolsa." }, "M", true)).toBe("La talla M ya está en tu bolsa.");
     expect(lineaAlAgregar({ bien: true, texto: "Agregaste Collar a tu bolsa." }, "Única", false)).toBe("Ya está en tu bolsa.");
     expect(lineaAlAgregar({ bien: false, texto: "Ya tienes en tu bolsa todas las que quedan de esa talla." }, "M", true)).toBe(
       "Ya tienes en tu bolsa todas las que quedan de esa talla.",

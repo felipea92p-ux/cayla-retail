@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pv="aire" data-tp="aire">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vender: la tuerca de impresión y el aviso al cobrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Punto de Venta (/vender) con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (components/PuntoDeVenta.tsx, PuntoDeVentaCatalogo.tsx, PuntoDeVentaTicket.tsx, punto-de-venta/TarjetaPrenda.tsx): UNA tarjeta de
+   CREMA MACIZA con borde arena que encierra el catálogo (la sede, Apartados, Más y lo de hoy; el buscador del mostrador; las categorías;
+   la grilla de prendas en tarjetas de PAPEL con sus tallas) y, a la derecha, el ticket (quién atendió, el cliente, las líneas, la bolsa,
+   el total y «Cobrar»). En el celular el ticket vive en la barra de abajo oscura y su hoja.
+   Lo que ya está elegido entra tal cual: botones gota, buscador pozo, filtros gotas con la puesta ahumada, globito gota, vacío pozo,
+   el paso de cantidad como campo hundido, la barra de abajo ahumada. Lo que se elige aquí es lo PROPIO de la página: la mesa (cómo se
+   reparten catálogo y ticket) y la tarjeta de prenda. Datos inventados. Solo tokens. Sin rebote.
+   ==================================================================== */
+.pos{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,34%,400px);gap:22px;margin-top:20px;align-items:start}
+.cat{min-width:0}
+.cat-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cat-fila .sede-t{margin-right:6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.cat-fila .hoy-t{margin-left:auto;font-size:13px;color:var(--taupe)}.cat-fila .hoy-t b{color:var(--tinta);font-weight:600}
+.cat-fila .btn{height:34px;padding:0 14px;font-size:13px}
+/* el buscador del mostrador (elegido: A · Pozo) */
+.bus{position:relative;display:flex;align-items:center;gap:10px;height:50px;margin-top:14px;padding:0 10px 0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .25s,box-shadow .25s}
+[data-tema="oscuro"] .bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus:focus-within{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 10px 22px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.bus svg{width:19px;height:19px;flex:none;color:var(--t65);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.bus input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:15px;color:var(--tinta)}
+.bus input::placeholder{color:var(--t65)}
+.bus kbd{padding:0 7px;border-radius:99px;border:1px solid var(--t25);font:600 10.5px/18px 'DM Sans';color:var(--t65)}
+/* las categorías (elegido: A · Gotas, la puesta ahumada) */
+.cats-p{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.cats-p::-webkit-scrollbar{display:none}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio);transition:transform .25s var(--ease)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 60%,transparent)}
+@media (hover:hover){.fp:not([aria-pressed="true"]):hover{transform:translateY(-1px)}}
+
+/* ---------- la grilla de prendas ---------- */
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:14px;margin-top:14px}
+.tp{position:relative;display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 35ms + 120ms);transition:transform .3s var(--ease),box-shadow .3s}
+.tp .foto{position:relative;aspect-ratio:1;border-radius:10px;display:grid;place-items:center;color:var(--crema-fija);overflow:hidden}
+.tp .foto.claro{color:var(--tinta-fija)}
+.tp .foto svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:1.5;opacity:.85}
+.tp .nom{font-size:14px;font-weight:600;line-height:1.3}
+.tp .res{font-size:12px;color:var(--t65);margin-top:1px}
+.tp .tallas{display:flex;flex-wrap:wrap;gap:5px}
+.talla{min-width:34px;height:30px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;border:1px solid var(--sand);background:var(--crema);color:var(--tinta);transition:background .2s,color .2s,transform .2s var(--ease)}
+@media (hover:hover){.talla:not(:disabled):hover{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}}
+.talla:active:not(:disabled){transform:scale(.94)}
+.talla:disabled{border-style:dashed;color:var(--t50);background:transparent;cursor:not-allowed}
+.talla.alm{border-style:dashed;border-color:color-mix(in srgb,var(--ambar) 60%,transparent);color:var(--ambar);background:transparent}
+.tp .pie-t{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:auto}
+.tp .precio{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.tp .stock{font-size:11.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.tp .stock.poco{color:var(--ambar)}
+.gl-esq{position:absolute;top:16px;right:16px;z-index:2;min-width:22px;height:22px;padding:0 6px;border-radius:99px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 80%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent),0 4px 10px -4px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .3s var(--ease) both}
+/* A · PLACA: la tarjeta es la placa de vidrio de las cifras; cada talla, una gota; la agotada, un pozo punteado; la que solo está en el
+   almacén, una gota ámbar punteada. Al pasar el mouse la placa se alza 2 px. */
+[data-tp="placa"] .tp{border-radius:18px;border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 66%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -26px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-tp="placa"] .tp{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tp="placa"] .tp .foto{border-radius:12px}
+@media (hover:hover){[data-tp="placa"] .tp:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 var(--vidrio),0 24px 40px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}}
+/* B · FOTO AL AIRE: sin tarjeta. La foto, con sus esquinas y su sombra, es la pieza; el nombre y las tallas viven planos debajo. */
+[data-tp="aire"] .tp{padding:0;border:0;background:none;gap:9px}
+[data-tp="aire"] .tp .foto{border-radius:18px;box-shadow:0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent);transition:transform .35s var(--ease),box-shadow .35s}
+@media (hover:hover){[data-tp="aire"] .tp:hover .foto{transform:translateY(-3px);box-shadow:0 24px 36px -20px color-mix(in srgb,var(--sombra) 65%,transparent)}}
+[data-tp="aire"] .gl-esq{top:8px;right:8px}
+/* en A y B las tallas son gotas (las de los filtros) */
+:is([data-tp="placa"],[data-tp="aire"]) .talla{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-tp="placa"],[data-tp="aire"]) .talla{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+@media (hover:hover){:is([data-tp="placa"],[data-tp="aire"]) .talla:not(:disabled):not(.alm):hover{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}}
+:is([data-tp="placa"],[data-tp="aire"]) .talla:disabled{border-style:dashed;border-color:color-mix(in srgb,var(--borde) 55%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+:is([data-tp="placa"],[data-tp="aire"]) .talla.alm{border-style:dashed;border-color:color-mix(in srgb,var(--ambar) 55%,transparent);background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:none}
+
+/* ---------- el ticket ---------- */
+.ticket{position:sticky;top:0;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:0 18px 18px 0;border-left:1px solid var(--sand);background:var(--crema);color:var(--tinta)}
+.ticket h2{margin:0;font-family:'EB Garamond',serif;font-size:24px;font-weight:400;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ticket h2 a{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.et-t{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin-bottom:6px}
+.resp{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px 0 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14.5px;width:100%;text-align:left;color:inherit}
+.resp .av-t{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;background:color-mix(in srgb,var(--sand) 80%,transparent);color:var(--tinta)}
+.resp span:nth-child(2){flex:1}.resp svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;opacity:.6}
+.lineas{display:grid;gap:2px}
+.lin{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;animation:enfoca .3s var(--ease) both}
+.lin+.lin{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.lin .mini{width:44px;height:52px;border-radius:9px}
+.lin b{display:block;font-size:14px;font-weight:600}.lin small{display:block;font-size:12px;color:var(--t65);margin-top:1px}
+.lin .der{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.lin .mon{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.paso{display:inline-flex;align-items:center;height:30px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.paso button{width:28px;height:28px;display:grid;place-items:center;color:inherit;border-radius:50%}
+.paso button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.paso span{min-width:18px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.quitar{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--t65)}
+.quitar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+@media (hover:hover){.quitar:hover{color:var(--rojo-p)}}
+.vacio-t{display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 10px;gap:8px}
+.vacio-t .hueco{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--taupe);background:color-mix(in srgb,var(--tinta) 6%,transparent);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);box-shadow:inset 0 3px 8px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.vacio-t .hueco svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5}
+.vacio-t b{font-family:'EB Garamond',serif;font-size:19px;font-weight:400}.vacio-t span{font-size:13px;color:var(--taupe)}
+.extras-t{display:flex;flex-wrap:wrap;gap:8px}
+.extras-t .btn{height:32px;padding:0 12px;font-size:12.5px}
+.totales{display:grid;gap:6px;padding-top:12px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent);font-size:13.5px}
+.totales div{display:flex;justify-content:space-between;color:var(--taupe)}.totales div b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}
+.totales .total{align-items:baseline;color:var(--tinta);margin-top:4px}
+.totales .total strong{font-family:'EB Garamond',serif;font-size:34px;font-weight:400;font-variant-numeric:tabular-nums}
+.cobrar{width:100%;height:52px;font-size:15px!important;justify-content:center}
+.cobrar:disabled{opacity:.45;cursor:not-allowed}
+.ayuda-t{font-size:12.5px;color:var(--taupe);text-align:center;margin-top:-6px}
+
+/* COMO AHORA: una tarjeta de crema maciza con todo adentro; el ticket separado por una línea arena */
+:root:not([data-pv]) .pos{gap:0;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+:root:not([data-pv]) .cat{padding:18px 22px 22px}
+/* A · CATÁLOGO AL AIRE, TICKET EN PLACA: no hay tarjeta grande; el catálogo vive sobre el fondo y el ticket es la placa Serena que flota
+   a la derecha, pegada arriba mientras bajas */
+[data-pv="aire"] .ticket{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-radius:24px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 30px 60px -34px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-pv="aire"] .ticket{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 78%,transparent)}
+/* B · TICKET AHUMADO: lo que llevas elegido es oscuro (como la barra de abajo del celular): el ticket es vidrio ahumado de tinta con letra
+   crema, y «Cobrar» se invierte a la gota clara */
+[data-pv="humo"] .ticket{border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);border-radius:24px;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 86%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 28%,transparent),0 30px 60px -30px color-mix(in srgb,var(--sombra) 70%,transparent)}
+[data-pv="humo"] .ticket :is(.et-t,.lin small,.totales div,.ayuda-t,.vacio-t span){color:color-mix(in srgb,var(--crema) 70%,transparent)}
+[data-pv="humo"] .ticket :is(.totales div b,.lin .mon,h2 a){color:var(--crema)}
+[data-pv="humo"] .ticket h2 a{text-decoration-color:color-mix(in srgb,var(--crema) 35%,transparent)}
+[data-pv="humo"] .ticket :is(.resp,.paso,.vacio-t .hueco){border-color:color-mix(in srgb,var(--crema) 22%,transparent);background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-pv="humo"] .ticket .resp .av-t{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+[data-pv="humo"] .ticket :is(.lin+.lin,.totales){box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 14%,transparent)}
+[data-pv="humo"] .ticket .quitar{color:color-mix(in srgb,var(--crema) 65%,transparent)}
+[data-pv="humo"] .ticket .btn.sec{color:var(--crema);border-color:color-mix(in srgb,var(--crema) 30%,transparent);background:color-mix(in srgb,var(--crema) 8%,transparent);box-shadow:none}
+[data-pv="humo"] .ticket .btn.pri{color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)));box-shadow:inset 0 -1px 2px color-mix(in srgb,var(--sombra) 12%,transparent),0 10px 22px -10px color-mix(in srgb,var(--sombra) 70%,transparent)}
+[data-tema="oscuro"][data-pv="humo"] .ticket{color:var(--crema)}
+
+/* ---------- el celular: el catálogo a lo ancho y el ticket en la barra de abajo (elegida: la isla ahumada) ---------- */
+.isla-t{display:none}
+@container disp (max-width:900px){
+  .pos{grid-template-columns:minmax(0,1fr)}
+  .ticket{display:none}
+  :root:not([data-pv]) .pos{border:0;background:none}:root:not([data-pv]) .cat{padding:0}
+  .grilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .cont{padding-bottom:110px!important}
+  .isla-t{display:flex;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:18px;color:var(--crema);
+    border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 18px 36px -16px color-mix(in srgb,var(--sombra) 70%,transparent);animation:sube .4s var(--ease) backwards}
+  .isla-t .cifra-i{flex:1;min-width:0}.isla-t .cifra-i b{display:block;font-family:'EB Garamond',serif;font-size:22px;font-weight:400;line-height:1.1}
+  .isla-t .cifra-i span{font-size:12px;color:color-mix(in srgb,var(--crema) 70%,transparent)}
+  .isla-t .btn{height:44px;padding:0 18px;color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)))}
+}
+@container disp (max-width:420px){.grilla{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tp .talla{min-width:30px;height:30px;padding:0 6px}.cat-fila .hoy-t{width:100%;margin-left:0}}
+/* en oscuro el ahumado se invierte (tinta es clara): la gota de «Cobrar» que vive sobre él pasa a crema con letra tinta */
+[data-tema="oscuro"] :is(.isla-t .btn,[data-pv="humo"] .ticket .btn.pri){color:var(--tinta)!important;border-color:color-mix(in srgb,var(--crema) 70%,transparent)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 92%,transparent),var(--crema))!important}
+@media (prefers-reduced-motion:reduce){.tp,.lin,.gl-esq,.isla-t{animation:none}.tp,.tp .foto{transition:none}}
+
+/* ====================================================================
+   MAQUETA 2026-11-25 · Impresión en Vender (sobre la maqueta elegida de Vender, docs/maquetas/vender-vidrio-2026-11)
+   1) La tuerca: los interruptores salen de la hoja «Venta registrada» y viven en Vender, en una hoja chica «Impresión de este equipo».
+      Mismas preferencias, mismos nombres guardados, mismos valores de fábrica: no cambia cómo imprime nadie.
+   2) El aviso al cobrar: reemplaza a la hoja «Venta registrada». Datos inventados. Solo tokens. Sin rebote.
+   ==================================================================== */
+.tuerca{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 10px;border-radius:999px;font-size:13px;font-weight:600;color:var(--tinta);border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .tuerca{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.tuerca svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tuerca .dest{font-weight:500;color:var(--t65)}
+.tuerca .cola{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;font-size:12px;font-weight:700;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent);border:1px solid color-mix(in srgb,var(--ambar) 40%,transparent)}
+.tuerca.foco{box-shadow:0 0 0 2px var(--papel),0 0 0 4px var(--tinta)}
+@container disp (max-width:420px){.tuerca{height:44px;padding:0 14px}}
+/* el interruptor real: pozo y gota (vidrio/campos-y-botones.css) */
+.fila-sw{display:flex;align-items:flex-start;gap:12px;padding:12px 0}
+.fila-sw+.fila-sw{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.sw{position:relative;flex:none;width:44px;height:26px;border-radius:99px;margin-top:1px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--borde) 70%,transparent),inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);transition:background .2s}
+.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 80%,var(--hueso)));box-shadow:0 2px 6px -1px color-mix(in srgb,var(--sombra) 40%,transparent);transition:transform .2s var(--ease)}
+.sw[aria-checked="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent))}
+.sw[aria-checked="true"] i{transform:translateX(18px)}
+[data-tema="oscuro"] .sw[aria-checked="true"] i{background:var(--crema)}
+.fila-sw b{display:block;font-size:14px;font-weight:600}.fila-sw small{display:block;font-size:13px;color:var(--t65);margin-top:2px;line-height:1.35}
+.donde{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;font-size:13.5px;background:color-mix(in srgb,var(--tinta) 5%,transparent);border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);margin-bottom:6px}
+.donde svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--taupe)}
+/* el aviso al cobrar: la hoja angosta, centrada en la computadora y abajo en el celular */
+.hoja.aviso{width:min(380px,100%);text-align:center;padding:26px 24px 22px}
+.aviso .icono{width:52px;height:52px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--tinta) 6%,transparent);border:1px solid color-mix(in srgb,var(--borde) 50%,transparent)}
+.aviso .icono svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.aviso .icono.ok{color:var(--verde)}
+.aviso .icono.mal{color:var(--rojo-p)}
+.aviso .icono.espera{color:var(--ambar)}
+.aviso h2{font-size:25px}
+.aviso .num{font-size:13.5px;color:var(--t65);margin-top:4px;font-variant-numeric:tabular-nums}
+.vuelto{display:flex;align-items:baseline;justify-content:space-between;margin:16px 0 4px;padding:12px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--tinta) 15%,transparent);background:color-mix(in srgb,var(--papel) 70%,transparent);text-align:left}
+.vuelto span{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.vuelto strong{font-family:'EB Garamond',serif;font-size:32px;font-weight:400;font-variant-numeric:tabular-nums}
+.aviso .botones{display:grid;gap:8px;margin-top:16px}
+.aviso .botones .b{width:100%;height:46px;font-size:14.5px}
+.aviso .tecla{font-size:13px;color:var(--t65);margin-top:10px}
+.aviso .puntos{display:inline-flex;gap:5px;margin-top:12px}.aviso .puntos i{width:6px;height:6px;border-radius:50%;background:var(--t50);animation:late 1.2s var(--ease) infinite}
+.aviso .puntos i:nth-child(2){animation-delay:.15s}.aviso .puntos i:nth-child(3){animation-delay:.3s}
+@keyframes late{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.aviso .puntos i{animation:none;opacity:.6}}
+.aviso .nota{font-size:13px;color:var(--t65);margin-top:8px;line-height:1.4}
+/* en el celular la hoja se apoya abajo, como el <Modal> real */
+@container disp (max-width:420px){
+  .capa{align-items:flex-end;padding:0}
+  .hoja{width:100%;border-radius:28px 28px 0 0;padding-bottom:28px}
+  .hoja.aviso{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Vender · impresión</span>
+  <span class="tag">Equipo</span><div class="seg-m" data-ctl="equipo"><button data-v="pc">Computadora</button><button data-v="caja">Mac de la caja</button><button data-v="cel">Celular</button></div>
+  <span class="tag">Momento</span><div class="seg-m" data-ctl="momento"><button data-v="vender">Vender</button><button data-v="panel">Tuerca abierta</button><button data-v="imprimiendo">Al cobrar</button><button data-v="impresa">Listo</button><button data-v="cola">Mac dormida</button><button data-v="fallo">No salió</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-t" id="isla-t" aria-label="Tu ticket"></div>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa" id="capa"><div class="velo"></div><div class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hTit"></div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué cambia</h2>
+    <ul>
+      <li><b>La tuerca:</b> los interruptores de impresión salen de la hoja «Venta registrada» y viven en Vender, junto a Apartados y Más. Al lado dice a dónde va la boleta de este equipo. En el celular, si una boleta espera a la caja, lo dice en ámbar.</li>
+      <li><b>El aviso al cobrar:</b> reemplaza a la hoja «Venta registrada». Dice si imprimió, el número y el vuelto. Enter abre una venta nueva.</li>
+      <li><b>La hoja completa</b> queda solo para: sin conexión, venta sin comprobante y el WhatsApp para el cliente.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Lo que no cambia</h2>
+    <p>Los mismos interruptores, con el mismo nombre guardado y el mismo valor de fábrica: el celular de Trujillo sigue mandando la boleta a la caja y la Mac sigue imprimiendo lo del piso. Lo que un equipo ya eligió a mano se respeta.</p>
+    <h3>Aprobada por Felipe el 2026-11-25</h3>
+    <ul>
+      <li>Decidido (Felipe, 2026-11-25): la tuerca lleva el texto de a dónde va.</li>
+      <li>Decidido: en el celular, cuando la Mac tarda, solo «Nueva venta» (sin «Imprimir aquí»).</li>
+    </ul>
+    <p class="nota">Datos inventados.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar, PRENDAS…); la maqueta no los repite. -->
+<script>
+const svP = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICP = { percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6', lupa: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14', x: 'M18 6 6 18M6 6l12 12', abajo: 'm6 9 6 6 6-6', bolsa: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0' };
+const PRECIOS = [89, 159, 189, 49, 129, 99, 59, 169, 69, 119, 89, 79, 139, 199, 109, 89];
+const CAT_DE = ['Blusas', 'Casacas', 'Vestidos', 'Polos', 'Jeans', 'Faldas', 'Tops', 'Sacos', 'Shorts', 'Jeans', 'Blusas', 'Camisas', 'Chalecos', 'Vestidos', 'Jeans', 'Blusas'];
+// por prenda: tallas [talla, estado] — estado: 'ok' | 'no' (agotada) | 'alm' (solo en el almacén)
+const TALLAS_DE = (i) => [['S', i % 5 === 2 ? 'no' : 'ok'], ['M', 'ok'], ['L', i % 4 === 1 ? 'alm' : 'ok'], ['XL', i % 3 === 0 ? 'no' : 'ok']];
+let ticketPv = [{ i: 0, t: 'M', n: 1 }, { i: 2, t: 'S', n: 1 }, { i: 5, t: 'L', n: 1 }];
+let catPv = 'Todas';
+const solesP = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function enTicket(i) { return ticketPv.filter((l) => l.i === i).reduce((a, l) => a + l.n, 0); }
+function tarjetaHTML([c, n, , st, cl], i, k) {
+  const tallas = TALLAS_DE(i).map(([t, e]) => e === 'ok' ? `<button class="talla" data-i="${i}" data-t="${t}" aria-label="Agregar ${n} talla ${t}">${t}</button>`
+    : e === 'alm' ? `<button class="talla alm" disabled title="Está en el almacén: bájala al piso para venderla">${t}</button>` : `<button class="talla" disabled title="Agotada aquí">${t}</button>`).join('');
+  const en = enTicket(i);
+  return `<article class="tp" style="--i:${k}">${en ? `<span class="gl-esq" aria-label="${en} en el ticket">${en}</span>` : ''}
+    <div class="foto${cl ? ' claro' : ''}" data-color-dato style="background:${c}">${svP(ICP.percha)}</div>
+    <div><div class="nom">${n}</div><div class="res">${CAT_DE[i]} · algodón</div></div>
+    <div class="tallas">${tallas}</div>
+    <div class="pie-t"><span class="precio">${solesP(PRECIOS[i]).replace('.00', '')}</span><span class="stock${st < 8 ? ' poco' : ''}">${st} en piso</span></div></article>`;
+}
+function ticketHTML() {
+  const total = ticketPv.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0), uds = ticketPv.reduce((a, l) => a + l.n, 0);
+  const lineas = ticketPv.length ? `<div class="lineas">${ticketPv.map((l, k) => { const [c, n, , , cl] = PRENDAS[l.i]; return `<div class="lin"><span class="mini" data-color-dato style="background:${c}"></span>
+      <span><b>${n}</b><small>Talla ${l.t}</small></span>
+      <span class="der"><span class="mon">${solesP(PRECIOS[l.i] * l.n)}</span><span style="display:flex;align-items:center;gap:4px"><span class="paso"><button data-menos="${k}" aria-label="Uno menos">${svP(ICP.menos)}</button><span>${l.n}</span><button data-mas="${k}" aria-label="Uno más">${svP(ICP.mas)}</button></span><button class="quitar" data-quitar="${k}" aria-label="Quitar ${n}">${svP(ICP.x)}</button></span></span></div>`; }).join('')}</div>`
+    : `<div class="vacio-t"><span class="hueco">${svP(ICP.bolsa)}</span><b>El ticket está vacío</b><span>Toca una talla o escanea una prenda para empezar.</span></div>`;
+  return `<h2>Ticket actual <a href="#">Dejar en espera</a></h2>
+    <div><div class="et-t">Atendió</div><button class="resp"><span class="av-t">LR</span><span>Lucía Ramos</span>${svP(ICP.abajo)}</button></div>
+    ${lineas}
+    <div class="extras-t">${boton(['sec', 'Cliente', 'mas'])}${boton(['sec', 'Bolsa', 'mas'])}${boton(['sec', 'Descuento', 'mas'])}</div>
+    <div class="totales"><div><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'}</span><b>${solesP(total)}</b></div><div><span>Descuento</span><b>${solesP(0)}</b></div>
+      <div class="total"><span>Total</span><strong>${solesP(total)}</strong></div></div>
+    <button class="btn pri cobrar" ${uds ? '' : 'disabled'}>Cobrar ${uds ? solesP(total) : ''}</button>
+    <p class="ayuda-t">${uds ? 'Al cobrar eliges cómo paga: efectivo, tarjeta o Yape.' : 'Agrega al menos una prenda.'}</p>`;
+}
+function pintarPv() {
+  const prendas = PRENDAS.map((p, i) => [p, i]).filter(([, i]) => catPv === 'Todas' || CAT_DE[i] === catPv);
+  $('#cont').innerHTML = `<div class="pos"><section class="cat" aria-label="Catálogo">
+      <div class="cat-fila"><span class="sede-t">Venta en tienda · Trujillo</span>${boton(['sec', 'Apartados'])}${boton(['sec', 'Más'])}${tuercaHTML()}<span class="hoy-t">Hoy <b>S/ 2,520</b> · 18 ventas</span></div>
+      <label class="bus">${svP(ICP.lupa)}<input type="search" placeholder="Busca o escanea una prenda"><kbd>/</kbd></label>
+      <div class="cats-p" role="group" aria-label="Categorías">${['Todas', 'Blusas', 'Vestidos', 'Casacas', 'Jeans', 'Polos', 'Faldas', 'Sacos'].map((c) => `<button class="fp" data-cat="${c}" aria-pressed="${c === catPv}">${c}</button>`).join('')}</div>
+      <div class="grilla">${prendas.map(([p, i], k) => tarjetaHTML(p, i, k)).join('')}</div></section>
+    <aside class="ticket" id="ticket-pv" aria-label="Ticket">${ticketHTML()}</aside></div>`;
+  pintarIsla();
+}
+function pintarIsla() {
+  const total = ticketPv.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0), uds = ticketPv.reduce((a, l) => a + l.n, 0);
+  $('#isla-t').innerHTML = uds ? `<span class="cifra-i"><b>${solesP(total)}</b><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'} · Atendió Lucía</span></span><button class="btn pri">Cobrar</button>`
+    : `<span class="cifra-i"><b>Ticket vacío</b><span>Toca una talla para empezar</span></span>`;
+}
+function rehacerTicket() { $('#ticket-pv').innerHTML = ticketHTML(); pintarIsla(); }
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('.talla[data-t]');
+  if (t) { const i = +t.dataset.i, ta = t.dataset.t, l = ticketPv.find((x) => x.i === i && x.t === ta); if (l) l.n++; else ticketPv.push({ i, t: ta, n: 1 });
+    const art = t.closest('.tp'); const n = enTicket(i); let g = $('.gl-esq', art); if (!g) { art.insertAdjacentHTML('afterbegin', `<span class="gl-esq">${n}</span>`); } else { g.textContent = n; g.style.animation = 'none'; g.offsetWidth; g.style.animation = ''; }
+    rehacerTicket(); return; }
+  const c = ev.target.closest('.fp[data-cat]'); if (c) { catPv = c.dataset.cat; pintarPv(); return; }
+  const m = ev.target.closest('[data-mas],[data-menos],[data-quitar]');
+  if (m) { const k = +(m.dataset.mas ?? m.dataset.menos ?? m.dataset.quitar); if (m.dataset.mas != null) ticketPv[k].n++; else if (m.dataset.menos != null && ticketPv[k].n > 1) ticketPv[k].n--; else ticketPv.splice(k, 1); pintarPv(); return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+});
+
+// ---------- 2026-11-25: la tuerca y el aviso ----------
+const ICI = {
+  tuerca: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  imp: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z',
+  ok: 'M20 6 9 17l-5-5', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  reloj: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2', cel: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',
+};
+const svI = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+// Lo que ya hay en el código (lib/imprimir-al-cobrar.ts, lib/estacion-de-impresion.ts): los mismos interruptores, con su valor de fábrica.
+const prefs = { enLaCaja: { pc: false, caja: false, cel: true }, alCobrar: { pc: true, caja: true, cel: false }, estacion: true, voz: true };
+const DEST = { pc: 'Imprime aquí', caja: 'Esta es la caja', cel: 'Va a la caja' };
+function tuercaHTML() {
+  const e = estado.equipo, enCola = estado.momento === 'cola' && e === 'cel';
+  return `<button class="tuerca${estado.momento === 'panel' ? ' foco' : ''}" data-acc="abrir-panel" aria-label="Impresión de este equipo: ${DEST[e]}">${svI(ICI.tuerca)}<span class="dest">${DEST[e]}</span>${enCola ? '<span class="cola">1 en cola</span>' : ''}</button>`;
+}
+const sw = (k, on, titulo, texto) => `<div class="fila-sw"><button class="sw" role="switch" aria-checked="${on}" data-sw="${k}"><i></i></button><span><b>${titulo}</b>${texto ? `<small>${texto}</small>` : ''}</span></div>`;
+function panelHTML() {
+  const e = estado.equipo, enCaja = prefs.enLaCaja[e];
+  const donde = e === 'caja' ? 'Esta Mac imprime sus ventas y las del piso.' : e === 'cel' ? (enCaja ? 'Las boletas de este celular salen en la caja de Trujillo.' : 'Este celular no tiene impresora: se abrirá el cuadro de impresión.') : (enCaja ? 'Las boletas de esta computadora salen en la caja.' : 'Esta computadora imprime sus boletas.');
+  const filas = e === 'caja'
+    ? sw('estacion', prefs.estacion, 'Imprimir lo que se vende en el piso', 'Las boletas de los celulares salen aquí.') + (prefs.estacion ? sw('voz', prefs.voz, 'Avisar con voz', '«Boleta de 79 soles lista».') : '') + sw('alCobrar', prefs.alCobrar[e], 'Imprimir solo al cobrar', 'Sin tocar «Imprimir».')
+    : sw('enLaCaja', enCaja, 'Imprimir en la caja', 'La boleta sale en la Mac de la caja.') + (enCaja ? '' : sw('alCobrar', prefs.alCobrar[e], 'Imprimir solo al cobrar', 'Sin tocar «Imprimir».'));
+  return `<h2 id="hTit">Impresión de este equipo</h2><p class="sub">Solo cambia ${e === 'cel' ? 'este celular' : 'esta computadora'}.</p>
+    <div class="donde">${svI(e === 'cel' ? ICI.cel : ICI.imp)}<span>${donde}</span></div>${filas}
+    <div class="pie" style="margin-top:14px"><button class="b pri" data-acc="cerrar">Listo</button></div>`;
+}
+function avisoHTML() {
+  const e = estado.equipo, m = estado.momento, cel = e === 'cel' && prefs.enLaCaja.cel;
+  const num = '<p class="num">Boleta B002-000418 · S/ 129.90</p>';
+  const vuelto = '<div class="vuelto"><span>Entregar vuelto</span><strong>S/ 20.10</strong></div>';
+  const nueva = '<button class="b pri" data-acc="cerrar">Nueva venta</button>';
+  if (m === 'imprimiendo') return `<div class="icono">${svI(ICI.imp)}</div><h2 id="hTit">${cel ? 'Enviando a la caja' : 'Imprimiendo boleta'}</h2>${num}${vuelto}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div class="botones">${nueva}</div><p class="tecla">Enter abre una venta nueva</p>`;
+  if (m === 'impresa') return `<div class="icono ok">${svI(ICI.ok)}</div><h2 id="hTit">${cel ? 'Boleta impresa en la caja' : 'Boleta impresa'}</h2>${num}${vuelto}
+    <div class="botones">${nueva}<button class="b sec">Reimprimir</button></div><p class="tecla">Enter abre una venta nueva</p>`;
+  if (m === 'cola') return cel ? `<div class="icono espera">${svI(ICI.reloj)}</div><h2 id="hTit">Sigue en la cola de la caja</h2>${num}<p class="nota">Sale apenas la Mac de la caja esté prendida.</p>${vuelto}
+    <div class="botones">${nueva}</div><p class="tecla">La tuerca te avisa cuando salga</p>`
+    : `<div class="icono">${svI(ICI.imp)}</div><h2 id="hTit">Solo pasa en el celular</h2><p class="nota">Cambia el equipo a «Celular» para ver la Mac dormida.</p><div class="botones">${nueva}</div>`;
+  if (m === 'fallo') return `<div class="icono mal">${svI(ICI.alerta)}</div><h2 id="hTit">La boleta no salió</h2>${num}<p class="nota">${cel ? 'No se pudo mandar a la caja. Revisa la conexión.' : 'Revisa que la ticketera esté prendida y con papel.'}</p>${vuelto}
+    <div class="botones"><button class="b pri">Reintentar</button><button class="b sec" data-acc="cerrar">Nueva venta</button></div>`;
+  return '';
+}
+function pintarCapa() {
+  const m = estado.momento, d = $('#disp'), h = $('#hoja');
+  if (m === 'vender') { d.removeAttribute('data-hoja'); return; }
+  h.className = m === 'panel' ? 'hoja' : 'hoja aviso';
+  h.innerHTML = m === 'panel' ? panelHTML() : avisoHTML();
+  d.setAttribute('data-hoja', '');
+}
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('.sw[data-sw]'); if (!t) return;
+  const k = t.dataset.sw, e = estado.equipo;
+  if (k === 'enLaCaja' || k === 'alCobrar') prefs[k][e] = !prefs[k][e]; else prefs[k] = !prefs[k];
+  $('#hoja').innerHTML = panelHTML(); pintarPv();
+});
+Marco.iniciar({ estado: { pv: 'aire', tp: 'aire', equipo: 'pc', momento: 'vender' }, alPintar: () => { pintarPv(); pintarCapa(); },
+  alAccion: (a) => { if (a === 'abrir-panel') { estado.momento = 'panel'; pintar(); } if (a === 'cerrar') { estado.momento = 'vender'; pintar(); } } });
+</script>
+</body>
+</html>

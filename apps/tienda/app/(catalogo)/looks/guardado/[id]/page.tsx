@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [{ id }, looks] = await Promise.all([params, misLooks()]);
   const look = looks?.find((l) => l.id === id);
   // Es el look de UNA persona: nunca se indexa.
-  return { title: look ? `${look.nombre} · Tus favoritos` : "Tu outfit", robots: { index: false, follow: false } };
+  return { title: look ? `${look.nombre} | Tus favoritos` : "Tu outfit", robots: { index: false, follow: false } };
 }
 
 // Un look que el cliente guardó desde «Arma el tuyo» (ADR-0434, actividad 8; lienzo v3, `V3TuLook`): se abre como los looks de CAYLA. La
@@ -147,7 +147,7 @@ export default async function LookGuardado({ params, searchParams }: Props) {
               <span className="lg-sello">Armado por ti</span>
             </div>
             <div className="lg-info">
-              <span className="t-ceja">Tu outfit · {cuandoSeGuardo(guardado.guardadoEn, diaIso(hoy)).toLocaleLowerCase("es")}</span>
+              <span className="t-ceja">Tu outfit, {cuandoSeGuardo(guardado.guardadoEn, diaIso(hoy)).toLocaleLowerCase("es")}</span>
               <NombreDelLook id={guardado.id} nombre={guardado.nombre} />
               <ol className="lg-piezas">
                 {zonas.map((z, i) => {

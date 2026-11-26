@@ -123,3 +123,5 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 .t-lista-cab.t-looks-cab h1 { font-size: clamp(34px, 5.2cqi, 76px); }
 .t-looks-cab .t-btn { flex: none; }
 @container tienda (max-width: 699.98px) { .t-looks-cab .t-btn { width: 100%; } }
+/* El color y el precio de la fila, dos piezas (antes, «Negro · S/ 59.90»). */
+.t-look-fila-precio { margin-left: 10px; color: var(--tinta); }

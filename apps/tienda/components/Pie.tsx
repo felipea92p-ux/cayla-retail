@@ -67,8 +67,11 @@ async function LineaLegal({ anio }: { anio: number }) {
   return (
     <p className="t-pie-legal">
       <span>© {anio} CAYLA</span>
-      <span>
-        {razonSocial} · RUC {ruc} · {domicilio}
+      {/* Cada dato es su pieza (Felipe 2026-11-25: nada de «·» entre datos); el espacio entre ellas lo da `.t-pie-legal-datos`. */}
+      <span className="t-pie-legal-datos">
+        <span>{razonSocial}</span>
+        <span>RUC {ruc}</span>
+        <span>{domicilio}</span>
       </span>
     </p>
   );

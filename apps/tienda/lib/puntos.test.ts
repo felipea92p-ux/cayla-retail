@@ -86,7 +86,7 @@ describe("cómo se dicen", () => {
     expect(diasQueFaltan("2026-11-02", HOY)).toBe(14);
     expect(venceDicho("2026-10-19", HOY)).toBe("Vence hoy");
     expect(venceDicho("2026-10-20", HOY)).toBe("Vence mañana");
-    expect(venceDicho("2026-10-26", HOY)).toBe("Vence el 26 de octubre · te quedan 7 días");
+    expect(venceDicho("2026-10-26", HOY)).toBe("Vence el 26 de octubre, en 7 días");
     expect(venceDicho("2026-10-18", HOY)).toBe("Vence hoy");
   });
 
@@ -100,7 +100,7 @@ describe("cómo se dicen", () => {
   });
 
   it("el cupón en una línea", () => {
-    expect(cuponDicho({ valor: 10, compraMinima: 30 })).toBe("S/ 10 · para una compra desde S/ 30");
+    expect(cuponDicho({ valor: 10, compraMinima: 30 })).toBe("S/ 10 para una compra desde S/ 30");
   });
 
   it("los movimientos, con el código solo en canje y devuelve", () => {

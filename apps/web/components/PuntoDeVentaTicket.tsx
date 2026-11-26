@@ -331,7 +331,8 @@ export function PuntoDeVentaTicket({
                 {/* Con «Dejar en espera» y el chip «En espera · N» al lado, en un ticket de 320 px el título se partía en dos
                     líneas: ahí dice solo «Ticket». */}
                 <span className="whitespace-nowrap">
-                  Ticket<span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>
+                  {/* En la hoja del celular, solo «Ticket»: la hoja ya dice qué es, y así «Dejar en espera» cabe con su nombre (Felipe 2026-11-25). */}
+                  Ticket{!enHoja && <span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>}
                 </span>
               </span>
             </TituloSeccion>
@@ -339,19 +340,26 @@ export function PuntoDeVentaTicket({
                 ticket (pidiendo un nombre, opcional) y libera la caja para el siguiente cliente. Con el chip «En espera · N» al
                 lado, o en un ticket angosto, queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con
                 texto no caben en 420 px. */}
-            {carrito.length > 0 && (
+            {/* En la hoja del celular, «Dejar en espera» baja junto a «Cobrar» (Felipe 2026-11-25): arriba se apretaba contra el título y el asa. */}
+            {carrito.length > 0 && !enHoja && (
               <button
                 type="button"
                 onClick={onDejarEnEspera}
                 disabled={bloqueado}
                 aria-label="Dejar en espera"
                 title="Dejar en espera"
-                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-xs leading-tight ${
-                  conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
-                }`}
+                className={
+                  enHoja
+                    ? // En la hoja del celular, el botón secundario de 44 px con su nombre, a la derecha y separado de la ×: el título dice solo
+                      // «Ticket» para que quepa sin apretarse contra él (Felipe 2026-11-25).
+                      `btn-cayla btn-secundario btn-chico anim-revelar ml-auto flex shrink-0 items-center gap-1.5 ${conChipEspera ? "w-11 justify-center px-0" : ""}`
+                    : `btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-xs leading-tight ${
+                        conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
+                      }`
+                }
               >
-                <CirclePause className={ICONO_CHICO} aria-hidden />
-                {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
+                <CirclePause className={enHoja ? "h-4 w-4 shrink-0" : ICONO_CHICO} aria-hidden />
+                {!conChipEspera && <span className={enHoja ? undefined : "hidden @min-[20rem]:inline"}>Dejar en espera</span>}
               </button>
             )}
             {/* Solo cuando hay algo esperando: el chip cambia el ticket por la lista completa de los que esperan. */}
@@ -658,10 +666,10 @@ export function PuntoDeVentaTicket({
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
-                    {/* En un ticket angosto (menos de 336 px de contenido) la fila dice «Descuento · Cupón»: con las dos frases enteras se
-                        partía en dos líneas y le quitaba ese alto a la lista. */}
+                    {/* En un ticket angosto (menos de 336 px de contenido) o en la hoja del celular la fila dice «Descuento · Cupón»: con
+                        las dos frases enteras se partía en dos líneas y le quitaba ese alto a la lista (Felipe 2026-11-25). */}
                     <span>
-                      <span className="@max-[21rem]:hidden">Aplicar </span>descuento
+                      {!enHoja && <span className="@max-[21rem]:hidden">Aplicar </span>}descuento
                     </span>
                   </span>
                 </button>
@@ -679,7 +687,7 @@ export function PuntoDeVentaTicket({
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />
                     <span>
-                      <span className="@max-[21rem]:hidden">Código de </span>cupón
+                      {!enHoja && <span className="@max-[21rem]:hidden">Código de </span>}cupón
                     </span>
                   </span>
                 </button>
@@ -723,7 +731,7 @@ export function PuntoDeVentaTicket({
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
             <div data-guia="vender.responsable">
-              <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+              <ComboResponsable control={responsable} deshabilitado={loading} compacto enLinea={enHoja} className="mb-3" />
             </div>
           )}
 
@@ -812,21 +820,40 @@ export function PuntoDeVentaTicket({
                   {mandandoACaja ? "Mandando a la caja…" : "Mandar a la caja"}
                 </button>
               )}
-            <button
-              key="cobrar"
-              type="button"
-              onClick={onIrACobrar}
-              data-guia="vender.cobrar"
-              disabled={apagado}
-              aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
-              className={BOTON_PRINCIPAL}
-            >
-              <span className="label-cayla flex items-center gap-2 text-xs">
-                <Wallet className={ICONO} aria-hidden />
-                Cobrar
-              </span>
-              <strong className="font-display text-lg">{money(total)}</strong>
-            </button>
+            <div key="cobrar" className="flex gap-2">
+              {/* En la hoja del celular, «Dejar en espera» va a la izquierda de «Cobrar»: las dos formas de terminar con este ticket juntas,
+                  la que lo guarda para después en su peso secundario, a la misma altura (Felipe 2026-11-25). */}
+              {enHoja && carrito.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onDejarEnEspera}
+                  disabled={bloqueado}
+                  aria-label="Dejar en espera"
+                  title="Dejar en espera"
+                  className="btn-cayla btn-secundario flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 px-1 text-xs leading-tight"
+                  // La esquina de «Cobrar» (`rounded-md`), no la píldora del botón: lado a lado, dos formas distintas se veían sueltas. Y su
+                  // relleno corto: con los 18 px de `btn-cayla`, «En espera» se salía 5 px del botón (`/milimetro`, textos cortados).
+                  style={{ borderRadius: "var(--radius-md)", paddingInline: "0.5rem" }}
+                >
+                  <CirclePause className="h-4 w-4 shrink-0" aria-hidden />
+                  En espera
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onIrACobrar}
+                data-guia="vender.cobrar"
+                disabled={apagado}
+                aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
+                className={`${BOTON_PRINCIPAL} min-w-0 flex-1`}
+              >
+                <span className="label-cayla flex items-center gap-2 text-xs">
+                  <Wallet className={ICONO} aria-hidden />
+                  Cobrar
+                </span>
+                <strong className="font-display text-lg">{money(total)}</strong>
+              </button>
+            </div>
             </>
           )}
           {!cobrando && abajo}

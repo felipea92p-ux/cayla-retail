@@ -73,7 +73,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Escanear con la cámara",
-      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer la etiqueta. Arriba tiene un interruptor: «Al ticket» agrega la prenda; «Existencias» solo mira y dice cuántas hay de cada talla y color, en el piso y en el almacén.",
+      texto: "En el celular este botón abre la cámara. «Al ticket» agrega la prenda; si ya está, pregunta «¿Sumar otra?». «Existencias» solo mira cuántas hay. «Escaneadas» es el ticket: una fila por prenda con su cantidad y un tacho para quitarla. Lo que no entra se avisa arriba; si está en el almacén, trae «Agregar».",
     },
     {
       id: "sin-registrar",
@@ -342,6 +342,24 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       preparar: [{ tipo: "clic", ancla: "vender.mas" }],
       titulo: "Todo a un toque",
       texto: "Arriba, cómo va el día; al medio, las otras pantallas de la tienda; y al pie, «Cerrar caja» para quien puede cerrarla al final del día.",
+    },
+    {
+      id: "impresion",
+      ancla: "vender.impresion",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      preparar: [{ tipo: "escape" }],
+      titulo: "A dónde va la boleta",
+      texto: "Este botón dice dónde sale la boleta de este equipo: aquí, en la caja de la tienda o, en la caja, también las del piso. Si una tuya espera a la caja, lo dice en ámbar.",
+    },
+    {
+      id: "impresion-panel",
+      ancla: "vender.impresion-panel",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      preparar: [{ tipo: "clic", ancla: "vender.impresion" }],
+      titulo: "Impresión de este equipo",
+      texto: "Lo que cambies aquí vale solo para este equipo. Al cobrar, la boleta sale sola y un aviso dice el número y el vuelto.",
     },
     {
       id: "fin",

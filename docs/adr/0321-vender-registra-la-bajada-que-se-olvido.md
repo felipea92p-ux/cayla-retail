@@ -141,3 +141,29 @@ la misma división que ya tiene el ticket (columna en escritorio, hoja en el cel
 **No cambia:** la base (`bajar_al_piso_desde_vender` y su contrato), qué prendas se ofrecen, ni el aviso de éxito. Verificado en el navegador
 (Playwright, 375 × 812 con dedo, claro y oscuro; 1440 × 900): grilla, ventana de tallas, tope, Cancelar, «atrás», doble toque (una sola fila en
 `movimientos`, firmada por quien atiende) y red caída (aviso, 0 filas). La cámara no se pudo abrir en el navegador de prueba.
+
+## Actualización 2026-11-25 (b) · La cámara del celular: la bajada desde su fila, y cada lectura se nota
+
+**Pedido (equipo, 2026-11-25):** «en el celular las prendas se escanean con cámara, ¿qué se haría si una prenda está en almacén y no en piso? Además,
+cuando se escanea alguna prenda no hay ninguna indicación de que ya fue escaneada ni sonido, como al escanear cuando se baja a piso».
+
+**Qué pasaba (medido con una cámara simulada en Chromium, 375 × 812, animaciones apagadas, que es lo de fábrica, ADR-0625).** Sí sonaba (el bip
+agudo al entrar, el grave al no entrar), pero lo único que cambiaba en pantalla era una fila chica abajo: sin vuelo ni destello, el visor no decía
+nada. La misma etiqueta sostenida 2,5 s **entraba dos veces** al ticket (la pausa era de 2 s), sin aviso. Lo del almacén solo decía «No entró · en
+almacén» y se resolvía recién al cerrar la cámara.
+
+**Decidí.**
+1. **La regla de lectura de Conteo** (`debeContarLectura`, `lib/conteo-conectado.ts`): la misma etiqueta quieta nunca vuelve a entrar; para la
+   segunda prenda igual, la etiqueta sale del cuadro y entra otra. Medido: quieta 12 s, entra una vez.
+2. **Cada lectura se ve sin animaciones:** las esquinas del visor toman el tono de la lectura un momento (verde o ámbar: color, no movimiento) y
+   la fila más nueva queda marcada, con su ✓ si entró.
+3. **«Ya estaba en el ticket» se dice y se oye:** la fila dice «van 2». **Ese mismo día el equipo pidió que la cámara pregunte** «¿Sumar otra?»
+   como Bajar al piso: ver ADR-0562, actualización 2026-11-25. «van 2» queda para lo que entra igual (Sumar, o una prenda «varias iguales»).
+4. **Lo del almacén se agrega desde su fila:** «Agregar» (`sePuedeBajar`) abre la hoja «¿La tienes en la mano?» encima de la cámara, que deja de
+   leer mientras tanto (`pausada`); si se registra, la fila pasa a «entró» con su bip, y al cerrar la cámara ya no se pregunta por ella. Lo que no
+   se tocó sigue saliendo en la hoja al cerrar la cámara. El aviso de éxito no se pinta con la cámara abierta (le taparía la ✕): lo dice la fila.
+
+**Verificado:** cámara simulada con etiquetas reales del seed (Casaca Luciana del piso, Pantalón Mía y Vestido Antonella del almacén): una vez
+quieta, «van 2» con el doble toque, «Agregar» → hoja → registrada → «entró», Cancelar (la cámara sigue y la etiqueta quieta no se relee), red caída
+(aviso, 0 filas en `movimientos`). Claro y oscuro. **No probado en un teléfono real:** el sonido en el aparato (un iPhone en silencio no deja sonar
+al navegador, en ninguna pantalla).

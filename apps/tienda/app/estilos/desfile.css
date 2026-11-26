@@ -132,3 +132,5 @@
   .t-salidas a > :nth-child(3), .t-salidas a > :nth-child(4) { grid-column: 2; }
   .t-salida-pal { display: none; }
 }
+/* «Salida 03» y su precio, dos piezas con aire entre sí (antes, «Salida 03 · S/ 59.90»). */
+.t-leyenda-salida { margin-right: 14px; }
