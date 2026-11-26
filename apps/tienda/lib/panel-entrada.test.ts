@@ -11,7 +11,6 @@ import {
   PASOS_DE_ACCESO,
   PIE_DE_TARJETA,
   PROMESA_ACCESO,
-  PROMESA_CLUB,
 } from "./panel-entrada";
 
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
@@ -69,9 +68,6 @@ describe("los pasos para volver a entrar", () => {
 
 describe("los textos del panel", () => {
   const todos = [
-    PROMESA_CLUB.ceja,
-    PROMESA_CLUB.linea,
-    PROMESA_CLUB.cursiva,
     PIE_DE_TARJETA.sin,
     PIE_DE_TARJETA.con,
     PROMESA_ACCESO.ceja,

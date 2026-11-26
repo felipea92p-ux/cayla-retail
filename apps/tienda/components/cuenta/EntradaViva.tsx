@@ -5,7 +5,7 @@ import { estadoDelPaso, PIE_DE_TARJETA, type PasoDeAcceso } from "@/lib/panel-en
 import { Icono } from "../Icono";
 import { TarjetaClub } from "../TarjetaClub";
 
-// Lo que el formulario le cuenta al panel de marca de al lado (`PanelDeEntrada.tsx`): en «Crear cuenta», el nombre para la tarjeta
+// Lo que el formulario le cuenta al lado de la pantalla (`PantallaDeCuenta.tsx`): en «Crear cuenta», el nombre para la tarjeta
 // del Club apenas se sabe; en «Olvidé mi contraseña» y «Contraseña nueva», en qué paso va. Dos contextos: el formulario solo usa el de
 // poner (que nunca cambia), así no se vuelve a dibujar cuando el panel cambia; el panel lee el otro.
 

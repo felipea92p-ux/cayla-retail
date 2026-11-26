@@ -1,0 +1,4 @@
+## 2026-11-26 (Recuperar la contraseña ya se ve igual que Entrar y Crear cuenta)
+Qué hice: «Olvidé mi contraseña», «Contraseña nueva» y «Restablecer mi acceso» dejan el escenario rojo y pasan a «A · Mostrador» (la dirección que Felipe eligió el 2026-11-25): el formulario sobre marfil y, al lado, «Vuelve a tu cuenta en tres pasos» con el paso encendido (`LadoDeAcceso` en `components/cuenta/PantallaDeCuenta.tsx`, `forma="acceso"`). Se borró `PanelDeEntrada.tsx`, que ya nadie usaba.
+Por qué así: Felipe pidió pasarlas tras ver Entrar y Crear cuenta en producción; los pasos son la misma pieza de antes (`PasosDeAcceso`) con los tonos del marfil, y en el celular siguen debajo del formulario porque dicen qué toca hacer.
+Felipe se lleva: las tres páginas de la cuenta que siguen con la hoja de antes («Cambiar mi correo», «Eliminar mi cuenta», el Club) no se tocaron.
