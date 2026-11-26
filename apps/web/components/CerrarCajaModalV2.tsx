@@ -85,7 +85,6 @@ export function CerrarCajaModalV2({
   // CLAURE (ADR-0560, actividad 3): en Lima, lo del efectivo de cada empresa y lo que se le debe a Claudia. Solo informa: nunca cambia ni bloquea el cierre.
   // ADR-0683: una por cada empresa aliada de la tienda (hoy, Lima con CLAURE). La del efectivo que se queda es la del destino elegido.
   const cierresAliadas = useCierresAliadas(cajaId);
-  const cierreDelDestino = cierresAliadas?.find((c) => destinoParaLaBase(destino).aliadaId === c.aliadaId || (c.aliadaId === null && destino === "claudia")) ?? null;
   const [esperado, setEsperado] = useState<Esperado | null>(null);
   const [falloEsperado, setFalloEsperado] = useState(false);
   const [contadoTexto, setContadoTexto] = useState("");
@@ -96,6 +95,9 @@ export function CerrarCajaModalV2({
   // El valor elegido puede llevar a qué aliada va el efectivo (`claudia:<id>`, ADR-0683); `destinoBase` es el de `cerrar_caja`.
   const [destino, setDestino] = useState<string>("caja_fuerte");
   const destinoBase = destinoParaLaBase(destino).destino as DestinoTraslado;
+  // Va DESPUÉS de `destino`: el `.find` la lee y, antes de declararla, el modal revienta en Lima (la única tienda con
+  // aliada, así que la lista no viene vacía). TypeScript no lo ve porque la lectura está dentro de una función.
+  const cierreDelDestino = cierresAliadas?.find((c) => destinoParaLaBase(destino).aliadaId === c.aliadaId || (c.aliadaId === null && destino === "claudia")) ?? null;
   const [referencia, setReferencia] = useState("");
   // «¿A qué banco?» (ADR-0195 F3b, situación 19): antes solo decía «banco». Se propone el de las transferencias de la tienda.
   const bancos = useCuentasParaElegir("pago", ubicacionId);
