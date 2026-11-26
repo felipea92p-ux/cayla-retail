@@ -104,7 +104,14 @@ export function anchoDelPecho(anchos: AnchosPorFila | null | undefined, axila: n
 }
 
 /** Lo que dijo la IA de un recorte (su medida guardada en la base, que la tienda lee en `retail.tienda_probador`). */
-export type MedidaDeLaIA = { tipo: string; holgura: "ajustada" | "normal" | "holgada"; metida: boolean; axila: number | null };
+export type MedidaDeLaIA = {
+  tipo: string;
+  holgura: "ajustada" | "normal" | "holgada";
+  metida: boolean;
+  axila: number | null;
+  /** Para qué ocasión es (basico, casual, oficina, fiesta, deportivo): lo usa «Sorpréndeme» (`sorprender`). null si la IA aún no lo dijo. */
+  estilo?: string | null;
+};
 
 /** El ancho plano de axila a axila de una blusa ajustada (cm). */
 export const PECHO_ESTANDAR = 44;

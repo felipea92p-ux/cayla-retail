@@ -89,3 +89,21 @@ borrado; las demás son las de la IA.
 - La pretina vuelve a seguir al bajo de una blusa medida por su pecho: el nudo arrastra al pantalón y la proporción no cambia (lo vigila `union-prendas.test.ts`).
 - `cajaPorElPecho` vuelve a devolver `null` cuando la prenda ya está en su medida: manda la regla del bajo y el nudo la agranda otra vez (lo vigila
   `union-prendas.test.ts`).
+
+## Actualización 2026-11-26 (b): la IA dice también el estilo, y «Sorpréndeme» lo usa
+
+Felipe preguntó en qué se basan las combinaciones de «Sorpréndeme»: solo en el color (Colores ▸ «combina con», 93 de 150 colores lo tienen) y
+en tener foto propia, que pesaba más que el color. Podía juntar una blusa de fiesta con un jean deportivo. Eligió sumar el estilo a la pregunta
+que ya corre («ármalo así»).
+
+- **La misma llamada pide `estilo`** (`basico`, `casual`, `oficina`, `fiesta`, `deportivo`; `ESTILOS` de `apps/web/lib/medida-ia-reglas.ts`).
+  Casi sin costo: unos tokens más de respuesta por foto (~US$0,05–0,10 para todo el catálogo). `anotar_medida_ia` guarda la medida entera y
+  `tienda_probador` ya la entrega: no cambian.
+- **Lo medido antes se vuelve a preguntar solo** (`20261126210000_recortes_medida_ia_con_estilo.sql`): `recortes_sin_medida_ia` también
+  devuelve las medidas vigentes sin `estilo` (que no sean un fallo), detrás de las que no tienen ninguna medida.
+- **«Sorpréndeme» (`sorprender`, `apps/tienda/lib/probador.ts`) pesa, en este orden:** que el estilo vaya con todo lo que se queda (10;
+  `estilosVanJuntos`: iguales, uno `basico` o uno sin estilo todavía), la foto propia (4) y cada color que combina (1). El estilo le gana a
+  la foto y a todos los colores juntos. La primera zona que se elige marca el estilo de la vuelta.
+- **Sin estilo, nada se castiga:** una prenda que la IA todavía no midió va con todas; «Sorpréndeme» queda como antes.
+- **No se llama a la IA al apretar el botón:** se decide en el navegador, al instante y sin costo.
+

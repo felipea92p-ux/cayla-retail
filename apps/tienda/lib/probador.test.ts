@@ -15,6 +15,7 @@ import {
   colorInicial,
   colorPara,
   combinan,
+  estilosVanJuntos,
   completarLook,
   elegibles,
   escalaDe,
@@ -341,6 +342,23 @@ describe("Sorpréndeme", () => {
     }
     expect(combinan("GRI", "NEG", { NEG: ["GRI"] })).toBe(true);
     expect(combinan("NEG", "NEG", { NEG: ["NEG"] })).toBe(false);
+  });
+  it("junta prendas del mismo estilo (lo dice la IA); lo básico va con todo", () => {
+    const conEstilo = (c: ColorDelProbador, estilo: string): ColorDelProbador => ({
+      ...c,
+      foto: { ...c.foto, ia: { tipo: "con_mangas", holgura: "normal", metida: false, axila: 0.25, estilo } },
+    });
+    const blusaFiesta = prenda(20, "arriba", [conEstilo(color({ codigo: "NEG" }), "fiesta")]);
+    // El jean deportivo tiene foto propia; el pantalón de fiesta no: igual gana el de fiesta (el estilo pesa más que la foto).
+    const jeanDeportivo = prenda(21, "abajo", [conEstilo(color({ codigo: "AZA" }), "deportivo")]);
+    const pantalonFiesta = prenda(22, "abajo", [conEstilo(color({ codigo: "GRA", foto: { url: URL_FOTO("x"), proporcion: 0.8, optimizar: true, propia: false, de: null } }), "fiesta")]);
+    const pantalonBase = prenda(23, "abajo", [conEstilo(color({ codigo: "CAM" }), "casual")]);
+    const todas = [blusaFiesta, jeanDeportivo, pantalonFiesta, pantalonBase];
+    const look: Look = { ...LOOK_VACIO, arriba: pieza(blusaFiesta), abajo: pieza(pantalonBase) };
+    for (let i = 0; i < 10; i++) expect(sorprender(look, { arriba: true }, todas, {}, azarDesde(i / 10)).abajo?.id).toBe(pantalonFiesta.id);
+    expect(estilosVanJuntos("fiesta", "basico")).toBe(true);
+    expect(estilosVanJuntos("fiesta", null)).toBe(true);
+    expect(estilosVanJuntos("fiesta", "deportivo")).toBe(false);
   });
   it("con la misma semilla, el mismo look", () => {
     expect(sorprender(base, {}, TODAS, {}, azarDesde(0.42))).toEqual(sorprender(base, {}, TODAS, {}, azarDesde(0.42)));
