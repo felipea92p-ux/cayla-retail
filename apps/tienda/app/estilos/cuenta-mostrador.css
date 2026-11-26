@@ -29,7 +29,7 @@
 .cu-form .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 
 /* ---- El lado: «¿Primera vez?» o la tarjeta del Club, y los beneficios ---- */
-.cu-lado-t { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
+.cu-lado-t { margin: 0; text-wrap: balance; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
 .cu-beneficios { list-style: none; margin: 26px 0 30px; padding: 0; display: grid; gap: 20px; }
 .cu-beneficios li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; align-items: center; }
 .cu-beneficio-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--dn-acento); }
@@ -55,9 +55,35 @@
 .cu-tarjeta .en-tarjeta-viva[data-con-nombre] .t-tarjeta-club { animation: cu-tarjeta-llega .45s var(--ease) backwards; }
 @keyframes cu-tarjeta-llega { from { opacity: .4; transform: translateY(10px) scale(.97); } }
 
-/* En el celular, «Crear cuenta» va sin su lado (el formulario solo, como se decidió el 2026-10-19); «Entrar» lleva «¿Primera vez?» debajo. */
+/* ---- Las páginas para volver a entrar (2026-11-26) ---- */
+/* Su cabecera es la de siempre (`t-ceja`, el título con su parte en `<em>`, una línea): toma la letra de «Entrar» y «Crear cuenta». */
+.cu-form .w-ficha:not(.w-ficha-centro) > div:first-child { text-align: left; }
+.cu-form .w-ficha > div:first-child > .t-ceja { display: block; margin: 0 0 12px; font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.cu-pantalla .w-ficha > div:first-child > h1.w-titulo, .cu-pantalla .w-ficha-centro h1.w-titulo { margin: 0; font-size: clamp(30px, 7.4cqi, 38px); line-height: 1.1; letter-spacing: -.005em; text-transform: none; }
+.cu-pantalla .w-ficha h1.w-titulo em { font-style: normal; }
+.cu-form .w-ficha > div:first-child > .w-texto-sec, .cu-form .w-ficha-centro > .w-texto-sec { margin-top: 10px; font-size: 16px; line-height: 1.5; color: var(--taupe); }
+/* Los pasos: la misma pieza de antes (`.en-pasos`, EntradaViva), con los tonos del marfil en vez de los del escenario rojo. */
+.cu-lado-acceso {
+  --t-hero: var(--crema);
+  --t-hero-tinta: var(--tinta);
+  --t-hero-acento: var(--dn-acento);
+  --t-hero-vidrio: var(--hueso);
+  --t-hero-filo: var(--sand);
+  display: flex;
+  flex-direction: column;
+}
+.cu-lado-acceso .cu-lado-t { margin-bottom: 28px; }
+.cu-lado-acceso .en-paso-t small { color: var(--taupe); }
+.cu-lado-acceso .en-paso[data-estado="luego"] .en-paso-t b { color: var(--taupe); }
+.cu-lado-acceso .en-paso-aqui { color: var(--dn-acento); background: var(--hueso); border-color: var(--hueso); }
+.cu-confianza { margin: 28px 0 0; display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--sand); font-size: 14px; line-height: 1.45; color: var(--taupe); }
+.cu-confianza .ic { width: 18px; height: 18px; flex: none; color: var(--verde); }
+
+/* En el celular, «Crear cuenta» va sin su lado (el formulario solo, como se decidió el 2026-10-19); «Entrar» lleva «¿Primera vez?» debajo; las de volver a entrar, sus pasos. */
 @container tienda (max-width: 959.98px) {
   .cu-pantalla[data-forma="crear"] :is(.cu-raya, .cu-lado) { display: none; }
+  /* Las páginas para volver a entrar llevan sus pasos debajo (dicen qué toca), como antes. */
+  .cu-pantalla[data-forma="acceso"] .cu-lado-t { font-size: 24px; }
 }
 
 /* ---- Desde 960 px ---- */
@@ -74,7 +100,7 @@
   }
   .cu-pantalla[data-forma="entrar"] .cu-raya { height: auto; align-self: stretch; }
   .cu-pantalla[data-forma="entrar"] .cu-lado-t { font-size: 32px; }
-  .cu-pantalla[data-forma="crear"] {
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) {
     display: grid;
     grid-template-columns: minmax(0, 460px) minmax(0, 400px);
     justify-content: center;
@@ -82,13 +108,13 @@
     max-width: none;
     padding: 56px 40px 72px;
   }
-  .cu-pantalla[data-forma="crear"] .cu-raya { display: none; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-raya { display: none; }
   /* El lado se queda a la vista mientras el formulario largo pasa. */
-  .cu-pantalla[data-forma="crear"] .cu-lado { position: sticky; top: 32px; align-self: start; padding-top: 64px; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-lado { position: sticky; top: 32px; align-self: start; padding-top: 64px; }
   .cu-pantalla[data-forma="crear"] .cu-beneficios { margin-top: 36px; }
   /* El pie del formulario largo, fijo abajo también en la computadora: «Falta: …» y el botón no se pierden al bajar. */
-  .cu-pantalla[data-forma="crear"] .w-pie-form { position: sticky; bottom: 0; z-index: 4; padding: 14px 0 18px; background: var(--crema); border-top: 1px solid var(--sand); box-shadow: none; }
-  .cu-pantalla[data-forma="crear"] .w-faltan { text-align: left; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-pie-form { position: sticky; bottom: 0; z-index: 4; padding: 14px 0 18px; background: var(--crema); border-top: 1px solid var(--sand); box-shadow: none; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-faltan { text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {
