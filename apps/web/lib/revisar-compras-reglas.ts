@@ -259,7 +259,7 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
   };
 }
 
-function leerCuaderno(x: unknown): CuadernoRonda | null {
+export function leerCuaderno(x: unknown): CuadernoRonda | null {
   const o = objeto(x);
   if (!o) return null;
   const n = (v: unknown) => numero(v) ?? 0;
