@@ -1,7 +1,7 @@
 # ADR-0705 — El probador dimensiona la prenda de arriba por su pecho, con las axilas que dice una IA
 
 **Fecha:** 2026-11-26 · **Estado:** aceptado por Felipe («Sí, constrúyelo», 2026-11-26). Construido en la rama `claude/probador-medida-por-axila`.
-La migración `20261126153000_recortes_medida_ia.sql` **no está en producción**: espera el OK de Felipe para pegarla (dos partes, en orden).
+La migración `20261126153000_recortes_medida_ia.sql` **está en producción** desde el 2026-11-26 (pegada en sus dos partes con el OK de Felipe; verificado: columna, permisos solo del servidor, `tienda_probador` con `ia` y 242 prendas). Quedaban 845 recortes por medir (~12 h a 12 cada 10 min, ~US$0,70).
 **Afecta:** `apps/tienda/lib/union-prendas.ts` (`anchosPorFila`, `anchoDelPecho`, `cajaPorElPecho`, `VERSION_DE_LA_MEDIDA` 3), `apps/tienda/lib/probador.ts`
 (el `ia` de cada recorte), `apps/tienda/components/probador/useUnionDeLaFigura.ts`, `apps/web/lib/medida-ia-reglas.ts`,
 `apps/web/app/api/fotos/medir-recortes/route.ts`, `apps/web/vercel.json`, `apps/web/lib/rutas-cron.ts`.
