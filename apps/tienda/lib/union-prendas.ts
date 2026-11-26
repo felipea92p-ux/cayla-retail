@@ -452,8 +452,12 @@ export function cajaDeAbajoUnida(
   const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
   // ADR-0705: si la de arriba ya se dimensionó por su pecho, el cuerpo manda: la pretina es la cintura estándar y NO sigue al bajo de la blusa (un nudo
   // angosta ese bajo y arrastraba al pantalón: la blusa se achicaba y el jean con ella, y la proporción no cambiaba). La blusa cuelga encima, como en una persona.
+  //    Una FALDA sí sigue al bajo de la blusa (sin pasar de la cintura estándar): con la cintura fija sobresalía a los lados de una blusa corta o anudada y se veía más
+  //    ancha que ella (Felipe, 2026-11-26, con el top de encaje y la Camisa Dalia).
   const pretinaSegunElBorde = arriba.porElPecho
-    ? estandar
+    ? abajo.falda
+      ? Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar)
+      : estandar
     : Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
   // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
   const pretinaPx = abajo.falda
