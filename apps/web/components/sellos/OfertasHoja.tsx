@@ -79,6 +79,8 @@ import {
   ofertaDesdeRegla,
   ofertaNueva,
   prendasQueAlcanza,
+  entraALaOferta,
+  quienesAliadas,
   problemasDeOferta,
   resumenAntes,
   choquesDeFilas,
@@ -172,7 +174,7 @@ export function OfertasHoja({
   categorias,
   tiendas,
   sedeActualId,
-  prendasConCosto,
+  prendasConCosto: prendasDelCatalogo,
   variantesManuales,
   insignias = [],
   hoy,
@@ -209,6 +211,8 @@ export function OfertasHoja({
    *  tallas. Sin ella la hoja no lo ofrece: la base ignoraría el dato y la oferta regiría en más prendas de las que dice. */
   porVariante?: boolean;
 }) {
+  // ADR-0683: las prendas de una aliada que no entra a las campañas no existen para una oferta (la base tampoco las alcanza).
+  const prendasConCosto = useMemo(() => prendasDelCatalogo.filter((p) => !p.fueraDeCampanas), [prendasDelCatalogo]);
   const campDesde = etiqueta.vigenteDesde;
   const campHasta = etiqueta.vigenteHasta;
   const terminada = campHasta !== null && campHasta < hoy;
@@ -398,6 +402,8 @@ export function OfertasHoja({
     [o.categoriasSolo, o.categoriasFuera, tocoCats, catsCampana],
   );
   const hayClaure = o.incluyeClaure || prendasConCosto.some((p) => p.deClaure);
+  // ADR-0683: cómo se nombra a las aliadas que entran a las campañas: la única («CLAURE») o «las aliadas».
+  const aliadas = quienesAliadas(prendasConCosto);
   // Las de Claurè que quedan fuera, dentro de lo que la oferta alcanzaría si las incluyera.
   const claureFuera = o.incluyeClaure ? 0 : contarPrendas(prendasQueAlcanza(prendasCampana, prendasConCosto, { ...o, incluyeClaure: true }).filter((p) => p.deClaure));
   const sinTiendas = idsDeTiendas.length === 0; // la lista no llegó (base sin ADR-0486): no hay nada que elegir ni exigir
@@ -967,7 +973,7 @@ export function OfertasHoja({
   // La frase de producción bajo «Categorías»: «Alcanza a 47 prendas a la venta: 3 de 1 categoría y 44 marcadas a mano.»
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Agrega una prenda o marca una categoría.";
-    const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
+    const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de ${aliadas} ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
     const comoLaCampana = o.categoriasSolo.length === 0 && idsDeFichas.length === 0 && o.insigniasSolo.length === 0;
     if (comoLaCampana && prendasCampana.length === 0) return "La campaña todavía no tiene prendas: marca las categorías o las prendas de esta oferta.";
     if (idsDeFichas.length > 0 || o.insigniasSolo.length > 0) {
@@ -978,7 +984,7 @@ export function OfertasHoja({
       ].filter(Boolean);
       return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta: las de ${lista(partes)}.${claure}`;
     }
-    const delCatalogo = prendasConCosto.filter((p) => o.incluyeClaure || !p.deClaure);
+    const delCatalogo = prendasConCosto.filter((p) => entraALaOferta(p, o.incluyeClaure));
     const a = alcanceCampana(delCatalogo, elegidasSolo, comoLaCampana ? manuales : new Set<string>());
     const partes = [a.porCategoria > 0 ? `${a.porCategoria} de ${plural(elegidasSolo.size, "categoría", "categorías")}` : "", a.aMano > 0 ? `${plural(a.aMano, "marcada", "marcadas")} a mano` : ""].filter(Boolean);
     return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${partes.length > 0 ? `: ${partes.join(" y ")}` : ""}.${claure}`;
@@ -989,7 +995,7 @@ export function OfertasHoja({
     () =>
       insignias
         .filter((i) => i.activa || o.insigniasSolo.includes(i.id))
-        .map((i) => ({ ...i, prendas: contarPrendas(prendasConCosto.filter((p) => (o.incluyeClaure || !p.deClaure) && (p.insignias ?? []).includes(i.id))) }))
+        .map((i) => ({ ...i, prendas: contarPrendas(prendasConCosto.filter((p) => entraALaOferta(p, o.incluyeClaure) && (p.insignias ?? []).includes(i.id))) }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     [insignias, prendasConCosto, o.insigniasSolo, o.incluyeClaure],
   );
@@ -997,10 +1003,10 @@ export function OfertasHoja({
   // Los modelos que se pueden elegir uno por uno: cada producto con todas sus tallas y colores, de todo el catálogo a la venta (ADR-0655).
   // `prendaId` es una de sus tallas: con ella se busca su foto.
   const modelos = useMemo(() => {
-    const m = new Map<string, { id: string; nombre: string; categoriaId: string | null; precio: number; colores: Set<string>; deClaure: boolean; prendaId: string }>();
+    const m = new Map<string, { id: string; nombre: string; categoriaId: string | null; precio: number; colores: Set<string>; deClaure: boolean; aliada: string | null; prendaId: string }>();
     for (const p of prendasConCosto) {
       if (!p.productoId) continue;
-      const x = m.get(p.productoId) ?? { id: p.productoId, nombre: p.referencia ?? p.nombre, categoriaId: p.categoriaId, precio: p.precio, colores: new Set<string>(), deClaure: Boolean(p.deClaure), prendaId: p.id };
+      const x = m.get(p.productoId) ?? { id: p.productoId, nombre: p.referencia ?? p.nombre, categoriaId: p.categoriaId, precio: p.precio, colores: new Set<string>(), deClaure: Boolean(p.deClaure), aliada: p.aliada ?? null, prendaId: p.id };
       x.precio = Math.min(x.precio, p.precio);
       x.colores.add(p.modelo ?? p.id);
       m.set(p.productoId, x);
@@ -1258,7 +1264,7 @@ export function OfertasHoja({
             <div className="of-sub" data-campo="oferta-categorias">
               <p className="of-pequeno" aria-live="polite">
                 Cuenta todo el catálogo: {plural(nAlcanza, "prenda", "prendas")} a la venta.
-                {claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : ""}
+                {claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de ${aliadas} ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : ""}
               </p>
             </div>
           ) : (
@@ -1387,7 +1393,7 @@ export function OfertasHoja({
                                 <span className="of-fila-nombre">{nombreM}</span>
                                 {m && (
                                   <span className="of-fila-dato">
-                                    {[porVariante ? resumenDeVariantes(variantesDe(id), elegidasDelModelo(o, id, variantesDe(id))) : "", `S/ ${m.precio.toFixed(2)}`, !porVariante && m.colores.size > 1 ? `${m.colores.size} colores` : "", m.deClaure ? "Claurè" : ""]
+                                    {[porVariante ? resumenDeVariantes(variantesDe(id), elegidasDelModelo(o, id, variantesDe(id))) : "", `S/ ${m.precio.toFixed(2)}`, !porVariante && m.colores.size > 1 ? `${m.colores.size} colores` : "", m.deClaure ? (m.aliada ?? "Aliada") : ""]
                                       .filter(Boolean)
                                       .join(" · ")}
                                   </span>
@@ -1516,11 +1522,11 @@ export function OfertasHoja({
           )}
           {hayClaure && (
             <div className="of-sub">
-              <span className="of-lbl">Prendas de Claurè</span>
-              <p className="of-pequeno">Es otra empresa: quedan fuera, salvo que las pongas a propósito.</p>
+              <span className="of-lbl">Prendas de {aliadas === "las aliadas" ? "empresas aliadas" : aliadas}</span>
+              <p className="of-pequeno">{aliadas === "las aliadas" ? "Son otras empresas" : "Es otra empresa"}: quedan fuera, salvo que las pongas a propósito.</p>
               <div className="of-opciones">
                 <button type="button" className="pildora-cayla" aria-pressed={o.incluyeClaure} onClick={() => cambiar({ incluyeClaure: !o.incluyeClaure })}>
-                  Incluir las de Claurè
+                  Incluir las de {aliadas}
                 </button>
               </div>
             </div>
@@ -1549,7 +1555,7 @@ export function OfertasHoja({
 
   // ---- Paso 4 · Revisa y activa (ADR-0655: un paso propio, no el pie de las prendas) ------------------------------------------------
   function preguntaRevisar() {
-    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede, sueltas);
+    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede, sueltas, aliadas);
     return (
       <>
         <h2 tabIndex={-1}>{editada?.estado === "activa" ? "Revisa y guarda" : "Revisa y activa"}</h2>
@@ -1602,8 +1608,8 @@ export function OfertasHoja({
               </Aviso>
             )}
             {o.incluyeClaure && (
-              <Aviso tono="atencion" titulo="Entran las prendas de Claurè">
-                Es otra empresa: confirma con su dueña que acepta el descuento.
+              <Aviso tono="atencion" titulo={`Entran las prendas de ${aliadas}`}>
+                {aliadas === "las aliadas" ? "Son otras empresas: confirma con cada dueña que acepta el descuento." : "Es otra empresa: confirma con su dueña que acepta el descuento."}
               </Aviso>
             )}
             {diasSueltos && rige && rige.rige > 0 && (

@@ -2,7 +2,7 @@
   "guia": "vender.historial",
   "ruta": "/vender/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 42,
   "controles": {
     "app/(app)/vender/historial/page.tsx": [
       "Link «Volver al período»",
@@ -46,6 +46,7 @@
       "CampoFecha «Hasta»",
       "button «Todo el historial»",
       "DesplegablePildora «Tienda»",
+      "DesplegablePildora «Empresa»",
       "DesplegablePildora «Vendedor»",
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Estado»",

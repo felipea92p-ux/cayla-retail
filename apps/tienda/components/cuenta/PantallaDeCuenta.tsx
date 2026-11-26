@@ -1,0 +1,83 @@
+import type { ReactNode } from "react";
+import { CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
+import { Icono } from "../Icono";
+import { Isotipo } from "../Isotipo";
+import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
+
+// «Entrar» y «Crear cuenta» en la dirección «A · Mostrador» (Felipe 2026-11-25, maqueta docs/maquetas/cuenta-profesional-2026-11): la
+// pantalla marfil y tranquila de las tiendas de moda grandes, sin el rojo de fondo ni la tarjeta flotando. Desde el 2026-11-26, como Zara
+// y Aritzia, llevan una foto de campaña a media pantalla a la izquierda (`foto`): en «Entrar», a su lado van entrar y, debajo,
+// «¿Primera vez en CAYLA?»; en «Crear cuenta», el formulario (la foto reemplazó a la tarjeta del Club). En el celular, sin foto: el
+// formulario primero. El rojo, solo en el botón principal. Estilos: app/estilos/cuenta-mostrador.css. Las páginas para volver a entrar
+// («Olvidé mi contraseña», «Contraseña nueva», «Restablecer mi acceso») usan el mismo marco, con los tres pasos al lado (`LadoDeAcceso`).
+
+/**
+ * El marco. `forma`: «entrar» (dos columnas iguales con una raya entre las dos), «crear» (el formulario y su lado, que se queda quieto;
+ * en el celular, sin lado), «acceso» (como «crear», pero en el celular el lado va debajo: los pasos dicen qué toca) o «sola» (una columna
+ * sin lado: «Cambiar mi correo» y «Eliminar mi cuenta», 2026-11-26).
+ */
+export function PantallaDeCuenta({
+  forma,
+  lado,
+  foto = false,
+  children,
+}: {
+  forma: "entrar" | "crear" | "acceso" | "sola";
+  lado?: ReactNode;
+  /** La foto de campaña a media pantalla, a la izquierda (como Zara y Aritzia; Felipe 2026-11-26). Solo desde 960 px. */
+  foto?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <EntradaViva>
+      <div className="cu-pantalla" data-forma={forma} data-foto={foto ? "" : undefined}>
+        {foto && (
+          // Decorativa: el lector de pantalla no la anuncia. Recorte «B» (centrada en la persona), elegido mirando el 2026-11-26.
+          <div className="cu-foto" aria-hidden="true">
+            {/* Archivo fijo de `public/escenario/`, ya en WebP y en dos anchos, como las demás fotos que no son de una prenda. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- ya viene optimizada; el optimizador solo acepta las fotos de prendas. */}
+            <img
+              src="/escenario/foto-de-entrada.webp"
+              srcSet="/escenario/foto-de-entrada-1200.webp 1200w, /escenario/foto-de-entrada.webp 2000w"
+              sizes="50vw"
+              alt=""
+              width={2000}
+              height={1333}
+              fetchPriority="high"
+            />
+          </div>
+        )}
+        <div className="cu-form">{children}</div>
+        {lado && (
+          <>
+            <div className="cu-raya" aria-hidden="true" />
+            {lado}
+          </>
+        )}
+      </div>
+    </EntradaViva>
+  );
+}
+
+/**
+ * El lado de las páginas para volver a entrar: los tres pasos del camino, con el que toca encendido (`actual`, desde 0; el formulario lo
+ * mueve al avanzar), y lo que tranquiliza: la cuenta y lo que tiene siguen ahí.
+ */
+export function LadoDeAcceso({ camino, actual }: { camino: CaminoDeAcceso; actual: number }) {
+  return (
+    <aside className="cu-lado cu-lado-acceso" aria-labelledby="cu-acceso">
+      <p className="cu-ceja">
+        <Isotipo className="cu-colibri" />
+        {PROMESA_ACCESO.ceja}
+      </p>
+      <h2 id="cu-acceso" className="cu-lado-t">
+        {PROMESA_ACCESO.linea} {PROMESA_ACCESO.cursiva}
+      </h2>
+      <PasosDeAcceso pasos={PASOS_DE_ACCESO[camino]} inicial={actual} />
+      <p className="cu-confianza">
+        <Icono nombre="check" />
+        {CONFIANZA_ACCESO}
+      </p>
+    </aside>
+  );
+}

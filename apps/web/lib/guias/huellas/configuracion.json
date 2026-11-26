@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 158,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -13,6 +13,11 @@
     "components/ConfiguracionCasilla.tsx": [
       "input «{etiqueta}»",
       "input «{etiqueta}» #2"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -112,7 +117,7 @@
       "Boton «+ Agregar fijo»",
       "button «{u.nombre}»",
       "LapizEditar «{f.descripcion}»",
-      "Casilla «{`Parte de CLAURE en ${f.nombre}»",
+      "Casilla «{`Parte de ${nombre}»",
       "BotonVerMas «{`Ver ${plegadas.length}»",
       "ComboResponsable «{responsable}»",
       "ComboResponsable «{responsable}» #2"
@@ -164,6 +169,35 @@
       "Casilla «{`Cuánto % suma «${c.nombre}»",
       "LapizEditar «{`«${c.nombre}» #2",
       "Boton «config.precios-agregar»"
+    ],
+    "components/vitrinas-sedes/EmpresasAliadas.tsx": [
+      "Boton «config.aliadas-agregar»",
+      "LapizEditar «{a.nombre}»",
+      "BotonDeshacer «→() => deshacerBaja(a.id, a.nombre)»",
+      "Boton «{e === 0 ? \"config.aliadas-comprobantes\" : undefined}»"
+    ],
+    "components/vitrinas-sedes/HojaComprobantesAliada.tsx": [
+      "Boton «Probar conexión»",
+      "CampoTexto «{guia.etiqueta(\"domicilio\", \"Domicilio fiscal\")}»",
+      "CampoTexto «{tieneLlave ? `Guardada · termina en …${conexion.termina ?? \"\"}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/vitrinas-sedes/HojaEmpresaAliada.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre en la tienda\")}»",
+      "Casilla «{t.nombre}»",
+      "CampoTexto «{guia.etiqueta(\"correo\", \"Correo\")}»",
+      "CampoTexto «{guia.etiqueta(\"telefono\", \"Teléfono\")}»",
+      "CampoTexto «Banco»",
+      "CampoTexto «{c.medio === \"transferencia\" ? \"Cuenta o CCI\" : \"Celular\"}»",
+      "button «Quitar esta cuenta»",
+      "Boton «(sin nombre)»",
+      "Boton «Dar de baja»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{`Escribe «${nombre}»",
+      "Boton «Cancelar» #2",
+      "Boton «Dar de baja» #2"
     ],
     "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
       "input «{`${NOMBRE_CAMPO[campo]}»",

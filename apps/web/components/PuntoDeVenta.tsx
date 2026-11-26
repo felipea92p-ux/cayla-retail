@@ -67,7 +67,11 @@ import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
-import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
+import { VentaRegistradaModal, queHacerEnEsteEquipo } from "@/components/VentaRegistradaModal";
+import { ImpresionAlCobrar } from "@/components/punto-de-venta/ImpresionAlCobrar";
+import type { FinBoleta } from "@/components/impresion/imprimirBoleta";
+import { AvisoAlCobrar } from "@/components/punto-de-venta/AvisoAlCobrar";
+import { ImpresionDelEquipo } from "@/components/punto-de-venta/ImpresionDelEquipo";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
@@ -76,12 +80,13 @@ import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
 import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
-import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { MQ_TELEFONO, type LineaEscaneada, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { consultarExistencias } from "@/lib/escaner-existencias";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { useSinRegistrarDeHoy } from "@/lib/useSinRegistrarDeHoy";
 import { SinRegistrarDeHoy } from "@/components/punto-de-venta/SinRegistrarDeHoy";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,
@@ -175,12 +180,14 @@ import { candidatosParaPedir, type CandidatoPedir, type TiendaParaPedir } from "
 import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
-import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
+import { RegistrarBajadaModal, type PrendaDeLaBajada } from "@/components/punto-de-venta/RegistrarBajadaModal";
+import { declararPila, decidirLectura, soltarPila } from "@/lib/lectura-repetida";
+import { avisarLectura } from "@/lib/sonido-conteo";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
-import { esDeClaure, numeroQueDar, repartoDelTicket } from "@/lib/cobro-por-dueno-reglas";
+import { aliadaDeLaLinea, conCuentasPagos, cuentaDelPago, numeroQueDar, numerosPara, pedidoDeCuentas, repartoPorDueno, type NumeroDeAliada } from "@/lib/cobro-por-dueno-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
@@ -205,6 +212,7 @@ const PrendaSinRegistrarBajoDemanda = hojaBajoDemanda(
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
+const SIN_NUMEROS: readonly NumeroDeAliada[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
 const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 
@@ -426,6 +434,9 @@ type Props = {
    *  defecto y, donde hay dos para un mismo medio (Vendemás e Izipay en TRU y AQP), la hoja de cobro deja cambiarla con un toque.
    *  Vacío (la base todavía no las conoce, o la tienda no tiene) = la hoja no pregunta y la base sella sola, como antes. */
   maquinasCobro?: readonly MaquinaDeCobro[];
+  /** Los Yape, Plin y cuentas de las empresas aliadas de esta tienda (`fn_cuentas_de_aliadas_en_sede`, ADR-0683). Con ellos, un pago de un
+   *  ticket con prendas de una aliada pregunta a qué número pagó la clienta. Vacío = no pregunta y la base sella en CAYLA. */
+  numerosAliadas?: readonly NumeroDeAliada[];
   /** Los comprobantes que esta sede puede emitir (los que tienen serie activa, `tiposDeComprobanteDeLaSede`). Sin el dato, los tres. */
   tiposComprobante?: readonly ("boleta" | "factura" | "nota_venta")[];
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
@@ -463,7 +474,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, numerosAliadas = SIN_NUMEROS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -667,6 +678,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     return () => window.removeEventListener("online", alVolver);
   });
   const [ok, setOk] = useState<VentaOk | null>(null);
+  // La boleta que sale sola al cobrar, sin hoja (`lib/imprimir-al-cobrar.ts`): la venta, y cuál impresión es (una nueva al reimprimir).
+  const [impresion, setImpresion] = useState<{ venta: VentaOk & { recibo: ReciboVenta }; vez: number } | null>(null);
+  // El aviso al cobrar, que reemplaza a «Venta registrada» (maqueta impresion-vender-2026-11, Felipe 2026-11-25): impresa aquí o en la caja.
+  const [avisoCobro, setAvisoCobro] = useState<{
+    venta: VentaOk & { recibo: ReciboVenta };
+    donde: "aqui" | "caja";
+    fase: "imprimiendo" | "impresa" | "fallo";
+  } | null>(null);
+  // Lo que se ve AHORA del aviso al cobrar, para la impresión que termina tarde: saber si la cajera ya lo cerró con «Nueva venta».
+  const avisoCobroAhora = useRef(avisoCobro);
+  avisoCobroAhora.current = avisoCobro;
   const [manualAbierto, setManualAbierto] = useState(false);
   // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
   const [bolsasAbiertas, setBolsasAbiertas] = useState(false);
@@ -732,10 +754,42 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
   const carritoConPiso = useMemo(() => conPisoAlDia(carrito, variantesVisibles), [carrito, variantesVisibles]);
+  // Lo que muestra la hoja de la bajada (`RegistrarBajadaModal`): cada prenda con su foto y lo que hay en el piso y en el almacén
+  // AHORA (el stock en vivo), así la hoja dice por qué no entró sola. Una prenda que ya no está en el catálogo de la caja no se lista.
+  const prendasDeLaBajada = useMemo<PrendaDeLaBajada[]>(
+    () =>
+      (bajadaPorConfirmar ?? []).flatMap((id) => {
+        const v = variantesConOverlay.find((x) => x.varianteId === id);
+        if (!v) return [];
+        return [
+          {
+            varianteId: id,
+            referencia: v.referencia,
+            detalle: [v.color, v.talla].filter(Boolean).join(" · "),
+            fotoUrl: v.fotoUrl,
+            colorHex: v.colorHex ?? null,
+            categoria: { prefijo: v.categoriaPrefijo, familia: v.categoriaFamilia, categoria: v.categoria },
+            piso: v.stockAqui,
+            almacen: v.almacenAqui ?? 0,
+            enTicket: carrito.find((it) => it.claveLinea === id)?.cantidad ?? 0,
+          },
+        ];
+      }),
+    [bajadaPorConfirmar, variantesConOverlay, carrito],
+  );
   const insigniaPorVariante = useMemo(() => new Map(variantes.map((v) => [v.varianteId, v.empresa])), [variantes]);
   // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
   // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
-  const detallesDelTicket = useMemo(() => new Map(variantes.map((v) => [v.varianteId, { color: v.color, talla: v.talla }])), [variantes]);
+  const detallesDelTicket = useMemo(
+    () =>
+      new Map(
+        variantes.map((v) => [
+          v.varianteId,
+          { color: v.color, talla: v.talla, miniatura: { fotoUrl: v.fotoUrl, colorHex: v.colorHex ?? null, categoria: categoriaDe(v) } },
+        ]),
+      ),
+    [variantes],
+  );
   // Las prendas de este ticket que también están en otro abierto cuando no alcanza para todos (Felipe, 2026-10-25): solo avisa, no reserva.
   const prendasEnOtrosTickets = useMemo(
     () =>
@@ -1144,6 +1198,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // `lib/vender-stock-local.ts`).
     const motivo = motivoNoCobrable(v);
     if (motivo !== "cobrable") {
+      // En el celular y la tablet, la del almacén se ofrece en una hoja abajo, junto al dedo que tocó la talla (`bajadaEnHoja`). No
+      // se vuelve al buscador: la hoja toma el foco y, al cerrarse, lo devuelve a la talla tocada.
+      if (!silencioso && bajadaEnHoja(motivo, v)) {
+        setBajadaPorConfirmar([v.varianteId]);
+        setAviso(null);
+        setQ("");
+        setActivo(0);
+        return motivo;
+      }
       if (!silencioso) {
         const { titulo, detalle } = avisoSinPiso(datosAviso);
         // ADR-0321: si el sistema la tiene en el almacén de esta tienda, lo que falta es el registro de la bajada (la
@@ -1197,9 +1260,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       const { titulo, detalle } = avisoAgregada({ nombre: [v.referencia, v.color, v.talla].filter(Boolean).join(" · "), cantidad: (existente?.cantidad ?? 0) + 1 });
       avisar.exito(titulo, { detalle });
     }
+    // Todas las del piso ya están en el ticket y hay más en el almacén: en el celular, la misma hoja de la bajada.
+    const hojaDelTope = tope && !silencioso && bajadaEnHoja("tope", v);
     if (tope) {
       resaltarTope(v.varianteId);
-      if (!silencioso) {
+      if (hojaDelTope) setBajadaPorConfirmar([v.varianteId]);
+      else if (!silencioso) {
         const { titulo, detalle } = avisoTope(datosAviso);
         avisar.aviso(titulo, { detalle, ...accionDeBajada("tope", v) });
       }
@@ -1207,7 +1273,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setAviso(null);
     setQ("");
     setActivo(0);
-    volverAlCampo();
+    if (!hojaDelTope) volverAlCampo();
     return tope ? "tope" : "agregada";
   }
 
@@ -1215,6 +1281,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Colgaron la prenda sin registrar la bajada y en el sistema el piso está en 0: el aviso ofrece agregarla registrando la
   // bajada (`bajar_al_piso_desde_vender`, que pide Vender y firma quien atiende). La venta no se corta por un error de
   // registro (D-40). Si todavía no se eligió quién atiende, primero se pregunta (`RegistrarBajadaModal`).
+
+  /** ¿La bajada se ofrece en la hoja y no en el aviso? En el celular y la tablet (`apilado`: el ticket ya vive en su hoja), sí: el
+   *  aviso salía arriba, lejos del pulgar, con el botón partido en dos líneas y se iba solo (`textosHojaBajada`). En el escritorio
+   *  sigue el aviso: no le quita el foco al lector de códigos. Solo si lo que la frena es el almacén de ESTA tienda. */
+  function bajadaEnHoja(estado: string, v: VarianteBusqueda): boolean {
+    return apilado && quedoEnAlmacen(estado, v.almacenAqui);
+  }
 
   /** El aviso de una prenda frenada lleva botón solo si lo que la frena es el almacén de ESTA tienda (`quedoEnAlmacen`).
    *  El botón dura más (15 s): hay que leer y decidir con la clienta delante. */
@@ -1308,10 +1381,42 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // `agregar` del render más reciente: el ticket pudo cambiar mientras la base respondía.
     const estado = alDia.current.agregar({ ...v, stockAqui: Math.max(0, r.piso - comprometidoEnCola), almacenAqui: r.almacen });
     if (estado === "agregada") {
-      const { titulo, detalle } = avisoBajadaRegistrada({ nombre, sede: ubicacionEtiqueta, bajadas: r.bajadas });
-      avisar.exito(titulo, { detalle });
+      bajadasQueEntraron.current.set(varianteId, enTicket + 1);
+      // Con la cámara abierta lo dice su propia fila (pasa a «entró»): el aviso de arriba le taparía la ✕.
+      if (!camaraAbierta) {
+        const { titulo, detalle } = avisoBajadaRegistrada({ nombre, sede: ubicacionEtiqueta, bajadas: r.bajadas });
+        avisar.exito(titulo, { detalle });
+      }
     }
     return true;
+  }
+
+  /** Las bajadas de la última hoja que terminaron en el ticket, con cuántas van de esa prenda: lo que la cámara necesita saber al
+   *  cerrarse la hoja que abrió su «Agregar» (`bajarDesdeCamara`). */
+  const bajadasQueEntraron = useRef<Map<string, number>>(new Map());
+  /** La hoja de la bajada abierta desde una fila de la cámara: a quién avisarle cuando se cierre (con cuántas van, o `null`). */
+  const bajadaDeLaCamara = useRef<{ varianteId: string; responder: (lleva: number | null) => void } | null>(null);
+
+  /** «Agregar» de una fila de la cámara que frenó el almacén: abre la hoja de la bajada encima de la cámara (que deja de leer) y
+   *  responde cuando se cierra. Si entró, ya no queda «en el almacén» para la hoja de al cerrar la cámara. */
+  function bajarDesdeCamara(codigo: string): Promise<number | null> {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v || bloqueado || bajadaDeLaCamara.current) return Promise.resolve(null);
+    return new Promise((responder) => {
+      bajadasQueEntraron.current.clear();
+      bajadaDeLaCamara.current = { varianteId: v.varianteId, responder };
+      setBajadaPorConfirmar([v.varianteId]);
+    });
+  }
+
+  function alCerrarHojaDeBajada() {
+    setBajadaPorConfirmar(null);
+    const pendiente = bajadaDeLaCamara.current;
+    if (!pendiente) return;
+    bajadaDeLaCamara.current = null;
+    const lleva = bajadasQueEntraron.current.get(pendiente.varianteId) ?? null;
+    if (lleva !== null) quedaronEnAlmacen.current.delete(pendiente.varianteId);
+    pendiente.responder(lleva);
   }
 
   /** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (por prenda, sin repetir).
@@ -1319,22 +1424,59 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  (`cerrarCamara`). Una lectura posterior de la misma prenda que sí entra (la bajaron mientras tanto) la saca. */
   const quedaronEnAlmacen = useRef<Map<string, string>>(new Map());
 
+  /** Las prendas que con «Cambiar cantidad» se declararon varias iguales: la cámara ya no pregunta por ellas mientras sigan en el
+   *  ticket (ADR-0562, «pilas»; viven en la pantalla, no en la base). */
+  const pilasDeLaCamara = useRef<string[]>([]);
+
   /** Una lectura de la cámara: el mismo camino que el Enter del lector (`alTeclado`), sin la lista de resultados —
-   *  un QR es un código exacto o no es nada. */
-  function alEscanear(codigo: string): ResultadoEscaneo {
+   *  un QR es un código exacto o no es nada—. La prenda que YA está en el ticket no se suma sola: vuelve `repetida` y la cámara
+   *  pregunta «¿Sumar otra?» (ADR-0562, act. 2026-11-25; la regla es `decidirLectura`, la misma de Bajar al piso). La cámara deja
+   *  de leer mientras pregunta, así que aquí nunca hay una pregunta abierta. `sinPreguntar`: la respuesta «Sumar». */
+  function alEscanear(codigo: string, { sinPreguntar = false }: { sinPreguntar?: boolean } = {}): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) {
       return { estado: "no-encontrada", codigo };
     }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    // Cuántas llevaba el ticket antes: si entra, la bandeja dice «van 2» desde la segunda (ya estaba en el ticket).
+    const antes = carrito.find((it) => it.claveLinea === v.varianteId)?.cantidad ?? 0;
+    // Una prenda que salió del ticket vuelve a preguntar («Preguntar de nuevo» de Bajar al piso es quitarla).
+    if (antes === 0) pilasDeLaCamara.current = soltarPila(pilasDeLaCamara.current, v.varianteId);
+    // ¿La sumaría por su cuenta? Solo si se cobra y el piso alcanza para una más: lo que no, se lee como siempre (su fila dice por qué).
+    const sumaria = !sinPrecioParaVender(v) && motivoNoCobrable(v) === "cobrable" && antes < v.stockAqui;
+    if (!sinPreguntar && decidirLectura(v.varianteId, antes, sumaria, { pregunta: null, pilas: pilasDeLaCamara.current }).tipo === "pregunta") {
+      // «Ya la escaneaste» suena distinto de «no entró» (ADR-0690): el doble toque de Bajar al piso. La cámara no suena otra vez.
+      avisarLectura("repetida");
+      return { estado: "repetida", codigo, nombre, prenda, almacen: v.almacenAqui, lleva: antes, tope: v.stockAqui, clave: v.varianteId };
+    }
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
     // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
     // apartada o agotada) la saca: si no, al cerrar la cámara diría «está en el almacén, que la bajen» de una prenda que
     // ya no está en el almacén (la apartó otra caja entre dos lecturas).
     if (quedoEnAlmacen(estado, v.almacenAqui)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
     else quedaronEnAlmacen.current.delete(v.varianteId);
-    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
+    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui, clave: v.varianteId, ...(estado === "agregada" ? { lleva: antes + 1 } : {}) };
+  }
+
+  /** «Cambiar cantidad» de la pregunta de la cámara: deja esa prenda con ese total en el ticket y la declara «varias iguales». */
+  function cantidadDesdeCamara(codigo: string, total: number): ResultadoEscaneo {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v) return { estado: "no-encontrada", codigo };
+    pilasDeLaCamara.current = declararPila(pilasDeLaCamara.current, v.varianteId);
+    const lleva = Math.max(1, Math.min(total, v.stockAqui));
+    cambiarCantidad(v.varianteId, lleva);
+    const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    return { estado: "agregada", codigo, nombre: [v.referencia, v.talla].filter(Boolean).join(" · "), prenda, almacen: v.almacenAqui, lleva, clave: v.varianteId };
+  }
+
+  /** El tacho de una fila de la bandeja de la cámara: quita UNA de esa prenda (la línea entera si era la única). Sin confirmación:
+   *  sumar al ticket es estado local, no dinero ni stock (como «Quitar del ticket» de la hoja de la prenda). */
+  function quitarUnaDesdeCamara(claveLinea: string) {
+    const item = carrito.find((it) => it.claveLinea === claveLinea);
+    if (!item) return;
+    if (item.cantidad > 1) cambiarCantidad(claveLinea, item.cantidad - 1);
+    else quitar(claveLinea);
   }
 
   /** Cierra la cámara y, si algo quedó fuera por estar en el almacén, lo dice una sola vez (ya sin la hoja encima). */
@@ -1343,6 +1485,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const fuera = [...quedaronEnAlmacen.current.keys()];
     const aviso = avisoQuedaronEnAlmacen([...quedaronEnAlmacen.current.values()], ubicacionEtiqueta);
     quedaronEnAlmacen.current.clear();
+    // En el celular, lo que quedó fuera se ofrece en la hoja de la bajada, todas juntas (ya sin la cámara encima).
+    if (aviso && apilado && !bloqueado) {
+      setBajadaPorConfirmar(fuera);
+      return;
+    }
     // ADR-0321: el mismo botón que en el lector, para todas las que quedaron fuera de una vez.
     if (aviso) {
       avisar.aviso(aviso.titulo, {
@@ -1745,6 +1892,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const conVentajaDelClub = valeDelTicket !== null;
   const total = valeDelTicket ? conVale.total : totalDeLineas(grupos.lineas);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
+  // La bandeja de la cámara: cada línea del ticket con su foto, color y talla (del catálogo de la caja; un monto manual va sin ellos).
+  const lineasDeLaCamara: LineaEscaneada[] = camaraAbierta
+    ? carrito.map((it) => {
+        const v = variantesVisibles.find((x) => x.varianteId === it.varianteId);
+        return {
+          clave: it.claveLinea,
+          referencia: it.referencia,
+          detalle: v ? [v.color, v.talla].filter(Boolean).join(" · ") : "",
+          fotoUrl: v?.fotoUrl ?? null,
+          cantidad: it.cantidad,
+          importe: totalDeLineas([it]),
+        };
+      })
+    : [];
   // Lo que gana la miembro con esta compra (programa de puntos): lo que PAGA (ya con el cupón) por los puntos por sol de hoy, más el
   // regalo de cumpleaños si le toca. Solo se dice; quien suma es la base al cobrar (`fn_club_puntos_por_venta`).
   const puntosDelTicket = cuponClub.puntos;
@@ -1794,15 +1955,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const enTicket = new Set(carrito.map((it) => it.varianteId));
   const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
   const faltaDuenoEn = variantesSinDueno([...enTicket], duenosPorVariante, duenoVigente);
-  // Donde conviven dos empresas, a qué número paga quien usa Yape o Plin. Mientras falte decir de quién sale una prenda, no se dice nada.
-  const numeroADar =
+  // Donde conviven varias empresas, a qué número paga quien usa Yape o Plin. Mientras falte decir de quién sale una prenda, no se dice nada.
+  const repartoDueno =
     duenosPorVariante && faltaDuenoEn.length === 0
-      ? numeroQueDar(
-          repartoDelTicket(lineasConClub, (l) => esDeClaure(l.varianteId, insigniaPorVariante.get(l.varianteId), duenosPorVariante, duenoVigente)),
-          pagos.map((p) => p.metodo),
-        )
+      ? repartoPorDueno(lineasConClub, (l) => aliadaDeLaLinea(l.varianteId, insigniaPorVariante.get(l.varianteId), duenosPorVariante, duenoVigente))
       : null;
-  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
+  const numeroADar = numeroQueDar(repartoDueno, pagos.map((p) => p.metodo));
+  // «¿A qué número pagó?» (ADR-0683, Felipe 2026-11-21: «tener las dos opciones»): solo si el ticket lleva algo de una aliada con número aquí.
+  const conAliadas = repartoDueno?.aliadas.some((a) => a.monto > 0 && a.empresaId) ?? false;
+  const preguntasNumero = conAliadas
+    ? pagos.flatMap((p, indice) => {
+        const opciones = numerosPara(numerosAliadas, p.metodo);
+        return opciones.length === 0
+          ? []
+          : [{ indice, metodo: p.metodo, opciones: [{ valor: "", nombre: "CAYLA" }, ...opciones.map((o) => ({ valor: o.cuentaId, nombre: o.nombre }))], valor: cuentaDelPago(p, repartoDueno, numerosAliadas) }];
+      })
+    : [];
+  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de más de una empresa.` : null;
   const motivoBloqueo = motivoDueno ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
@@ -1848,6 +2017,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setPagos((actual) => [...actual, pagoNuevo(metodo, Math.max(0, restante), maquinasCobro)]);
   }
   // Con qué máquina se cobró la tarjeta o el QR (ADR-0429): cambia solo la cuenta de ESE pago; el monto y el resto quedan.
+  function cambiarNumero(indice: number, valor: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, numeroAliada: valor } : p)));
+  }
   function cambiarMaquina(indice: number, cuentaId: string) {
     setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, cuentaId } : p)));
   }
@@ -2044,10 +2216,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     };
 
     const supabase = createClient();
+    // ADR-0683: a qué número de una dueña pagó cada Yape, Plin o transferencia. Viaja aparte (`x-cuentas-pagos`); sin nada que pedir, no viaja.
+    const pedidoCuentas = conAliadas ? pedidoDeCuentas(pagos, (p) => cuentaDelPago(p, repartoDueno, numerosAliadas)) : [];
     const r = await envio.enviar(huellaDe({ ...params, p_token: undefined }), (token, senal) => {
       // Antes de mandarlo, el cobro queda anotado: si la página se cae ahora, al volver se pregunta por él.
       anotarCobro(token);
-      return conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items));
+      return conCuentasPagos(conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items)), pedidoCuentas);
     });
     // Una ráfaga de clics o de Enter: el primero ya está cobrando.
     if (r.tipo === "ocupado" || r.tipo === "congelado") return;
@@ -2263,9 +2437,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
     setLoading(false);
     responsable.despues(null);
-    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
-    setOk({
+    const venta: VentaOk = {
       total,
       prendas,
       recibo,
@@ -2276,7 +2449,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
       celularEnFicha,
-    });
+    };
+    // «Imprimir solo al cobrar» (de fábrica en un computador, `lib/imprimir-al-cobrar.ts`): la boleta sale sola y Vender vuelve a una
+    // venta nueva sin la hoja; el aviso al cobrar dice cómo va (`AvisoAlCobrar`). En el celular la boleta va a la caja, también sin hoja
+    // (2026-11-25). La hoja sigue para lo que tiene algo que ver o hacer: el WhatsApp, sin conexión o sin comprobante.
+    const queHacer = queHacerEnEsteEquipo(venta);
+    if (venta.recibo && (queHacer === "imprimir-sin-hoja" || queHacer === "mandar-sin-hoja")) {
+      const conRecibo = { ...venta, recibo: venta.recibo };
+      // Aquí imprime `ImpresionAlCobrar`; en el celular, la pide a la caja el aviso (`colaDeLaCaja.ts`) y la tuerca cuenta las que esperan.
+      if (queHacer === "imprimir-sin-hoja") setImpresion({ venta: conRecibo, vez: 1 });
+      setAvisoCobro({ venta: conRecibo, donde: queHacer === "imprimir-sin-hoja" ? "aqui" : "caja", fase: "imprimiendo" });
+      volverAArmar();
+    } else {
+      avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
+      setOk(venta);
+    }
     // El cupón se gastó con esta venta (o no se usó): la próxima empieza sin él, y los puntos de la clienta se leen de nuevo.
     cuponClub.quitar();
     cuponClub.recargar();
@@ -2292,16 +2479,43 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     } else trasVender(vendidas);
   }
 
-  // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
-  // arranca por las prendas, no por el cobro.
-  function cerrarVentaRegistrada() {
-    setOk(null);
+  // Al cerrar «Venta registrada» (o al cobrar sin ella) el ticket vuelve a «armar»: la venta
+  // siguiente arranca por las prendas, no por el cobro.
+  function volverAArmar() {
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
     setNota("");
     responsable.limpiar();
     setMomento("armar");
+  }
+
+  function cerrarVentaRegistrada() {
+    setOk(null);
+    volverAArmar();
+  }
+
+  /** La boleta que salió sola al cobrar ya se mandó (o no): el aviso al cobrar lo dice. Si la cajera ya lo cerró con «Nueva venta» y la
+   *  boleta no salió, un aviso de esquina lo dice con «Reintentar»: no se le abre una hoja encima de la venta que está armando. */
+  function terminoLaImpresion(actual: { venta: VentaOk & { recibo: ReciboVenta }; vez: number }, fin: FinBoleta) {
+    // Solo si sigue siendo la de ahora: una impresión que termina tarde no se lleva la de la venta siguiente.
+    setImpresion((enCurso) => (enCurso === actual ? null : enCurso));
+    const salio = fin !== "frenada" && fin !== "fallo";
+    if (avisoCobroAhora.current?.venta === actual.venta) {
+      setAvisoCobro((a) => (a && a.venta === actual.venta ? { ...a, fase: salio ? "impresa" : "fallo" } : a));
+    } else if (!salio) {
+      avisar.error(`La boleta ${textoNumeroRecibo(actual.venta.recibo)} no salió`, {
+        accion: { texto: "Reintentar", onClick: () => setImpresion({ venta: actual.venta, vez: actual.vez + 1 }) },
+      });
+    }
+  }
+
+  /** «Imprimir otra copia» (o «Reintentar», si no salió) desde el aviso al cobrar: otra impresión de la misma boleta. */
+  function reimprimirDelAviso() {
+    if (!avisoCobro) return;
+    const venta = avisoCobro.venta;
+    setImpresion((enCurso) => ({ venta, vez: (enCurso?.vez ?? 1) + 1 }));
+    setAvisoCobro({ ...avisoCobro, fase: "imprimiendo" });
   }
 
   // La hoja de cobro (Felipe, 2026-10-02): en escritorio entra sobre el catálogo y confirma el formulario del ticket desde
@@ -2319,6 +2533,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       maquinas={maquinasCobro}
       onMaquina={cambiarMaquina}
       numeroADar={numeroADar}
+      preguntasNumero={preguntasNumero}
+      onNumero={cambiarNumero}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}
@@ -2430,7 +2646,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             responsable={responsable}
           enHoja={enHoja}
           onCerrarHoja={() => setHojaTicket(false)}
-          abajo={<SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
+          // En la hoja del celular no va (Felipe 2026-11-25): le quitaba dos líneas a las prendas y en el piso no se usa; la mesa
+          // de «Por regularizar» sigue en Existencias y el pie de escritorio la sigue diciendo.
+          abajo={enHoja ? undefined : <SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
           arriba={
             <>
               {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
@@ -2524,6 +2742,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
+            <ImpresionDelEquipo />
             <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
@@ -2759,6 +2978,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onQuitar={quitar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
+          bajadaEnHoja={apilado}
           pie={(color) => {
             // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
             const candidatos = pedirAOtraSede
@@ -2815,10 +3035,19 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          // «Ya está en el ticket · ¿Sumar otra?»: Sumar la agrega sin volver a preguntar; Cambiar cantidad pone el total.
+          onSumarOtra={(codigo) => alEscanear(codigo, { sinPreguntar: true })}
+          onCantidad={cantidadDesdeCamara}
+          // Lo del almacén de esta tienda se agrega desde su fila: la hoja de la bajada sale encima y la cámara no lee mientras tanto.
+          onBajar={bajarDesdeCamara}
+          pausada={bajadaPorConfirmar !== null}
           // El interruptor «Al ticket / Existencias» (Felipe 2026-10-28): en «Existencias» la cámara lee la etiqueta y dice cuántas hay de
           // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
           consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
           ticket={{ prendas, total }}
+          // La bandeja «Escaneadas» es el ticket: una fila por prenda con su cantidad, y su tacho quita de a una.
+          lineas={lineasDeLaCamara}
+          onQuitar={quitarUnaDesdeCamara}
           onBuscarPorNombre={() => {
             cerrarCamara();
             setBuscarPorTexto(true);
@@ -2831,16 +3060,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
-      {bajadaPorConfirmar && (
+      {prendasDeLaBajada.length > 0 && bajadaPorConfirmar && (
         <RegistrarBajadaModal
-          nombres={bajadaPorConfirmar.map((id) => {
-            const v = variantesConOverlay.find((x) => x.varianteId === id);
-            return v ? [v.referencia, v.talla].filter(Boolean).join(" · ") : "La prenda";
-          })}
-          sede={ubicacionEtiqueta}
+          prendas={prendasDeLaBajada}
           responsable={responsable}
-          onConfirmar={() => void registrarBajadas(bajadaPorConfirmar)}
-          onClose={() => setBajadaPorConfirmar(null)}
+          onConfirmar={() => registrarBajadas(bajadaPorConfirmar)}
+          onClose={alCerrarHojaDeBajada}
         />
       )}
 
@@ -2934,6 +3159,26 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+      {avisoCobro && (
+        <AvisoAlCobrar
+          key={avisoCobro.venta.ventaId ?? textoNumeroRecibo(avisoCobro.venta.recibo)}
+          venta={avisoCobro.venta}
+          donde={avisoCobro.donde}
+          faseAqui={avisoCobro.fase}
+          onReimprimir={reimprimirDelAviso}
+          onClose={() => setAvisoCobro(null)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
+      {impresion && (
+        <ImpresionAlCobrar
+          key={`${impresion.venta.ventaId ?? textoNumeroRecibo(impresion.venta.recibo)}-${impresion.vez}`}
+          recibo={impresion.venta.recibo}
+          // Con el aviso al cobrar abierto, él dice cómo salió; sin él (una reimpresión desde la esquina), el aviso de siempre.
+          conAviso={impresion.vez > 1 && !avisoCobro}
+          alTerminar={(fin) => terminoLaImpresion(impresion, fin)}
+        />
+      )}
 
       {envio.incierto && (
         <CobroEnDuda

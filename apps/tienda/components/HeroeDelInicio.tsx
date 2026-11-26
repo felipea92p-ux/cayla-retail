@@ -113,7 +113,7 @@ export function HeroeDelInicio({
             <span className="t-hero-ceja">
               {hero.campana.hasta ? (
                 <span>
-                  Campaña · hasta el <span className="t-fecha-larga">{fechaLarga(hero.campana.hasta)}</span>
+                  Campaña hasta el <span className="t-fecha-larga">{fechaLarga(hero.campana.hasta)}</span>
                   <span className="t-fecha-corta">{fechaCorta(hero.campana.hasta)}</span>
                 </span>
               ) : (

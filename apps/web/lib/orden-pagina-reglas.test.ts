@@ -1220,7 +1220,7 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
   it("sin `tela_pendiente` (una base o una lista que no lo manda) cada insumo no tiene nada reservado ni pedido: «alcanza» se mide contra todo el estante, como antes", () => {
     const [gabardina] = orden().insumos;
     expect(gabardina).toMatchObject({ comprometidoOtras: 0, pedidos: [] });
-    expect(filasDeTela(orden().insumos)[0]).toMatchObject({ alcanza: true, faltan: null, faltanNumero: null, reservadoPorOtras: null, pedidos: [] });
+    expect(filasDeTela(orden().insumos)[0]).toMatchObject({ alcanza: true, faltan: null, reservadoPorOtras: null, pedidos: [] });
   });
 
   it("lee lo que reservan las otras y lo pedido; lo que no se entiende se descarta o queda en cero", () => {
@@ -1235,20 +1235,20 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
 
   it("lo que otras órdenes reservan se resta de lo libre: con 20 m en el estante y 20 reservados, a una orden a la que le falta 1 m le faltan 1 m (antes decía «Alcanza»)", () => {
     const [f] = filasDeTela(pendiente({ comprometido_otras: 20 }).insumos);
-    expect(f).toMatchObject({ alcanza: false, faltan: "1 m", faltanNumero: 1, reservadoPorOtras: "Otras órdenes ya reservan 20 m" });
+    expect(f).toMatchObject({ alcanza: false, faltan: "1 m", reservadoPorOtras: "Otras órdenes ya reservan 20 m" });
     expect(filasDeTela(pendiente({ comprometido_otras: 19 }).insumos)[0]).toMatchObject({ alcanza: true });
   });
 
   it("lo que viene en camino SÍ cuenta (regla de Felipe, 2026-10-16): con 1 m de falta y 35 m por recibir alcanza «gracias a lo que viene», y se ve de qué pedido", () => {
     const o = pendiente({ comprometido_otras: 20, en_camino: 35, pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 35, unidad: "metro", fecha_entrega: "2026-10-23", atrasado: false }] });
     const [f] = filasDeTela(o.insumos);
-    expect(f).toMatchObject({ alcanza: true, conLoQueViene: true, faltan: null, faltanNumero: null, enCamino: "35 m", atrasado: null });
+    expect(f).toMatchObject({ alcanza: true, conLoQueViene: true, faltan: null, enCamino: "35 m", atrasado: null });
     expect(f.pedidos).toEqual(["OI-000003 · 35 m a Textiles Andinos · llega el vie 23 oct"]);
   });
 
   it("si lo que viene no cubre, sigue faltando lo que queda: con 1 m de falta y 0.4 m por recibir faltan 0.6 m", () => {
     const [f] = filasDeTela(pendiente({ comprometido_otras: 20, en_camino: 0.4 }).insumos);
-    expect(f).toMatchObject({ alcanza: false, conLoQueViene: false, faltan: "0.6 m", faltanNumero: 0.6, enCamino: "0.4 m" });
+    expect(f).toMatchObject({ alcanza: false, conLoQueViene: false, faltan: "0.6 m", enCamino: "0.4 m" });
   });
 
   it("un pedido ATRASADO no cuenta: la tela sigue faltando y el pedido sale con su aviso, aparte de lo que viene", () => {

@@ -20,7 +20,7 @@ const conLaPuerta = paginas(RAIZ).filter((p) => readFileSync(p, "utf8").includes
 
 describe("las pantallas de Producción no mandan a nadie a Inicio sin decirle por qué", () => {
   it("hay pantallas con la puerta del Taller (la prueba no puede quedar vacía)", () => {
-    expect(conLaPuerta.length).toBeGreaterThanOrEqual(9);
+    expect(conLaPuerta.length).toBeGreaterThanOrEqual(8); // 9 hasta ADR-0702 (2026-11-25), que retiró /produccion/recibir
   });
   it.each(conLaPuerta.map((p) => [p.slice(RAIZ.length)]))("%s muestra el aviso a todos y no redirige", (ruta) => {
     const codigo = readFileSync(join(RAIZ, ruta), "utf8");

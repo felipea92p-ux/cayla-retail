@@ -87,12 +87,12 @@
   backdrop-filter: none !important;
 }
 
-/* Los pliegues del fondo (`.marco-seda`, vidrio/marco.css; antes las nubes de la Aurora): nueve degradados fijos detrás de todo. Sin
-   vidrio, no hay nada que se vea a través de ellos; solo cuestan. */
-:root[data-liviano="si"] .marco-seda {
+/* El fondo (`.marco-lienzo`, vidrio/marco.css; antes los pliegues de Seda y las nubes de la Aurora): una capa fija detrás de todo. Sin
+   vidrio, no hay nada que se vea a través de ella: queda el crema del `body`. */
+:root[data-liviano="si"] .marco-lienzo {
   display: none;
 }
-/* Sin los pliegues, el menú lateral de escritorio vuelve a su fondo liso: desde el 2026-11-19 no tiene fondo propio, deja ver Seda
+/* Sin esa capa, el menú lateral de escritorio vuelve a su fondo liso: desde el 2026-11-19 no tiene fondo propio, deja ver el Lienzo
    (vidrio/marco.css). Bajo 640 px es el cajón, que ya tiene su cara maciza. */
 @media (min-width: 640px) {
   :root[data-liviano="si"] .marco-riel {

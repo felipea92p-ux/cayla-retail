@@ -24,8 +24,6 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "fondos",
   // Proveedores (ADR-0362, fase 5a, 20261013015000): «Llegó la reposición» a mano anota quién marcó lo que repuso el proveedor.
   "proveedores",
-  // Órdenes de insumos del Taller (ADR-0362, fase 7, 20261013040000): crear, editar y anular anotan su línea, sin montos ni cantidades.
-  "ordenes_insumos",
   // Producción (ADR-0400, 20261014154000): abrir una orden con sus fases anota su línea («abrió la OP-000012 de Blusa Marina: 50 prendas · afuera: Costura con …»), sin montos.
   "produccion",
   // Vitrina web (ADR-0408, actividad 3, 20261014225000): mostrar, ocultar, el precio web y Lo nuevo anotan su línea con quién lo hizo.

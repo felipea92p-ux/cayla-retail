@@ -11,6 +11,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { SQL_DESHACER_ALIADAS } from "./_deshacer_aliadas.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,6 +26,8 @@ const ARCHIVO = "20261029160000_claure_proyeccion_sin_su_plata.sql";
 // La cuenta con CLAURE (A1 y A7), los gastos por empresa (A8) y el destino «claudia» del cierre (A11: su `check` ya está en la base).
 // (013000 reescribe entera `fn_claure_cierre`: así el reemplazo de 044000 encuentra el texto que espera aunque la base ya tenga las migraciones posteriores.)
 const PREVIAS = [
+  // ADR-0683: lo que las migraciones de las aliadas cambiaron en funciones vivas vuelve a su texto de antes, o estas no se pueden volver a pegar.
+  SQL_DESHACER_ALIADAS,
   leer("20261029004000_cuenta_con_claure.sql"),
   leer("20261029013000_cierre_de_caja_con_claudia.sql"),
   leer("20261029043000_claure_apartados_y_pedidos_web.sql"),

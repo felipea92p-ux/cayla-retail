@@ -5,6 +5,7 @@
   "total": 71,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
+      "Volver «/compras»",
       "BotonEnlace «Limpiar filtros»",
       "BotonEnlace «Limpiar filtros» #2"
     ],
@@ -95,9 +96,6 @@
     ],
     "components/SalidasDeCaja.tsx": [
       "input «Caja disponible, para ver hasta dónde alcanza»"
-    ],
-    "components/compras/CabeceraDeCompras.tsx": [
-      "Pestanas «{items.map(({ clave, etiqueta, href, conteo, pide, tono}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "button «Volver a intentar»",

@@ -3,35 +3,14 @@ import { CAMPOS_CUENTA, estadoCuenta, REGISTRO_CUENTA_VACIO, type RegistroCuenta
 import type { CodigoDelCorreo } from "./correo-confirmado";
 import {
   avanceDeLaCuenta,
-  BENEFICIOS_DE_ENTRADA,
   buzonDelCorreo,
   CONFIANZA_ACCESO,
   estadoDelPaso,
-  nombreParaLaTarjeta,
   PASOS_DE_ACCESO,
-  PIE_DE_TARJETA,
   PROMESA_ACCESO,
-  PROMESA_CLUB,
 } from "./panel-entrada";
 
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
-
-describe("el nombre de la tarjeta del Club mientras se crea la cuenta", () => {
-  it("antes de saberlo no hay nombre: la tarjeta dice «Tu nombre aquí»", () => {
-    expect(nombreParaLaTarjeta("")).toBeNull();
-    expect(nombreParaLaTarjeta("   ")).toBeNull();
-    expect(nombreParaLaTarjeta("A")).toBeNull();
-  });
-
-  it("con el nombre que escribe, tal cual y sin espacios de más", () => {
-    expect(nombreParaLaTarjeta("María")).toBe("María");
-    expect(nombreParaLaTarjeta("  María   Fernanda ")).toBe("María Fernanda");
-  });
-
-  it("un nombre demasiado largo no va a la tarjeta (el campo ya dice «Revisa»)", () => {
-    expect(nombreParaLaTarjeta("x".repeat(121))).toBeNull();
-  });
-});
 
 describe("cuánto de crear la cuenta está listo (la línea del pie)", () => {
   const consultas = { correo: "sin_revisar" as const, codigo: SIN_PEDIR };
@@ -69,33 +48,18 @@ describe("los pasos para volver a entrar", () => {
 
 describe("los textos del panel", () => {
   const todos = [
-    PROMESA_CLUB.ceja,
-    PROMESA_CLUB.linea,
-    PROMESA_CLUB.cursiva,
-    PIE_DE_TARJETA.sin,
-    PIE_DE_TARJETA.con,
     PROMESA_ACCESO.ceja,
     PROMESA_ACCESO.linea,
     PROMESA_ACCESO.cursiva,
     CONFIANZA_ACCESO,
-    ...BENEFICIOS_DE_ENTRADA.flatMap((b) => [b.titulo, b.texto]),
     ...Object.values(PASOS_DE_ACCESO).flatMap((pasos) => pasos.flatMap((p) => [p.titulo, p.texto])),
   ];
-
-  it("tres beneficios, cada uno con su ícono", () => {
-    expect(BENEFICIOS_DE_ENTRADA).toHaveLength(3);
-    expect(new Set(BENEFICIOS_DE_ENTRADA.map((b) => b.icono)).size).toBe(3);
-  });
 
   it("hablan de «tú» y sin género: nunca «clienta», «socia» ni «bienvenida»", () => {
     for (const t of todos) expect(t).not.toMatch(/\b(clientas?|socias?|bienvenida|emplead[ao]s?|sucursal(es)?)\b/i);
   });
 
   it("caben: un título corto y un texto de una o dos líneas (se leen de un vistazo)", () => {
-    for (const b of BENEFICIOS_DE_ENTRADA) {
-      expect(b.titulo.length).toBeLessThanOrEqual(32);
-      expect(b.texto.length).toBeLessThanOrEqual(64);
-    }
     for (const p of Object.values(PASOS_DE_ACCESO).flat()) {
       expect(p.titulo.length).toBeLessThanOrEqual(32);
       expect(p.texto.length).toBeLessThanOrEqual(64);

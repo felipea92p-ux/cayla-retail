@@ -170,7 +170,6 @@ export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
 /** «El look completo S/ 304.70» (o «Desde …» si una campaña no toca todas las tallas de alguna prenda). */
 export const totalDelLook = (l: Pick<Look, "totalFinal" | "desde">): string => `${l.desde ? "Desde " : ""}${soles(l.totalFinal)}`;
 
-/** «Look 2 · 3 prendas», la ceja de la tarjeta de un look en la lista. */
 
 /**
  * Lo que cuesta el look completo en su tarjeta, con la regla de la tarjeta de una prenda: lo que se paga («Desde …» si una campaña no

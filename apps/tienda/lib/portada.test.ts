@@ -49,9 +49,9 @@ describe("textos de la campaña", () => {
   it("la franja de arriba: la campaña primero; sin campaña, solo lo que la tienda hace hoy", () => {
     const con = anuncios(ANIVERSARIO, 15);
     // El «%» va pegado a su número con un espacio que no se parte.
-    expect(con[0].texto).toMatch(/^Aniversario CAYLA · −12\u00a0% hasta el 21 oct\.?$/);
+    expect(con[0].texto).toMatch(/^Aniversario CAYLA: −12\u00a0% hasta el 21 oct\.?$/);
     expect(con).toHaveLength(4);
-    expect(anuncios({ ...ANIVERSARIO, hasta: null }, 15)[0].texto).toBe("Aniversario CAYLA · −12\u00a0%");
+    expect(anuncios({ ...ANIVERSARIO, hasta: null }, 15)[0].texto).toBe("Aniversario CAYLA: −12\u00a0%");
     expect(anuncios(null, 15).map((f) => f.texto)).toEqual(["Separa sin pagar", "Cambios en 15 días", "Atención por WhatsApp"]);
   });
 

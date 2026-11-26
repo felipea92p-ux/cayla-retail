@@ -126,9 +126,9 @@ describe("Novedades para ti (propuesta i)", () => {
 
 describe("Te avisamos cuando llegue", () => {
   it("dice el color, la talla y la tienda (o cualquiera)", () => {
-    expect(detalleEspera(espera({}))).toBe("Negro · Talla M · en Trujillo");
-    expect(detalleEspera(espera({ sede: null }))).toBe("Negro · Talla M · en cualquier tienda");
-    expect(detalleEspera(espera({ color: null, talla: null }))).toBe("en Trujillo");
+    expect(detalleEspera(espera({}))).toBe("Negro, talla M, en Trujillo");
+    expect(detalleEspera(espera({ sede: null }))).toBe("Negro, talla M, en cualquier tienda");
+    expect(detalleEspera(espera({ color: null, talla: null }))).toBe("En Trujillo");
   });
 
   it("llegó a su tienda, llegó a alguna (cualquier tienda), ya no está en la web, o sigue esperando (y dónde hay)", () => {

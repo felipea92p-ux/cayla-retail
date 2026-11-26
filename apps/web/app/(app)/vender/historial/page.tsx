@@ -18,8 +18,10 @@ import {
   totalesEnLaBase,
   totalesVentasHistorial,
   type ParamsHistorial,
+  baseFiltraPorEmpresa,
 } from "@/lib/ventas-historial";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { empresaDeUrl, empresasParaElegir } from "@/lib/reportes-empresa-reglas";
 import { getEmpresaDeVentas, getVendidoPorEmpresaHistorial } from "@/lib/vendido-por-empresa";
 import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { RepartoEmpresas } from "@/components/RepartoEmpresas";
@@ -80,6 +82,13 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
     personaId: persona.personaId ?? undefined,
     sedePorDefecto: persona.ubicacionId,
   });
+  // ADR-0683: el filtro «Empresa» solo donde la tienda tiene dos o más; una clave que no se ofrece no filtra (se lee todo).
+  const empresasDeLaVista = await getEmpresasAqui(filtros.sedeId ?? (esLider ? null : persona.ubicacionId));
+  const empresasOfrecidas = empresasParaElegir(empresasDeLaVista);
+  // Si la base todavía no sabe filtrar por empresa (migración sin pegar) o no responde, la lista sale entera: nunca se cae por el filtro.
+  const pedida = empresaDeUrl(params.emp, empresasOfrecidas);
+  const empresaElegida = pedida && (await baseFiltraPorEmpresa(pedida.id)) ? pedida : null;
+  if (empresaElegida) filtros.empresaId = empresaElegida.id;
   const cursor = leerCursorVentas(params.cursor);
   const ids = await idsDeHistorial(filtros, { ubicacionId: persona.ubicacionId, esLider });
 
@@ -197,6 +206,8 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             pago={filtros.pago ?? ""}
             sede={filtros.sedeId ?? ""}
             vendedor={filtros.vendedorId ?? ""}
+            empresas={empresasOfrecidas}
+            empresa={empresaElegida?.clave ?? ""}
             incluirPrueba={filtros.incluirPrueba}
           />
 

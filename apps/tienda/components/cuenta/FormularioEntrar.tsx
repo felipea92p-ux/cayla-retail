@@ -12,6 +12,7 @@ import { googleYaTienesCuentaCon, MENSAJES } from "@/lib/cuentas-mensajes";
 import { COOKIE_GOOGLE_CORREO, correoOcultoDeLaCookie } from "@/lib/google";
 import { hrefConVolver, PARAMETRO_VOLVER, problemaAlEntrar, rutaParaVolver, type ProblemaAlEntrar } from "@/lib/entrada";
 import { BotonGoogle } from "./BotonGoogle";
+import { CabezaDeCuenta } from "./CabezaDeCuenta";
 import { CajaClave } from "./CajaClave";
 
 // «Entra a tu cuenta» (maqueta, `vEntrar`; el catálogo se ve sin entrar desde el 2026-10-17, ADR-0438: aquí entra quien quiere separar o
@@ -138,7 +139,7 @@ export function FormularioEntrar() {
         entrar(e.currentTarget);
       }}
     >
-      <h1 className="w-titulo">Entrar</h1>
+      <CabezaDeCuenta titulo="Entra a tu cuenta" linea="Con tu correo y tu contraseña." />
       <div className="w-campo" data-estado={problema?.campo === "correo" ? "error" : undefined}>
         <label htmlFor={ID.correo}>Correo</label>
         <input
@@ -209,14 +210,14 @@ export function FormularioEntrar() {
         {enviando ? "Entrando…" : "Entrar"}
       </button>
       <BotonGoogle volver={volver} abajo />
-      {/* Quien llega sin cuenta (un enlace que le mandaron) ve el otro camino como un botón, no como un enlace perdido en una frase. La
-          pregunta va en la raya que separa los dos caminos; lo que gana con el Club lo dice el panel de al lado (o de abajo). */}
-      <div className="w-otro-camino">
-        <p className="w-texto-sec">¿Primera vez en CAYLA?</p>
-        <Link className="t-btn t-btn-sec t-btn-ancho" href={hrefConVolver("/crear-cuenta", volver)}>
-          Crear mi cuenta
+      {/* Para quien no tiene cuenta, una línea y un enlace, sin bloque aparte (Felipe 2026-11-26: «más minimalista»). Lleva la página que
+          la persona quería ver (`?volver=`). */}
+      <p className="cu-primera-vez">
+        ¿Primera vez en CAYLA?{" "}
+        <Link className="cu-crear" href={hrefConVolver("/crear-cuenta", volver)}>
+          Crear cuenta
         </Link>
-      </div>
+      </p>
     </form>
   );
 }

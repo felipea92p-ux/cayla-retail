@@ -13,7 +13,6 @@ import { leerDiasParaLlegar } from "./plan-compra-plazo";
 import { parametroFueraDeRango } from "./tienda-web-reglas";
 import { leerCostoUnitario, leerMontoPlata } from "./monto-plata-reglas";
 import { leerNumero } from "./orden-compra-alta";
-import { leerCantidadInsumo, leerPrecioInsumo } from "./ordenes-insumo-reglas";
 import { leerDescuento, leerNumeroDeMonto, problemasDelBorrador } from "./plan-compra-reglas";
 import { leerMonto as leerPrecioDeSede } from "./precio-sede-reglas";
 import { leerCosto, leerPrecioVenta } from "./recepcion-envio-reglas";
@@ -49,8 +48,6 @@ const LECTORES: { nombre: string; leer: (t: string) => unknown; miles: unknown }
   { nombre: "leerCostoUnitario", leer: (t) => leerCostoUnitario(t), miles: 1200 },
   { nombre: "leerNumero (orden de compra, 0 dec.)", leer: (t) => leerNumero(t, 0), miles: { tipo: "ok", escalado: 1200 } },
   { nombre: "leerNumero (orden de compra, 2 dec.)", leer: (t) => leerNumero(t, 2), miles: { tipo: "ok", escalado: 120000 } },
-  { nombre: "leerCantidadInsumo", leer: (t) => leerCantidadInsumo(t), miles: { tipo: "ok", escalado: 1200000 } },
-  { nombre: "leerPrecioInsumo", leer: (t) => leerPrecioInsumo(t), miles: { tipo: "ok", escalado: 12000000 } },
   { nombre: "leerCosto (recibir mercadería)", leer: (t) => leerCosto(t), miles: { centimos: 120000, problema: null } },
   { nombre: "leerPrecioVenta (recibir mercadería)", leer: (t) => leerPrecioVenta(t, true), miles: { centimos: 120000, problema: null } },
   { nombre: "leerCantidad (envío de una orden)", leer: (t) => leerCantidadEnvio(t, 9999), miles: { cantidad: 1200, problema: null } },

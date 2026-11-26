@@ -81,7 +81,7 @@ describe("lo que dice el aviso si la bajada no se registró", () => {
 
   it("corte de red o respuesta perdida: no se sabe si se guardó, y volver a escanear es seguro — nunca «no se guardó nada»", () => {
     const texto = textoErrorBajadaDesdeCaja({ message: "TypeError: Failed to fetch" }, "Blusa Paracas · M");
-    expect(texto).toBe("Se cortó la conexión y no sabemos si la bajada de Blusa Paracas · M se registró. Vuelve a escanearla: si ya estaba registrada, no se repite.");
+    expect(texto).toBe("Se cortó la conexión y no sabemos si la bajada de Blusa Paracas · M se registró. Vuelve a agregarla: si ya estaba registrada, no se repite.");
     expect(texto).not.toContain("No se guardó");
     // Cortada a los 20 s (AbortError, sin código): igual de incierta.
     expect(textoErrorBajadaDesdeCaja({ message: "AbortError: signal is aborted without reason", code: "" }, "Blusa Paracas · M")).toContain("no sabemos si");

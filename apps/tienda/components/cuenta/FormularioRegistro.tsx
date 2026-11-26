@@ -27,15 +27,16 @@ import {
 import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
-import { avanceDeLaCuenta, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
+import { avanceDeLaCuenta, buzonDelCorreo } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
-import { useNombreEnLaTarjeta } from "./EntradaViva";
+import { CabezaDeCuenta } from "./CabezaDeCuenta";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`; ADR-0438: solo lo necesario). Correo (con su código), nombre, contraseña y
-// aceptar los términos; o «Continuar con Google», que solo pide su propia casilla de aceptar (revisión legal 2026-11-18). El documento y el celular se piden después, al separar por
+// aceptar los términos; o «Continuar con Google», abajo y tras una raya «o», como en «Entrar». Una sola casilla de aceptar, al final y
+// antes de los dos botones, vale para los dos caminos (Felipe 2026-11-25 y 2026-11-26; antes Google tenía la suya: revisión legal 2026-11-18). El documento y el celular se piden después, al separar por
 // primera vez, y recién entonces se entra al Club CAYLA (`FormularioUnirseAlClub`). Cada campo dice su estado en su título (✓ Listo ·
 // Sigue aquí · Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y
 // cuánto más, y el botón se enciende cuando no falta nada.
@@ -124,8 +125,7 @@ export function FormularioRegistro() {
   const resumenFaltan = faltanResumidos(faltan);
   const sigue = campoQueSigue(faltan, estado, enFoco);
   const marca = (campo: CampoCuenta) => marcaDe(estado[campo], sigue === campo);
-  // La tarjeta del Club del panel de al lado lleva su nombre apenas se sabe; y la línea del pie se llena con lo que ya está listo.
-  useNombreEnLaTarjeta(nombreParaLaTarjeta(r.nombre));
+  // La línea del pie se llena con lo que ya está listo.
   const avance = avanceDeLaCuenta(estado);
   const cambiar = (cambio: Partial<RegistroCuenta>) => {
     setErrorGeneral(null);
@@ -280,9 +280,7 @@ export function FormularioRegistro() {
         crear();
       }}
     >
-      <h1 className="w-titulo">Crear cuenta</h1>
-
-      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" casilla />
+      <CabezaDeCuenta titulo="Crea tu cuenta" linea="Toma un minuto." />
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
         {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. La misma
@@ -429,6 +427,7 @@ export function FormularioRegistro() {
         </Resultado>
       </Campo>
 
+      {/* Una sola casilla de aceptar, al final y antes de los dos botones (Felipe 2026-11-26): vale para «Crear mi cuenta» y para Google. */}
       <div className="w-casillas">
         <div className="w-campo" data-campo="acepta" data-estado={marca("acepta")}>
           <label className="w-check" htmlFor={ID.acepta}>
@@ -454,13 +453,6 @@ export function FormularioRegistro() {
           </label>
         </div>
       </div>
-
-      <p className="w-texto-sec">
-        ¿Ya tienes cuenta?{" "}
-        <Link className="w-enlace" href={hrefConVolver("/entrar", volver)}>
-          Entra
-        </Link>
-      </p>
 
       <div className="w-pie-form">
         <span className="en-avance" aria-hidden="true">
@@ -498,6 +490,14 @@ export function FormularioRegistro() {
           {enviando ? "Creando tu cuenta…" : "Crear mi cuenta"}
         </button>
       </div>
+      {/* Google, después de «Crear mi cuenta» y tras una raya «o», como en «Entrar»: exige la misma casilla de arriba. */}
+      <BotonGoogle volver={volver} abajo texto="Crear mi cuenta con Google" aceptacion={{ acepta: r.acepta, idCasilla: ID.acepta }} />
+      <p className="w-texto-sec">
+        ¿Ya tienes cuenta?{" "}
+        <Link className="w-enlace" href={hrefConVolver("/entrar", volver)}>
+          Entra
+        </Link>
+      </p>
     </form>
   );
 }

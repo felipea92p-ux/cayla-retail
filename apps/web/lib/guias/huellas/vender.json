@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 203,
+  "total": 213,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -39,14 +39,16 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasConClaudia.tsx": [
-      "BotonCopiar «el resumen para Claudia»",
-      "BotonEnlace «Pagar a CLAURE»"
+      "BotonCopiar «{t(\"el resumen para Claudia\")}»",
+      "BotonEnlace «{t(\"Pagar a CLAURE\")}»"
     ],
     "components/EscanerCamara.tsx": [
+      "button «{`Agregar ${lectura.prenda?.referencia ?? lectura.codigo}»",
       "button «Cerrar la cámara»",
       "SegmentoDeslizante «Qué hace la cámara con lo que lee»",
       "button «{linterna.encendida ? \"Apagar la linterna\" : \"Encender la linterna\"}»",
       "button «Buscar por nombre»",
+      "button «{l.cantidad > 1 ? `Quitar una ${l.referencia}»",
       "button «Ver ticket»"
     ],
     "components/ExistenciasEnCamara.tsx": [
@@ -127,6 +129,7 @@
       "button «Quitar descuento»",
       "button «vender.cobro-confirmar»",
       "button «vender.mandar-a-caja»",
+      "button «Dejar en espera» #2",
       "button «vender.cobrar»"
     ],
     "components/VentaRegistradaModal.tsx": [
@@ -170,6 +173,12 @@
       "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/punto-de-venta/AvisoAlCobrar.tsx": [
+      "button «Reintentar»",
+      "button «Nueva venta»",
+      "button «Nueva venta» #2",
+      "BotonImprimir «Imprimir otra copia»"
     ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
       "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",
@@ -218,6 +227,7 @@
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "EntradaMonto «{`Monto en ${NOMBRE_METODO[m]}»",
+      "button «→() => onNumero?.(indice, o.valor)»",
       "button «→() => onMaquina?.(indice, m.cuentaId)»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
@@ -228,8 +238,12 @@
       "Boton «Aplicar descuento»",
       "Boton «Quitar descuento»"
     ],
+    "components/punto-de-venta/ImpresionDelEquipo.tsx": [
+      "button «vender.impresion»"
+    ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",
+      "button «{`Descuento para ${nombre}» #2",
       "BotonDeshacer «{`Dejar ${nombre}»",
       "button «{`Quitar ${nombre}»"
     ],
@@ -269,7 +283,7 @@
     "components/punto-de-venta/RegistrarBajadaModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/punto-de-venta/ResumenDeHoy.tsx": [
       "button «{r.pctMeta !== null ? `${r.pctMeta}»",

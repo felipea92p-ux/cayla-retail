@@ -12,7 +12,6 @@ import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Ren
 import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 import { textoDePedido, type PedidoDeInsumo } from "./orden-pagina-reglas";
-import { urlPedirInsumo } from "./pedir-insumo-reglas";
 import type { TelaDelTallerLeida } from "./tela-del-taller-reglas";
 
 const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -380,7 +379,7 @@ export type ResumenDeDecisiones = {
 const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: string }> = {
   entrega: { uno: "entrega", varios: "entregas", href: "/produccion/ordenes" },
   insumo: { uno: "insumo que falta", varios: "insumos que faltan", href: "/produccion/insumos" },
-  recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/recibir" },
+  recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/comprobantes" },
   pago: { uno: "pago", varios: "pagos", href: "/produccion/por-pagar" },
   producir: { uno: "modelo por producir", varios: "modelos por producir", href: "#produce" },
   trasladar: { uno: "modelo por trasladar", varios: "modelos por trasladar", href: "#produce" },
@@ -499,7 +498,8 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} para lo que hay que cortar — pero ya está facturado`,
         detalle: `Falta recibir ${cantidadTexto(porLlegar, i.unidad)}: ${docs}. Recibirlo destraba el corte.`,
         porque: `${pide}.`,
-        accion: { texto: "Recibir mercadería", href: "/produccion/recibir" },
+        // Sin la pantalla Recibir del Taller (ADR-0702): se va a la factura, donde se ve qué falta.
+        accion: { texto: "Ver la factura", href: "/produccion/comprobantes" },
       });
       continue;
     }
@@ -522,9 +522,9 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         severidad: 2,
         tipo: "insumo",
         titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} hoy, pero ya vienen ${cantidadTexto(viaja, i.unidad)} en camino`,
-        detalle: "Alcanza cuando llegue lo pedido. Si ya llegó, anótalo en Recibir y este número baja.",
+        detalle: "Alcanza cuando llegue lo pedido. Si ya llegó, anótalo en Insumos y este número baja.",
         porque: `${cuenta}.`,
-        accion: { texto: "Ver los pedidos", href: "/ordenes-insumos" },
+        accion: { texto: "Ver en Insumos", href: "/produccion/insumos" },
       });
     } else {
       const atrasados = camino.pedidos.filter((p) => p.atrasado);
@@ -541,8 +541,8 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
               ? "No alcanza: lo pedido está atrasado y no lo cuento."
               : "No alcanza y no hay nada pedido.",
         porque: `${cuenta}.`,
-        // Con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor); si no, pedir lo que falta.
-        accion: atrasados.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: urlPedirInsumo(i.id, falta - viaja) },
+        // Sin Órdenes de insumos (ADR-0702, 2026-11-25): lo que falta se compra y se anota en Insumos ▸ «Llegó una compra».
+        accion: atrasados.length > 0 ? { texto: "Ver en Insumos", href: "/produccion/insumos" } : { texto: i.tipo === "tela" ? "Comprar la tela" : "Comprar los avíos", href: "/produccion/insumos" },
       });
     }
   }

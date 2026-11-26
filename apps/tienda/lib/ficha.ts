@@ -381,8 +381,8 @@ export function campanaDeLaFicha(f: Ficha, talla: Variante | null): Campana | nu
   return f.precioFinal < f.precio ? f.campana : null;
 }
 
-/** El chip de la campaña: «−12 % · Aniversario CAYLA». */
-export const chipCampana = (c: Campana | null): string | null => (c ? `−${pctTexto(c.pct)} % · ${c.nombre}` : null);
+/** El chip de la campaña: «−12 % por Aniversario CAYLA». */
+export const chipCampana = (c: Campana | null): string | null => (c ? `−${pctTexto(c.pct)} % por ${c.nombre}` : null);
 
 /** El dibujo del chip de una campaña con descuento: el que se eligió para ESA campaña (viene en la lista de insignias de la ficha, que la trae
  *  marcada) o, si no se eligió, el de su nombre. El mismo que le da el ERP en Catálogo ▸ Insignias (`packages/shared`). */
@@ -412,7 +412,7 @@ export function chipsDelCatalogo(
   const chips: ChipFicha[] = [];
   if (p?.nuevo) {
     const d = p.nuevo.dias;
-    const cuando = d === null ? "" : d === 0 ? " · llegó hoy" : ` · llegó hace ${d} ${d === 1 ? "día" : "días"}`;
+    const cuando = d === null ? "" : d === 0 ? ", llegó hoy" : `, llegó hace ${d} ${d === 1 ? "día" : "días"}`;
     chips.push({ texto: `Nuevo${cuando}`, tono: "nuevo", icono: "nuevo" });
   }
   // Las de descuento no se dibujan aparte: su descuento es el chip de la campaña (`chipCampana`), que de ellas solo toma el dibujo.

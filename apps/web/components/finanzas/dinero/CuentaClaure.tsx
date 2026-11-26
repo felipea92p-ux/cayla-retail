@@ -17,6 +17,7 @@ import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure"
 import { HistorialClaure } from "@/components/finanzas/dinero/HistorialClaure";
 import { soles } from "@/lib/compras-reglas";
 import { solesDos } from "@/lib/gastos-reglas";
+import { deAliada, deAliadaEnTodo, QUIEN_CLAURE, type Quien } from "@/lib/empresas-aliadas-reglas";
 import { NOTA_CLAURE, NOTA_GASTOS_CLAURE, NOTA_PAGOS_CLAURE, filasContadas, montoSugeridoPago, resumenClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure } from "@/lib/cuenta-claure-reglas";
 import {
   avisosClaure,
@@ -48,6 +49,7 @@ const COLOR_AVISO: Record<AvisoClaure["tono"], string> = { atencion: "var(--colo
 
 const PLANTILLA_MEDIOS = "sm:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))]";
 const COLUMNAS_MEDIOS = [{ titulo: "Medio" }, { titulo: "Cobrado", alinear: "der" as const }, { titulo: "Comisión", alinear: "der" as const }, { titulo: "Para Claudia", alinear: "der" as const }];
+const columnasMedios = (q: Quien) => COLUMNAS_MEDIOS.map((c) => ({ ...c, titulo: deAliada(c.titulo, q) }));
 
 const PAGOS_A_LA_VISTA = 4;
 
@@ -85,16 +87,17 @@ function SuYape({ cuentas }: { cuentas: CuentaOtraEmpresa[] }) {
   );
 }
 
-export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy }: { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: GastoClaure[]; cuentasAjenas: CuentaOtraEmpresa[]; esLider: boolean; hoy: string }) {
+export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy, quien = QUIEN_CLAURE }: { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: GastoClaure[]; cuentasAjenas: CuentaOtraEmpresa[]; esLider: boolean; hoy: string; /** ADR-0683: de qué aliada es esta cuenta (CLAURE de fábrica). */ quien?: Quien }) {
+  const t = (texto: string) => deAliada(texto, quien);
   const abrirMovimiento = useAbrirMovimiento();
   const [historial, setHistorial] = useState<{ filtro: FiltroLibro; periodo: PeriodoLibro } | null>(null);
 
   const contadas = filasContadas(filas);
   const r = resumenClaure(filas, pagos, gastos);
-  const libro = libroClaure(filas, pagos, gastos);
-  const avisos = avisosClaure(filas, pagos, r, hoy, esLider);
+  const libro = deAliadaEnTodo(libroClaure(filas, pagos, gastos), quien);
+  const avisos = deAliadaEnTodo(avisosClaure(filas, pagos, r, hoy, esLider), quien);
   const nCobros = contadas.filter((f) => f.origen === "venta").reduce((a, f) => a + f.nPagos, 0);
-  const terminos = terminosClaure(r, nCobros, gastos.length, pagos.length);
+  const terminos = deAliadaEnTodo(terminosClaure(r, nCobros, gastos.length, pagos.length), quien);
   const medios = repartoPorMedio(filas);
   const cuentas = repartoPorCuenta(filas);
   const semanas = semanasClaure(filas, pagos);
@@ -108,8 +111,8 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
   if (vacio)
     return (
       <div className="cl-marco space-y-6">
-        <Vacio icono={<Handshake />} titulo="Todavía no hay cobros de CLAURE en cuentas de CAYLA">
-          Cuando una venta de una prenda de CLAURE se cobre con tarjeta, QR, Yape o transferencia, aparecerá aquí con lo que se le debe a Claudia.
+        <Vacio icono={<Handshake />} titulo={t("Todavía no hay cobros de CLAURE en cuentas de CAYLA")}>
+          {t("Cuando una venta de una prenda de CLAURE se cobre con tarjeta, QR, Yape o transferencia, aparecerá aquí con lo que se le debe a Claudia.")}
         </Vacio>
         <SuYape cuentas={cuentasAjenas} />
       </div>
@@ -121,7 +124,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
 
       <section className="cl-fichas" aria-label="Cómo se llega a lo que se le debe" data-guia="fin-claure.cifras">
         <div className="cl-debe anim-entra" style={{ ["--i" as string]: 0 } as CSSProperties}>
-          <span className="cl-debe-etq">{aFavor ? "¿Cuánto te debe CLAURE?" : "¿Cuánto le debes?"}</span>
+          <span className="cl-debe-etq">{aFavor ? t("¿Cuánto te debe CLAURE?") : "¿Cuánto le debes?"}</span>
           <span className="cl-debe-valor">{soles(Math.abs(r.saldo))}</span>
           <span className="cl-debe-pie">{aFavor ? "Se le pagó de más: queda a favor de CAYLA" : faltan > 0 ? `${faltan} por revisar` : "Nada por revisar"}</span>
         </div>
@@ -135,11 +138,11 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
       <SuYape cuentas={cuentasAjenas} />
 
       <div className="cl-dos">
-        <section className="card-cayla anim-sube" aria-label="Por dónde entra la plata de Claudia" data-guia="fin-claure.entra">
-          <TituloSeccion dato={<span className="cl-tenue">{solesDos(r.cobrado)} cobrados</span>}>Por dónde entra la plata de Claudia</TituloSeccion>
+        <section className="card-cayla anim-sube" aria-label={t("Por dónde entra la plata de Claudia")} data-guia="fin-claure.entra">
+          <TituloSeccion dato={<span className="cl-tenue">{solesDos(r.cobrado)} cobrados</span>}>{t("Por dónde entra la plata de Claudia")}</TituloSeccion>
           {medios.length === 0 ? (
             <Vacio tamano="chico" icono={<Handshake />}>
-              Todavía no hay cobros de CLAURE en cuentas de CAYLA.
+              {t("Todavía no hay cobros de CLAURE en cuentas de CAYLA.")}
             </Vacio>
           ) : (
             <>
@@ -178,7 +181,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
               <div className="cl-llena">
                 <span className="cl-versalita">Lo que deja cada medio</span>
                 <Tabla className="@container">
-                  <Encabezado plantilla={PLANTILLA_MEDIOS} columnas={COLUMNAS_MEDIOS} />
+                  <Encabezado plantilla={PLANTILLA_MEDIOS} columnas={columnasMedios(quien)} />
                   {medios.map((m) => (
                     <div key={m.medio} className={fila(PLANTILLA_MEDIOS)}>
                       <span className={celda("izq", "font-semibold text-tinta")}>
@@ -194,13 +197,13 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
                         {m.comision > 0 ? `−${solesDos(m.comision)}` : "—"}
                       </span>
                       <span className={celda("der", "font-semibold text-tinta")}>
-                        <span className="font-normal text-taupe sm:hidden">Para Claudia · </span>
+                        <span className="font-normal text-taupe sm:hidden">{t("Para Claudia · ")}</span>
                         {solesDos(m.paraClaudia)}
                       </span>
                     </div>
                   ))}
                 </Tabla>
-                <span className="cl-tenue">Para Claudia = cobrado − comisión, antes de devoluciones, gastos y pagos.</span>
+                <span className="cl-tenue">{t("Para Claudia = cobrado − comisión, antes de devoluciones, gastos y pagos.")}</span>
               </div>
             </>
           )}
@@ -209,7 +212,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
         <section className="card-cayla anim-sube" aria-label="Pide tu atención" data-guia="fin-claure.atencion">
           <TituloSeccion dato={<Chip tono={avisos.length ? "ambar" : "verde"}>{avisos.length === 0 ? "Todo en orden" : `${avisos.length} ${avisos.length === 1 ? "cosa" : "cosas"}`}</Chip>}>Pide tu atención</TituloSeccion>
           {avisos.length === 0 ? (
-            <p className="cl-tenue">Nada de CLAURE pide revisión.</p>
+            <p className="cl-tenue">{t("Nada de CLAURE pide revisión.")}</p>
           ) : (
             <ul className="cl-aten" role="list">
               {avisos.map((a) => {
@@ -269,7 +272,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
                 </div>
               )}
               <div className="cl-cuenta-tot">
-                <dt>{aFavor ? "CLAURE te debe" : "Le debes a CLAURE"}</dt>
+                <dt>{t(aFavor ? "CLAURE te debe" : "Le debes a CLAURE")}</dt>
                 <dd>{soles(Math.abs(r.saldo))}</dd>
               </div>
             </dl>
@@ -293,10 +296,10 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
                 </span>
                 <span>
                   <MuestraTramo color="var(--color-pizarra)" />
-                  Pagado a CLAURE
+                  {t("Pagado a CLAURE")}
                 </span>
               </p>
-              <div className="cl-sem" role="img" aria-label={`Cobrado y pagado a CLAURE, ${semanas.map((s) => `semana del ${fechaDiaMes(s.lunes)}: cobrado ${solesDos(s.cobrado)}, pagado ${solesDos(s.pagado)}`).join("; ")}`}>
+              <div className="cl-sem" role="img" aria-label={`${t("Cobrado y pagado a CLAURE")}, ${semanas.map((s) => `semana del ${fechaDiaMes(s.lunes)}: cobrado ${solesDos(s.cobrado)}, pagado ${solesDos(s.pagado)}`).join("; ")}`}>
                 {semanas.map((s, i) => (
                   <div key={s.lunes}>
                     <div className="cl-sem-bb">
@@ -316,10 +319,10 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
         </section>
 
         <section className="card-cayla anim-sube" aria-label="Lo que ya se le pagó" data-guia="fin-claure.pagos">
-          <TituloSeccion accion={esLider ? <BotonPagarClaure montoSugerido={montoSugerido} conGuia={false} /> : undefined}>Lo que ya se le pagó</TituloSeccion>
+          <TituloSeccion accion={esLider ? <BotonPagarClaure montoSugerido={montoSugerido} conGuia={false} nombre={quien.nombre} /> : undefined}>Lo que ya se le pagó</TituloSeccion>
           {ultimosPagos.length === 0 ? (
             <Vacio tamano="chico" icono={<Handshake />}>
-              {esLider ? "Todavía no se le pagó nada. Cuando le pases la plata a Claudia, regístralo aquí: sale de un banco de CAYLA y baja lo que se le debe." : "Todavía no se le pagó nada. El pago a Claudia lo registra el líder."}
+              {esLider ? t("Todavía no se le pagó nada. Cuando le pases la plata a Claudia, regístralo aquí: sale de un banco de CAYLA y baja lo que se le debe.") : "Todavía no se le pagó nada. El pago a Claudia lo registra el líder."}
             </Vacio>
           ) : (
             <ul className="cl-mov" role="list">
@@ -344,7 +347,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
       </div>
 
       <p {...entra(8)} className="nota-cayla anim-entra">
-        {NOTA_CLAURE} {gastos.length > 0 ? NOTA_GASTOS_CLAURE : ""} {NOTA_PAGOS_CLAURE}
+        {t(NOTA_CLAURE)} {gastos.length > 0 ? t(NOTA_GASTOS_CLAURE) : ""} {t(NOTA_PAGOS_CLAURE)}
       </p>
 
       {historial && <HistorialClaure libro={libro} hoy={hoy} filtroInicial={historial.filtro} periodoInicial={historial.periodo} onCerrar={() => setHistorial(null)} />}

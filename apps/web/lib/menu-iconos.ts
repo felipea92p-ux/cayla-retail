@@ -121,7 +121,6 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // frescura, planPiso, rendimiento) para que la cabecera no repita una fila que vive justo debajo. Antes un maletín.
   gestion: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16.24 7.76l-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z", // lucide «compass»
   planPiso: "M12 12V9a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3M16 20v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3M20 22V2M4 12h16M4 20h16M4 2v20M4 4h16", // lucide «shelving-unit»
-  recibirInsumos: "M12 22v-9M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36zM20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z", // lucide «package-open»
   campana: "M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14M8 6v8", // lucide «megaphone» // lucide «calendar-days»
   // Calendario con corazón: las fechas del año en que se vende distinto (el módulo Campañas, ADR-0473). Distinto del megáfono
   // de Plan de campaña, que es cuánto comprar para una. Del 2026-10-22 al 2026-11-13 no tuvo fila propia; desde ADR-0655 es el de
@@ -130,7 +129,6 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Una medalla: Catálogo ▸ Insignias (Felipe 2026-10-22; se llamó «Sellos», con un sello de goma, hasta el 2026-10-23), lo que se le
   // marca a una prenda (las campañas tienen su fila desde ADR-0655). No la etiqueta colgante de Categorías ni la cinta de Atributos.
   insignias: "M15.477 12.89l1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526 M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «award»
-  ordenesInsumos: "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", // lucide «clipboard-list»
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
   fondos: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", // lucide «hand-coins»
   // Tablilla con su visto: la oficina que revisa lo que anotaron las compradoras (Revisar compras, ADR-0480). Distinta de la hoja de

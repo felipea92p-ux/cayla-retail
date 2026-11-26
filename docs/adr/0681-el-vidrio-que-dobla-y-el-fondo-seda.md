@@ -8,6 +8,9 @@
 - **Sigue a:** ADR-0596 (el ERP pasa al vidrio), ADR-0623 (lo que se desplaza no se desenfoca), ADR-0611 mejora 7 (el vidrio que
   aguanta), ADR-0625 (animaciones apagadas de fábrica), ADR-0674 (modo liviano), ADR-0136 (movimiento).
 
+> **Actualización 2026-11-26 (ADR-0706):** el fondo Seda se reemplazó por «Lienzo», un degradado sin formas: sus pliegues se veían como
+> manchas blancas detrás de las tarjetas. Lo del vidrio que dobla sigue vigente.
+
 ## El problema
 
 El vidrio del ERP solo desenfocaba lo de atrás y lo cubría con un 70–88 % de blanco. El vidrio de verdad hace otra cosa: **dobla** la luz
@@ -148,9 +151,30 @@ animaciones apagadas (ADR-0625) aparece ya asentado.
 
 **No verificado:**
 - El Mac mini de la tienda y un teléfono de verdad. Si va lento, la salida es el modo liviano de «Apariencia», que apaga la lente.
-- Safari y Firefox reales: el respaldo se comprobó por la pregunta al navegador, no abriéndolos.
+- Safari y Firefox reales: el respaldo se comprobó por la pregunta al navegador, no abriéndolos. **En Safari falló: ver la actualización 2026-11-24.**
 - Qué navegador usa el Mac mini. Si es Safari, verá Seda con el vidrio de siempre.
 - El auditor de modo oscuro (`tema:auditar`) no ve fondos hechos con degradados. La garantía de contraste sobre Seda es la prueba de tonos.
+
+## Actualización 2026-11-24 — En Safari, lo de atrás se veía nítido a través de la hoja
+
+Lo que «No verificado» dejaba abierto pasó. Felipe mandó dos capturas desde Safari, «Revisar el barrido» del barrido del piso y «Tallas y
+colores» de Recibir, y otra sesión vio lo mismo en «Colgar en el piso». La hoja estaba casi transparente y lo de atrás se leía nítido encima
+de los datos. La razón: `CSS.supports("backdrop-filter", "url(#x)")` **no distingue a Safari**. Safari responde que sí, porque la frase es
+válida, pero no dibuja el filtro SVG. Como además entiende el ancla, la lente se encendía: la hoja quedaba transparente, el velo soltaba su
+desenfoque y el filtro de la lente no hacía nada.
+
+DECIDÍ: además de esa pregunta, se pregunta por el motor. Solo dobla donde `navigator.userAgentData` trae la marca «Chromium»
+(`navegadorDibujaDobla`, `lib/vidrio-dobla.ts`, con su prueba; PR #1995). Safari y Firefox no la traen y quedan con el vidrio Serena de
+siempre: el velo desenfoca y la hoja tiene su relleno.
+DESCARTÉ: buscar «Safari» en `navigator.userAgent`. Chrome también lo dice ahí, y cada navegador nuevo lo cambia. También descarté medir lo
+pintado (dibujar la lente y leer sus píxeles): una página no puede leer lo que pinta otra capa.
+SE ROMPE SI: Safari o Firefox empiezan a dibujar el filtro. Ahí verían el vidrio de siempre, que es correcto, pero no el doblez, hasta que se
+sume su motor. O si Chromium abre el ERP en una página que no es segura (`http://` con una IP): no trae `userAgentData` y tampoco dobla,
+lo que también es correcto.
+
+**Verificado en el Safari de verdad del Mac de Felipe (2026-11-24):** con una hoja larga del ERP local («Revisar el barrido» con datos de
+prueba, sin sesión), lo de atrás se ve desenfocado. En Chrome, la lente sigue puesta. **No verificado:** Firefox, y Safari con el ERP real y
+sesión.
 
 ## Dynamic
 

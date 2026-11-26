@@ -610,6 +610,18 @@ ESCENARIOS.push(
       await pagina.getByRole("button", { name: /^Más/ }).first().click();
       await esperar(pagina, 900);
     },
+  },  {
+    // La tuerca (ADR-0670 act. 2026-11-25 b): la hoja «Impresión de este equipo» con sus interruptores. Solo lee: no toca ninguno.
+    id: "vender.impresion",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[data-guia='vender.impresion-panel']",
+    nombre: "Vender · la tuerca: «Impresión de este equipo»",
+    async preparar(pagina) {
+      await pagina.locator("[data-guia='vender.impresion']").first().click();
+      await esperar(pagina, 900);
+    },
   },
 );
 
@@ -1769,20 +1781,6 @@ ESCENARIOS.push(
     nombre: "Configuración ▸ Impuestos · el tope de la planilla de movilidad",
     preparar: secuencia(clicPestana(/^Impuestos/i), clicRol("button", /Tope desde una fecha|Poner el tope/i)),
   },
-);
-
-// ---------- Órdenes de insumos del Taller (ADR-0362, fase 7) ----------
-// La ventana de una orden, su hoja «Anular orden» y «Editar» necesitan una orden «generada»: la primera de la base local. Se auditan
-// parados en el Taller, donde el menú las muestra.
-const idDeOrdenInsumo = () => consultarLocal("select id from retail.ordenes_insumo where estado = 'generada' order by numero limit 1");
-ESCENARIOS.push(
-  { id: "oi.ventana", ruta: "/ordenes-insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la orden abierta sobre la lista", preparar: async (pagina) => { await pagina.locator('main a[href*="/ordenes-insumos/ver/"]').first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
-  { id: "oi.calendario", ruta: "/ordenes-insumos/nueva", cuentas: ["admin-taller"], abre: '[role=dialog][aria-label="Calendario"]', nombre: "Nueva orden de insumos · el calendario de «Entrega estimada»", preparar: clicRol("button", /Abrir calendario/i) },
-  { id: "oi.insumo", ruta: "/ordenes-insumos/nueva", cuentas: ["admin-taller"], abre: "[role=listbox]", nombre: "Nueva orden de insumos · la lista de «Insumo» (código y unidad)", preparar: async (pagina) => { await pagina.getByLabel("Insumo de la línea 1").click({ timeout: 8000 }); await esperar(pagina, 800); } },
-  { id: "oi.anular", ruta: "/ordenes-insumos/ver/[id]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/ordenes-insumos/ver/${idDeOrdenInsumo()}`)(pagina), clicRol("button", /^Anular orden$/)) },
-  { id: "oi.editar", ruta: "/ordenes-insumos/editar/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Editar OI-…»", preparar: async (pagina) => irA(`/ordenes-insumos/editar/${idDeOrdenInsumo()}`)(pagina) },
-  { id: "oi.comprobante", ruta: "/ordenes-insumos/comprobante/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Comprobante de OI-…» (el papel del proveedor)", preparar: async (pagina) => irA(`/ordenes-insumos/comprobante/${idDeOrdenInsumo()}`)(pagina) },
-  { id: "oi.recibir", ruta: "/produccion/recibir", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Recibir · la hoja de una orden de insumos", preparar: async (pagina) => { await pagina.locator('[data-guia="prod-recibir.ordenes"] button:not([disabled])').filter({ hasText: /^Recibir$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); } },
 );
 
 // ---------- «Nos debe» (ADR-0362, fase 5a) ----------

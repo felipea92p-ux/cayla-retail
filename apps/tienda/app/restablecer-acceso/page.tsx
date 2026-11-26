@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { FormularioRestablecerAcceso } from "@/components/cuenta/FormularioRestablecerAcceso";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { PanelDeAcceso, PantallaDeEntrada } from "@/components/cuenta/PanelDeEntrada";
+import { LadoDeAcceso, PantallaDeCuenta } from "@/components/cuenta/PantallaDeCuenta";
 import "../estilos/entrada.css";
+import "../estilos/cuenta-mostrador.css";
 import "../estilos/mi-cuenta.css";
 
 export const metadata: Metadata = { title: "Restablecer mi acceso", robots: { index: false, follow: false } };
@@ -10,15 +11,15 @@ export const metadata: Metadata = { title: "Restablecer mi acceso", robots: { in
 /**
  * «Restablecer mi acceso» (Felipe 2026-10-15): quien ya no podía entrar lo pidió en una tienda CAYLA (el ERP, ficha del cliente ▸
  * «Restablecer acceso a la tienda web») y le llegó un código a su correo nuevo. A esta página lleva el enlace de ese correo. Pública: no
- * hace falta sesión. Sin nada en la dirección (ni el correo ni el código: se escriben). La pantalla partida, con sus tres pasos: el de
+ * hace falta sesión. Sin nada en la dirección (ni el correo ni el código: se escriben). La pantalla marfil («A · Mostrador»), con sus tres pasos: el de
  * la tienda ya está hecho.
  */
 export default function RestablecerMiAcceso() {
   return (
     <MarcoCuenta>
-      <PantallaDeEntrada alto="largo" panel={<PanelDeAcceso camino="restablecer" actual={1} />}>
+      <PantallaDeCuenta forma="acceso" lado={<LadoDeAcceso camino="restablecer" actual={1} />}>
         <FormularioRestablecerAcceso />
-      </PantallaDeEntrada>
+      </PantallaDeCuenta>
     </MarcoCuenta>
   );
 }

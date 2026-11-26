@@ -5,6 +5,7 @@ import { diasQueFaltan, venceDicho, type MisPuntos } from "./puntos";
 import { hoyLima, type Dia } from "./cuentas";
 import { nombreTienda } from "./pedidos";
 import type { MiRecomendacion } from "./recomendaciones";
+import { detalleDicho } from "./detalle-dicho";
 
 // El aviso al entrar (ADR-0408; Felipe, 2026-10-14: «Si no le llegan los avisos por WhatsApp, cuando inicie sesión igual le debe salir
 // algún mensaje»). Al entrar se llega al Inicio, y ahí arriba sale lo que la persona tiene a su favor en el Club: su regalo de puntos de
@@ -55,9 +56,9 @@ export type AvisoClub = {
   cuando?: string;
 };
 
-/** «Blusa Emma ya llegó», «Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.» */
+/** «Blusa Emma ya llegó», «Negro, talla M. Hay en Trujillo: sepárala antes de que se acabe.» */
 function avisoDeLlegada(e: z.infer<typeof esquemaLlego>, dueno: string): AvisoClub {
-  const detalle = [e.color, e.talla ? `Talla ${e.talla}` : null].filter(Boolean).join(" · ");
+  const detalle = detalleDicho([e.color, e.talla ? `talla ${e.talla}` : null]);
   const donde = e.sede ? [e.sede] : e.hay_en;
   const hay = donde.length ? `Hay en ${listaDicha(donde)}: sepárala antes de que se acabe.` : "Sepárala antes de que se acabe.";
   return {
@@ -189,14 +190,14 @@ export function avisoAlEntrar(avisos: readonly AvisoClub[], vistos: ReadonlySet<
   };
 }
 
-/** Cómo se presenta el aviso según lo que trae: solo del Club, «Club CAYLA · Para ti» y el camino a «Mi perfil»; con una respuesta de
+/** Cómo se presenta el aviso según lo que trae: solo del Club, «Del Club CAYLA para ti» y el camino a «Mi perfil»; con una respuesta de
  *  CAYLA, «Para ti» (una respuesta no es del Club). Si trae las dos cosas, el enlace grande va a «Mi perfil» y cada respuesta lleva el
  *  suyo; si solo trae respuestas, el enlace grande ya lleva a «Recomendaciones» y no se repite en cada línea. */
 export function presentacionDelAviso(aviso: AvisoAlEntrar): { ceja: string; enlace: { texto: string; href: string }; enlaceEnCadaLinea: boolean } {
   const hayClub = aviso.mas > 0 || aviso.lineas.some((l) => l.tipo !== "respuesta");
   const hayRespuesta = aviso.lineas.some((l) => l.tipo === "respuesta");
   return {
-    ceja: hayRespuesta ? "Para ti" : "Club CAYLA · Para ti",
+    ceja: hayRespuesta ? "Para ti" : "Del Club CAYLA para ti",
     enlace: hayClub ? { texto: "Ver en Mi perfil", href: "/cuenta" } : { texto: "Leer en Recomendaciones", href: "/recomendaciones" },
     enlaceEnCadaLinea: hayClub && hayRespuesta,
   };

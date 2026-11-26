@@ -60,8 +60,13 @@ export type PrendaConCosto = {
   /** El modelo en su color (`producto·color`, la clave del pase de Insignias): una prenda, con todas sus tallas. Sin él, cada talla
    *  cuenta sola. Lo usan los conteos de la hoja y de la tarjeta (ADR-0488): «8 prendas» dicen lo mismo que el pase. */
   modelo?: string;
-  /** Es de Claurè (otra empresa): una oferta no la alcanza salvo que la incluya a propósito. Ausente = de CAYLA. */
+  /** Es de una empresa aliada que entra a las campañas (nació con Claurè, ADR-0683): una oferta no la alcanza salvo que la incluya a
+   *  propósito. Ausente = de CAYLA. */
   deClaure?: boolean;
+  /** Es de una aliada que NO entra a las campañas (`empresas.entra_a_campanas` apagado): ninguna oferta la alcanza, ni incluyéndolas. */
+  fueraDeCampanas?: boolean;
+  /** El nombre de su empresa aliada («CLAURE»), para decirla en la hoja. */
+  aliada?: string;
   /** El producto (el modelo con todas sus tallas y colores) y su nombre: lo que se elige «prenda por prenda» en una oferta (ADR-0655). */
   productoId?: string;
   referencia?: string;

@@ -116,7 +116,8 @@ export function AgregarLook({
                     {p.prenda.empresa && <span className="t-look-empresa">{p.prenda.empresa.nombre}</span>}
                     <b>{p.prenda.nombre}</b>
                     <small>
-                      {p.color.nombre} · {precio.principal}
+                      {p.color.nombre}
+                      <span className="num t-look-fila-precio">{precio.principal}</span>
                     </small>
                     <span className="t-look-tallas" role="group" aria-label={`Talla de ${p.prenda.nombre}`}>
                       {p.tallas.map((t) => (

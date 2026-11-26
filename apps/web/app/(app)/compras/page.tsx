@@ -1,344 +1,63 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarraAvance } from "@/components/ui/BarraAvance";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
-import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
-import { getMarcasDeCompras } from "@/lib/marcas-de-compras";
-import { tituloDeCompra } from "@/lib/marcas-de-compras-reglas";
-import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
-import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
-import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
-import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
-import { destinosCortos } from "@/lib/reparto-reglas";
-import { getUbicaciones } from "@/lib/ubicaciones";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { Chip } from "@/components/ui/Chip";
-import { Resaltado } from "@/components/ui/Resaltado";
-import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
-import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { FiltrosCompras } from "@/components/FiltrosCompras";
-import { Paginacion, leerCursor } from "@/components/Paginacion";
-import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
-import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
+import { getTodasLasCompras } from "@/lib/compradores";
+import { mesDeParametro } from "@/lib/facturacion-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
-import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
+import { SelectorMesEnUrl } from "@/components/ui/SelectorMes";
+import { BuscadorCompras } from "@/components/compras/BuscadorCompras";
+import { TodasLasComprasVista, type PersonaDelFiltro } from "@/components/compras/TodasLasComprasVista";
 
-// Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
-// se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
-// «Mis compras» y su comprobante, en «Revisar compras». Cada
-// fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
-// debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
-// Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o
-// 3 millones.
-//
-// Las cuatro cifras de arriba deciden: qué se debe (y lo vencido), qué mercadería viene en camino
-// (y cuánta ya debió llegar), cuánto se compró este mes frente al anterior, y el IGV de las
-// facturas del mes — el crédito fiscal que se declara. Se fue «Registradas»: un conteo que no lleva
-// a ninguna acción.
-//
-// Movimiento (2026-09-19, ADR-0136; prototipo `docs/maquetas/comprobantes-animaciones-2026-09`): la
-// pantalla sigue siendo de servidor con su estado en la URL; lo que se mueve es CSS puro
-// (app/estilos/comprobantes-lista.css) más tres piezas cliente mínimas. Al llegar, cabecera, tarjetas,
-// pestañas, filtros y filas entran escalonadas (`anim-entra` con `--i`) y las cifras cuentan una vez
-// (`CifraQueCuenta`); las barras de reparto y de avance se llenan (desde el 2026-10-06 los estados son píldoras de
-// filtro y el orden un segmento de modo, sin viaje: ADR-0358); y al cambiar de vista u orden las filas que se quedan
-// se reacomodan en vez de saltar (`ComprobantesListaFilas`, FLIP). Buscar resalta lo encontrado.
-// `/` enfoca la búsqueda; `j`/`k` recorren las filas y `Enter` abre.
+// Compras ▸ Todas las compras (ADR-0704, Felipe 2026-11-26; antes «Historial de compras», ADR-0035/0111/0504): un solo libro. Lo de «Mis
+// compras» desde que sale en un envío —antes solo aparecía al revisarse, y el 2026-11-26 había 33 compras ya enviadas que no se veían en
+// ninguna lista— y lo que registró la oficina, en una fila cada una. Se busca por proveedor, persona o número, se elige el mes y la persona.
+// Se fueron las cuatro cifras, las cinco píldoras de estado, seis de los ocho filtros y el orden por vencimiento (todo se paga al contado: los
+// 36 comprobantes del 2026-11-26 estaban pagados). «Descargar el mes» sigue: es lo que se le manda al contador.
 
-// Emisión (+ vence) · Proveedor (+ RUC) · N.° documento (+ tipo) · Recepción · Pago · Total · flecha.
-// La fila entera es un enlace que abre el detalle como modal encima de esta lista (ruta interceptada
-// `@modal/(.)factura/[compraId]`): la lista no se desmonta y al cerrar se vuelve exactamente donde se
-// estaba, con scroll y filtros intactos. La flecha «›» es la señal de que se puede abrir.
-const PLANTILLA = "sm:grid-cols-[6.5rem_1fr_8.5rem_10rem_9.5rem_6.5rem_1rem]";
-
-const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
-
-export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  // 20260923130000: la lista es del módulo `facturas_compra` (en pantalla, «Historial de compras»). ADR-0387 (Felipe 2026-10-12): con el módulo se ven
-  // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
-  // ADR-0504: esta ruta es la de la fila «Historial de compras» del menú, que se abre con cualquiera de los tres módulos (Historial, Revisar
-  // compras o Por pagar). Quien no ve el Historial cae en la primera pestaña que sí ve, no en «Sin acceso».
-  const persona = await exigirModulo("facturas_compra", "fondos", "por_pagar");
-  if (!veModulo(persona, "facturas_compra")) redirect(entradaDeCompras(persona.modulos.map((m) => m.clave)) ?? "/");
-  const vePorPagar = veModulo(persona, "por_pagar");
+export default async function TodasLasComprasPage({ searchParams }: { searchParams: Promise<{ m?: string; q?: string; persona?: string }> }) {
+  // La ruta abre con el módulo de siempre (`facturas_compra`) o con Por pagar, que sigue colgando de aquí; quien no ve esta lista cae en lo suyo.
+  const persona = await exigirModulo("facturas_compra", "por_pagar");
+  if (!veModulo(persona, "facturas_compra")) redirect("/compras/por-pagar");
   const params = await searchParams;
-  const filtros = filtrosDesdeParams(params);
-  const cursor = leerCursor(params.cursor);
-  const orden = params.orden === "vencimiento" ? "vencimiento" : "emision";
-  const hayFiltros = Object.values(filtros).some(Boolean);
-
-  // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
-  // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
-  // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas, marcas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
-    // La marca primero (ADR-0644): las marcas de cada comprobante de la página, encadenadas a la lista como las notas pendientes.
-    listarCompras(filtros, { cursor, orden }).then(async (pagina) => {
-      const [notas, marcas] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getMarcasDeCompras({ compras: pagina.filas.map((c) => c.id) })]);
-      return { pagina, notas, marcas };
-    }),
-    getResumenCompras(),
-    getResumenComprasExtra(),
-    getProveedoresActivos(),
-    getUbicaciones(),
-  ]);
-  // Para decir a qué tiendas va un comprobante repartido (ADR-0139).
-  const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
-
-  const ahora = new Date();
   const hoy = hoyLima();
-  const mesActual = nombreDelMes(hoy);
-  const mesAnterior = nombreDelMes(sumarDias(`${hoy.slice(0, 7)}-01`, -1));
-  const vista = vistaActiva(params);
+  const actual = { anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) };
+  const mes = mesDeParametro(params.m, actual);
+  const desde = `${mes.anio}-${String(mes.mes).padStart(2, "0")}-01`;
+  const hasta = new Date(Date.UTC(mes.anio, mes.mes, 0)).toISOString().slice(0, 10);
   const busqueda = params.q?.trim() ?? "";
-  const pagados = Math.max(0, resumen.vigentes - resumen.conSaldo);
-  const cifra = (n: number, sing: string, plu: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? sing : plu}`;
+  const personaId = params.persona ?? null;
 
-  // Cada pestaña es una vista en la URL: conserva la búsqueda y los demás filtros, y reemplaza solo
-  // el parámetro de vista.
-  const hrefVista = (v: VistaComprobantes) => {
+  // Una lectura del mes (con la búsqueda): de ella salen el filtro de personas y, filtrada, la lista.
+  const delMes = await getTodasLasCompras({ desde, hasta, busqueda: busqueda || null });
+  const personas: PersonaDelFiltro[] = [];
+  for (const c of delMes ?? []) if (c.personaId && !personas.some((p) => p.id === c.personaId)) personas.push({ id: c.personaId, nombre: c.persona ?? "" });
+  personas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const compras = delMes && personaId ? delMes.filter((c) => c.personaId === personaId) : delMes;
+
+  const hrefPersona = (id: string | null) => {
     const q = new URLSearchParams();
-    for (const [k, val] of Object.entries(params)) if (val && k !== "cursor" && !PARAMS_DE_VISTA.includes(k)) q.set(k, String(val));
-    const extraVista: Partial<Record<VistaComprobantes, [string, string]>> = { "por-pagar": ["saldo", "1"], "por-recibir": ["porrecibir", "1"], vencidos: ["vencidas", "1"], pagados: ["pago", "pagada"] };
-    const e = extraVista[v];
-    if (e) q.set(e[0], e[1]);
-    const s = q.toString();
-    return s ? `/compras?${s}` : "/compras";
-  };
-  const hrefOrden = (o: "emision" | "vencimiento") => {
-    const q = new URLSearchParams();
-    for (const [k, val] of Object.entries(params)) if (val && k !== "cursor" && k !== "orden") q.set(k, String(val));
-    if (o === "vencimiento") q.set("orden", "vencimiento");
+    if (params.m) q.set("m", params.m);
+    if (busqueda) q.set("q", busqueda);
+    if (id) q.set("persona", id);
     const s = q.toString();
     return s ? `/compras?${s}` : "/compras";
   };
 
   return (
-    <div className="space-y-6">
-      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504). Desde ADR-0387 quien tiene el módulo ve las facturas de
-          todas las tiendas: eso dice la línea de arriba. Esta pantalla ya leyó lo que se debe (`resumen`): no se vuelve a pedir. */}
-      <CabeceraHistorialCompras
-        activa="historial"
-        conteos={{ porPagar: { conSaldo: resumen.conSaldo, vencidas: resumen.vencidas } }}
-        acciones={
-          // El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
-          // quien tiene el módulo descarga las compras de todas las tiendas, como el líder. Registrar ya no vive aquí (ADR-0480 act.).
-          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
-            Descargar el mes
-          </BotonDescargar>
-        }
-      />
-
-      {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
-          directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
-      {/* Cuatro en fila solo si cada una tiene con qué: mira el ancho que deja el lateral, no el de la ventana (a 640 px serían 68 px cada una). */}
-      <div className="@container">
-        <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-4">
-          <TarjetaCifra
-            viva
-            className="anim-entra"
-            style={{ ["--i" as string]: 1 }}
-            punto="ambar"
-            detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-            etiqueta="Por pagar"
-            valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-            href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
-            reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
-          >
-            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
-          </TarjetaCifra>
-          <TarjetaCifra
-            viva
-            className="anim-entra"
-            style={{ ["--i" as string]: 2 }}
-            punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
-            detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
-            etiqueta="Por recibir"
-            valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-            unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
-            href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
-            reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
-          >
-            {resumen.porRecibir === 0 ? (
-              "Nada por recibir"
-            ) : (
-              <>
-                {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-                {soles(extra.valorPorRecibir)}
-              </>
-            )}
-          </TarjetaCifra>
-          <TarjetaCifra
-            className="anim-entra"
-            style={{ ["--i" as string]: 3 }}
-            etiqueta={`Compras de ${mesActual}`}
-            valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
-          >
-            {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
-          </TarjetaCifra>
-          <TarjetaCifra
-            className="anim-entra"
-            style={{ ["--i" as string]: 4 }}
-            punto="verde"
-            etiqueta="IGV del mes"
-            valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
-          >
-            Solo facturas
-          </TarjetaCifra>
-        </div>
-      </div>
-
-      {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
-          con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
-          maqueta de ADR-0111. La vista sigue en la URL. */}
-      {/* `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React (como en <Pestanas>). */}
-      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }} suppressHydrationWarning>
-        {(
-          [
-            { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },
-            { clave: "por-pagar", etiqueta: "Por pagar", conteo: resumen.conSaldo },
-            { clave: "por-recibir", etiqueta: "Por recibir", conteo: resumen.porRecibir },
-            { clave: "vencidos", etiqueta: "Vencidos", conteo: resumen.vencidas },
-            { clave: "pagados", etiqueta: "Pagados", conteo: pagados },
-          ] as const
-        ).map((p) => (
-          <Link key={p.clave} href={hrefVista(p.clave)} aria-current={vista === p.clave ? "page" : undefined} className="pildora-cayla shrink-0" data-guia={`compras.vista-${p.clave}`}>
-            {p.etiqueta} <span className="pildora-cayla__n">{p.conteo.toLocaleString("es-PE")}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <div className="anim-entra" style={{ ["--i" as string]: 6 }}>
-        <FiltrosCompras
-          atajoBuscar
-          proveedores={proveedores}
-          tiendas={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
-          visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
-          accionesDespues={
-            <SegmentoEnlaces
-              etiquetaAccesible="Ordenar compras"
-              guia="compras.orden"
-              activo={orden}
-              opciones={[
-                { valor: "emision", etiqueta: "Emisión", href: hrefOrden("emision") },
-                { valor: "vencimiento", etiqueta: "Vencimiento", href: hrefOrden("vencimiento") },
-              ]}
-            />
-          }
-        />
-      </div>
-
-      {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-      <div data-resultados data-guia="compras.lista">
-        {compras.length === 0 && !cursor ? (
-          <ComprobantesListaVacia hayFiltros={hayFiltros} busqueda={busqueda} />
-        ) : (
-          <Tabla className="anim-entra" style={{ ["--i" as string]: 7 }}>
-            <Encabezado
-              plantilla={PLANTILLA}
-              columnas={[
-                { titulo: "Emisión" },
-                { titulo: "Marca y proveedor" },
-                { titulo: "N.° documento" },
-                { titulo: "Recepción" },
-                { titulo: "Pago" },
-                { titulo: "Total", alinear: "der" },
-                { titulo: "" },
-              ]}
-            />
-            <ComprobantesListaFilas clave={compras.map((c) => c.id).join("|")}>
-              {compras.map((c, i) => {
-                const recepcion = celdaRecepcion(c, ahora);
-                const pago = celdaPago(c, ahora);
-                return (
-                  <Link
-                    key={c.id}
-                    href={`/compras/factura/${c.id}`}
-                    data-flip={c.id}
-                    style={{ ["--k" as string]: Math.min(i, 8) }}
-                    className={fila(PLANTILLA, "cmp-fila")}
-                  >
-                    <span className={celda("izq", "cmp-c-emision whitespace-normal text-sm tabular-nums text-tinta")}>
-                      <span className="block">{diaMes(c.fechaEmision)}</span>
-                      {/* «Venció dd/mm» va en tinta, como «Contado»: el chip «Vencida» de la columna Pago ya lo avisa en rojo y late, y
-                          cada vencida gastaba dos rojos (auditoría al milímetro 2026-11-12; presupuesto, MAX_ROJO_POR_PANTALLA). */}
-                      <span className="block text-sm text-tinta/70">{subEmision(c)}</span>
-                    </span>
-                    <span className={celda("izq", "cmp-c-proveedor")}>
-                      {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja con su RUC; sin ellas, como antes.
-                          `compras.proveedor` va siempre en la razón social: la demo de la guía escribe una palabra de ahí en el buscador. */}
-                      {tituloDeCompra(marcas.get(c.id)) ? (
-                        <>
-                          <span className={`block text-sm font-medium ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>{tituloDeCompra(marcas.get(c.id))}</span>
-                          <span className="block text-sm text-tinta/70" data-guia="compras.proveedor">
-                            <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
-                          </span>
-                        </>
-                      ) : (
-                        <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`} data-guia="compras.proveedor">
-                          <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
-                        </span>
-                      )}
-                      {c.proveedorRuc && (
-                        <span className="block text-sm tabular-nums text-tinta/70">
-                          RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
-                        </span>
-                      )}
-                    </span>
-                    <span className={celda("izq", "cmp-c-documento whitespace-normal text-sm tabular-nums text-tinta")}>
-                      <span className="block">
-                        <Resaltado texto={c.documento} busqueda={busqueda} />
-                      </span>
-                      <span className="block text-sm text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
-                    </span>
-                    <span className={celda("izq", "cmp-c-recepcion overflow-visible whitespace-normal")} data-guia="compras.recepcion">
-                      <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      {c.estado !== "anulada" && <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>}
-                      {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
-                      {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-sm text-tinta/70">{destinosCortos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
-                      )}
-                      {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
-                      <AvanceFino pct={recepcion.pct} />
-                    </span>
-                    <span className={celda("izq", "cmp-c-pago overflow-visible whitespace-normal")} data-guia="compras.pago">
-                      {/* Una anulada ya lo dice en Recepción, y una pagada no necesita más que su chip: «Contado» o «Vence» van bajo la emisión. */}
-                      {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
-                      {c.estado !== "anulada" && (
-                        <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
-                          {pago.texto}
-                        </Chip>
-                      )}
-                      {c.estado !== "anulada" && c.estadoPago !== "pagada" && <span className="mt-0.5 block text-sm tabular-nums text-tinta/70">{pago.sub}</span>}
-                      <AvanceFino pct={pago.pct} />
-                      {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
-                      <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
-                    </span>
-                    {/* «Total» solo se ve (y se lee) en la fila apilada, donde la cabecera de la tabla ya no está: comprobantes-lista.css. */}
-                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>
-                      <span className="cmp-total-titulo hidden text-xs font-normal text-taupe">Total</span>
-                      {c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span aria-hidden className="cmp-flecha-fila hidden text-right text-base leading-none sm:block">
-                      ›
-                    </span>
-                  </Link>
-                );
-              })}
-            </ComprobantesListaFilas>
-          </Tabla>
-        )}
-      </div>
-
-      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={params} pathname="/compras" />
-    </div>
+    <TodasLasComprasVista
+      compras={compras}
+      personas={personas}
+      personaId={personaId}
+      busqueda={busqueda}
+      buscador={<BuscadorCompras valor={busqueda} />}
+      selectorMes={<SelectorMesEnUrl ruta="/compras" mes={mes} actual={actual} guia="todas.mes" />}
+      descargar={
+        // El registro de compras del mes que se le manda al contador (los comprobantes ya revisados).
+        <BotonDescargar href={`/compras/exportar?mes=${desde.slice(0, 7)}`} guia="compras.exportar">
+          Descargar el mes
+        </BotonDescargar>
+      }
+      hrefPersona={hrefPersona}
+    />
   );
-}
-
-/** La barra de avance fina (ronda 13) bajo el subtexto de Recepción/Pago. `pct` 0–1; `null` = sin avance parcial, no se dibuja. */
-function AvanceFino({ pct }: { pct: number | null }) {
-  if (pct == null) return null;
-  return <BarraAvance pct={pct * 100} alto="fina" decorativa className="mt-1.5 w-[88%]" />;
 }

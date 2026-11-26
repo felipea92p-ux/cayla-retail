@@ -514,6 +514,9 @@ llevan datos reales):
    TIENES, y «LIMA TIENE 2» con sus colores o «y los 6 que te faltan»; lo que viene en camino va antes); la tabla es limpia (lo agotado, por color
    con lo que tiene la otra tienda; lo que se acaba, cuántas te quedan por talla y color, con 0 en rojo donde se vendió y ya no hay); y el botón es
    «Pedir a Lima», negro, sin «Comprar». Lo que no está en «Qué pedir» sigue con su ficha de siempre. Sin migración.
+   **Act. 2026-11-25** (Felipe: «en el detalle no indica cuánto me queda de cada color»): la tabla de lo agotado suma la columna TE QUEDAN (0 en
+   rojo en cada color, con su total) y, en un modelo de una sola talla, la columna de «Te quedan» ya no se llama por la talla («ESTÁNDAR»):
+   se llama TE QUEDAN y el título dice «Te quedan por color».
 
 **Cómo.** Lógica pura en `lib/analisis-pedir.ts` (`agotadoDelModelo`, `modelosAgotados`, `queHayQuePedir`, `fechaEnQueSeAcaba`,
 `textoVendesPorSemana`, `textoVendiste`, `pieDePedir`; `modelosQueNoLlegan` deja fuera lo que ya no tiene nada y `alcanceDelModelo` devuelve su
@@ -526,3 +529,47 @@ TRU, a 1600 y 375 px, en claro y oscuro (sin errores en consola); `/milimetro au
 
 **Queda abierto.** Si «Comprar todas» de «Se acaba» también se va; marcar los agotados que fueron compras de una sola vez (hoy no hay cómo, y
 salen en «Ya se agotaron» hasta 8 semanas); probarlo con una encargada real.
+
+### Act. 2026-11-25 (b) — Lo agotado, por talla y color, en casillas de dos pisos
+
+**Problema.** La ficha de un modelo agotado decía lo vendido y lo que te queda solo por color. Felipe: «¿es por talla y color cuánto quedan?»;
+y, al ver un cuadro con lo vendido por talla: «no entiendo dónde veo cuánto me queda de cada color». Hacían falta las dos cosas, talla por
+talla, y que se entendieran sin explicar.
+
+**Decisión (Felipe, mirando tres rondas de maquetas con datos de TRU: `docs/maquetas/analisis-pedir-sin-comprar-2026-11/alternativas.html`,
+`quedan.html` y `mejor-b.html`).** Eligió la «B2»: una fila por color y, por cada talla y el total, una **casilla de dos pisos**: arriba cuántas
+te quedan (0 en rojo), abajo cuántas vendiste en las 8 semanas. Una clave arriba de la tabla dice qué es cada piso. Lo que tiene la otra tienda
+**sale de la tabla** y va en su propio bloque («Arequipa tiene 7»), color por talla, para que no se mezcle con lo tuyo. Descartó el cuadro con
+una sola columna «Te quedan» por color, las dos líneas por color y los dos cuadros separados.
+
+**Reglas.** Filas: los colores que se vendieron en las 8 semanas, del que más al que menos. Columnas: las tallas que se vendieron (una que nunca
+se vendió no suma una columna de «—»); con una sola talla, solo la casilla del total. El bloque de la otra tienda va primero con los colores que
+más vendiste y, entre los demás, con lo que más tiene. La ficha de lo que se acaba no cambia.
+
+**Cómo.** `tablaDosPisos` y `textoCasillaDosPisos` en `lib/analisis-ficha-pedir.ts` (la tabla `tipo: "dosPisos"` reemplaza a `"colores"`), con
+sus pruebas; `TablaDosPisos` y `CasillaDos` en `components/analisis/FichaPrenda.tsx`; las casillas, en `app/estilos/analisis-pedir.css` (la
+placa, con el piso de arriba teñido del rojo del dato). Sin migración.
+
+**Cómo se verificó.** Pruebas de Análisis (483); en el navegador, con las cifras reales de TRU de Capa de Encaje (2 tallas), Pantalon Zenit
+(3 tallas), Blusa Alba (Arequipa tiene) y Top Tokio (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores y sin que nada se salga
+de la hoja; `docs/milimetro/auditorias/2026-11-25-analisis-agotado-dos-pisos.md`.
+
+### Act. 2026-11-25 (c) — Lo que se acaba, también en casillas de dos pisos
+
+**Problema.** Felipe abrió la ficha de un modelo que se acaba (Chaleco Cecia, «Se acaba el 2 dic.») y no vio las casillas de dos pisos: solo
+se habían puesto en lo agotado. Pidió «igual que lo agotado».
+
+**Decisión.** Las dos fichas de «Qué pedir» usan la misma tabla (`tablaDosPisos`): filas, los colores que se vendieron en las 8 semanas **o
+que todavía tienen algo**, del que más se vendió al que menos; columnas, las tallas que se vendieron o que tienen algo. Arriba lo que te queda,
+abajo lo vendido en 8 semanas (antes, lo que se acaba contaba 30 días). **El 0 de arriba va en rojo solo donde se vendió y ya no hay**; donde
+no se vendió ni queda, es un 0 tenue (no falta nada). La tabla vieja de lo que se acaba (`tablaQuedan`, `textoCeldaQueda`) se borró.
+
+**Cómo se verificó.** Pruebas de `lib/analisis-ficha-pedir.test.ts`; en el navegador, con las cifras reales de TRU del Chaleco Cecia (3 tallas,
+7 colores), Blusa Alba (agotado, Arequipa tiene) y Polo Basico Manga Corta (una talla), a 1440 px en claro y oscuro y a 375 px, sin errores.
+
+### Act. 2026-11-25 (d) — La clave de los dos pisos ya no pinta de rojo el piso de arriba
+
+Felipe: «en la leyenda dice que arriba será rojo, pero cuando hay data es blanco». La clave mostraba «0 / 2» con el piso de arriba teñido y
+«Arriba: te quedan» en rojo, y el rojo solo marca lo que se vendió y ya no hay. Ahora la muestra lleva el piso de arriba neutro («1 / 2», como
+cuando te queda algo) y, aparte, un «0» rojo con «Se vendió y ya no hay». Y en una sola línea, con una muestra chica (Felipe, al verla en
+tres renglones: «esto es mucho espacio ocupado»): en la computadora entra entera; en el celular, en dos líneas cortas.

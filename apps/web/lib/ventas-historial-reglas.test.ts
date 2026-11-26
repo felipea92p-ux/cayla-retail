@@ -136,6 +136,8 @@ describe("filtrosDesdeParams", () => {
   it("los totales los suma la base solo con los filtros que ella conoce", () => {
     expect(totalesEnLaBase(filtrosDesdeParams({ comp: "sin", pago: "yape" }, ctxLider))).toBe(true);
     expect(totalesEnLaBase(filtrosDesdeParams({ comp: "por_enviar" }, ctxLider))).toBe(false);
+    // ADR-0683: con una empresa elegida, la venta mixta cuenta entera: la cabecera se suma aparte, no con el reparto de la base.
+    expect(totalesEnLaBase({ ...filtrosDesdeParams({}, ctxLider), empresaId: "id-claure" })).toBe(false);
     expect(totalesEnLaBase(filtrosDesdeParams({ posventa: "1" }, ctxLider))).toBe(false);
     expect(totalesEnLaBase(filtrosDesdeParams({ clienta: "1" }, ctxLider))).toBe(false);
   });

@@ -30,8 +30,15 @@ describe("fraseDeVoz", () => {
 });
 
 describe("las preferencias de la estación", () => {
-  it("la estación arranca apagada y su voz encendida", () => {
-    expect(estacionDeLaCaja.leerEnServidor()).toBe("no");
+  it("la estación y su voz arrancan encendidas (Felipe, 2026-11-24: lo del celular sale solo en la caja)", () => {
+    expect(estacionDeLaCaja.leerEnServidor()).toBe("si");
     expect(vozDeLaEstacion.leerEnServidor()).toBe("si");
+  });
+  it("encendida de fábrica no despierta a un equipo que imprime con cuadro: el celular y la Mac de la oficina siguen quietos", () => {
+    const deFabrica = estacionDeLaCaja.leerEnServidor();
+    expect(estacionActiva("normal", deFabrica)).toBe(false);
+    expect(estacionActiva("etiquetas", deFabrica)).toBe(false);
+    expect(estacionActiva("caja", deFabrica)).toBe(true);
+    expect(estacionActiva("normal", deFabrica, true)).toBe(true);
   });
 });

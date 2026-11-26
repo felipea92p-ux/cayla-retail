@@ -439,7 +439,7 @@ function filasDeLaHoja(h: Hoja): [string, [string, string][]][] {
         ["Razón social", h.proveedor.razon_social],
         ["RUC", h.proveedor.ruc],
         ["Domicilio", h.proveedor.domicilio],
-        ["Tienda", h.tienda ? `${h.tienda.nombre}${h.tienda.direccion ? ` · ${h.tienda.direccion}` : ""}` : "Tienda online"],
+        ["Tienda", h.tienda ? `${h.tienda.nombre}${h.tienda.direccion ? `, ${h.tienda.direccion}` : ""}` : "Tienda online"],
       ],
     ],
     [
@@ -477,12 +477,12 @@ export const NOTA_LEGAL =
 
 /** El correo con la copia de la hoja: asunto, texto plano y HTML (todo lo que escribió la persona va escapado en el HTML). */
 export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto: string; html: string } {
-  const asunto = `Tu hoja de reclamación N.° ${h.codigo} · CAYLA`;
+  const asunto = `CAYLA: tu hoja de reclamación N.° ${h.codigo}`;
   const libro = `Libro de Reclamaciones ${h.libro_codigo}`;
   const intro = `El ${fechaDeLaHoja(h.creada_en)} recibimos tu ${h.tipo}. Esta es la copia de tu hoja del Libro de Reclamaciones. CAYLA te responde a este correo en un plazo máximo de 15 días hábiles.`;
   const filas = filasDeLaHoja(h);
   const texto = [
-    `Hoja de reclamación N.° ${h.codigo} · ${libro}`,
+    `Hoja de reclamación N.° ${h.codigo} del ${libro}`,
     "",
     intro,
     "",
@@ -515,7 +515,7 @@ export function correoDeLaHoja(h: Hoja, enlace: string): { asunto: string; texto
 
 /** El correo con la respuesta de CAYLA a una hoja: la respuesta primero y, debajo, lo que el cliente reclamó (todo escapado en el HTML). */
 export function correoDeLaRespuesta(h: Hoja, enlace: string): { asunto: string; texto: string; html: string } {
-  const asunto = `Respuesta a tu hoja de reclamación N.° ${h.codigo} · CAYLA`;
+  const asunto = `CAYLA: respuesta a tu hoja de reclamación N.° ${h.codigo}`;
   const intro = `Hola, ${h.consumidor.nombre}. Esta es la respuesta de CAYLA a tu ${h.tipo} del ${fechaDeLaHoja(h.creada_en)} (hoja N.° ${h.codigo}).`;
   const respuesta = h.respuesta ?? "";
   const texto = [

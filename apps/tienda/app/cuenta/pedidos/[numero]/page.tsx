@@ -111,7 +111,7 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
 
           <div className="w-tarjeta">
             <span className="w-lbl">
-              Pedido <span className="t-codigo">{p.codigo}</span> · {tienda}
+              Pedido <span className="t-codigo">{p.codigo}</span> en {tienda}
             </span>
             {vivas(p).map((l, i) => (
               <PrendaDelPedido key={`${l.varianteId}-${i}`} linea={l} />
@@ -222,7 +222,7 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
     case "pagado":
       return p.listoParaRecoger ? (
         <>
-          <span className="w-estado-chip t-verde">Pagado · listo para recoger</span>
+          <span className="w-estado-chip t-verde">Pagado y listo para recoger</span>
           <h1 className="w-titulo">
             Te espera en <em>{p.tienda.nombre}.</em>
           </h1>
@@ -289,8 +289,8 @@ function ConLaTienda({ p, tienda }: { p: Pedido; tienda: string }) {
       <span>
         <b>{enlace ? `Escríbele a ${tienda}` : "Todo se coordina por WhatsApp"}</b>
         <small>
-          {enlace ? "Por WhatsApp" : tienda}
-          {p.tienda.whatsapp ? ` · ${whatsappLegible(p.tienda.whatsapp)}` : ""}
+          {enlace ? "Por WhatsApp" : `WhatsApp de ${tienda}`}
+          {p.tienda.whatsapp ? `: ${whatsappLegible(p.tienda.whatsapp)}` : ""}
         </small>
       </span>
     </>

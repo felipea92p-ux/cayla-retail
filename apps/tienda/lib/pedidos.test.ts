@@ -202,8 +202,8 @@ describe("la línea de tiempo y el reloj", () => {
     expect(hhmmss(-5000)).toBe("00:00:00");
   });
 
-  it("«Blanco · Talla M»", () => {
-    expect(detalleDeLaPrenda({ color: { nombre: "Blanco", hex: null }, talla: "M" })).toBe("Blanco · Talla M");
+  it("«Blanco, talla M»", () => {
+    expect(detalleDeLaPrenda({ color: { nombre: "Blanco", hex: null }, talla: "M" })).toBe("Blanco, talla M");
     expect(detalleDeLaPrenda({ color: { nombre: null, hex: null }, talla: null })).toBe("");
   });
 });

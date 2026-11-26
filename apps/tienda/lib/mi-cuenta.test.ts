@@ -192,11 +192,11 @@ describe("eliminar la cuenta", () => {
   it("dice qué hacer con cada uno: el pagado se recoge; el confirmado se paga y se recoge; el que falta confirmar se anula o se cierra solo", () => {
     const f = leerLoQueFrena(frena)!;
     const pagado = queHacerConElPedido(f.pedidos[0]);
-    expect(pagado.titulo).toBe("Pedido W-0007 · pagado");
+    expect(pagado.titulo).toBe("Pedido W-0007 pagado");
     expect(pagado.texto).toContain("Recógelo en CAYLA Trujillo");
     expect(pagado.enlace).toEqual({ texto: "Ver mi pedido", href: "/cuenta/pedidos/W-0007", externo: false });
     const porConfirmar = queHacerConElPedido({ ...f.pedidos[1], whatsapp: "987654321" });
-    expect(porConfirmar.titulo).toBe("Pedido W-0009 · por confirmar");
+    expect(porConfirmar.titulo).toBe("Pedido W-0009 por confirmar");
     // Todavía no se recoge: la tienda no lo confirmó. «CAYLA Arequipa» no se vuelve «CAYLA CAYLA Arequipa».
     expect(porConfirmar.texto).toBe(
       "CAYLA Arequipa todavía no lo confirma. Si ya no lo quieres, escríbele para que lo anule; si nadie lo confirma, se cierra solo.",
