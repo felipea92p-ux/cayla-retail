@@ -21,6 +21,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getPuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 import { irAlQueQuedoSiSeFusiono } from "@/lib/producto-fusionado";
 import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
+import { leerEleccionGuardada } from "@/lib/margen-por-rasgos";
 
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -45,7 +46,7 @@ export default async function EditarProductoPage({
   await irAlQueQuedoSiSeFusiono(id, "editar");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha, resNombreProveedor, costoEnLaFicha] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha, resNombreProveedor, costoEnLaFicha, resRasgos] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -85,6 +86,8 @@ export default async function EditarProductoPage({
     // Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Tolerante: sin permiso de dinero, o sin la
     // función nueva, esa parte no se dibuja.
     getCostoEnLaFicha(id),
+    // Lo que la prenda tiene (ADR-0700), tal cual se guardó. Tolerante: si falla (la base sin la migración), las casillas no se dibujan.
+    supabase.rpc("fn_producto_rasgos" as never, { p_producto_id: id } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>,
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -225,6 +228,7 @@ export default async function EditarProductoPage({
         producto={producto}
         costoEnLaFicha={costoEnLaFicha}
         nombreProveedor={resNombreProveedor.error ? undefined : (resNombreProveedor.data?.nombre_proveedor ?? null)}
+        rasgosGuardados={resRasgos.error || !resRasgos.data ? null : leerEleccionGuardada(resRasgos.data)}
         volverA={volverA}
       />
     </div>

@@ -259,7 +259,7 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
   };
 }
 
-function leerCuaderno(x: unknown): CuadernoRonda | null {
+export function leerCuaderno(x: unknown): CuadernoRonda | null {
   const o = objeto(x);
   if (!o) return null;
   const n = (v: unknown) => numero(v) ?? 0;
@@ -310,14 +310,6 @@ export function detalleRondaAbierta(c: Pick<CuadernoRonda, "compras" | "prendas"
   return c.prendas > 0 ? `${compras} · ${c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`}` : compras;
 }
 
-/** Lo que tiene por cerrar cada persona en «Quién tiene plata»: lo que devuelve o lo que le debemos al cerrar su ronda. */
-export function porRecibirDe(cierres: readonly Pick<CierrePorRecibir, "personaId" | "decision" | "monto">[], personaId: string): { decision: "devuelve" | "le_deben"; monto: number } | null {
-  const suyos = cierres.filter((c) => c.personaId === personaId);
-  if (suyos.length === 0) return null;
-  const neto = suyos.reduce((s, c) => s + (c.decision === "devuelve" ? c.monto : -c.monto), 0);
-  if (Math.abs(neto) < 0.005) return null;
-  return { decision: neto > 0 ? "devuelve" : "le_deben", monto: Math.round(Math.abs(neto) * 100) / 100 };
-}
 
 /** Lo que manda `fn_revisar_compras`. `null` si no es lo que se espera (la base vieja, una respuesta rota). */
 export function leerRevisarCompras(data: unknown): RevisarCompras | null {
@@ -566,7 +558,7 @@ export const TIPOS_BANDEJA: readonly TipoBandeja[] = ["plata", "papel", "gasto",
 /** Cada cifra: su nombre largo (el de la lista para el lector), el corto de la tarjeta y la cabecera de su lista (diseño A, 2026-10-23). */
 export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; corto: string; cabecera: string }> = {
   plata: { nombre: "Plata por confirmar", corto: "Plata", cabecera: "Por confirmar" },
-  papel: { nombre: "Compras por completar", corto: "Compras", cabecera: "Por completar" },
+  papel: { nombre: "Compras por revisar", corto: "Compras", cabecera: "Por revisar" },
   gasto: { nombre: "Gastos por revisar", corto: "Gastos", cabecera: "Por revisar" },
   cierre: { nombre: "Rondas cerradas", corto: "Rondas", cabecera: "Por recibir" },
 };

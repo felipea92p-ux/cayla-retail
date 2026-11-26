@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   diferenciaApertura,
+  destinoParaLaBase,
   destinosDelCierre,
   etiquetaDestino,
   fondoTrasCierre,
@@ -71,8 +72,13 @@ describe("diferenciaApertura", () => {
 
 describe("destinosDelCierre (ADR-0560, actividad 11)", () => {
   it("«Se queda con Claudia» solo se ofrece donde opera CLAURE; los demás destinos van siempre", () => {
-    expect(destinosDelCierre(true).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider", "claudia"]);
-    expect(destinosDelCierre(false).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider"]);
+    expect(destinosDelCierre([{ id: null, duena: "Claudia" }]).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider", "claudia"]);
+    expect(destinosDelCierre([]).map((d) => d.valor)).toEqual(["caja_fuerte", "banco", "lider"]);
+    // ADR-0683: una por cada aliada de la tienda, con su dueña, y el valor lleva a cuál.
+    const dos = destinosDelCierre([{ id: "e1", duena: "Claudia" }, { id: "e2", duena: "CAYLA KIDS" }]);
+    expect(dos.slice(3).map((d) => [d.valor, d.etiqueta])).toEqual([["claudia:e1", "Se queda con Claudia"], ["claudia:e2", "Se queda con CAYLA KIDS"]]);
+    expect(destinoParaLaBase("claudia:e2")).toEqual({ destino: "claudia", aliadaId: "e2" });
+    expect(destinoParaLaBase("banco")).toEqual({ destino: "banco", aliadaId: null });
   });
   it("no pide referencia ni bloquea el cierre", () => {
     expect(motivoTrasladoInvalido({ contado: 300, trasladado: 100, destino: "claudia", referencia: "" })).toBeNull();

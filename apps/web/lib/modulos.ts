@@ -18,7 +18,7 @@ export const CLAVES_MODULO = [
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "campanas",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
-  "produccion", "ordenes_insumos",
+  "produccion",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
@@ -129,23 +129,19 @@ export const MODULOS: readonly Modulo[] = [
   // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
   // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
   { clave: "ordenes_compra", grupo: "Compras", nombre: "Mis compras", incluye: "En el celular: abrir y cerrar tu ronda de compras, anotar la plata que te dieron, lo que compraste (proveedor, prendas y el papel) y otros gastos, y mandar lo comprado a cada tienda" },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Todas las compras", incluye: "Ver todas las compras, de cada persona y de la oficina, con su papel, su envío y si ya se revisaron; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
-  // ADR-0480: «Revisar compras», la oficina. Misma clave y mismas funciones; cambia lo que se ve.
-  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número del papel, y qué hacer si algo no cuadró), revisar sus gastos y recibir sus rondas cerradas" },
+  // ADR-0480: «Revisar compras», la oficina. ADR-0704 (2026-11-26): «Compradores», la portada de Compras. Misma clave y mismas funciones.
+  { clave: "fondos", grupo: "Compras", nombre: "Compradores", incluye: "Ver quién está comprando con plata de CAYLA y en qué la gastó; entregarle plata y registrar lo que devuelve; confirmar su plata, completar sus compras, revisar sus gastos y recibir sus rondas cerradas; cerrar una ronda olvidada sin movimientos" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   // «Notas de crédito» se retiró (ADR-0480, 20261022225000): «por ahora no manejaremos notas de crédito» (Felipe, 2026-10-22).
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
-  // Órdenes de insumos (ADR-0362 fase 7, decisión 47; 20261013035000): lo que el Taller le pide a cada proveedor de tela y avíos, aparte
-  // de la orden de tienda (decisiones 25 y 28). Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo y nada más.
-  // Quien lo tiene ve y hace todo en esas órdenes, con sus precios, sin ver el resto de la plata del Taller; no necesita «Órdenes de
-  // producción» (la pantalla vive en /ordenes-insumos, fuera del layout de /produccion).
-  { clave: "ordenes_insumos", grupo: "Producción", nombre: "Órdenes de insumos", incluye: "Crear, ver, editar y anular las órdenes de compra de insumos del Taller, con sus precios, y descargar su PDF" },
+  // Órdenes de insumos (ADR-0362 fase 7) se retiró el 2026-11-25 sin haberse usado (ADR-0702, 20261125231000).
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   // Frescura del piso y Plan del piso viven en «Gestión» desde ADR-0392 (2026-10-13, migración 20261013134000: orden 212 y 214,
   // justo después de Análisis). Nacieron en «Inventario» (20260929100000 y 20261006100000); el lateral los muestra en «Gestión».

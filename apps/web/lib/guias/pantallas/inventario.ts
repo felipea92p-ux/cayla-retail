@@ -112,7 +112,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.filtros", para: "abrir" }],
       titulo: "Tres filas de filtros",
-      texto: "«Prenda»: categoría, talla, color o marca (talla y color aceptan varios). «Gestión»: qué pide hoy cada talla y si está dañada o apartada. «Vista»: cómo ves la lista. Cada cambio se aplica al momento.",
+      texto: "«Prenda»: categoría, talla, color o marca (talla y color aceptan varios); donde venden dos empresas, «Empresa» deja solo las unidades de una. «Gestión»: qué pide hoy cada talla y si está dañada o apartada. «Vista»: cómo ves la lista.",
     },
     {
       id: "ver-como",

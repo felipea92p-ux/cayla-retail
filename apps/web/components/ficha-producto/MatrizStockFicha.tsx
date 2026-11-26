@@ -11,10 +11,13 @@ import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrit
 import { Aviso } from "@/components/ui/Aviso";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
-import { nivelMargen } from "@/lib/alta-producto";
+import { useMargenObjetivo } from "@/components/ReglasDePrecio";
+import { margenALaVista } from "@/lib/margen-a-la-vista";
+import { soles } from "@/lib/compras-reglas";
+import type { Rasgo } from "@/lib/margen-por-rasgos";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
-import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
+import { costoEfectivo, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
 import { anchoDeTallaPx, armarMatriz, etiquetaCambiada, rangoEnDosLineas, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
 import { cuentaDeLaTalla, fraseCostoPrenda } from "@/lib/costo-tallas-reglas";
 import { Ayuda } from "@/components/Ayuda";
@@ -104,6 +107,7 @@ export function MatrizStockFicha({
   onQuitarTalla,
   huecos,
   precioAqui = null,
+  rasgos = [],
   deshabilitado,
   freno,
 }: {
@@ -137,11 +141,14 @@ export function MatrizStockFicha({
   huecos: { como: (color: string | null, talla: string | null) => Hueco; onLlenar: (color: string | null, talla: string | null) => void };
   /** En una terminal: el precio de su tienda se escribe en la tabla (`PrecioAquiMatriz`). */
   precioAqui?: PrecioAquiMatriz | null;
+  /** Lo que la prenda tiene en efecto (ADR-0700): sube el margen objetivo con que se mide cada talla. */
+  rasgos?: readonly Rasgo[];
   deshabilitado: boolean;
   /** Para el botón que sigue de la pantalla (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
   freno?: Ref<() => boolean>;
 }) {
   const n = ctx.nombres;
+  const objetivo = useMargenObjetivo(rasgos);
   const m = armarMatriz(filas, n);
   const numero = (f: FilaFicha) => (f.id && f.guardada ? stock.numero(f.id) : stock.numeroNueva(f.clave));
   const totales = totalesMatriz(m, numero);
@@ -692,16 +699,22 @@ export function MatrizStockFicha({
     );
   }
 
-  /** El margen bajo el costo (en Costos): en rojo profundo si se pierde, en ámbar si es bajo. */
+  /** El margen bajo el costo (en Costos), con la cuenta única (ADR-0668): rojo profundo si se pierde, ámbar si queda bajo el objetivo de
+   *  la prenda (base + lo que tiene, ADR-0700). */
   function margenBajo(f: FilaFicha) {
-    const margen = margenDeFila(f);
-    const nivel = nivelMargen(margen);
+    const m = margenALaVista(costoEfectivo(f), f.precio, objetivo);
     return (
       <span
-        className={`text-xs leading-none tabular-nums ${nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar-profundo" : "text-taupe"}`}
-        title={nivel === "negativo" ? "Con este precio se pierde dinero en cada venta" : nivel === "bajo" ? "Menos de 30 %: un descuento de campaña ya se come la ganancia" : "Margen"}
+        className={`text-xs leading-none tabular-nums ${m?.tono === "pierdes" ? "text-rojo-profundo" : m?.tono === "bajo" ? "text-ambar-profundo" : "text-taupe"}`}
+        title={
+          m?.tono === "pierdes"
+            ? "Con este precio se pierde dinero en cada venta"
+            : m?.tono === "bajo" && m.objetivo !== null
+              ? `Bajo tu objetivo de ${objetivo} %: sube a ${soles(m.objetivo)}`
+              : "Margen"
+        }
       >
-        {margen === null ? "—" : `${margen.toFixed(0)} %`}
+        {m === null ? "—" : `${m.pct.toFixed(0)} %`}
       </span>
     );
   }

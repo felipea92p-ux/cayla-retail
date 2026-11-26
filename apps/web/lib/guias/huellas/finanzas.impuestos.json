@@ -7,7 +7,7 @@
     "components/ImpuestosPanel.tsx": [
       "BotonVer «Comparar con SUNAT»",
       "button «fin-impuestos.ir-a-declarar»",
-      "Link «Ver la cuenta con CLAURE»"
+      "Link «(sin nombre)»"
     ],
     "components/finanzas/ImpuestosCuenta.tsx": [
       "BotonEnlace «Anota el pago que hiciste desde un banco, en Cuentas y dinero»",

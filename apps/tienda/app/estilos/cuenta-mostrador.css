@@ -1,8 +1,8 @@
 /* =====================================================================================================================
    TIENDA ONLINE CAYLA · «Entrar» y «Crear cuenta» en «A · Mostrador» (Felipe 2026-11-25, maqueta
    docs/maquetas/cuenta-profesional-2026-11; `components/cuenta/PantallaDeCuenta.tsx`). La pantalla marfil y tranquila de las tiendas de
-   moda grandes: sin el rojo de fondo, sin la tarjeta torcida. En «Entrar», dos columnas iguales con una raya en medio (entrar y
-   «¿Primera vez?»); en «Crear cuenta», el formulario y su lado quieto con la tarjeta del Club. En el celular, una columna. El rojo
+   moda grandes: sin el rojo de fondo, sin la tarjeta torcida. «Entrar» y «Crear cuenta» llevan, desde 960 px, una foto de campaña a
+   media pantalla (2026-11-26, al final de esta hoja); las páginas para volver a entrar, sus pasos al lado. En el celular, una columna. El rojo
    queda para el botón principal. Prefijo `cu-`: las hojas de la tienda son globales. Solo los tokens de la tienda.
    ===================================================================================================================== */
 
@@ -28,36 +28,44 @@
 /* En el celular, el pie fijo («Falta: …» y el botón) llega a los dos bordes de la pantalla. */
 .cu-form .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 
-/* ---- El lado: «¿Primera vez?» o la tarjeta del Club, y los beneficios ---- */
-.cu-lado-t { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
-.cu-beneficios { list-style: none; margin: 26px 0 30px; padding: 0; display: grid; gap: 20px; }
-.cu-beneficios li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; align-items: center; }
-.cu-beneficio-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--dn-acento); }
-.cu-beneficio-ic .ic { width: 20px; height: 20px; }
-.cu-beneficios b { display: block; font-size: 16px; font-weight: 600; line-height: 1.3; }
-.cu-beneficios small { display: block; margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--taupe); }
+/* ---- El lado de las páginas para volver a entrar: su título ---- */
+.cu-lado-t { margin: 0; text-wrap: balance; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6.4cqi, 32px); line-height: 1.12; text-transform: none; letter-spacing: 0; }
+/* «¿Primera vez en CAYLA? Crear cuenta»: una línea bajo «Entrar», en el gris de lectura, con el enlace en tinta (2026-11-26). */
+.cu-primera-vez { margin: 8px 0 0; text-align: center; font-size: 14px; line-height: 1.5; color: var(--taupe); }
+.cu-crear { display: inline-block; padding-block: 10px; color: var(--tinta); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-/* La tarjeta del Club, rehecha: vino con letra marfil y el logo grabado, derecha y con su sombra corta (el papel impreso no se oscurece). */
-.cu-tarjeta { display: flex; flex-direction: column; gap: 14px; }
-.cu-tarjeta .en-tarjeta-viva { display: block; }
-.cu-tarjeta .t-tarjeta-club {
-  max-width: 360px;
-  margin: 0;
-  border-radius: 16px;
-  color: var(--marfil);
-  background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--dn-vino) 82%, var(--marfil)) 0%, var(--dn-vino) 55%, color-mix(in srgb, var(--dn-vino) 78%, var(--dn-sombra-tono)) 100%);
-  box-shadow: 0 30px 50px -28px color-mix(in srgb, var(--dn-sombra-tono) 70%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--marfil) 14%, transparent);
+/* La foto de campaña de «Entrar» y «Crear cuenta» (2026-11-26): solo desde 960 px; en el celular no se dibuja. */
+.cu-foto { display: none; }
+
+/* ---- Las páginas para volver a entrar (2026-11-26) ---- */
+/* Su cabecera es la de siempre (`t-ceja`, el título con su parte en `<em>`, una línea): toma la letra de «Entrar» y «Crear cuenta». */
+.cu-form .w-ficha:not(.w-ficha-centro) > div:first-child { text-align: left; }
+.cu-form .w-ficha > div:first-child > .t-ceja { display: block; margin: 0 0 12px; font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.cu-pantalla .w-ficha > div:first-child > h1.w-titulo, .cu-pantalla .w-ficha-centro h1.w-titulo { margin: 0; font-size: clamp(30px, 7.4cqi, 38px); line-height: 1.1; letter-spacing: -.005em; text-transform: none; }
+.cu-pantalla .w-ficha h1.w-titulo em { font-style: normal; }
+.cu-form .w-ficha > div:first-child > .w-texto-sec, .cu-form .w-ficha-centro > .w-texto-sec { margin-top: 10px; font-size: 16px; line-height: 1.5; color: var(--taupe); }
+/* Los pasos: la misma pieza de antes (`.en-pasos`, EntradaViva), con los tonos del marfil en vez de los del escenario rojo. */
+.cu-lado-acceso {
+  --t-hero: var(--crema);
+  --t-hero-tinta: var(--tinta);
+  --t-hero-acento: var(--dn-acento);
+  --t-hero-vidrio: var(--hueso);
+  --t-hero-filo: var(--sand);
+  display: flex;
+  flex-direction: column;
 }
-.cu-tarjeta .t-tarjeta-club::after { inset: auto -40px -70px auto; width: 66%; aspect-ratio: 1; border-radius: 50%; border-color: color-mix(in srgb, var(--marfil) 14%, transparent); }
-.cu-tarjeta .t-tarjeta-club small { color: color-mix(in srgb, var(--marfil) 74%, transparent); }
-.cu-tarjeta .en-tarjeta-pie { margin: 0; text-align: left; text-wrap: pretty; font-size: 14px; color: var(--taupe); }
-/* Su nombre ya está: la tarjeta vuelve a entrar una vez, derecha. */
-.cu-tarjeta .en-tarjeta-viva[data-con-nombre] .t-tarjeta-club { animation: cu-tarjeta-llega .45s var(--ease) backwards; }
-@keyframes cu-tarjeta-llega { from { opacity: .4; transform: translateY(10px) scale(.97); } }
+.cu-lado-acceso .cu-lado-t { margin-bottom: 28px; }
+.cu-lado-acceso .en-paso-t small { color: var(--taupe); }
+.cu-lado-acceso .en-paso[data-estado="luego"] .en-paso-t b { color: var(--taupe); }
+.cu-lado-acceso .en-paso-aqui { color: var(--dn-acento); background: var(--hueso); border-color: var(--hueso); }
+.cu-confianza { margin: 28px 0 0; display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--sand); font-size: 14px; line-height: 1.45; color: var(--taupe); }
+.cu-confianza .ic { width: 18px; height: 18px; flex: none; color: var(--verde); }
 
-/* En el celular, «Crear cuenta» va sin su lado (el formulario solo, como se decidió el 2026-10-19); «Entrar» lleva «¿Primera vez?» debajo. */
+/* En el celular, «Crear cuenta» va sin su lado (el formulario solo, como se decidió el 2026-10-19); «Entrar» lleva «¿Primera vez?» debajo; las de volver a entrar, sus pasos. */
 @container tienda (max-width: 959.98px) {
   .cu-pantalla[data-forma="crear"] :is(.cu-raya, .cu-lado) { display: none; }
+  /* Las páginas para volver a entrar llevan sus pasos debajo (dicen qué toca), como antes. */
+  .cu-pantalla[data-forma="acceso"] .cu-lado-t { font-size: 24px; }
 }
 
 /* ---- Desde 960 px ---- */
@@ -73,8 +81,9 @@
     padding: 72px 40px 88px;
   }
   .cu-pantalla[data-forma="entrar"] .cu-raya { height: auto; align-self: stretch; }
-  .cu-pantalla[data-forma="entrar"] .cu-lado-t { font-size: 32px; }
-  .cu-pantalla[data-forma="crear"] {
+  /* «Cambiar mi correo» y «Eliminar mi cuenta»: una columna, con el aire de arriba de las demás. */
+  .cu-pantalla[data-forma="sola"] { padding: 56px 40px 72px; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) {
     display: grid;
     grid-template-columns: minmax(0, 460px) minmax(0, 400px);
     justify-content: center;
@@ -82,15 +91,50 @@
     max-width: none;
     padding: 56px 40px 72px;
   }
-  .cu-pantalla[data-forma="crear"] .cu-raya { display: none; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-raya { display: none; }
   /* El lado se queda a la vista mientras el formulario largo pasa. */
-  .cu-pantalla[data-forma="crear"] .cu-lado { position: sticky; top: 32px; align-self: start; padding-top: 64px; }
-  .cu-pantalla[data-forma="crear"] .cu-beneficios { margin-top: 36px; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .cu-lado { position: sticky; top: 32px; align-self: start; padding-top: 64px; }
   /* El pie del formulario largo, fijo abajo también en la computadora: «Falta: …» y el botón no se pierden al bajar. */
-  .cu-pantalla[data-forma="crear"] .w-pie-form { position: sticky; bottom: 0; z-index: 4; padding: 14px 0 18px; background: var(--crema); border-top: 1px solid var(--sand); box-shadow: none; }
-  .cu-pantalla[data-forma="crear"] .w-faltan { text-align: left; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-pie-form { position: sticky; bottom: 0; z-index: 4; padding: 14px 0 18px; background: var(--crema); border-top: 1px solid var(--sand); box-shadow: none; }
+  .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) .w-faltan { text-align: left; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cu-tarjeta .en-tarjeta-viva[data-con-nombre] .t-tarjeta-club { animation: none; }
+
+/* ---- Con foto (Entrar y Crear cuenta, 2026-11-26): la foto a media pantalla a la izquierda, como Zara y Aritzia; a la derecha, el
+   formulario y (en «Entrar») «¿Primera vez?» debajo, en una columna de 420 px. Va después de las reglas de cada forma: les gana. ---- */
+@container tienda (min-width: 960px) {
+  .cu-pantalla[data-foto] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: 0;
+    align-items: start;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  /* La foto se queda quieta mientras el formulario largo pasa: mide toda la pantalla, así al bajar (sin la cabecera) no deja un hueco. */
+  .cu-pantalla[data-foto] .cu-foto { display: block; position: sticky; top: 0; grid-column: 1; grid-row: 1 / span 3; align-self: start; height: 100vh; min-height: 560px; overflow: hidden; }
+  /* Recorte «B»: centrado en la persona (el bolso, el jean y la mano sobre la zapatilla), elegido mirando. */
+  .cu-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 85%; }
+  .cu-pantalla[data-foto] > :not(.cu-foto) { grid-column: 2; width: 100%; max-width: 420px; justify-self: center; }
+  .cu-pantalla[data-foto] .cu-form { padding-top: 64px; }
+  .cu-pantalla[data-foto][data-forma="crear"] .cu-form { padding-bottom: 64px; }
+  .cu-pantalla[data-foto] .cu-raya { height: 1px; align-self: auto; margin: 36px 0 32px; }
+  .cu-pantalla[data-foto] .cu-lado { padding-bottom: 64px; }
+  .cu-pantalla[data-foto] .cu-lado-t { font-size: 28px; }
 }
+
+/* ---- Mientras llega la página (`components/cuenta/EsperaDeCuenta.tsx`): la forma del formulario, que brilla. Quieto, liso. ---- */
+.cu-espera > div { display: grid; gap: 18px; }
+.cu-espera-linea, .cu-espera-campo {
+  background: linear-gradient(110deg, var(--hueso) 38%, color-mix(in srgb, var(--hueso) 45%, var(--crema)) 50%, var(--hueso) 62%);
+  background-size: 260% 100%;
+  animation: brillo 1.4s linear infinite;
+}
+.cu-espera-linea { height: 12px; }
+.cu-espera-ceja { width: 90px; }
+.cu-espera-titulo { width: 62%; height: 36px; margin-bottom: 12px; }
+.cu-espera-campo { height: 48px; border-radius: 6px; }
+.cu-espera-boton { border-radius: 999px; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .cu-espera-linea, .cu-espera-campo { animation: none; background: var(--hueso); } }

@@ -225,6 +225,8 @@ function CeldaCoberturaPiso({ f, calculando }: { f: FilaExistencias; calculando:
 // (lo libre en piso / almacén), Cobertura piso, Ritmo reciente, En camino, Acción hoy y En la red.
 export function InventarioPanel({
   ubicacionId,
+  empresas = null,
+  empresaElegida = null,
   stock: stockSinPlan,
   resumen,
   enCamino,
@@ -262,6 +264,9 @@ export function InventarioPanel({
   sedesParaPedir = [],
 }: {
   ubicacionId: string;
+  /** ADR-0683: las empresas entre las que se elige (solo donde conviven dos o más; `null`, la píldora no se dibuja) y la elegida (su clave). */
+  empresas?: readonly { clave: string; nombre: string }[] | null;
+  empresaElegida?: string | null;
   stock: FilaExistencias[];
   resumen: ResumenExistencias;
   enCamino: { traslados: number; proximaLlegada: string | null; atrasados: number };
@@ -980,6 +985,16 @@ export function InventarioPanel({
             tallas={tallas}
             colores={coloresConMuestra}
             marcas={mostrarMarca ? marcas : null}
+            empresas={empresas}
+            empresaElegida={empresaElegida}
+            // Elegir una empresa cambia las cantidades de cada talla: se vuelve a pedir la página (con su loader), no se filtra aquí.
+            onEmpresa={(clave) => {
+              const p = new URLSearchParams(window.location.search);
+              if (clave) p.set("emp", clave);
+              else p.delete("emp");
+              const q = p.toString();
+              router.push(`${window.location.pathname}${q ? `?${q}` : ""}`);
+            }}
             elegidos={elegidos}
             conteos={conteos}
             onCambiar={(cambios) => aplicar(cambios)}

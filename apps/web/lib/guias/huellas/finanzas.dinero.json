@@ -5,7 +5,7 @@
   "total": 81,
   "controles": {
     "app/(app)/finanzas/dinero/page.tsx": [
-      "Link «Ver en CLAURE»"
+      "Link «Ver en»"
     ],
     "components/finanzas/CuadrarDepositos.tsx": [
       "button «Reintentar»",

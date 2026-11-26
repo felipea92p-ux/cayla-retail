@@ -26,11 +26,12 @@ describe("costoDelContexto", () => {
 
 describe("leerRespuestaPrecio: la IA propone, la regla manda", () => {
   const costo = { costo: 30, estimado: false };
-  it("lleva el precio a .90 y nunca bajo el piso", () => {
-    const r = leerRespuestaPrecio({ precio: 39, razon: "Como el Polo Bianca, que se vende bien.", parecidas: [] }, costo, contexto);
-    // El piso de la cuenta única (ADR-0668): con S/ 30 de costo, S/ 68.90 aguanta una rebaja de 35 %.
-    expect(r?.precio).toBe(68.9);
+  it("lleva el precio a .90 y nunca bajo el objetivo de la prenda", () => {
+    const r = leerRespuestaPrecio({ precio: 39, razon: "Como el Polo Bianca, que se vende bien.", parecidas: [] }, costo, contexto, 37);
+    // ADR-0700: con S/ 30 de costo y la base de 37 %, el menor .90 que llega es S/ 56.90; con dos casillas (43 %), S/ 62.90.
+    expect(r?.precio).toBe(56.9);
     expect(r?.subidoAlPiso).toBe(true);
+    expect(leerRespuestaPrecio({ precio: 39, razon: "Como el Polo Bianca, que se vende bien.", parecidas: [] }, costo, contexto, 43)?.precio).toBe(62.9);
   });
   it("solo deja las parecidas que estaban en la lista (no inventa prendas)", () => {
     const r = leerRespuestaPrecio(
@@ -45,33 +46,39 @@ describe("leerRespuestaPrecio: la IA propone, la regla manda", () => {
       },
       costo,
       contexto,
+      37,
     );
     expect(r?.parecidas).toEqual([{ referencia: "Polo Bianca", precio: 49.9 }]);
   });
   it("una respuesta vacía o sin razón no se muestra", () => {
-    expect(leerRespuestaPrecio(null, costo, contexto)).toBeNull();
-    expect(leerRespuestaPrecio({ precio: 49.9, razon: "ok", parecidas: [] }, costo, contexto)).toBeNull();
-    expect(leerRespuestaPrecio({ precio: -1, razon: "Una razón larga de verdad.", parecidas: [] }, costo, contexto)).toBeNull();
+    expect(leerRespuestaPrecio(null, costo, contexto, 37)).toBeNull();
+    expect(leerRespuestaPrecio({ precio: 49.9, razon: "ok", parecidas: [] }, costo, contexto, 37)).toBeNull();
+    expect(leerRespuestaPrecio({ precio: -1, razon: "Una razón larga de verdad.", parecidas: [] }, costo, contexto, 37)).toBeNull();
   });
 });
 
 describe("mensajePrecio", () => {
   it("lleva el costo y dice si es estimado; en el alta no manda precio actual", () => {
-    const m = mensajePrecio({ origen: "alta", contexto, costo: { costo: 24, estimado: true }, referencia: "Polo Luna" });
+    const m = mensajePrecio({ origen: "alta", contexto, costo: { costo: 24, estimado: true }, margenObjetivo: 37, referencia: "Polo Luna" });
     expect(m).toContain("Polo Luna");
     expect(m).toContain("estimado");
     expect(m).not.toContain("precio_actual");
     expect(m).toContain("Polo Bianca");
+  });
+  it("lleva el margen objetivo de la prenda y el precio mínimo que lo cumple (ADR-0700)", () => {
+    const m = mensajePrecio({ origen: "alta", contexto, costo: { costo: 30, estimado: false }, margenObjetivo: 43 });
+    expect(m).toContain('"margen_objetivo": "43 %"');
+    expect(m).toContain('"precio_minimo": 62.9');
   });
 });
 
 describe("mensajePrecio al recibir (ADR-0641 act. 2026-11-11)", () => {
   const conProducto = { ...contexto, producto: { referencia: "Polo Bianca", precio: 49.9, costo: 22, unidades_90: 30, stock: 4, dias_desde_alta: 80 } };
   it("una prenda nueva al recibir se pide como nueva", () => {
-    expect(mensajePrecio({ origen: "recepcion", contexto, costo: { costo: 30, estimado: false } })).toContain("Propón el precio de esta prenda nueva.");
+    expect(mensajePrecio({ origen: "recepcion", contexto, costo: { costo: 30, estimado: false }, margenObjetivo: 37 })).toContain("Propón el precio de esta prenda nueva.");
   });
   it("una que ya existe lleva su precio de hoy y el costo de esta compra", () => {
-    const m = mensajePrecio({ origen: "recepcion", contexto: conProducto, costo: { costo: 28, estimado: false } });
+    const m = mensajePrecio({ origen: "recepcion", contexto: conProducto, costo: { costo: 28, estimado: false }, margenObjetivo: 37 });
     expect(m).toContain("Llegó otra vez esta prenda");
     expect(m).toContain('"precio_actual": 49.9');
     expect(m).toContain('"costo": 28');

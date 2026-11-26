@@ -3,7 +3,8 @@
  * Pruebas de «Llegó una compra» (ADR-0614, actividad 5) — migración `20261105223000_llego_una_compra.sql`. CAYLA V2.
  *
  * LO QUE VIGILA. Que varias líneas dejen un comprobante y un lote por línea, todo o nada; que la deuda y el pago sean los de siempre; que la nota de cada lote se guarde;
- * que un mismo insumo no entre dos veces; que el token no repita; y que quien no es líder no pueda.
+ * que un mismo insumo no entre dos veces; que el token no repita; que quien no es líder no pueda; y que se pague desde el fondo
+ * por rendir de quien paga, nunca desde el de otra persona (ADR-0702).
  *
  * USO
  *   node scripts/pruebas/produccion_llego_una_compra.mjs                             → contra el stack local compartido (todo con ROLLBACK)
@@ -184,6 +185,37 @@ caso(
   `select (retail.recibir_insumo_comprado(:'a', :'taller', :'prov', 10::numeric, 5::numeric, 'boleta', 'B1', '7', false, 'credito', null, retail.fn_hoy_lima() + 5) ->> 'repetido') as r \\gset
    select concat_ws(',', :'r', (select count(*) from retail.insumo_lotes where proveedor_id = :'prov'));`,
   "false,1"
+);
+
+// ---------- Desde «Tu fondo» (ADR-0702, Felipe 2026-11-26) ----------
+// Lo que antes cubría Órdenes de insumos (retirada): la dueña paga una compra del Taller desde su fondo por rendir y su saldo baja; desde
+// el fondo de otra persona, no. El fondo lo valida el disparador de los pagos de Producción (`fn_fondo_para_pagar`).
+const FONDO_DE = (quien) => `select set_config('request.headers', '{"x-responsable-omitido":"fondo_entregar"}', true) \\g /dev/null
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial, saldo_desde, orden)
+  values ('BCP prueba fondo Taller', 'banco', '104', 5000, retail.fn_hoy_lima() - 30, 60) returning id as bcp \\gset
+select p.id as dueno_p from public.personas p where p.auth_user_id = '${quien}' \\gset
+select retail.entregar_fondo(:'dueno_p', :'bcp', 3000, 'Compras del Taller', null, null) \\g /dev/null
+select c.id as fondo from retail.cuentas_dinero c where c.tipo = 'fondo' and c.persona_id = :'dueno_p' \\gset
+select set_config('request.headers', '{}', true) \\g /dev/null
+`;
+const DESDE_EL_FONDO = `, p_tipo => 'factura', p_serie => 'F001', p_numero => '77', p_condicion => 'contado', p_total => 2183.00, p_pago => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', '2183.00', 'cuenta_id', current_setting('prueba.fondo')))`;
+// Nadie se entrega plata a sí mismo: Felipe le entrega a Micaela, que aquí pasa a líder (registrar una compra del Taller lo pide), y paga ella.
+caso(
+  "F1 desde «Tu fondo»: la dueña paga la compra del Taller y su fondo baja de S/ 3000 a S/ 817",
+  `${FONDO_DE(MICAELA)}select set_config('prueba.fondo', :'fondo', true) as _f \\gset
+   update retail.colaboradores set rol = 'lider' where persona_id = :'dueno_p';
+   ${como(MICAELA)}
+   ${CORRE(DESDE_EL_FONDO)}
+   select concat_ws(',', :'r', (select c.saldo from retail.fn_comprobantes_produccion(5) c where c.id = ${COMP}),
+     (select sum(l.monto) from retail.fn_dinero_libro(retail.fn_hoy_lima()) l where l.cuenta_id = :'fondo'));`,
+  "OK:false,0.00,817.00"
+);
+caso(
+  "F2 desde el fondo de otra persona, no: Felipe no paga con el fondo de Micaela y no queda nada",
+  `${FONDO_DE(MICAELA)}${como(FELIPE)}select set_config('prueba.fondo', :'fondo', true) as _f \\gset
+   ${CORRE(DESDE_EL_FONDO)}
+   select concat_ws(',', :'r', (select count(*) from retail.comprobantes_produccion where proveedor_id = :'prov'));`,
+  "fondo_ajeno,0"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR}, base: ${BASE})`);

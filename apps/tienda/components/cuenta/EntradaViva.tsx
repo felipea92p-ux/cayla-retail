@@ -1,38 +1,28 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { estadoDelPaso, PIE_DE_TARJETA, type PasoDeAcceso } from "@/lib/panel-entrada";
+import { estadoDelPaso, type PasoDeAcceso } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
-import { TarjetaClub } from "../TarjetaClub";
 
-// Lo que el formulario le cuenta al panel de marca de al lado (`PanelDeEntrada.tsx`): en «Crear cuenta», el nombre para la tarjeta
-// del Club apenas se sabe; en «Olvidé mi contraseña» y «Contraseña nueva», en qué paso va. Dos contextos: el formulario solo usa el de
-// poner (que nunca cambia), así no se vuelve a dibujar cuando el panel cambia; el panel lee el otro.
+// Lo que el formulario le cuenta al lado de la pantalla (`PantallaDeCuenta.tsx`): en «Olvidé mi contraseña», «Contraseña nueva» y
+// «Restablecer mi acceso», en qué paso va (la tarjeta del Club con el nombre de «Crear cuenta» se fue con la foto, 2026-11-26). Dos
+// contextos: el formulario solo usa el de poner (que nunca cambia), así no se vuelve a dibujar cuando el lado cambia; el lado lee el otro.
 
-type Lo = { nombre: string | null; paso: number | null };
-type Poner = { ponerNombre: (nombre: string | null) => void; ponerPaso: (paso: number | null) => void };
+type Lo = { paso: number | null };
+type Poner = { ponerPaso: (paso: number | null) => void };
 
-const LoVivo = createContext<Lo>({ nombre: null, paso: null });
+const LoVivo = createContext<Lo>({ paso: null });
 const PonerVivo = createContext<Poner | null>(null);
 
 export function EntradaViva({ children }: { children: ReactNode }) {
-  const [nombre, ponerNombre] = useState<string | null>(null);
   const [paso, ponerPaso] = useState<number | null>(null);
-  const poner = useMemo(() => ({ ponerNombre, ponerPaso }), []);
-  const lo = useMemo(() => ({ nombre, paso }), [nombre, paso]);
+  const poner = useMemo(() => ({ ponerPaso }), []);
+  const lo = useMemo(() => ({ paso }), [paso]);
   return (
     <PonerVivo.Provider value={poner}>
       <LoVivo.Provider value={lo}>{children}</LoVivo.Provider>
     </PonerVivo.Provider>
   );
-}
-
-/** El formulario de «Crear cuenta» pone en la tarjeta del panel el nombre que ya sabe (null: «Tu nombre aquí»). Sin panel, nada. */
-export function useNombreEnLaTarjeta(nombre: string | null) {
-  const poner = useContext(PonerVivo)?.ponerNombre;
-  useEffect(() => {
-    poner?.(nombre);
-  }, [poner, nombre]);
 }
 
 /** El formulario dice en qué paso va (desde 0); null deja el del panel. Sin panel, nada. */
@@ -41,22 +31,6 @@ export function usePasoDelPanel(paso: number | null) {
   useEffect(() => {
     poner?.(paso);
   }, [poner, paso]);
-}
-
-/**
- * La tarjeta del Club de «Crear cuenta», con el nombre de quien la crea apenas el formulario lo sabe. Al llegar el nombre, la tarjeta
- * vuelve a entrar (una vez) con su brillo: se ve que es suya. El nombre no se lee en voz alta: el formulario ya lo dice bajo el documento.
- */
-export function TarjetaConTuNombre({ desde }: { desde: number }) {
-  const { nombre } = useContext(LoVivo);
-  return (
-    <>
-      <div className="en-tarjeta-viva" data-con-nombre={nombre ? "" : undefined} key={nombre ? "con" : "sin"}>
-        <TarjetaClub nombre={nombre ?? "Tu nombre aquí"} desde={desde} />
-      </div>
-      <p className="en-tarjeta-pie">{nombre ? PIE_DE_TARJETA.con : PIE_DE_TARJETA.sin}</p>
-    </>
-  );
 }
 
 /** Los pasos para volver a entrar, con el que toca encendido: el de la página o, si el formulario avanzó, el que dice el formulario. */

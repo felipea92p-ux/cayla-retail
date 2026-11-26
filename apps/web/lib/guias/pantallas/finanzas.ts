@@ -1970,8 +1970,8 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       id: "claure",
       ancla: "fin-impuestos.claure",
       opcional: true,
-      titulo: "El IGV de lo de CLAURE",
-      texto: "Las boletas de lo que vende CLAURE en Tienda Lima salen con el RUC de CAYLA, así que SUNAT las cuenta en este IGV. Esta línea dice cuánto de él es de CLAURE; el IGV de arriba sigue siendo el real.",
+      titulo: "El IGV de lo de las aliadas",
+      texto: "Las boletas de lo que vende una empresa aliada (como CLAURE en Lima) salen con el RUC de CAYLA, así que SUNAT las cuenta en este IGV. Esta línea dice cuánto de él es de ellas; el IGV de arriba sigue siendo el real.",
     },
     {
       id: "por-hacer",

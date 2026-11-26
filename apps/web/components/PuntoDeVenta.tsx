@@ -187,7 +187,7 @@ import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
-import { esDeClaure, numeroQueDar, repartoDelTicket } from "@/lib/cobro-por-dueno-reglas";
+import { aliadaDeLaLinea, conCuentasPagos, cuentaDelPago, numeroQueDar, numerosPara, pedidoDeCuentas, repartoPorDueno, type NumeroDeAliada } from "@/lib/cobro-por-dueno-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
@@ -212,6 +212,7 @@ const PrendaSinRegistrarBajoDemanda = hojaBajoDemanda(
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
+const SIN_NUMEROS: readonly NumeroDeAliada[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
 const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 
@@ -433,6 +434,9 @@ type Props = {
    *  defecto y, donde hay dos para un mismo medio (Vendemás e Izipay en TRU y AQP), la hoja de cobro deja cambiarla con un toque.
    *  Vacío (la base todavía no las conoce, o la tienda no tiene) = la hoja no pregunta y la base sella sola, como antes. */
   maquinasCobro?: readonly MaquinaDeCobro[];
+  /** Los Yape, Plin y cuentas de las empresas aliadas de esta tienda (`fn_cuentas_de_aliadas_en_sede`, ADR-0683). Con ellos, un pago de un
+   *  ticket con prendas de una aliada pregunta a qué número pagó la clienta. Vacío = no pregunta y la base sella en CAYLA. */
+  numerosAliadas?: readonly NumeroDeAliada[];
   /** Los comprobantes que esta sede puede emitir (los que tienen serie activa, `tiposDeComprobanteDeLaSede`). Sin el dato, los tres. */
   tiposComprobante?: readonly ("boleta" | "factura" | "nota_venta")[];
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
@@ -470,7 +474,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, numerosAliadas = SIN_NUMEROS, tiposComprobante, redondeoEfectivoDisponible = false, ticketsCompartidos = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -1951,15 +1955,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const enTicket = new Set(carrito.map((it) => it.varianteId));
   const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
   const faltaDuenoEn = variantesSinDueno([...enTicket], duenosPorVariante, duenoVigente);
-  // Donde conviven dos empresas, a qué número paga quien usa Yape o Plin. Mientras falte decir de quién sale una prenda, no se dice nada.
-  const numeroADar =
+  // Donde conviven varias empresas, a qué número paga quien usa Yape o Plin. Mientras falte decir de quién sale una prenda, no se dice nada.
+  const repartoDueno =
     duenosPorVariante && faltaDuenoEn.length === 0
-      ? numeroQueDar(
-          repartoDelTicket(lineasConClub, (l) => esDeClaure(l.varianteId, insigniaPorVariante.get(l.varianteId), duenosPorVariante, duenoVigente)),
-          pagos.map((p) => p.metodo),
-        )
+      ? repartoPorDueno(lineasConClub, (l) => aliadaDeLaLinea(l.varianteId, insigniaPorVariante.get(l.varianteId), duenosPorVariante, duenoVigente))
       : null;
-  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
+  const numeroADar = numeroQueDar(repartoDueno, pagos.map((p) => p.metodo));
+  // «¿A qué número pagó?» (ADR-0683, Felipe 2026-11-21: «tener las dos opciones»): solo si el ticket lleva algo de una aliada con número aquí.
+  const conAliadas = repartoDueno?.aliadas.some((a) => a.monto > 0 && a.empresaId) ?? false;
+  const preguntasNumero = conAliadas
+    ? pagos.flatMap((p, indice) => {
+        const opciones = numerosPara(numerosAliadas, p.metodo);
+        return opciones.length === 0
+          ? []
+          : [{ indice, metodo: p.metodo, opciones: [{ valor: "", nombre: "CAYLA" }, ...opciones.map((o) => ({ valor: o.cuentaId, nombre: o.nombre }))], valor: cuentaDelPago(p, repartoDueno, numerosAliadas) }];
+      })
+    : [];
+  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de más de una empresa.` : null;
   const motivoBloqueo = motivoDueno ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
@@ -2005,6 +2017,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setPagos((actual) => [...actual, pagoNuevo(metodo, Math.max(0, restante), maquinasCobro)]);
   }
   // Con qué máquina se cobró la tarjeta o el QR (ADR-0429): cambia solo la cuenta de ESE pago; el monto y el resto quedan.
+  function cambiarNumero(indice: number, valor: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, numeroAliada: valor } : p)));
+  }
   function cambiarMaquina(indice: number, cuentaId: string) {
     setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, cuentaId } : p)));
   }
@@ -2201,10 +2216,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     };
 
     const supabase = createClient();
+    // ADR-0683: a qué número de una dueña pagó cada Yape, Plin o transferencia. Viaja aparte (`x-cuentas-pagos`); sin nada que pedir, no viaja.
+    const pedidoCuentas = conAliadas ? pedidoDeCuentas(pagos, (p) => cuentaDelPago(p, repartoDueno, numerosAliadas)) : [];
     const r = await envio.enviar(huellaDe({ ...params, p_token: undefined }), (token, senal) => {
       // Antes de mandarlo, el cobro queda anotado: si la página se cae ahora, al volver se pregunta por él.
       anotarCobro(token);
-      return conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items));
+      return conCuentasPagos(conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items)), pedidoCuentas);
     });
     // Una ráfaga de clics o de Enter: el primero ya está cobrando.
     if (r.tipo === "ocupado" || r.tipo === "congelado") return;
@@ -2516,6 +2533,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       maquinas={maquinasCobro}
       onMaquina={cambiarMaquina}
       numeroADar={numeroADar}
+      preguntasNumero={preguntasNumero}
+      onNumero={cambiarNumero}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}

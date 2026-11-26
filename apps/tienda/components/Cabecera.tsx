@@ -2,12 +2,12 @@ import Link from "next/link";
 import { Logo } from "./Marca";
 
 /**
- * La cabecera de quien está entrando (A · Muro, Felipe 2026-10-19): solo el logo al centro y, a la derecha, el otro camino como una palabra
- * («Volver a la tienda» desde Entrar, que ya trae «Crear mi cuenta» al lado; «Entrar» desde Crear cuenta y desde recuperar la contraseña). Quien llega a entrar no necesita un menú, y
- * el logo lleva al inicio. Toda otra página lleva la cabecera de la tienda (`CabeceraConCuenta`), con o sin sesión (auditoría 2026-11-06:
- * «Nuestras tiendas» y «Cómo separar» traían otra, sin menú, buscador ni bolsa).
+ * La cabecera de quien está entrando (Entrar, Crear cuenta y las páginas para volver a entrar): solo el logo, que lleva al inicio (Felipe
+ * 2026-11-26: el enlace suelto al lado del logo, «Entrar» o «Volver a la tienda», no le gustaba). Cada formulario ya trae su otro camino
+ * («¿Ya tienes cuenta? Entra», «Volver a entrar», «Crear mi cuenta»), y quien llega a entrar no necesita un menú. Toda otra página lleva la
+ * cabecera de la tienda (`CabeceraConCuenta`), con o sin sesión (auditoría 2026-11-06).
  */
-export function Cabecera({ enPagina }: { enPagina?: "entrar" | "crear-cuenta" }) {
+export function Cabecera() {
   return (
     <header className="t-cab">
       <div className="t-cab-fila t-cab-simple">
@@ -15,16 +15,6 @@ export function Cabecera({ enPagina }: { enPagina?: "entrar" | "crear-cuenta" })
           <Logo />
         </Link>
         <span className="t-esp" />
-        {enPagina === "entrar" ? (
-          // «Crear mi cuenta» ya está al lado del formulario («A · Mostrador», 2026-11-25): arriba, la salida a la tienda.
-          <Link className="t-nav-b" href="/inicio">
-            Volver a la tienda
-          </Link>
-        ) : (
-          <Link className="t-nav-b" href="/entrar">
-            Entrar
-          </Link>
-        )}
       </div>
     </header>
   );

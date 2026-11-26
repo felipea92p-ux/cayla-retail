@@ -1,0 +1,756 @@
+{
+ "CMS-0117": {
+  "tipo": "con_mangas",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.25,
+  "bajo_y": 0.84,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 835,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 372,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1207
+  },
+  "ms": 6878
+ },
+ "CMS-0115": {
+  "tipo": "halter",
+  "zona": "arriba",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": 0.2,
+  "bajo_y": 0.88,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.86,
+  "uso": {
+   "input_tokens": 802,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 239,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1041
+  },
+  "ms": 4035
+ },
+ "CMS-0114": {
+  "tipo": "tirantes",
+  "zona": "arriba",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.78,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.87,
+  "uso": {
+   "input_tokens": 850,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 306,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1156
+  },
+  "ms": 5372
+ },
+ "POL-0064": {
+  "tipo": "strapless",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.78,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.92,
+  "uso": {
+   "input_tokens": 802,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 335,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1137
+  },
+  "ms": 6150
+ },
+ "POL-0065": {
+  "tipo": "falda",
+  "zona": "abajo",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.06,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.88,
+  "uso": {
+   "input_tokens": 835,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 289,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1124
+  },
+  "ms": 5884
+ },
+ "POL-0049": {
+  "tipo": "con_mangas",
+  "zona": "arriba",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": 0.28,
+  "bajo_y": 0.86,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.88,
+  "uso": {
+   "input_tokens": 835,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 317,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1152
+  },
+  "ms": 24471
+ },
+ "TOP-0021": {
+  "tipo": "con_mangas",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.56,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 835,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 345,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1180
+  },
+  "ms": 6226
+ },
+ "TOP-0027": {
+  "tipo": "tirantes",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.12,
+  "bajo_y": 0.88,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 802,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 269,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1071
+  },
+  "ms": 4935
+ },
+ "CAS-0010": {
+  "tipo": "casaca",
+  "zona": "encima",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": 0.38,
+  "bajo_y": 0.72,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.88,
+  "uso": {
+   "input_tokens": 854,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 311,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1165
+  },
+  "ms": 5548
+ },
+ "CHA-0007": {
+  "tipo": "chaleco",
+  "zona": "encima",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.78,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.92,
+  "uso": {
+   "input_tokens": 874,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 219,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1093
+  },
+  "ms": 3641
+ },
+ "BOD-0011": {
+  "tipo": "body",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": true,
+  "axila_y": 0.28,
+  "bajo_y": 0.64,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.88,
+  "uso": {
+   "input_tokens": 816,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 325,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1141
+  },
+  "ms": 5034
+ },
+ "COR-0001": {
+  "tipo": "strapless",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.88,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.89,
+  "uso": {
+   "input_tokens": 874,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 306,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1180
+  },
+  "ms": 4309
+ },
+ "PAN-0031": {
+  "tipo": "pantalon",
+  "zona": "abajo",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.06,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.88,
+  "uso": {
+   "input_tokens": 754,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 236,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 990
+  },
+  "ms": 4309
+ },
+ "JEA-0020": {
+  "tipo": "pantalon",
+  "zona": "abajo",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.07,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.92,
+  "uso": {
+   "input_tokens": 802,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 267,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1069
+  },
+  "ms": 4522
+ },
+ "SHO-0023": {
+  "tipo": "short",
+  "zona": "abajo",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.07,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 739,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 223,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 962
+  },
+  "ms": 4052
+ },
+ "FAL-0009": {
+  "tipo": "falda",
+  "zona": "abajo",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.12,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 778,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 260,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1038
+  },
+  "ms": 5019
+ },
+ "PAN-0017": {
+  "tipo": "pantalon",
+  "zona": "abajo",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.08,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 778,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 231,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1009
+  },
+  "ms": 4147
+ },
+ "VES-0029": {
+  "tipo": "vestido_strapless",
+  "zona": "vestido",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.08,
+  "bajo_y": 0.98,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 634,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 326,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 960
+  },
+  "ms": 5109
+ },
+ "VES-0051": {
+  "tipo": "vestido",
+  "zona": "vestido",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.98,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 634,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 313,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 947
+  },
+  "ms": 4352
+ },
+ "CAR-0012": {
+  "tipo": "cartera",
+  "zona": "bolso",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": null,
+  "asa_y": 0.06,
+  "base_y": 0.92,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 816,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 241,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1057
+  },
+  "ms": 3889
+ },
+ "X175193": {
+  "tipo": "tirantes",
+  "zona": "arriba",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": 0.18,
+  "bajo_y": 0.86,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 754,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 346,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1100
+  },
+  "ms": 5151
+ },
+ "X501407": {
+  "tipo": "pantalon",
+  "zona": "abajo",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.06,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.92,
+  "uso": {
+   "input_tokens": 778,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 262,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1040
+  },
+  "ms": 4594
+ },
+ "X335861": {
+  "tipo": "pantalon",
+  "zona": "abajo",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": 0.12,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 754,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 255,
+   "output_tokens_details": {
+    "reasoning_tokens": 128
+   },
+   "total_tokens": 1009
+  },
+  "ms": 4767
+ },
+ "X852760": {
+  "tipo": "con_mangas",
+  "zona": "arriba",
+  "holgura": "holgada",
+  "se_lleva_metida": false,
+  "axila_y": 0.25,
+  "bajo_y": 0.72,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.85,
+  "uso": {
+   "input_tokens": 835,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 337,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1172
+  },
+  "ms": 5346
+ },
+ "X453009": {
+  "tipo": "cartera",
+  "zona": "bolso",
+  "holgura": "normal",
+  "se_lleva_metida": false,
+  "axila_y": null,
+  "bajo_y": null,
+  "pretina_y": null,
+  "asa_y": 0.12,
+  "base_y": 0.88,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 739,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 349,
+   "output_tokens_details": {
+    "reasoning_tokens": 256
+   },
+   "total_tokens": 1088
+  },
+  "ms": 4471
+ },
+ "X290125": {
+  "tipo": "strapless",
+  "zona": "arriba",
+  "holgura": "ajustada",
+  "se_lleva_metida": false,
+  "axila_y": 0.06,
+  "bajo_y": 0.88,
+  "pretina_y": null,
+  "asa_y": null,
+  "base_y": null,
+  "confianza": 0.9,
+  "uso": {
+   "input_tokens": 854,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cache_write_tokens_details": {
+     "ttl_12h_tokens": 0,
+     "ttl_30m_tokens": 0
+    },
+    "cached_tokens": 0
+   },
+   "output_tokens": 272,
+   "output_tokens_details": {
+    "reasoning_tokens": 192
+   },
+   "total_tokens": 1126
+  },
+  "ms": 3537
+ }
+}

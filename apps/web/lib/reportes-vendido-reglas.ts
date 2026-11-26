@@ -12,8 +12,8 @@ import { solesCentimos } from "./flujo-caja-reglas";
 import type { Mes } from "./facturacion-reglas";
 import type { VendidoEmpresa } from "./vendido-por-empresa-reglas";
 
-/** La clave de CLAURE en `retail.empresas` (ADR-0463). */
-const CLAVE_CLAURE = "claure";
+/** La clave de la casa en `retail.empresas`: lo que no es suyo es de una empresa aliada (ADR-0683). */
+const CLAVE_CASA = "cayla";
 
 /** El pie de la tarjeta «Vendido»: el tramo, que va con IGV y, si se mira una sola empresa, cuál (ADR-0665). */
 export const pieVendido = (tramo: string, empresa?: string | null): string => `${tramo} · con IGV${empresa ? ` · ${empresa}` : ""}`;
@@ -21,16 +21,23 @@ export const pieVendido = (tramo: string, empresa?: string | null): string => `$
 /** El título de la columna «Vendido» de la tabla por tienda y por categoría. */
 export const TITULO_COLUMNA_VENDIDO = "Vendido con IGV";
 
-/** Cuánto de lo vendido es de CLAURE, a partir de `fn_vendido_por_empresa`. Sin lectura (`null`) o sin CLAURE, 0: la línea no sale. */
+/** Cuánto de lo vendido es de las empresas aliadas (todas las que no son la casa; ADR-0683), a partir de `fn_vendido_por_empresa`. Sin lectura (`null`)
+ *  o sin aliadas, 0: la línea no sale. */
 export function claureDelVendido(empresas: readonly VendidoEmpresa[] | null): number {
   if (!empresas) return 0;
-  const centimos = empresas.filter((e) => e.clave === CLAVE_CLAURE).reduce((s, e) => s + Math.round(e.total * 100), 0);
+  const centimos = empresas.filter((e) => e.clave !== CLAVE_CASA).reduce((s, e) => s + Math.round(e.total * 100), 0);
   return Math.max(0, centimos) / 100;
 }
 
-/** «Lo vendido incluye S/ 500.00 de prendas de CLAURE, cobradas en la misma caja»; `null` si no hay nada de CLAURE (la línea no se dibuja). */
-export function lineaClaure(monto: number): string | null {
-  return monto >= 0.005 ? `Lo vendido incluye ${solesCentimos(monto)} con IGV de prendas de CLAURE, cobradas en la misma caja.` : null;
+/** Cómo se nombra a las aliadas que vendieron: la única («CLAURE») o, si fueron varias, «empresas aliadas». */
+export function nombreDeAliadasDelVendido(empresas: readonly VendidoEmpresa[] | null): string {
+  const nombres = [...new Set((empresas ?? []).filter((e) => e.clave !== CLAVE_CASA && e.total > 0).map((e) => e.nombre))];
+  return nombres.length === 1 ? nombres[0]! : nombres.length === 0 ? "CLAURE" : "empresas aliadas";
+}
+
+/** «Lo vendido incluye S/ 500.00 de prendas de CLAURE, cobradas en la misma caja»; `null` si no hay nada de aliadas (la línea no se dibuja). */
+export function lineaClaure(monto: number, nombre = "CLAURE"): string | null {
+  return monto >= 0.005 ? `Lo vendido incluye ${solesCentimos(monto)} con IGV de prendas de ${nombre}, cobradas en la misma caja.` : null;
 }
 
 /** El enlace al cuadro «De Ventas a Finanzas» de Ganancias y pérdidas, con el mismo mes y, si se mira una tienda, esa sede. Se abre plegado

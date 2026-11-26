@@ -85,7 +85,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
         esLider={persona.rol === "lider"}
         izquierda={
           <>
-            <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />
+            <TelaDeLaOrdenVista datos={datos} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />
             <CostoDeLaOrden datos={datos} />
           </>
         }

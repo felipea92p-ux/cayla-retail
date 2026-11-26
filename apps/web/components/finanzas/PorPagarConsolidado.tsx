@@ -57,7 +57,10 @@ export function PorPagarConsolidado({
   hoy,
   falla,
   sedes,
+  aliadas,
 }: {
+  /** ADR-0683: una pestaña por empresa aliada con cuenta (sin la lista, la de siempre). */
+  aliadas?: { clave: string; nombre: string }[] | null;
   filas: FilaPorPagar[];
   ver: Ver;
   unidades: UbicacionGastos[];
@@ -122,6 +125,7 @@ export function PorPagarConsolidado({
     <div className="space-y-6">
       <CabeceraDinero
         pestana="porpagar"
+        aliadas={aliadas}
         esLider={esLider}
         conteos={{ porpagar: filas.length }}
         sede={sedeDeLaCabecera(ver, unidades)}

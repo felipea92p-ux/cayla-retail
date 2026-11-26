@@ -14,7 +14,6 @@ import type { ProveedorParaCompra } from "@/components/insumos-taller/CompraDelI
 import { AjustarLoteModal } from "@/components/insumos-taller/AjustarLoteModal";
 import { LlegoUnaCompraModal } from "@/components/insumos-taller/LlegoUnaCompraModal";
 import { ProveedorDelLoteModal } from "@/components/insumos-taller/ProveedorDelLoteModal";
-import type { OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
@@ -70,7 +69,6 @@ export function InsumosPanel({
   datos,
   tallerId,
   proveedores = [],
-  pedidos = [],
   esLider,
   veCostos,
   vocabulario,
@@ -87,8 +85,6 @@ export function InsumosPanel({
   tallerId: string;
   /** A quién se le puede comprar (solo el líder los lee): «Llegó una compra» pide proveedor (P03). */
   proveedores?: readonly ProveedorParaCompra[];
-  /** Los pedidos abiertos del Taller: «Llegó una compra» avisa si el proveedor tiene uno, para no contarlo dos veces. */
-  pedidos?: readonly OrdenInsumoPorRecibir[];
   esLider: boolean;
   /** Quien ve Producción en el Taller ve el costo de cada lote (no el capital). */
   veCostos: boolean;
@@ -361,7 +357,7 @@ export function InsumosPanel({
       {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
       {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
       {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
-      {comprando && <LlegoUnaCompraModal insumos={insumos} materiales={datos.materiales} insumoInicialId={comprando.insumoId} tallerId={tallerId} proveedores={proveedores} pedidos={pedidos} onClose={() => setComprando(null)} />}
+      {comprando && <LlegoUnaCompraModal insumos={insumos} materiales={datos.materiales} insumoInicialId={comprando.insumoId} tallerId={tallerId} proveedores={proveedores} onClose={() => setComprando(null)} />}
     </div>
   );
 }

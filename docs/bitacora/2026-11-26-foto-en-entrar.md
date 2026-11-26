@@ -1,0 +1,4 @@
+## 2026-11-26 (Entrar y Crear cuenta con foto de campaña, como Zara y Aritzia)
+Qué hice: tras comparar con Zara, Aritzia, Mango, Uniqlo y H&M, Felipe pasó una foto propia (jean, polo blanco y bolso) y eligió el recorte «B», centrado en la persona. Desde 960 px, Entrar y Crear cuenta la llevan a media pantalla a la izquierda (`PantallaDeCuenta` con `foto`, `public/escenario/foto-de-entrada.webp` en dos anchos), quieta al bajar; a la derecha, el formulario y, en Entrar, «¿Primera vez en CAYLA?». En Crear cuenta reemplaza a la tarjeta del Club, que se fue con su código (`TarjetaConTuNombre`, `nombreParaLaTarjeta`, `PIE_DE_TARJETA`).
+Por qué así: la foto de campaña era lo que más separaba nuestras páginas de las de Zara y Aritzia. En el celular no se dibuja (como Zara): el formulario va primero.
+Felipe se lleva: la foto es horizontal y se recorta fuerte; una vertical de cuerpo entero quedaría mejor. En la zapatilla se lee «Converse». La franja roja de arriba sigue.

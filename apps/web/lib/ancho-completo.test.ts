@@ -63,8 +63,7 @@ describe("el ancho de las pantallas (ADR-0462)", () => {
     expect(nuevasConTope).toEqual([]);
   });
 
-  // Producción entró entera el 2026-09-22, y «Órdenes de insumos» (`/ordenes-insumos`, su ruta NO cuelga de `/produccion` a propósito:
-  // ADR-0362) quedó con el tope hasta la Formidable del 2026-10-15: al pasar de Proveedores a Órdenes de insumos el título saltaba 32 px.
+  // Producción entró entera el 2026-09-22.
   // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»); Tienda web (Resumen, Pedidos, Vitrina, Recomendaciones, Datos y plazos) el 2026-10-21; Finanzas (Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos, Cierre de mes) el 2026-10-26. Cada grupo comparte un solo ancho.
   for (const grupo of ["produccion", "clientas", "tiendaWeb", "finanzas"]) {
     it(`toda pantalla del grupo «${grupo}» va sin tope: pasar de una a otra no mueve el título`, () => {

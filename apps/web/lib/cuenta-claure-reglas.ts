@@ -1,4 +1,5 @@
 import { fechaCorta, soles } from "./compras-reglas";
+import { deAliada, deAliadaEnTodo, QUIEN_CLAURE, type Quien } from "./empresas-aliadas-reglas";
 import type { ChipRespuesta } from "./dinero-telar-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, actividad 1): lógica pura, sin servidor ni navegador. La base calcula qué parte de lo que
@@ -242,11 +243,11 @@ export function disponibleReal(total: number, saldo: number): { deClaudia: numbe
 }
 
 /** Bajo «¿Cuánta plata tienes?»: «De eso, S/ X es de Claudia» y «Disponible real S/ Y» (en rojo si lo que se le debe pasa de lo que hay). */
-export function chipsDisponible(total: number, saldo: number): { texto: string; tono: "verde" | "ambar" | "rojo" }[] {
+export function chipsDisponible(total: number, saldo: number, quien: Quien = QUIEN_CLAURE): { texto: string; tono: "verde" | "ambar" | "rojo" }[] {
   const d = disponibleReal(total, saldo);
   if (!d) return [];
   return [
-    { texto: `De eso, ${soles(d.deClaudia)} es de Claudia`, tono: "ambar" },
+    { texto: `De eso, ${soles(d.deClaudia)} es de ${quien.duena}`, tono: "ambar" },
     { texto: `Disponible real ${soles(d.disponible)}`, tono: d.disponible < 0 ? "rojo" : "verde" },
   ];
 }
@@ -280,7 +281,7 @@ export const NOTA_PAGOS_CLAURE =
  * (sin IGV, lo que es de Claudia y NO es ingreso de CAYLA) y `costo` de sus prendas. Sirve para decir «de eso, CLAURE» donde la cifra
  * de CAYLA no lo incluye (el Estado de resultados) o lo incluye a la fuerza (el IGV de Impuestos: la boleta sale con el RUC de CAYLA).
  */
-export type VentasClaure = { ventas: number; igv: number; base: number; costo: number };
+export type VentasClaure = { ventas: number; igv: number; base: number; costo: number; /** De qué aliadas es (ADR-0683); sin él, CLAURE. */ quien?: Quien };
 
 /** La base devuelve UNA fila; sin filas, sin CLAURE o sin ventas en el período no hay nada que decir (`null`). */
 export function leerVentasClaure(datos: unknown): VentasClaure | null {
@@ -293,14 +294,17 @@ export function leerVentasClaure(datos: unknown): VentasClaure | null {
 /** Impuestos: el IGV de SUNAT sigue entero, y esto dice cuánto de él viene de ventas de CLAURE. `null` si no hay IGV de CLAURE en el mes. */
 export function lineaImpuestosClaure(v: VentasClaure | null): { titulo: string; texto: string } | null {
   if (!v || !(v.igv > 0)) return null;
-  return {
+  return deAliadaEnTodo({
     titulo: `De ese IGV, ${soles(v.igv)} es de ventas de CLAURE`,
     texto: `Las boletas de CLAURE salen con el RUC de CAYLA, así que SUNAT las cuenta aquí. Lo que CLAURE vendió en el mes (${soles(v.base)} sin IGV) es de Claudia. ${IGV_DE_CLAURE}`,
-  };
+  }, v.quien ?? QUIEN_CLAURE);
 }
 
 /** Estado de resultados, el cuadro por sede: lo vendido de CLAURE no suma a sus ventas ni a su ganancia; la nota lo dice con su cifra. No afirma que la pantalla no lo muestre: arriba, «Prendas de CLAURE» sí lo separa. `null` si no hubo. */
 export function notaResultadosClaure(v: VentasClaure | null): string | null {
   if (!v || !(v.base > 0)) return null;
-  return `Lo vendido de CLAURE (${soles(v.base)} sin IGV) no cuenta en las ventas ni en la ganancia de este cuadro: es de Claudia, no es ingreso ni costo de CAYLA. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.`;
+  return deAliada(
+    `Lo vendido de CLAURE (${soles(v.base)} sin IGV) no cuenta en las ventas ni en la ganancia de este cuadro: es de Claudia, no es ingreso ni costo de CAYLA. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.`,
+    v.quien ?? QUIEN_CLAURE,
+  );
 }

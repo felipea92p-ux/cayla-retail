@@ -84,6 +84,23 @@ export const PRUEBAS = [
   // tiene techo (nadie infla el tope de US$ 20); quien no ve Productos no lee el contexto ni anota. ROLLBACK.
   "pruebas:precio-propuesto",
 
+  // Reglas del precio sugerido (ADR-0700): la vigente es la última fila (de fábrica, 37 % y +3); solo un Admin la cambia, con su firma,
+  // su historial y su línea de Actividad; lo que rechaza la base (base 20–60, casillas enteras 0–10, tope 75 %) y los candados de la tabla;
+  // las listas de tejidos y marcas entran y salen; nadie toca la tabla directo y anon no llama. ROLLBACK.
+  "pruebas:reglas-de-precio",
+
+  // «Compré ropa» con lo que la prenda tiene (ADR-0700, act. 3): cada línea guarda sus casillas (en orden, sin repetir) y el precio visto
+  // afuera, también con dos tiendas y «a la espera de precio»; lo que no se entiende frena toda la compra; los candados; la regla trae las
+  // listas de marcas y tejidos. ROLLBACK.
+  "pruebas:compra-con-rasgos",
+
+  // Recibir con lo que la prenda tiene (ADR-0700, act. 4): el envío trae las casillas y el precio visto de cada línea; la prenda nueva
+  // se queda con las de su línea (la tela, por su tejido; la marca, por la lista); una línea sin casillas no deja fila; lo de Catálogo no
+  // se pisa al recibir otra vez; la tabla no se toca directo. ROLLBACK.
+  "pruebas:recibir-con-rasgos",
+  "pruebas:editar-orden-conserva",
+  "pruebas:rasgos-en-catalogo",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",
@@ -962,6 +979,20 @@ export const PRUEBAS = [
   // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
+  "pruebas:empresas-aliadas",
+  // ADR-0683: la llave de Lucode de una aliada va cifrada al Vault, nunca vuelve a la pantalla y solo el servidor la lee. ROLLBACK.
+  "pruebas:empresas-aliadas-lucode",
+  "pruebas:aliadas-balance",
+  "pruebas:aliadas-cuenta",
+  "pruebas:aliadas-cobro",
+  // ADR-0683, actividad 5: una aliada nueva queda fuera de las campañas hasta que el Admin la enciende, y el reparto de gastos (Diario, cuenta y «lo que
+  // falta del mes») vale para cualquier aliada, sin pasar de 100 % por tienda. ROLLBACK.
+  "pruebas:aliadas-campanas-gastos",
+  // ADR-0683, actividad 6: una línea de cualquier aliada (activa o dada de baja, desde su arranque) sale de las cifras de CAYLA: la regla de una línea,
+  // la de lote, lo que el Inicio deja fuera de «Hoy» y lo vendido en un período. ROLLBACK.
+  "pruebas:aliadas-cifras",
+  // ADR-0683, actividad 7: las unidades de cada dueña por lugar (Existencias) y de qué empresas es cada venta (Historial), solo donde conviven dos. ROLLBACK.
+  "pruebas:aliadas-filtros",
 
   // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
   // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.
@@ -1921,19 +1952,10 @@ export const PRUEBAS = [
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
   "pruebas:nos-debe",
 
-  // Órdenes de insumos del Taller (ADR-0362, fase 7): el módulo nace en Producción sin rol (solo el líder); OI- con su propio contador;
-  // proveedor del Taller, destino un taller activo, la línea «insumo + cantidad con hasta 3 decimales» con la unidad copiada; doble clic,
-  // reintento con otro pedido, versión vieja (PT409 con la frase que dice qué pasó), sin cambios, lo que no se tocó no se vuelve a juzgar;
-  // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
-  // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
-  "pruebas:ordenes-insumo",
-  // El comprobante de la orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1): solo con el módulo; los cuatro tipos (el SC- de la
-  // secuencia de la empresa), el IGV de la factura de 0 % a 18 %, 3 decimales de cantidad y 4 de costo; de más y fuera de la orden se
-  // aceptan y se avisan; el doble envío; el papel único entre los vigentes; la orden con papel no se edita (ni se anula con papel
-  // vigente); la recepción de siempre no recibe el papel de una orden. ROLLBACK.
-  "pruebas:comprobante-orden-insumo",
-  // ADR-0362 fase 7 parte 2, actividad 3: recibir en el Taller contra la orden de insumos (con un caso de dos sesiones que hace COMMIT).
-  "pruebas:recepcion-orden-insumo",
+  // Órdenes de insumos retirada (ADR-0702, retira la fase 7 de ADR-0362): el módulo no está en el catálogo ni en un rol, la web no puede
+  // llamar a sus nueve funciones, las tablas siguen ahí, el aviso de faltantes pide Producción y «Llegó una compra» / «Pagar servicio»
+  // siguen abiertos. Reemplaza a pruebas:ordenes-insumo, pruebas:comprobante-orden-insumo y pruebas:recepcion-orden-insumo. ROLLBACK.
+  "pruebas:ordenes-insumo-retirada",
 
   // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
   // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder
@@ -1995,6 +2017,9 @@ export const PRUEBAS = [
   "pruebas:compras-simple-recibir",
   "pruebas:costo-sin-igv",
   "pruebas:compras-simple-revisar",
+  // Compras reestructurado (ADR-0704): Compradores y Todas las compras piden su módulo; una compra entra al libro al salir en un
+  // envío y, revisada, sigue en UNA fila con su comprobante; lo de la oficina se va al filtrar por persona. ROLLBACK.
+  "pruebas:compras-compradores",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
   // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).

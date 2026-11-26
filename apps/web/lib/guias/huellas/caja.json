@@ -58,8 +58,8 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/CuentasConClaudia.tsx": [
-      "BotonCopiar «el resumen para Claudia»",
-      "BotonEnlace «Pagar a CLAURE»"
+      "BotonCopiar «{t(\"el resumen para Claudia\")}»",
+      "BotonEnlace «{t(\"Pagar a CLAURE\")}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",

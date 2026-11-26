@@ -10,6 +10,10 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { QueTieneLaPrenda } from "@/components/QueTieneLaPrenda";
+import { LineaMargen } from "@/components/ui/LineaMargen";
+import { useListasDeRasgos, useReglasDePrecio } from "@/components/ReglasDePrecio";
+import { sugerirPrecio, type Rasgo } from "@/lib/margen-por-rasgos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { soles } from "@/lib/compras-reglas";
@@ -26,7 +30,8 @@ import {
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
   problemaReparto,
-  gananciaPorPrenda,
+  problemaAfuera,
+  rasgosDePrenda,
   leerCantidad,
   leerPrecio,
   marcaEscrita,
@@ -131,7 +136,13 @@ export function HojaPrenda({
   const faltaReparto = problemaReparto(b);
   const sumaReparto = b.destinos.reduce((s, d) => s + (leerCantidad(b.reparto[d] ?? "") ?? 0), 0);
   const cantidad = leerCantidad(b.cantidad);
-  const ganancia = gananciaPorPrenda(b, admiteCero);
+  // ADR-0700: lo que la prenda tiene sube su margen objetivo, y el precio sugerido sale de la misma cuenta que «Te quedan».
+  const reglas = useReglasDePrecio();
+  const listas = useListasDeRasgos();
+  const rasgos = rasgosDePrenda({ marcaId: n ? n.marcaId : h.marcaId }, b, listas, reglas.casillas);
+  const costoLeido = leerPrecio(b.costo);
+  const afueraLeido = problemaAfuera(b.afuera) === null && (b.afuera ?? "").trim() !== "" ? leerPrecio(b.afuera ?? "") : null;
+  const sugerido = costoLeido != null && costoLeido > 0 ? sugerirPrecio({ costo: costoLeido, reglas, rasgos, afuera: afueraLeido }) : null;
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
   // Solo al cerrar la hoja: el «atrás» y los enlaces ya los cuida la guardia de «Compré ropa», que la contiene.
@@ -188,6 +199,8 @@ export function HojaPrenda({
             </div>
           </CampoGuiado>
 
+          <QueTiene rasgos={rasgos} guia={guia} alCambiar={(r, v) => cambiar({ rasgos: { ...(b.rasgos ?? {}), [r]: v } })} />
+
           <div className="grid grid-cols-2 gap-3">
             <CampoGuiado id="costo" guia={guia} titulo="Costo c/u">
               <CampoMonto
@@ -223,30 +236,47 @@ export function HojaPrenda({
                   Del catálogo
                 </Atajo>
               )}
+
             </CampoGuiado>
           </div>
           {/* ADR-0660 (Felipe 2026-11-13): «crear opción a la espera de precio sugerido». Se anota sin precio y lo pone alguien después. En su
               propia fila, alineada con «Se vende a»: en la columna no cabía la frase entera. */}
-          {puedeEsperarPrecio && (
-            <div className="-mt-2 flex justify-end">
-              <Atajo
-                elegido={esperaPrecio}
-                onClick={alternarEspera}
-                guia="compra.venta-espera"
-              >
-                {TEXTO_PRECIO_EN_ESPERA}
-              </Atajo>
+          {/* ADR-0700: el sugerido (la base del Admin más lo que la prenda tiene, con el techo de lo visto afuera) va en esta fila, a lo ancho:
+              en la media columna de «Se vende a» se cortaba a 375 px. Un toque lo escribe; nunca solo. */}
+          {((sugerido && !esperaPrecio) || puedeEsperarPrecio) && (
+            <div className="-mt-2 flex flex-wrap justify-end gap-x-2">
+              {sugerido && !esperaPrecio && (
+                <Atajo elegido={leerPrecio(b.venta) === sugerido.precio} onClick={() => poner("venta")(sugerido.precio.toFixed(2))} guia="compra.venta-sugerido">
+                  Sugerido {soles(sugerido.precio)}
+                </Atajo>
+              )}
+              {puedeEsperarPrecio && (
+                <Atajo
+                  elegido={esperaPrecio}
+                  onClick={alternarEspera}
+                  guia="compra.venta-espera"
+                >
+                  {TEXTO_PRECIO_EN_ESPERA}
+                </Atajo>
+              )}
             </div>
           )}
 
-          {ganancia != null && (
-            <p
-              /* unificar-fijo: el dato de la ganancia por prenda de la maqueta, no un aviso */ className={`flex items-center justify-between rounded-campo px-3.5 py-2.5 text-sm ${ganancia >= 0 ? "bg-verde/10" : "bg-ambar/10"}`}
-            >
-              <span className="text-tinta">{ganancia >= 0 ? "Por cada una ganas" : "Se vende por debajo de lo que costó"}</span>
-              <b className={`tabular-nums ${ganancia >= 0 ? "text-verde" : "text-ambar"}`}>{soles(Math.abs(ganancia))}</b>
-            </p>
-          )}
+          {/* La cuenta única de todo el ERP (ADR-0668): antes decía «Por cada una ganas» con la resta simple, que contaba el IGV como tuyo. */}
+          {!esperaPrecio && <LineaMargen costo={b.costo} precio={b.venta} rasgos={rasgos} className="-mt-2 px-1" />}
+
+          <CampoGuiado id="afuera" guia={guia} titulo="¿La vieron más cara afuera?">
+            <CampoMonto
+              etiqueta="Precio visto en otra tienda"
+              etiquetaOculta
+              sinPie
+              inputMode="decimal"
+              autoComplete="off"
+              value={b.afuera ?? ""}
+              data-guia="compra.afuera"
+              onChange={(e) => cambiar({ afuera: e.target.value })}
+            />
+          </CampoGuiado>
 
           <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va? · una o varias">
             {/* Las columnas se reparten solas según cuántas tiendas haya (dos, tres o más), sin un hueco al lado. */}
@@ -337,6 +367,23 @@ export function HojaPrenda({
 
 /** «✓ La vez pasada»: pone lo de antes de un toque; marcado (con su ✓) cuando lo escrito ya es eso. Una píldora chica bajo su campo, como
  *  la maqueta; el monto va en el campo (y en su `title`). */
+/** «¿Qué tiene esta prenda?» (ADR-0700) en la hoja de compra: la pieza compartida, guiada como un campo opcional. */
+function QueTiene({
+  rasgos,
+  guia,
+  alCambiar,
+}: {
+  rasgos: readonly Rasgo[];
+  guia: GuiaCampos;
+  alCambiar: (rasgo: Rasgo, valor: boolean) => void;
+}) {
+  return (
+    <CampoGuiado id="que-tiene" guia={guia} titulo="¿Qué tiene esta prenda?" retiene="fila">
+      <QueTieneLaPrenda rasgos={rasgos} alCambiar={alCambiar} guia="compra.que-tiene" />
+    </CampoGuiado>
+  );
+}
+
 function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean; onClick: () => void; guia?: string; titulo?: string; children: ReactNode }) {
   return (
     <button type="button" aria-pressed={elegido} onClick={onClick} data-guia={guia} title={titulo} className="btn-cayla btn-sutil compra-atajo mt-1.5 max-w-full">

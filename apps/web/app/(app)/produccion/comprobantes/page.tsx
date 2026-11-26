@@ -3,9 +3,8 @@ import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getTaller } from "@/lib/produccion";
-import { getComprobantesProduccion, getInsumosParaComprobante } from "@/lib/comprobantes-produccion";
+import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
-import { getOrdenesInsumoPorRecibir } from "@/lib/recepcion-orden-insumo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComprobantesProduccionPanel } from "@/components/ComprobantesProduccionPanel";
 
@@ -18,13 +17,11 @@ export default async function ComprobantesProduccionPage() {
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Facturas de insumos" />;
 
-  const [comprobantes, proveedores, insumos, taller] = await Promise.all([getComprobantesProduccion(), getProveedoresProduccion(), getInsumosParaComprobante(), getTaller()]);
-  // Los pedidos con algo por recibir (la lectura de Recibir): la hoja «Nueva factura» pregunta si la factura es de uno de ellos (ADR-0587). Es una ayuda: si no
-  // responde, la hoja funciona igual, sin la pregunta.
-  const { ordenes: pedidosPorRecibir } = taller ? await getOrdenesInsumoPorRecibir(taller.id) : { ordenes: [] };
+  // Sin «Nueva factura» (Felipe 2026-11-25): la pantalla solo lista; las facturas nacen en Insumos y en Por pagar.
+  const [comprobantes, proveedores, taller] = await Promise.all([getComprobantesProduccion(), getProveedoresProduccion(), getTaller()]);
   return (
     <div className="space-y-6">
-      <ComprobantesProduccionPanel sede={persona.ubicacionEtiqueta} comprobantes={comprobantes} proveedores={proveedores.filter((p) => p.activo)} todosLosProveedores={proveedores} insumos={insumos} hoy={hoyLima()} tallerId={taller?.id ?? null} pedidosPorRecibir={pedidosPorRecibir} />
+      <ComprobantesProduccionPanel sede={persona.ubicacionEtiqueta} comprobantes={comprobantes} todosLosProveedores={proveedores} hoy={hoyLima()} tallerId={taller?.id ?? null} />
     </div>
   );
 }

@@ -101,7 +101,7 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // <PasoCantidad>, los dos con el anillo del sistema.
   // 25 → 24 el 2026-11-16 (auditoría /milimetro, «foco sin anillo»): la tarjeta que abre un detalle en Catálogo (`atributos/kit.tsx`)
   // perdió su `outline-none` + rojo/60, que juntos no pintaban nada, y usa el anillo del sistema.
-  const PENDIENTES_HOY = 24;
+  const PENDIENTES_HOY = 23;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

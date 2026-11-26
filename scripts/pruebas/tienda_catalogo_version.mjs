@@ -38,7 +38,7 @@ const MIGRACION = "supabase/migrations/20261113202000_tienda_catalogo_version.sq
 // Las migraciones que vinieron después y tocan lo que la huella cubre (ADR-0655): las ofertas prenda por prenda, las cesiones y la huella
 // que las suma. «Cobertura» lee sus listas de la ÚLTIMA (HUELLA_ACTUAL) y, si la base local no las tiene, las aplica en su transacción.
 // La última que define la huella (20261114142000 suma fn_insignia_viva, de 20261114130000).
-const HUELLA_ACTUAL = "supabase/migrations/20261118235000_huella_tienda_con_ofertas_por_variante.sql";
+const HUELLA_ACTUAL = "supabase/migrations/20261121194000_huella_tienda_con_empresas_aliadas.sql";
 const DESPUES = [
   ["retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)", "procedure", ["20261112204000_fusionar_productos_base", "20261112205000_fusionar_productos_previsualizar",
     "20261112210000_fusionar_productos", "20261112211000_fusionar_productos_lecturas", "20261113175000_fusionar_productos_tallas_vacias"]],
@@ -110,7 +110,7 @@ const TEXTO_HUELLA = readFileSync(HUELLA_ACTUAL, "utf8");
 const FALTA_DESPUES = DESPUES.filter(([que, tipo]) => correr(`select to_reg${tipo}('${que}') is null;`).salida === "t")
   .flatMap(([, , archivos]) => archivos.map((a) => readFileSync(`supabase/migrations/${a}.sql`, "utf8")))
   .join("\n");
-const HUELLA_AL_DIA = correr("select position('fn_variantes_sueltas_de_regla' in coalesce(pg_get_functiondef(to_regprocedure('retail.tienda_catalogo_version()')), '')) > 0;").salida === "t";
+const HUELLA_AL_DIA = correr("select position('fn_campana_alcanza_empresa' in coalesce(pg_get_functiondef(to_regprocedure('retail.tienda_catalogo_version()')), '')) > 0;").salida === "t";
 const PARA_COBERTURA = `${MIGRACION_EN_LA_TRANSACCION}\n${FALTA_DESPUES}\n${HUELLA_AL_DIA ? "" : TEXTO_HUELLA}`;
 
 /** La migración sin la línea de la huella que contiene `marca` (una de sus tablas): un mutante. */

@@ -31,12 +31,13 @@ import {
   tallasDe,
   textoMargen,
   tieneCosto,
-  UMBRAL_MARGEN_BAJO,
   type ColorDisponible,
   type MargenProducto,
   variantesQueSeVenden,
 } from "@/lib/productos-vista";
-import { margenPorcentaje } from "@/lib/alta-producto";
+import { useReglasDePrecio } from "@/components/ReglasDePrecio";
+import { margenObjetivo } from "@/lib/margen-por-rasgos";
+import { margenALaVista } from "@/lib/margen-a-la-vista";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
@@ -138,6 +139,8 @@ export function ProductosTabla({
   hrefLimpiar?: string;
 }) {
   const pantalla = usePantallaActual();
+  // El margen de cada prenda se mide contra SU objetivo (ADR-0700): la base del Admin más lo que la prenda tiene.
+  const reglasDePrecio = useReglasDePrecio();
   const filas = useMemo<Fila[]>(
     () =>
       productos.map((original) => {
@@ -149,7 +152,7 @@ export function ProductosTabla({
           precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
           deHoy: campanasHoy ? precioDeHoy(variantesQueSeVenden(p.variantes).map((v) => ({ id: v.varianteId, precio: v.precio })), (id) => campanasHoy[id]) : null,
           costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
-          margen: margenDe(variantesQueSeVenden(p.variantes)),
+          margen: margenDe(variantesQueSeVenden(p.variantes), margenObjetivo(reglasDePrecio, p.rasgos ?? [])),
           alerta: alertaDeStock(p),
           lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
           rotacion: describirRotacion(p.demandaDiaria),
@@ -157,7 +160,7 @@ export function ProductosTabla({
           otrosPrecios: preciosTienda[p.productoId] ?? [],
         };
       }),
-    [productos, existencias, preciosTienda, preciosAqui, campanasHoy],
+    [productos, existencias, preciosTienda, preciosAqui, campanasHoy, reglasDePrecio],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -252,7 +255,7 @@ export function ProductosTabla({
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span aria-hidden className="h-2 w-2 rounded-full bg-ambar" />
-                bajo {UMBRAL_MARGEN_BAJO} %
+                bajo su objetivo
               </span>
             </p>
           )}
@@ -405,14 +408,19 @@ function Stock({ fila, alinear = "right" }: { fila: Fila; alinear?: "right" | "l
   );
 }
 
+/** El color del margen: rojo profundo si alguna talla pierde, ámbar si queda bajo el objetivo de la prenda. */
+const tonoDelMargen = (m: MargenProducto) => (m.pierde ? "text-rojo-profundo" : m.bajo ? "text-ambar" : "text-tinta");
+const motivoDelMargen = (m: MargenProducto) =>
+  m.pierde ? "Alguna talla pierde dinero en cada venta" : m.bajo ? `Alguna talla queda bajo su objetivo de ${m.objetivo} %` : undefined;
+
 function Margen({ margen }: { margen: MargenProducto | null }) {
   if (!margen) return <span className="text-tinta/45">—</span>;
   const ancho = Math.max(0, Math.min(100, margen.min));
   return (
-    <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={margen.bajo ? `Alguna talla deja menos de ${UMBRAL_MARGEN_BAJO} %` : undefined}>
-      <span className={`tabular-nums ${margen.bajo ? "text-ambar" : "text-tinta"}`}>{textoMargen(margen)}</span>
-      {/* El margen mínimo: una medida, no un avance; el ámbar lo pone un margen bajo. */}
-      <BarraAvance pct={ancho} alto="fina" tono={margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
+    <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={motivoDelMargen(margen)}>
+      <span className={`tabular-nums ${tonoDelMargen(margen)}`}>{textoMargen(margen)}</span>
+      {/* El margen mínimo: una medida, no un avance; el color lo pone un margen que pierde o que queda bajo su objetivo. */}
+      <BarraAvance pct={ancho} alto="fina" tono={margen.pierde ? "rojo" : margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
     </span>
   );
 }
@@ -677,7 +685,9 @@ function TarjetaFila({
               <span className="text-tinta/55">{[fila.lineas.detalle, ...fila.lineas.avisos].filter(Boolean).join(" · ")}</span>
             )}
             {conMargen && fila.margen && (
-              <span className={`tabular-nums ${fila.margen.bajo ? "text-ambar" : "text-tinta/70"}`}>Margen {textoMargen(fila.margen)}</span>
+              <span className={`tabular-nums ${fila.margen.bajo ? tonoDelMargen(fila.margen) : "text-tinta/70"}`} title={motivoDelMargen(fila.margen)}>
+                Margen {textoMargen(fila.margen)}
+              </span>
             )}
           </div>
         </div>
@@ -714,6 +724,7 @@ function FichaVariantes({
   // dice «S/60–S/70» y hay que saber cuál es cuál): el costo de una talla que ya entró por Compras es su promedio
   // ponderado, y dos tallas compradas a distinto precio terminan con costos distintos.
   const costoPorVariante = permisos.veDinero && new Set(p.variantes.map((v) => (tieneCosto(v.costo) ? v.costo : null))).size > 1;
+  const objetivo = margenObjetivo(useReglasDePrecio(), p.rasgos ?? []);
   const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, p.variantes.map((v) => v.varianteId)) : null;
 
   return (
@@ -735,7 +746,7 @@ function FichaVariantes({
       </div>
       <ul className="grid gap-2 @xl:grid-cols-2 @5xl:grid-cols-3">
         {ordenarVariantes(variantesQueSeVenden(p.variantes)).map((v) => {
-          const m = costoPorVariante && tieneCosto(v.costo) ? margenPorcentaje(v.precio, v.costo) : null;
+          const m = costoPorVariante && tieneCosto(v.costo) ? margenALaVista(v.costo, v.precio, objetivo) : null;
           const descripcion = [v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante");
           return (
             <li
@@ -758,7 +769,7 @@ function FichaVariantes({
                 {!costoPorVariante ? null : tieneCosto(v.costo) ? (
                   <>
                     costo S/{v.costo.toFixed(2)}
-                    {m !== null && <span className={m < UMBRAL_MARGEN_BAJO ? "text-ambar" : ""}> · {Math.round(m)} %</span>}
+                    {m !== null && <span className={m.tono === "pierdes" ? "text-rojo-profundo" : m.tono === "bajo" ? "text-ambar" : ""}> · {Math.round(m.pct)} %</span>}
                   </>
                 ) : (
                   "sin costo"
