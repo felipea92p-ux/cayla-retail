@@ -2,13 +2,14 @@
   "guia": "compras.compradores",
   "ruta": "/compras/compradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 50,
+  "total": 51,
   "controles": {
     "components/compras/CompradoresVista.tsx": [
       "Link «{primerNombre(r.persona)}»"
     ],
     "components/compras/TarjetaComprador.tsx": [
-      "Link «compradores.tarjeta»"
+      "Link «compradores.tarjeta»",
+      "Link «{primerNombre(p.persona)}»"
     ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",

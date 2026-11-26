@@ -1,19 +1,32 @@
 import Link from "next/link";
 import { AlertTriangle, ChevronRight, Info } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { avisoDeRonda, gastoDeRonda, porRevisarDeRonda, quedaDeRonda, type RondaDeCompras } from "@/lib/compradores-reglas";
+import {
+  avisoDeRonda,
+  dieronDeRonda,
+  gastoDeRonda,
+  porRevisarDeRonda,
+  quedaDeRonda,
+  type CompradorSinRonda,
+  type RondaDeCompras,
+} from "@/lib/compradores-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre } from "@/lib/fondos-reglas";
 
 // La tarjeta de una persona que está comprando (Compradores, ADR-0704): su nombre y desde cuándo compra, tres números (le diste · gastó · le
 // queda, o «no cuadra» si pagó más de lo que le diste), el único aviso que pide atención —en una frase, sin preguntar nada (Felipe
-// 2026-11-26)— y sus tres últimas compras. Toda la tarjeta lleva al detalle de la persona.
+// 2026-11-26)— y sus tres últimas compras. Toda la tarjeta lleva al detalle de la persona. Los tres números salen de su fondo
+// (`quedaDeRonda`, `dieronDeRonda`), no solo de lo que anotó en la ronda. `TarjetaSinRonda` es la misma tarjeta para quien tiene plata y
+// todavía no abrió su ronda.
+
+const MARCO = "card-cayla group @container flex flex-col gap-4 p-5 transition-transform duration-300 [@media(hover:hover)]:hover:-translate-y-0.5";
 
 const ULTIMAS = 3;
 
 export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy: string }) {
-  const queda = quedaDeRonda(r.cuenta);
+  const queda = quedaDeRonda(r);
+  const dieron = dieronDeRonda(r);
   const noCuadra = queda < -0.005;
   const aviso = avisoDeRonda(r, hoy, soles);
   const porRevisar = porRevisarDeRonda(r);
@@ -22,7 +35,7 @@ export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy
     <Link
       href={`/compras/compradores/${r.personaId}`}
       data-guia="compradores.tarjeta"
-      className="card-cayla group @container flex flex-col gap-4 p-5 transition-transform duration-300 [@media(hover:hover)]:hover:-translate-y-0.5"
+      className={MARCO}
     >
       <span className="flex items-center gap-3">
         <AvatarPersona personaId={r.personaId} nombre={r.persona} tamano={40} />
@@ -36,9 +49,9 @@ export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy
       </span>
 
       <span className="grid grid-cols-3 gap-2 border-y border-sand py-3">
-        <Numero etiqueta="Le diste" valor={soles(r.cuenta.dieron)} />
+        <Numero etiqueta="Le diste" valor={soles(dieron)} />
         <Numero etiqueta="Gastó" valor={soles(gastoDeRonda(r.cuenta))} />
-        <Numero etiqueta={noCuadra ? (r.cuenta.dieron > 0 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} ambar={noCuadra} />
+        <Numero etiqueta={noCuadra ? (dieron > 0.005 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} ambar={noCuadra} />
       </span>
 
       {aviso && (
@@ -71,11 +84,43 @@ export function TarjetaComprador({ ronda: r, hoy }: { ronda: RondaDeCompras; hoy
         </span>
       )}
 
-      <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-tinta">
-        Ver sus compras
-        <ChevronRight aria-hidden className="h-3.5 w-3.5 transition-transform duration-300 [@media(hover:hover)]:group-hover:translate-x-0.5" />
-      </span>
+      <Pie>Ver sus compras</Pie>
     </Link>
+  );
+}
+
+/** Quien tiene plata en la mano y todavía no abrió su ronda: sin ella no hay compras que contar, solo lo que tiene. */
+export function TarjetaSinRonda({ persona: p }: { persona: CompradorSinRonda }) {
+  return (
+    <Link href={`/compras/compradores/${p.personaId}`} className={MARCO}>
+      <span className="flex items-center gap-3">
+        <AvatarPersona personaId={p.personaId} nombre={p.persona} tamano={40} />
+        <span className="min-w-0">
+          <span className="block truncate text-base font-semibold text-tinta">{primerNombre(p.persona)}</span>
+          <span className="block text-sm text-secundario">{p.ultimaEntrega ? `Recibió plata el ${diaMes(p.ultimaEntrega)}` : "Sin ronda abierta"}</span>
+        </span>
+      </span>
+
+      <span className="grid grid-cols-3 gap-2 border-y border-sand py-3">
+        <Numero etiqueta="Tiene" valor={soles(p.tiene)} />
+      </span>
+
+      <span className="vd-placa flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm text-tinta">
+        <Info aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secundario" />
+        <span>Todavía no abre su ronda.</span>
+      </span>
+
+      <Pie>Ver su plata</Pie>
+    </Link>
+  );
+}
+
+function Pie({ children }: { children: string }) {
+  return (
+    <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-tinta">
+      {children}
+      <ChevronRight aria-hidden className="h-3.5 w-3.5 transition-transform duration-300 [@media(hover:hover)]:group-hover:translate-x-0.5" />
+    </span>
   );
 }
 

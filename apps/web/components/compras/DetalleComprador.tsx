@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import {
   avisoDeRonda,
+  dieronDeRonda,
   estadoDeCompra,
   gastoDeRonda,
   llegadaDeCompra,
@@ -40,6 +41,7 @@ export function DetalleComprador({
   cerrarRonda,
   plata,
   personaId,
+  tieneSinRonda,
 }: {
   /** `null`: el id no es de nadie que compre o tenga un fondo. */
   nombre: string | null;
@@ -56,9 +58,12 @@ export function DetalleComprador({
   cerrarRonda?: ReactNode;
   /** Las entregas, devoluciones y pagos de deuda de esta persona, con su «Anular» (antes, la hoja «Entregas y devoluciones»). */
   plata?: ReactNode;
+  /** Lo que tiene en la mano quien todavía no abrió su ronda (`fn_compradores_sin_ronda`); sin dato, no se dibuja. */
+  tieneSinRonda?: number;
 }) {
   const aviso = ronda ? avisoDeRonda(ronda, hoy, soles) : null;
-  const queda = ronda ? quedaDeRonda(ronda.cuenta) : 0;
+  const queda = ronda ? quedaDeRonda(ronda) : 0;
+  const dieron = ronda ? dieronDeRonda(ronda) : 0;
   const noCuadra = queda < -0.005;
   const detalle = ronda
     ? ronda.cerradaEn
@@ -77,6 +82,16 @@ export function DetalleComprador({
         acciones={acciones}
       />
 
+      {!ronda && tieneSinRonda !== undefined && (
+        <div className="@container">
+          <div className="grid grid-cols-1 gap-3 @[36rem]:grid-cols-3">
+            <TarjetaCifra etiqueta="Tiene" valor={soles(tieneSinRonda)}>
+              En la mano, sin ronda abierta
+            </TarjetaCifra>
+          </div>
+        </div>
+      )}
+
       {!ronda ? (
         <div className="card-cayla">
           {nombre ? (
@@ -93,14 +108,14 @@ export function DetalleComprador({
         <>
           <div className="@container">
             <div data-guia="comprador.cuenta" className="grid grid-cols-1 gap-3 @[36rem]:grid-cols-3">
-              <TarjetaCifra etiqueta="Le diste" valor={soles(ronda.cuenta.dieron)}>
-                {ronda.cuenta.dieron > 0 ? "Plata para esta ronda" : "Sin plata registrada"}
+              <TarjetaCifra etiqueta="Le diste" valor={soles(dieron)}>
+                {dieron > 0.005 ? "Plata para esta ronda" : "Sin plata registrada"}
               </TarjetaCifra>
               <TarjetaCifra etiqueta="Gastó" valor={soles(gastoDeRonda(ronda.cuenta))}>
                 {`En ${ronda.cuenta.compras} ${ronda.cuenta.compras === 1 ? "compra" : "compras"}${ronda.cuenta.gastaste > 0 ? ` y ${soles(ronda.cuenta.gastaste)} de gastos` : ""}`}
               </TarjetaCifra>
-              <TarjetaCifra etiqueta={noCuadra ? (ronda.cuenta.dieron > 0 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} punto={noCuadra ? "ambar" : undefined}>
-                {noCuadra ? (ronda.cuenta.dieron > 0 ? "Pagó más de lo que le diste" : "Pagó sin plata registrada") : ronda.cerradaEn ? textoCierre(ronda) : "En la mano"}
+              <TarjetaCifra etiqueta={noCuadra ? (dieron > 0.005 ? "No cuadra" : "Sin plata") : "Le queda"} valor={soles(Math.abs(queda))} punto={noCuadra ? "ambar" : undefined}>
+                {noCuadra ? (dieron > 0.005 ? "Pagó más de lo que le diste" : "Pagó sin plata registrada") : ronda.cerradaEn ? textoCierre(ronda) : "En la mano"}
               </TarjetaCifra>
             </div>
           </div>

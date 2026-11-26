@@ -7,9 +7,9 @@ import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { TarjetaComprador } from "./TarjetaComprador";
+import { TarjetaComprador, TarjetaSinRonda } from "./TarjetaComprador";
 import { textoCierre } from "./DetalleComprador";
-import { gastoDeRonda, porRevisarDeRonda, type RondaDeCompras } from "@/lib/compradores-reglas";
+import { gastoDeRonda, porRevisarDeRonda, type CompradorSinRonda, type RondaDeCompras } from "@/lib/compradores-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { nombreDelMes } from "@/lib/comprobantes-lista-reglas";
@@ -22,12 +22,15 @@ const LIMITE_CERRADAS = 8;
 
 export function CompradoresVista({
   rondas,
+  sinRonda,
   hoy,
   entregar,
   porDefinir,
   rendiciones,
 }: {
   rondas: RondaDeCompras[] | null;
+  /** Quien tiene plata en la mano y todavía no abrió su ronda. Sin el dato (no se pudo leer), el grupo no se dibuja. */
+  sinRonda?: CompradorSinRonda[] | null;
   hoy: string;
   entregar?: ReactNode;
   porDefinir?: ReactNode;
@@ -92,6 +95,17 @@ export function CompradoresVista({
               </div>
             )}
           </section>
+
+          {sinRonda && sinRonda.length > 0 && (
+            <section className="space-y-3" data-guia="compradores.sin-ronda">
+              <TituloGrupo cuenta={sinRonda.length}>Con plata, sin ronda abierta</TituloGrupo>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                {sinRonda.map((p) => (
+                  <TarjetaSinRonda key={p.personaId} persona={p} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* «Por definir» va DESPUÉS de las personas (/formidable 2026-11-26): la pantalla responde primero quién compra. */}
           {porDefinir}

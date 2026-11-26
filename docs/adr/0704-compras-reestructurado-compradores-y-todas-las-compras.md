@@ -59,3 +59,35 @@ vencimiento, seis de los ocho filtros, el N.° de documento y el RUC en la lista
 - Quien tenía solo «Revisar compras» ve ahora Compradores, no la lista de todas las compras: para verla necesita `facturas_compra`.
 - La revisión ya no es una sola cola de todas las personas: se revisa persona por persona (la portada dice cuántas esperan y la tarjeta, de quién).
 - «Todas las compras» lee por mes (hasta 300 filas por lado): suficiente para 3 tiendas; si un mes pasara de eso, se pagina.
+
+## Actualización 2026-11-26 (b): la cuenta de cada persona sale de su fondo
+
+**Qué pasó.** El mismo día de la publicación, Felipe preguntó por qué Bhekam salía con «Le diste S/ 0 · Le queda S/ 0» y por qué Claudia, que
+tenía plata, no aparecía. En producción Bhekam tenía S/ 13,800 y Claudia S/ 4,967 en su fondo. Dos causas, las dos de lectura:
+
+1. «Le diste» salía de `fn_ronda_compras_cuenta`, que solo suma la plata que la persona **anotó dentro de su ronda**
+   (`fondo_plata_anotada.ronda_id`). Lo que la oficina entrega con «Entregar plata» va directo a su fondo (`movimientos_dinero`,
+   `entrega_fondo`) y no deja fila ahí. Tampoco contaba lo anotado segundos antes de abrir la ronda ni lo que quedó de la anterior. De ahí
+   salían también dos avisos falsos: «pagó S/ 1,497.10 sin plata registrada» (Catherine, con S/ 11,086 entregados) y «pagó S/ 2,941 más de lo
+   que le diste» (Lizzelott).
+2. `fn_compradores` recorre `compra_rondas`: quien no abrió su ronda no tenía tarjeta, y la hoja «Quién tiene plata» ya no existía.
+
+**Decisión.** Una sola fuente de verdad (principio 4): la plata de una persona es la de su fondo, y la pantalla hace la cuenta igual que
+«Mis compras» (`resumenRonda`), despejando desde lo que tiene hoy:
+
+- **Le queda** = `fn_mi_plata_tiene(persona)`, la misma cifra que ella ve en «Mis compras».
+- **Gastó** = lo de su ronda (compras pagadas más gastos), como antes.
+- **Le diste** = le queda + gastó. Incluye lo que traía al abrir la ronda: es lo que tuvo para comprar.
+- Una ronda **cerrada** conserva su cuaderno (`tiene` nulo).
+- **Quien tiene plata a favor y no tiene ronda abierta** sale en un grupo propio, «Con plata, sin ronda abierta», con lo que tiene y su última
+  entrega. Lo que CAYLA le debe a alguien ya sale en su ronda cerrada: ahí no se repite.
+- «Cerrar su ronda» desde Compras ya no se ofrece si la persona tiene plata en la mano (la base lo rechazaba igual).
+
+**Base.** `20261126223000` (una parte, sin políticas, solo `create or replace function`): `fn_compradores()` suma `tiene` a cada ronda abierta y
+nace `fn_compradores_sin_ronda()` (módulo `fondos`). Prueba: `scripts/pruebas/compras_compradores_plata.mjs` (5 casos). La web vieja ignora el
+dato nuevo y la nueva, sin la migración, sigue con la cuenta de antes y sin el grupo: no importa cuál llegue primero.
+
+**Lo que cuesta.** «Le diste» ya no es «lo anotado en esta ronda» sino «lo que tuvo para comprar»: si alguien arrastra plata de una ronda
+anterior, entra ahí. Cada tarjeta abierta llama a `fn_mi_plata_tiene`, que lee el libro de dinero una vez por persona: con las 4 a 6 personas
+que compran hoy no pesa; si fueran decenas, se lee el libro una sola vez (como `fn_fondos`). «Mis compras» sigue llamando «Te dieron» solo a
+lo anotado en la ronda y «tenías» a lo demás: no se tocó.

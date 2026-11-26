@@ -3035,7 +3035,14 @@ export const GUIA_COMPRADORES: Guia = {
       ancla: "compradores.tarjeta",
       opcional: true,
       titulo: "Una tarjeta por persona",
-      texto: "Le diste, gastó y le queda. Si gastó más de lo que le diste, dice «No cuadra» y cuánto. Si lleva 14 días sin comprar, te avisa que su ronda se puede cerrar. Tócala para ver sus compras y revisarlas.",
+      texto: "Le diste, gastó y le queda, según su fondo: cuenta toda la plata que recibió, la haya anotado ella o se la hayas entregado tú. Si gastó más de lo que le diste, dice «No cuadra» y cuánto. Si lleva 14 días sin comprar, te avisa que su ronda se puede cerrar. Tócala para ver sus compras y revisarlas.",
+    },
+    {
+      id: "sin-ronda",
+      ancla: "compradores.sin-ronda",
+      opcional: true,
+      titulo: "Con plata, sin ronda abierta",
+      texto: "Quien ya recibió plata y todavía no abre su ronda en «Mis compras». Ves cuánto tiene en la mano; cuando la abra, pasa arriba con sus compras.",
     },
     {
       id: "cerradas",

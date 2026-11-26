@@ -1572,7 +1572,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   antes). «Compré ropa» (`components/mi-plata/RegistrarCompra.tsx`) arma la lista por marca con `marcas` + `marca_proveedores`
   (`lib/compra-rapida.ts`, `marcasConProveedores`).
 - **Compras reestructurado (ADR-0704, 2026-11-26):** el menú queda en Compradores, Todas las compras, Mis compras, Plan de campaña y Proveedores,
-  sin pestañas. `/compras/compradores` (módulo `fondos`) → `lib/compradores.ts:getCompradores` → RPC `fn_compradores()` + `lib/compradores-reglas.ts`
+  sin pestañas. `/compras/compradores` (módulo `fondos`) → `lib/compradores.ts:getCompradores` → RPC `fn_compradores()` (y `getCompradoresSinRonda` → `fn_compradores_sin_ronda()`, quien tiene plata sin ronda abierta) + `lib/compradores-reglas.ts`
   (puro: lectura, aviso de la ronda, la ronda elegida) → `components/compras/CompradoresVista.tsx` + `TarjetaComprador.tsx`; las rendiciones
   por aprobar, `RendicionesPorAprobar.tsx`. `/compras/compradores/[personaId]` → la misma lectura + `getRevisarCompras`, `getPlataPorConfirmar`
   y `getDatosFondos` filtrados a la persona → `DetalleComprador.tsx` con `BandejaRevisar`, `MovimientosDeFondo.tsx` y `CerrarRonda.tsx`
