@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 144,
+  "total": 158,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -74,6 +74,13 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vistas-config/CasillaDePrecioModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoTexto «{guia.etiqueta(\"ayuda\", \"Cómo reconocerla · opcional\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vistas-config/NuevaVigenciaModal.tsx": [
       "ComboResponsable «{responsable}»",
@@ -151,6 +158,17 @@
       "button «{nombreCortoSede(t.nombre)}»",
       "button «config.tiendas-normal»",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»"
+    ],
+    "components/vistas-config/VistaPrecios.tsx": [
+      "CampoMonto «Lo que pagaste (ejemplo)»",
+      "BotonVerMas «{`Ver ${resto.length}»",
+      "ComboResponsable «{responsable}»",
+      "button «config.precios-recomendado»",
+      "Casilla «Margen base, en %»",
+      "LapizEditar «{`«${c.nombre}»",
+      "Casilla «{`Cuánto % suma «${c.nombre}»",
+      "LapizEditar «{`«${c.nombre}» #2",
+      "Boton «config.precios-agregar»"
     ],
     "components/vitrinas-sedes/EmpresasAliadas.tsx": [
       "Boton «config.aliadas-agregar»",

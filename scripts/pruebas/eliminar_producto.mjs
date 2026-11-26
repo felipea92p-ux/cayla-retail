@@ -355,7 +355,10 @@ select pg_temp.huella(:'va');`);
     // por su `on delete cascade` (20261113210000). Lo que ya se vendió con esa oferta es venta y frena el borrado.
     "campana_regla_productos",
     // ADR-0682: lo mismo con las tallas y colores sueltos que eligió una oferta (`on delete cascade`, 20261118232000).
-    "campana_regla_variantes"];
+    "campana_regla_variantes",
+    // ADR-0700: las casillas de precio de la prenda (`producto_rasgos`, una fila por prenda) son configuración suya, como si lleva ojales:
+    // se van con la ficha por su `on delete cascade` (20261126211000). Quién las marcó no se pierde: una prenda con historia no se elimina.
+    "producto_rasgos"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",

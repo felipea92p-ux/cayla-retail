@@ -1,3 +1,4 @@
+import { eleccionDeRasgos, rasgosEfectivos, type Casilla, type EleccionDeRasgos, type ListasDeRasgos, type Rasgo } from "./margen-por-rasgos";
 import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 import { MONTO_MAXIMO_PLATA, problemaDeMonto } from "./fondos-reglas";
@@ -344,6 +345,10 @@ export type LineaCompra = {
   /** Sin precio de venta a propósito: «a la espera de precio sugerido» (ADR-0660). */
   precioPorDefinir: boolean;
   destinoId: string;
+  /** Lo que la prenda tiene al fijar su precio (ADR-0700), en el orden de la hoja. Va a `orden_compra_items.rasgos`. */
+  rasgos?: Rasgo[];
+  /** El precio que se vio afuera (ADR-0700), o `null`. Va a `orden_compra_items.precio_visto_afuera`. */
+  precioVistoAfuera?: number | null;
 };
 
 export const totalDeLineas = (lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): number =>
@@ -406,6 +411,10 @@ export type BorradorPrenda = {
   venta: string;
   /** «A la espera de precio sugerido» (ADR-0660): se anota sin precio de venta, a propósito. Solo en una prenda que no es del catálogo. */
   ventaPorDefinir?: boolean;
+  /** Lo que marcó quien compra (ADR-0700), casilla por casilla de la lista del Admin. La marca suma sola, por la lista de marcas. */
+  rasgos?: EleccionDeRasgos;
+  /** «La vieron más cara afuera» (ADR-0700): el precio en otra tienda, escrito. Opcional: techo del sugerido. */
+  afuera?: string;
   destinos: string[];
   reparto: Record<string, string>;
   repartoPropio?: boolean;
@@ -442,10 +451,34 @@ export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" 
   return suma < total ? `Reparte las ${total}: faltan ${total - suma}.` : `Reparte las ${total}: sobran ${suma - total}.`;
 }
 
+/** El precio visto afuera mal escrito: frena «Agregar», como lo frenaría la base. Vacío está bien (es opcional). */
+export function problemaAfuera(afuera: string | undefined): string | null {
+  if (!afuera || afuera.trim() === "") return null;
+  const n = leerPrecio(afuera);
+  if (n == null || n <= 0) return "Escribe el precio que viste, en soles.";
+  return n > PRECIO_VENTA_MAXIMO ? "Ese precio pasa de S/\u00a05 000: revísalo." : null;
+}
+
+/**
+ * Lo que la prenda tiene en «Compré ropa» (ADR-0700): lo que marcó quien compra y la marca por la lista del Admin. Aquí no se pregunta el
+ * tejido, así que «Tela que se nota» la marca la persona; llega sola por el tejido donde se elige (Recibir, Catálogo).
+ */
+export function rasgosDePrenda(
+  h: Pick<Habitual, "marcaId">,
+  b: Pick<BorradorPrenda, "rasgos">,
+  listas: ListasDeRasgos,
+  casillas: readonly Casilla[],
+): Rasgo[] {
+  return rasgosEfectivos(b.rasgos ?? {}, casillas, { tejidoSeNota: false, marcaConocida: h.marcaId !== null && listas.marcasConocidas.has(h.marcaId) });
+}
+
 /** Los campos de la hoja, en su orden, para la guía de foco. */
 export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
+  const afuera = problemaAfuera(b.afuera);
   return [
     { id: "cantidad", nombre: "Cuántas unidades", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas unidades compraste." },
+    // Lo que la prenda tiene es opcional: nunca frena la compra (ADR-0700).
+    { id: "que-tiene", nombre: "Qué tiene", requerido: false, hecho: false, pendiente: "" },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
     {
       id: "venta",
@@ -454,19 +487,13 @@ export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoD
       hecho: b.ventaPorDefinir === true || faltaEnPaso("venta", b.venta, admitePrecioCero) === null,
       pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende, o déjala a la espera de precio.",
     },
+    // Opcional; mal escrito, falta (la misma regla que apaga «Agregar»).
+    { id: "afuera", nombre: "Precio visto afuera", requerido: afuera !== null, hecho: afuera === null && (b.afuera ?? "").trim() !== "", pendiente: afuera ?? "" },
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
     ...(b.destinos.length >= 2
       ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
       : []),
   ];
-}
-
-/** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
-export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta" | "ventaPorDefinir">, admitePrecioCero = true): number | null {
-  if (b.ventaPorDefinir) return null;
-  const costo = leerPrecio(b.costo);
-  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
-  return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
 }
 
 /** El botón de la hoja dice lo que hace: «Agregar 12 · S/ 210.00» (o «Guardar …» si corrige una que ya va). */
@@ -481,13 +508,19 @@ export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">
  * Las líneas que entran a la compra desde la hoja: una por tienda, con su parte (la base arma una orden por tienda). Vacío si falta algo
  * (el botón ya está apagado).
  */
-export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda, admitePrecioCero = true): LineaCompra[] {
+export function lineasDeBorrador(
+  h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">,
+  b: BorradorPrenda,
+  admitePrecioCero = true,
+  /** Lo que la prenda tiene (`rasgosDePrenda`): se guarda con cada línea. */
+  rasgos: readonly Rasgo[] = [],
+): LineaCompra[] {
   const cantidad = leerCantidad(b.cantidad);
   const costo = leerPrecio(b.costo);
   // «A la espera de precio» solo en una prenda que no es del catálogo (ADR-0660; la base lo exige igual).
   const espera = b.ventaPorDefinir === true && h.productoId === null;
   const venta = espera ? null : leerPrecioVenta(b.venta, admitePrecioCero);
-  if (cantidad == null || costo == null || (venta == null && !espera) || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
+  if (cantidad == null || costo == null || (venta == null && !espera) || b.destinos.length === 0 || problemaReparto(b) !== null || problemaAfuera(b.afuera) !== null) return [];
   const comun = {
     clave: h.clave,
     productoId: h.productoId,
@@ -499,6 +532,8 @@ export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "cat
     costo,
     venta,
     precioPorDefinir: espera,
+    rasgos: [...rasgos],
+    precioVistoAfuera: b.afuera && b.afuera.trim() !== "" ? leerPrecio(b.afuera) : null,
   };
   if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
   return b.destinos.map((d) => ({ ...comun, cantidad: leerCantidad(b.reparto[d] ?? "") ?? 0, destinoId: d }));
@@ -507,7 +542,7 @@ export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "cat
 /** Corregir una prenda que ya va: junta sus líneas (una por tienda) de vuelta en un borrador. */
 export function borradorDeLineas(
   lineas: readonly LineaCompra[],
-): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "ventaPorDefinir" | "destinos" | "reparto" | "repartoPropio"> {
+): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "ventaPorDefinir" | "rasgos" | "afuera" | "destinos" | "reparto" | "repartoPropio"> {
   const primera = lineas[0];
   const destinos = [...new Set(lineas.map((l) => l.destinoId))];
   return {
@@ -515,6 +550,8 @@ export function borradorDeLineas(
     costo: primera ? primera.costo.toFixed(2) : "",
     venta: primera?.venta != null ? primera.venta.toFixed(2) : "",
     ventaPorDefinir: primera?.precioPorDefinir === true,
+    rasgos: eleccionDeRasgos(primera?.rasgos ?? []),
+    afuera: primera?.precioVistoAfuera != null ? primera.precioVistoAfuera.toFixed(2) : "",
     destinos,
     reparto: destinos.length > 1 ? Object.fromEntries(lineas.map((l) => [l.destinoId, String(l.cantidad)])) : {},
     repartoPropio: destinos.length > 1,
@@ -760,6 +797,9 @@ export function lineasParaBase(lineas: readonly LineaCompra[]) {
     destino_id: l.destinoId,
     ...(l.categoriaId === null && l.productoId === null ? { categoria_por_definir: true } : {}),
     ...(l.precioPorDefinir && l.productoId === null ? { precio_por_definir: true } : {}),
+    // ADR-0700: lo que la prenda tiene y el precio visto afuera (la base los guarda en la línea; sin ellos, nulo).
+    ...(l.rasgos && l.rasgos.length > 0 ? { rasgos: l.rasgos } : {}),
+    ...(l.precioVistoAfuera != null ? { precio_visto_afuera: l.precioVistoAfuera } : {}),
   }));
 }
 

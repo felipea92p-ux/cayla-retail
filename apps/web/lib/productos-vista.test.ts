@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { colorPrincipal, coloresDe, tallasDe, ordenarVariantes, rangoSoles, margenDe, textoMargen, UMBRAL_MARGEN_BAJO, variantesQueSeVenden } from "./productos-vista";
+import { margenALaVista } from "./margen-a-la-vista";
+import { colorPrincipal, coloresDe, tallasDe, ordenarVariantes, rangoSoles, margenDe, textoMargen, variantesQueSeVenden } from "./productos-vista";
 
 function v(parcial: Partial<VarianteCatalogo>): VarianteCatalogo {
   return {
@@ -79,34 +80,42 @@ describe("rangoSoles", () => {
   });
 });
 
-describe("margenDe", () => {
-  it("rango sobre el precio y avisa por la variante que MENOS deja", () => {
-    // 1 − 60/100 = 40 % (bajo el umbral) y 1 − 40/100 = 60 %
-    const m = margenDe([
-      { precio: 100, costo: 60 },
-      { precio: 100, costo: 40 },
-    ]);
-    expect(m).toEqual({ min: 40, max: 60, bajo: true });
-    expect(textoMargen(m!)).toBe("40–60 %");
+describe("margenDe: la cuenta única, contra el objetivo de la prenda (ADR-0668, ADR-0700)", () => {
+  it("la lista dice el MISMO % que la ficha de la prenda, talla por talla", () => {
+    const variantes = [
+      { precio: 69.9, costo: 28 },
+      { precio: 10, costo: 5 },
+      { precio: 129.9, costo: 50 },
+    ];
+    const m = margenDe(variantes, 40);
+    const deLaFicha = variantes.map((v) => margenALaVista(v.costo, v.precio, 40)!.pct);
+    expect(m?.min).toBe(Math.min(...deLaFicha));
+    expect(m?.max).toBe(Math.max(...deLaFicha));
   });
 
-  it("sin costo no hay margen: un costo vacío no cuenta como cero (daría 100 %)", () => {
-    expect(margenDe([{ precio: 100, costo: null }])).toBeNull();
-    expect(margenDe([{ precio: 100, costo: null }, { precio: 100, costo: 50 }])).toEqual({ min: 50, max: 50, bajo: false });
+  it("ya no es la resta con IGV adentro: de S/ 100 con S/ 60 de costo quedan 29 %, no 40 %", () => {
+    expect(textoMargen(margenDe([{ precio: 100, costo: 60 }], 37)!)).toBe("29 %");
   });
 
-  it("un costo en cero no es un costo: no da «100 %»", () => {
-    expect(margenDe([{ precio: 80, costo: 0 }])).toBeNull();
-    expect(margenDe([{ precio: 80, costo: 0 }, { precio: 80, costo: 32 }])).toEqual({ min: 60, max: 60, bajo: false });
+  it("avisa por la talla que MENOS deja, contra el objetivo de ESA prenda", () => {
+    // S/ 10 con S/ 5 de costo deja 41 %: bien con un objetivo de 40, bajo con uno de 46 (dos casillas más).
+    const blusa = [{ precio: 69.9, costo: 28 }, { precio: 10, costo: 5 }];
+    expect(margenDe(blusa, 40)).toMatchObject({ bajo: false, pierde: false, objetivo: 40 });
+    expect(margenDe(blusa, 46)).toMatchObject({ bajo: true, pierde: false, objetivo: 46 });
+  });
+
+  it("una talla que no cubre lo pagado más la parte de SUNAT pierde (y también queda bajo)", () => {
+    expect(margenDe([{ precio: 40, costo: 36 }, { precio: 99.9, costo: 36 }], 37)).toMatchObject({ bajo: true, pierde: true });
+  });
+
+  it("sin costo no hay margen: un costo vacío o en cero no cuenta (daría 100 %)", () => {
+    expect(margenDe([{ precio: 100, costo: null }], 37)).toBeNull();
+    expect(margenDe([{ precio: 80, costo: 0 }], 37)).toBeNull();
+    expect(margenDe([{ precio: 80, costo: 0 }, { precio: 80, costo: 32 }], 37)?.min).toBe(margenALaVista(32, 80, 37)!.pct);
   });
 
   it("un precio en cero no rompe la cuenta", () => {
-    expect(margenDe([{ precio: 0, costo: 10 }])).toBeNull();
-  });
-
-  it("el umbral es de 45 % (provisional) y justo 45 no es bajo", () => {
-    expect(UMBRAL_MARGEN_BAJO).toBe(45);
-    expect(margenDe([{ precio: 100, costo: 55 }])?.bajo).toBe(false);
+    expect(margenDe([{ precio: 0, costo: 10 }], 37)).toBeNull();
   });
 });
 

@@ -84,6 +84,23 @@ export const PRUEBAS = [
   // tiene techo (nadie infla el tope de US$ 20); quien no ve Productos no lee el contexto ni anota. ROLLBACK.
   "pruebas:precio-propuesto",
 
+  // Reglas del precio sugerido (ADR-0700): la vigente es la última fila (de fábrica, 37 % y +3); solo un Admin la cambia, con su firma,
+  // su historial y su línea de Actividad; lo que rechaza la base (base 20–60, casillas enteras 0–10, tope 75 %) y los candados de la tabla;
+  // las listas de tejidos y marcas entran y salen; nadie toca la tabla directo y anon no llama. ROLLBACK.
+  "pruebas:reglas-de-precio",
+
+  // «Compré ropa» con lo que la prenda tiene (ADR-0700, act. 3): cada línea guarda sus casillas (en orden, sin repetir) y el precio visto
+  // afuera, también con dos tiendas y «a la espera de precio»; lo que no se entiende frena toda la compra; los candados; la regla trae las
+  // listas de marcas y tejidos. ROLLBACK.
+  "pruebas:compra-con-rasgos",
+
+  // Recibir con lo que la prenda tiene (ADR-0700, act. 4): el envío trae las casillas y el precio visto de cada línea; la prenda nueva
+  // se queda con las de su línea (la tela, por su tejido; la marca, por la lista); una línea sin casillas no deja fila; lo de Catálogo no
+  // se pisa al recibir otra vez; la tabla no se toca directo. ROLLBACK.
+  "pruebas:recibir-con-rasgos",
+  "pruebas:editar-orden-conserva",
+  "pruebas:rasgos-en-catalogo",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",

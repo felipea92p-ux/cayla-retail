@@ -1,5 +1,6 @@
 "use client";
 
+import { useMargenObjetivo } from "@/components/ReglasDePrecio";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
@@ -129,6 +130,8 @@ export function CerrarEnvio({
   onConteoCambiado: () => void;
   onCerrado: () => void;
 }) {
+  // El objetivo de la regla del Admin (ADR-0700): con él se decide «Revisa el precio», como el ámbar de la línea de al lado.
+  const margenObjetivo = useMargenObjetivo();
   // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
   // Lo agregado que quedó en 0 no se guarda (la base hace lo mismo): Cerrar ya no lo ve, y solo avisa cuál fue.
   const lineas = lineasSinModelosEnCero(lineasConCeros);
@@ -897,7 +900,7 @@ export function CerrarEnvio({
               : null;
           const dudaAbierta = dudaFila && costosConfirmados[v]?.[claveFila] !== costoQueda ? dudaFila : null;
           const revisarPrecio =
-            prendaFila && editaCosto && !dudaAbierta ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
+            prendaFila && editaCosto && !dudaAbierta ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null, margenObjetivo }) : null;
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
           const det = m ? detalleDelModelo(g.lineas, m) : null;

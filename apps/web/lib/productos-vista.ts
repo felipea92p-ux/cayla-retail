@@ -1,5 +1,5 @@
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { margenPorcentaje } from "./alta-producto";
+import { margenALaVista } from "./margen-a-la-vista";
 import { compararTallas } from "./tallas";
 
 /* ====================================================================
@@ -63,39 +63,35 @@ export function rangoSoles(valores: readonly (number | null)[]): string | null {
   return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
 }
 
-/**
- * Bajo este margen la Tabla lo pinta en ámbar. PROVISIONAL (Felipe, 2026-09-28: «construye con 45 %»): no es un
- * número que CAYLA haya decidido por categoría. Ojo, el ERP ya tiene otros dos cortes y no dicen lo mismo:
- * el alta de producto avisa bajo 30 % (`nivelMargen`, alta-producto.ts) y Producción usa 40/60 % sobre costo
- * directo (`semaforoMargen`, produccion-reglas.ts). Unificarlos es decisión pendiente (ADR-0254).
- */
-export const UMBRAL_MARGEN_BAJO = 45;
-
 /** ¿Hay un costo de verdad? `null` (no se ve o no se cargó) y 0 (no se cargó) no lo son. */
 export function tieneCosto(costo: number | null): costo is number {
   return costo !== null && Number.isFinite(costo) && costo > 0;
 }
 
-export type MargenProducto = { min: number; max: number; bajo: boolean };
+/** `bajo`: alguna talla queda bajo el objetivo de la prenda; `pierde`: alguna no cubre lo pagado más la parte de SUNAT. */
+export type MargenProducto = { min: number; max: number; bajo: boolean; pierde: boolean; objetivo: number };
 
 /**
- * El margen del modelo sobre el precio de venta, en %, con la MISMA fórmula que el alta (`margenPorcentaje`, sin
- * descontar IGV: es una alerta, no contabilidad). Rango entre variantes, porque un XL puede costar más que un S.
- * `null` si ninguna variante tiene costo: sin permiso de ver el dinero `fn_productos` manda el costo vacío, y una
- * prenda sin costo cargado no tiene margen. Un costo en CERO tampoco es un costo (es «no se cargó»): contarlo daba
- * «100 %», el margen más lindo de la tabla sobre la prenda de la que menos se sabe.
- * `bajo` mira el PEOR margen del modelo: la talla que menos deja es la que avisa.
+ * El margen del modelo con la cuenta única (ADR-0668, `margenALaVista`): lo que queda del precio sin IGV, el MISMO % que dice la ficha de
+ * la prenda. Rango entre variantes, porque un XL puede costar más que un S. `bajo` mira el PEOR margen contra el objetivo de esa prenda
+ * (ADR-0700: la base del Admin más lo que la prenda tiene): la talla que menos deja es la que avisa. Antes era la resta con IGV adentro y un
+ * corte fijo en 45 %: la misma prenda decía otro % al abrirla. `null` si ninguna variante tiene costo: sin permiso de ver el dinero la
+ * lista manda el costo vacío, y una prenda sin costo cargado no tiene margen. Un costo en CERO tampoco es un costo (es «no se cargó»).
  */
-export function margenDe(variantes: readonly { precio: number; costo: number | null }[]): MargenProducto | null {
-  const margenes = variantes.flatMap((v) => {
+export function margenDe(variantes: readonly { precio: number; costo: number | null }[], margenObjetivo: number): MargenProducto | null {
+  const medidas = variantes.flatMap((v) => {
     if (!tieneCosto(v.costo)) return [];
-    const m = margenPorcentaje(v.precio, v.costo);
+    const m = margenALaVista(v.costo, v.precio, margenObjetivo);
     return m === null ? [] : [m];
   });
-  if (margenes.length === 0) return null;
-  const min = Math.min(...margenes);
-  const max = Math.max(...margenes);
-  return { min, max, bajo: min < UMBRAL_MARGEN_BAJO };
+  if (medidas.length === 0) return null;
+  return {
+    min: Math.min(...medidas.map((m) => m.pct)),
+    max: Math.max(...medidas.map((m) => m.pct)),
+    bajo: medidas.some((m) => m.tono !== "normal"),
+    pierde: medidas.some((m) => m.tono === "pierdes"),
+    objetivo: margenObjetivo,
+  };
 }
 
 /** «52 %» o «48–61 %», redondeado al entero: medio punto no cambia ninguna decisión. */

@@ -19,6 +19,8 @@ import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
 import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 import { indiceDeGuias } from "@/lib/guias/titulos";
+import { getReglasParaLasHojas } from "@/lib/reglas-de-precio-datos";
+import { ReglasDePrecioProveedor } from "@/components/ReglasDePrecio";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -37,12 +39,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const vePedidosWeb = persona.ubicacionTipo === "tienda" && persona.modulos.some((m) => m.clave === "pedidos_web");
   // «Pregúntale a CAYLA» (ADR-0536, act. 8): el botón sale solo en las sedes con el asistente encendido (en CAYLA Global, si alguna lo
   // tiene). Total como el contador: sin respuesta, sale apagado.
-  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar, asistenteEncendido] = await Promise.all([
+  // Las reglas del precio sugerido (ADR-0700): base y puntos de las casillas, para toda hoja que fija un precio. Total como el contador:
+  // sin respuesta, la de fábrica.
+  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar, asistenteEncendido, reglasDePrecio] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
     vePedidosWeb ? getPedidosWebPorConfirmar(persona.ubicacionId) : Promise.resolve(null),
     getAsistenteEncendido(persona.vista === "global" ? null : persona.ubicacionId),
+    getReglasParaLasHojas(),
   ]);
 
   const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -96,7 +101,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <VersionNueva />
         {/* El cronómetro del clic (ADR-0654): cuánto tarda en llegar cada pantalla, por sede, a los registros del servidor. No dibuja nada. */}
         <CronometroDelClic sedeId={persona.vista === "global" ? "global" : persona.ubicacionId} />
-        {children}
+        <ReglasDePrecioProveedor valor={reglasDePrecio}>{children}</ReglasDePrecioProveedor>
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
         {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}

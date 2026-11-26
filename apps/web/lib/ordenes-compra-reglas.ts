@@ -411,7 +411,44 @@ export type LineaDetalle = {
   /** Lo que le queda por enviar: lo pedido o lo facturado, lo que sea mayor, menos lo enviado; nunca menos de cero. `null` = la base todavía
    *  no lo dice. */
   porEnviar: number | null;
+  /** Lo que la línea trae de «Compré ropa» y el editor del escritorio no muestra; ausente si no trae nada (una orden del escritorio). */
+  deLaCompra?: DeLaCompra;
 };
+
+/**
+ * Lo que una línea trae de «Compré ropa» (ADR-0660, ADR-0700): el precio de venta que sugirió quien compró y sus motivos, la prenda del
+ * catálogo que eligió, si dejó el precio «a la espera», lo que la prenda tiene y el precio que vio afuera. «Editar orden» borra las líneas y
+ * las vuelve a escribir: lo devuelve tal cual al guardar, y la base lo revisa otra vez (20261124181000).
+ */
+export type DeLaCompra = {
+  precioVentaSugerido: number | null;
+  sugeridoMotivos: string[] | null;
+  productoId: string | null;
+  precioPorDefinir: boolean;
+  rasgos: string[] | null;
+  precioVistoAfuera: number | null;
+};
+
+const listaDeTextos = (v: unknown): string[] | null => {
+  if (!Array.isArray(v)) return null;
+  const l = v.filter((x): x is string => typeof x === "string" && x.trim() !== "");
+  return l.length > 0 ? l : null;
+};
+
+/** Lo de «Compré ropa» de una línea del detalle, o `undefined` si no trae nada. */
+function leerDeLaCompra(r: Record<string, unknown>): DeLaCompra | undefined {
+  const d: DeLaCompra = {
+    precioVentaSugerido: cifra(r.precio_venta_sugerido),
+    sugeridoMotivos: listaDeTextos(r.sugerido_motivos),
+    productoId: texto(r.producto_id),
+    precioPorDefinir: r.precio_por_definir === true,
+    rasgos: listaDeTextos(r.rasgos),
+    precioVistoAfuera: cifra(r.precio_visto_afuera),
+  };
+  const traeAlgo =
+    d.precioVentaSugerido != null || d.sugeridoMotivos != null || d.productoId != null || d.precioPorDefinir || d.rasgos != null || d.precioVistoAfuera != null;
+  return traeAlgo ? d : undefined;
+}
 
 /** Cuánto papel tiene la orden: ninguno, el de una parte de lo pedido, o todo lo pedido. */
 export type PapelDeLaOrden = "sin_comprobante" | "en_parte" | "completa";
@@ -511,6 +548,7 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
       const pendiente = cifra(r.pendiente);
       const porEnviar = cifra(r.por_enviar);
       if (posicion == null || categoriaId == null || (!categoriaId && !porDefinir) || !categoria || cantidad == null || precioUnitario == null || subtotal == null) return null;
+      const deLaCompra = leerDeLaCompra(r);
       return {
         id: texto(r.id),
         posicion,
@@ -528,6 +566,7 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
         pendiente: pendiente == null ? null : Math.max(0, pendiente),
         enviado: cifra(r.enviado),
         porEnviar: porEnviar == null ? null : Math.max(0, porEnviar),
+        ...(deLaCompra ? { deLaCompra } : {}),
       };
     })
     .filter((l): l is LineaDetalle => l !== null);
