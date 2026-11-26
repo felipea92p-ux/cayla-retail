@@ -115,7 +115,9 @@ export function BandejaRevisar(d: Datos) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-guia="fondos.cifras-revisar">
-        {TIPOS_BANDEJA.map((t) => (
+        {/* Desde ADR-0704 la bandeja vive en el detalle de UNA persona (Compradores): solo las cifras con algo (una en cero no ayuda a
+            decidir: /formidable 2026-11-26) y las filas sin su nombre, que ya es el título de la página. */}
+        {TIPOS_BANDEJA.filter((t) => cuantos[t] > 0 || t === tipo).map((t) => (
           <TarjetaCifra
             key={t}
             etiqueta={CIFRA_BANDEJA[t].corto}
@@ -167,8 +169,7 @@ export function BandejaRevisar(d: Datos) {
                           <span className="block truncate text-sm font-medium text-tinta">{fila.titulo}</span>
                           {fila.marca && <span className="mt-0.5 block truncate text-sm text-tinta">{fila.marca}</span>}
                           <span className="mt-0.5 block truncate text-sm text-taupe">
-                            {fila.quien}
-                            {fila.cuando ? ` · ${fila.cuando}` : ""}
+                            {fila.cuando}
                           </span>
                         </span>
                         <span className="flex flex-col items-end gap-1.5">

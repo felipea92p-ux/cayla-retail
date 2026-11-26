@@ -2000,6 +2000,9 @@ export const PRUEBAS = [
   "pruebas:compras-simple-recibir",
   "pruebas:costo-sin-igv",
   "pruebas:compras-simple-revisar",
+  // Compras reestructurado (ADR-0704): Compradores y Todas las compras piden su módulo; una compra entra al libro al salir en un
+  // envío y, revisada, sigue en UNA fila con su comprobante; lo de la oficina se va al filtrar por persona. ROLLBACK.
+  "pruebas:compras-compradores",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
   // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).

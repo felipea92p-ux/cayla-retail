@@ -5,7 +5,6 @@ import {
   camposDevolver,
   camposEntregar,
   caraTuFondo,
-  cifrasDeFondos,
   conMiFondo,
   cuentaDeMiFondo,
   fraseDevolver,
@@ -29,7 +28,6 @@ import {
   problemaDePersona,
   subtituloDevolver,
   topeDevolucion,
-  tramosDelFondo,
   VUELVE_A_CAYLA,
   type OpcionesFondos,
   type ResumenMiFondo,
@@ -85,19 +83,6 @@ describe("leer lo que manda la base", () => {
     const o = leerOpcionesFondos({ yo: "p1", personas: [{ id: "p1", nombre: "Ana" }, { nombre: "sin id" }], cuentas: [{ id: "c1", nombre: "BCP", tipo: "banco" }, { id: "c2", tipo: "cajon" }] });
     expect(o).toEqual({ yo: "p1", personas: [{ id: "p1", nombre: "Ana", sede: null }], cuentas: [{ id: "c1", nombre: "BCP", tipo: "banco", sede: null }] });
     expect(leerOpcionesFondos(undefined)).toEqual({ yo: null, personas: [], cuentas: [] });
-  });
-});
-
-describe("las cifras de arriba", () => {
-  it("suman lo de todos; un fondo en negativo no resta de lo que tienen en la mano: es lo que CAYLA le debe (actividad 2)", () => {
-    const base = { cuentaId: "c", sede: null, primeraEntrega: null, ultimaEntrega: null, ultimoMotivo: null, esMio: false };
-    expect(
-      cifrasDeFondos([
-        { ...base, personaId: "a", persona: "A", saldo: 380, entregado: 500, devuelto: 120, gastado: 0 },
-        { ...base, personaId: "b", persona: "B", saldo: 0, entregado: 100, devuelto: 100, gastado: 0 },
-        { ...base, personaId: "c", persona: "C", saldo: -10.1, entregado: 50, devuelto: 0, gastado: 60.1 },
-      ]),
-    ).toEqual({ enMano: 380, conPlata: 1, teDebe: 10.1, conDeuda: 1, entregado: 650, devuelto: 220, gastado: 60.1 });
   });
 });
 
@@ -359,18 +344,6 @@ describe("lo que dicen los botones", () => {
 });
 
 // ---------- Las hojas de Revisar compras (diseño A, 2026-10-23) ----------
-
-describe("tramosDelFondo", () => {
-  it("parte lo entregado en gastó, devolvió y tiene", () => {
-    expect(tramosDelFondo({ entregado: 1200, gastado: 245, devuelto: 300, saldo: 655 })).toEqual({ gasto: 245, devolvio: 300, tiene: 655, total: 1200 });
-  });
-  it("un fondo en negativo no tiene plata en la mano y la pista crece hasta lo gastado", () => {
-    expect(tramosDelFondo({ entregado: 300, gastado: 374.4, devuelto: 0, saldo: -74.4 })).toEqual({ gasto: 374.4, devolvio: 0, tiene: 0, total: 374.4 });
-  });
-  it("sin nada entregado, todo en cero", () => {
-    expect(tramosDelFondo({ entregado: 0, gastado: 0, devuelto: 0, saldo: 0 })).toEqual({ gasto: 0, devolvio: 0, tiene: 0, total: 0 });
-  });
-});
 
 describe("movimientosPorDia", () => {
   it("agrupa por día en el orden en que llegan y junta un día repetido en su primer lugar", () => {
