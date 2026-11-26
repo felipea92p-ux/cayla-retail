@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BENEFICIOS_DE_ENTRADA, CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
+import { CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
@@ -60,38 +60,16 @@ export function PantallaDeCuenta({
   );
 }
 
-/** Los tres beneficios: el ícono en su círculo suave, el título y una línea (`corto`: solo el título). */
-function Beneficios({ corto = false }: { corto?: boolean }) {
-  return (
-    <ul className="cu-beneficios">
-      {BENEFICIOS_DE_ENTRADA.map((b) => (
-        <li key={b.titulo}>
-          <span className="cu-beneficio-ic" aria-hidden="true">
-            <Icono nombre={b.icono} />
-          </span>
-          <span>
-            <b>{b.titulo}</b>
-            {!corto && <small>{b.texto}</small>}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** La otra puerta de «Entrar»: quien llega sin cuenta ve qué gana y el botón para crearla. */
+/**
+ * La otra puerta de «Entrar»: una pregunta y el botón para crear la cuenta. Sin la ceja del Club, la línea ni los tres beneficios
+ * (Felipe 2026-11-26: «¿no basta con un registrarse?»).
+ */
 export function LadoPrimeraVez() {
   return (
-    <section className="cu-lado" aria-labelledby="cu-primera-vez">
-      <p className="cu-ceja">
-        <Isotipo className="cu-colibri" />
-        Club CAYLA
-      </p>
+    <section className="cu-lado cu-lado-primera" aria-labelledby="cu-primera-vez">
       <h2 id="cu-primera-vez" className="cu-lado-t">
         ¿Primera vez en CAYLA?
       </h2>
-      <p className="cu-linea">Crea tu cuenta y únete al Club.</p>
-      <Beneficios />
       <BotonCrearCuenta />
     </section>
   );
