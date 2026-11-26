@@ -1,6 +1,6 @@
 /* =====================================================================================================================
    TIENDA ONLINE CAYLA (ADR-0408) · La pantalla partida de «Entrar», «Crear cuenta» y las páginas para volver a entrar
-   (revisión «a nivel mundial», Felipe 2026-10-16; `components/cuenta/PanelDeEntrada.tsx`). Desde 960 px, el panel de marca a la
+   (revisión «a nivel mundial», Felipe 2026-10-16; desde el 2026-11-26 sus pantallas usan `PantallaDeCuenta.tsx` y cuenta-mostrador.css; aquí quedan las piezas compartidas). Desde 960 px, el panel de marca a la
    izquierda y el formulario a la derecha; en el celular, el formulario primero y el panel debajo (nada lo empuja fuera de la primera
    pantalla). Prefijo `en-`: las hojas de la tienda son globales. Solo los tokens de app/globals.css: el panel usa los colores fijos
    de la campaña de la portada (`--t-hero*`, iguales en claro y oscuro salvo el fondo, que se oscurece solo).
