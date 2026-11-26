@@ -1,11 +1,9 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { BENEFICIOS_DE_ENTRADA, CONFIANZA_ACCESO, PASOS_DE_ACCESO, PROMESA_ACCESO, type CaminoDeAcceso } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { EntradaViva, PasosDeAcceso } from "./EntradaViva";
 import { BotonCrearCuenta } from "./BotonCrearCuenta";
-import fotoDeEntrada from "./foto-de-entrada.jpg";
 
 // «Entrar» y «Crear cuenta» en la dirección «A · Mostrador» (Felipe 2026-11-25, maqueta docs/maquetas/cuenta-profesional-2026-11): la
 // pantalla marfil y tranquila de las tiendas de moda grandes, sin el rojo de fondo ni la tarjeta flotando. Desde el 2026-11-26, como Zara
@@ -37,7 +35,17 @@ export function PantallaDeCuenta({
         {foto && (
           // Decorativa: el lector de pantalla no la anuncia. Recorte «B» (centrada en la persona), elegido mirando el 2026-11-26.
           <div className="cu-foto" aria-hidden="true">
-            <Image src={fotoDeEntrada} alt="" fill priority sizes="(min-width: 960px) 50vw, 1px" placeholder="blur" />
+            {/* Archivo fijo de `public/escenario/`, ya en WebP y en dos anchos, como las demás fotos que no son de una prenda. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- ya viene optimizada; el optimizador solo acepta las fotos de prendas. */}
+            <img
+              src="/escenario/foto-de-entrada.webp"
+              srcSet="/escenario/foto-de-entrada-1200.webp 1200w, /escenario/foto-de-entrada.webp 2000w"
+              sizes="50vw"
+              alt=""
+              width={2000}
+              height={1333}
+              fetchPriority="high"
+            />
           </div>
         )}
         <div className="cu-form">{children}</div>

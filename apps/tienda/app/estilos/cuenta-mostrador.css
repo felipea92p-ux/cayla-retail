@@ -121,7 +121,7 @@
   /* La foto se queda quieta mientras el formulario largo pasa: mide toda la pantalla, así al bajar (sin la cabecera) no deja un hueco. */
   .cu-pantalla[data-foto] .cu-foto { display: block; position: sticky; top: 0; grid-column: 1; grid-row: 1 / span 3; align-self: start; height: 100vh; min-height: 560px; overflow: hidden; }
   /* Recorte «B»: centrado en la persona (el bolso, el jean y la mano sobre la zapatilla), elegido mirando. */
-  .cu-foto img { object-fit: cover; object-position: 40% 85%; }
+  .cu-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 85%; }
   .cu-pantalla[data-foto] > :not(.cu-foto) { grid-column: 2; width: 100%; max-width: 420px; justify-self: center; }
   .cu-pantalla[data-foto] .cu-form { padding-top: 64px; }
   .cu-pantalla[data-foto][data-forma="crear"] .cu-form { padding-bottom: 64px; }
