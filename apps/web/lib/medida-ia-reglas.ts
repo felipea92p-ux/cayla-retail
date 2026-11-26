@@ -15,7 +15,11 @@ export const RECORTES_POR_CORRIDA = 12;
 export const TIPOS = ["con_mangas", "tirantes", "halter", "strapless", "body", "vestido", "vestido_strapless", "chaleco", "casaca", "pantalon", "falda", "short", "cartera", "otro"] as const;
 export const ZONAS_IA = ["arriba", "abajo", "vestido", "encima", "bolso"] as const;
 export const HOLGURAS = ["ajustada", "normal", "holgada"] as const;
-export type TipoDePrenda = (typeof TIPOS)[number];
+/**
+ * Para qué ocasión es la prenda (2026-11-26): «Sorpréndeme» de la tienda junta prendas del mismo estilo. «basico» combina con cualquiera
+ * (un jean, un polo liso, una cartera neutra).
+ */
+export const ESTILOS = ["basico", "casual", "oficina", "fiesta", "deportivo"] as const;export type TipoDePrenda = (typeof TIPOS)[number];
 
 /** Lo que se guarda (sin el archivo del recorte ni la fecha, que agrega la base). */
 export type MedidaIA = {
@@ -25,6 +29,7 @@ export type MedidaIA = {
   metida: boolean;
   /** A qué altura están las axilas, en fracción del alto del recorte (0 arriba). null en lo que no es de arriba. */
   axila: number | null;
+  estilo: (typeof ESTILOS)[number];
   modelo: string;
 };
 
@@ -33,6 +38,7 @@ Devuelve:
 - tipo y zona (arriba: blusa/polo/top/body/corset; encima: chaleco/casaca/blazer; abajo: pantalón/falda/short; vestido; bolso).
 - holgura: cómo le queda al cuerpo (ajustada, normal u holgada/oversize).
 - se_lleva_metida: true si va dentro del pantalón (body).
+- estilo: para qué ocasión es (basico: liso y neutro, combina con todo, como un jean clásico, un polo liso o una cartera negra; casual: del día a día con algún detalle; oficina: formal de trabajo; fiesta: de noche o evento, con brillo, encaje, transparencias o escote; deportivo).
 - axila_y: fracción de 0 a 1 del ALTO de la imagen (0 = borde de arriba) donde los costados del torso quedan justo debajo de los brazos. En un strapless o corset, su borde de arriba en los costados; en un halter o un top de tiras, donde empieza la tela del pecho a los costados. null si es de abajo o un bolso.
 - confianza de 0 a 1.`;
 
@@ -40,13 +46,14 @@ Devuelve:
 export const ESQUEMA_RESPUESTA = {
   type: "object",
   additionalProperties: false,
-  required: ["tipo", "zona", "holgura", "se_lleva_metida", "axila_y", "confianza"],
+  required: ["tipo", "zona", "holgura", "se_lleva_metida", "axila_y", "estilo", "confianza"],
   properties: {
     tipo: { type: "string", enum: [...TIPOS] },
     zona: { type: "string", enum: [...ZONAS_IA] },
     holgura: { type: "string", enum: [...HOLGURAS] },
     se_lleva_metida: { type: "boolean" },
     axila_y: { type: ["number", "null"] },
+    estilo: { type: "string", enum: [...ESTILOS] },
     confianza: { type: "number" },
   },
 } as const;
@@ -89,6 +96,7 @@ export function medidaDeRespuesta(respuesta: unknown, modelo: string): MedidaIA 
   if (!ZONAS_IA.includes(d.zona as MedidaIA["zona"])) return null;
   if (!HOLGURAS.includes(d.holgura as MedidaIA["holgura"])) return null;
   if (typeof d.se_lleva_metida !== "boolean") return null;
+  if (!ESTILOS.includes(d.estilo as MedidaIA["estilo"])) return null;
   const axila = d.axila_y;
   const deArriba = d.zona === "arriba" || d.zona === "vestido" || d.zona === "encima";
   // Una axila fuera del alto (o en el último 20 %: no hay torso debajo) no se cree; en una prenda de arriba, sin axila no hay medida.
@@ -100,6 +108,7 @@ export function medidaDeRespuesta(respuesta: unknown, modelo: string): MedidaIA 
     holgura: d.holgura as MedidaIA["holgura"],
     metida: d.se_lleva_metida,
     axila: deArriba ? axilaValida : null,
+    estilo: d.estilo as MedidaIA["estilo"],
     modelo,
   };
 }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ESQUEMA_RESPUESTA, HOLGURAS, medidaDeRespuesta, pedidoDeMedida, TIPOS, textoDeRespuesta, urlPublicaDelRecorte, ZONAS_IA } from "./medida-ia-reglas";
+import { ESQUEMA_RESPUESTA, ESTILOS, HOLGURAS, medidaDeRespuesta, pedidoDeMedida, TIPOS, textoDeRespuesta, urlPublicaDelRecorte, ZONAS_IA } from "./medida-ia-reglas";
 
 const respuesta = (dato: unknown) => ({ output: [{ type: "reasoning" }, { type: "message", content: [{ type: "output_text", text: JSON.stringify(dato) }] }] });
-const blusa = { tipo: "con_mangas", zona: "arriba", holgura: "normal", se_lleva_metida: false, axila_y: 0.26, confianza: 0.9 };
+const blusa = { tipo: "con_mangas", zona: "arriba", holgura: "normal", se_lleva_metida: false, axila_y: 0.26, estilo: "casual", confianza: 0.9 };
 
 describe("medida de la IA (ADR-0705)", () => {
   it("toma lo que dijo la IA de una blusa, con su axila redondeada", () => {
@@ -12,6 +12,7 @@ describe("medida de la IA (ADR-0705)", () => {
       holgura: "normal",
       metida: false,
       axila: 0.261,
+      estilo: "casual",
       modelo: "gpt-5-mini",
     });
   });
@@ -33,6 +34,7 @@ describe("medida de la IA (ADR-0705)", () => {
     expect(medidaDeRespuesta(respuesta({ ...blusa, zona: "cabeza" }), "m")).toBeNull();
     expect(medidaDeRespuesta(respuesta({ ...blusa, holgura: "enorme" }), "m")).toBeNull();
     expect(medidaDeRespuesta(respuesta({ ...blusa, se_lleva_metida: "no" }), "m")).toBeNull();
+    expect(medidaDeRespuesta(respuesta({ ...blusa, estilo: "gala" }), "m")).toBeNull();
   });
 
   it("una respuesta sin texto o con JSON roto es un fallo, sin caerse", () => {
@@ -45,6 +47,7 @@ describe("medida de la IA (ADR-0705)", () => {
     expect(ESQUEMA_RESPUESTA.properties.tipo.enum).toEqual([...TIPOS]);
     expect(ESQUEMA_RESPUESTA.properties.zona.enum).toEqual([...ZONAS_IA]);
     expect(ESQUEMA_RESPUESTA.properties.holgura.enum).toEqual([...HOLGURAS]);
+    expect(ESQUEMA_RESPUESTA.properties.estilo.enum).toEqual([...ESTILOS]);
     expect(ESQUEMA_RESPUESTA.required).toEqual(Object.keys(ESQUEMA_RESPUESTA.properties));
   });
 
