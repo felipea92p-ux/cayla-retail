@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fondo limpio — alternativas a Seda (maqueta 2026-11-26)</title>
+<!--
+  MAQUETA, no es la pantalla real. El marco (menú, cabecera, tarjetas) está simplificado; los tokens de color, las recetas del
+  vidrio y el fondo «Seda» están copiados tal cual de apps/web/app/globals.css, estilos/tema.css, estilos/vidrio/recetas.css y
+  estilos/vidrio/marco.css. Las cifras y las filas son DATOS INVENTADOS.
+  Uso: index.html?f=actual|lienzo|pliegue|trama|lino|papel  &t=claro|oscuro  &limpio=1 (sin la barra de abajo, para capturas)
+-->
+<style>
+  :root {
+    --color-rojo: #b8412d; --color-crema: #f5f0e8; --color-tinta: #1a1a18; --color-sand: #e8e0d0;
+    --color-papel: #fbf8f2; --color-hueso: #eae1d2; --color-sombra: #1a1a18; --color-vidrio: #ffffff; --color-ambar: #74501a;
+    --color-verde: #2f6b46;
+  }
+  :root[data-tema="oscuro"] {
+    --color-rojo: #e8806a; --color-crema: #1c1a17; --color-tinta: #f5f0e8; --color-sand: #403b34;
+    --color-papel: #26241f; --color-hueso: #33302a; --color-sombra: #000000; --color-vidrio: #33302a; --color-ambar: #e4b968;
+    --color-verde: #8fc7a3;
+  }
+  :root {
+    --secundario: color-mix(in oklab, var(--color-tinta) 80%, transparent);
+    --tenue: color-mix(in oklab, var(--color-tinta) 64%, transparent);
+    --serena-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 64%, transparent), color-mix(in srgb, var(--color-vidrio) 44%, transparent));
+    --serena-borde: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+    --serena-filtro: blur(24px) saturate(1.6);
+    --serena-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent), 0 20px 44px -30px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+    --flota-fondo: color-mix(in srgb, var(--color-vidrio) 74%, transparent);
+    --hilo: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+    --pozo: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--color-crema); color: var(--color-tinta); font: 14px/1.45 "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif; }
+
+  /* ================= LOS FONDOS ================= */
+  .fondo { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
+  /* ACTUAL · Seda — copiado de vidrio/marco.css */
+  [data-fondo="actual"] .fondo {
+    --seda-hondo: color-mix(in srgb, var(--color-hueso) 50%, var(--color-crema));
+    --seda-medio: color-mix(in srgb, var(--color-hueso) 24%, var(--color-crema));
+    --seda-claro: var(--color-papel);
+    --seda-brillo: color-mix(in srgb, var(--color-vidrio) 60%, var(--color-papel));
+    --seda-sombra: color-mix(in srgb, var(--seda-hondo) 85%, transparent);
+    --seda-pliegue: var(--seda-hondo) 50%, var(--seda-medio) 76%, var(--seda-claro) 93%, var(--seda-brillo) calc(100% - 30px), var(--seda-claro) 100%, transparent calc(100% + 44px);
+    --seda-caida: transparent calc(100% - 8px), var(--seda-sombra) calc(100% + 14px), transparent calc(100% + 130px);
+    background:
+      radial-gradient(circle hypot(55vw, 85vh) at 155vw 135vh, var(--seda-pliegue)),
+      radial-gradient(circle hypot(55vw, 85vh) at 155vw 135vh, var(--seda-caida)),
+      radial-gradient(circle hypot(15vw, 138vh) at -15vw 200vh, var(--seda-pliegue)),
+      radial-gradient(circle hypot(15vw, 138vh) at -15vw 200vh, var(--seda-caida)),
+      radial-gradient(circle hypot(113vw, 60vh) at 135vw -60vh, var(--seda-pliegue)),
+      radial-gradient(circle hypot(113vw, 60vh) at 135vw -60vh, var(--seda-caida)),
+      radial-gradient(circle hypot(108vw, 150vh) at -30vw 150vh, var(--seda-pliegue)),
+      radial-gradient(circle hypot(108vw, 150vh) at -30vw 150vh, var(--seda-caida)),
+      linear-gradient(135deg, var(--color-crema), var(--seda-medio));
+  }
+  [data-tema="oscuro"][data-fondo="actual"] .fondo {
+    --seda-hondo: var(--color-crema);
+    --seda-medio: color-mix(in srgb, var(--color-papel) 55%, var(--color-crema));
+    --seda-claro: var(--color-papel);
+    --seda-brillo: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel));
+    --seda-sombra: color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  }
+
+  /* A · Lienzo — un solo degradado, de arriba abajo. Sin formas. */
+  [data-fondo="lienzo"] .fondo {
+    background: linear-gradient(180deg, var(--color-crema) 0%, color-mix(in srgb, var(--color-hueso) 46%, var(--color-crema)) 100%);
+  }
+  [data-tema="oscuro"][data-fondo="lienzo"] .fondo {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-papel) 45%, var(--color-crema)) 0%, var(--color-crema) 100%);
+  }
+
+  /* B · Un pliegue — lo que queda de Seda sin el canto blanco: UNA curva, tono sobre tono, que solo oscurece. */
+  [data-fondo="pliegue"] .fondo {
+    --p-hondo: color-mix(in srgb, var(--color-hueso) 58%, var(--color-crema));
+    background:
+      radial-gradient(circle hypot(108vw, 150vh) at -30vw 150vh, transparent 55%, color-mix(in srgb, var(--p-hondo) 55%, transparent) 86%, var(--p-hondo) 100%, transparent calc(100% + 2px)),
+      linear-gradient(135deg, var(--color-crema), color-mix(in srgb, var(--color-hueso) 14%, var(--color-crema)));
+  }
+  [data-tema="oscuro"][data-fondo="pliegue"] .fondo { --p-hondo: color-mix(in srgb, var(--color-papel) 80%, var(--color-crema)); }
+
+  /* C · Trama — puntos finos sobre crema liso. */
+  [data-fondo="trama"] .fondo {
+    background:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-tinta) 13%, transparent) 1px, transparent 1.6px) 0 0 / 22px 22px,
+      var(--color-crema);
+  }
+
+  /* D · Lino — el tejido: hilos cruzados, casi invisibles. */
+  [data-fondo="lino"] .fondo {
+    --hilo-lino: color-mix(in srgb, var(--color-tinta) 4.5%, transparent);
+    background:
+      repeating-linear-gradient(0deg, var(--hilo-lino) 0 1px, transparent 1px 4px),
+      repeating-linear-gradient(90deg, var(--hilo-lino) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, var(--color-crema), color-mix(in srgb, var(--color-hueso) 26%, var(--color-crema)));
+  }
+
+  /* E · Papel — grano fino, como papel de algodón. */
+  [data-fondo="papel"] .fondo {
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 .1  0 0 0 0 .09  0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E"),
+      linear-gradient(180deg, var(--color-crema), color-mix(in srgb, var(--color-hueso) 22%, var(--color-crema)));
+  }
+  [data-tema="oscuro"][data-fondo="papel"] .fondo {
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .96  0 0 0 0 .94  0 0 0 0 .91  0 0 0 .4 -.16'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E"),
+      var(--color-crema);
+  }
+
+  /* ================= EL MARCO (simplificado) ================= */
+  .riel { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--color-papel); border-right: 1px solid var(--color-sand); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .logo { font: 600 20px/1 ui-serif, Georgia, serif; letter-spacing: .22em; padding: 6px 12px 22px; }
+  .item { display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 12px; color: var(--secundario); font-size: 14px; }
+  .item i { width: 18px; height: 18px; border-radius: 5px; border: 1.6px solid currentColor; opacity: .7; }
+  .item.activa { color: var(--color-tinta); font-weight: 600; background: color-mix(in srgb, var(--color-rojo) 9%, var(--color-papel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 30%, transparent); }
+  .cab { position: fixed; top: 0; left: 232px; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--flota-fondo); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid var(--hilo); }
+  .busca { width: 320px; height: 36px; border-radius: 12px; background: var(--pozo); box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent); display: flex; align-items: center; padding: 0 14px; color: var(--tenue); }
+  .acc { display: flex; gap: 8px; align-items: center; }
+  .pastilla { height: 36px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; background: var(--serena-fondo); border: 1px solid var(--serena-borde); box-shadow: var(--serena-sombra); font-weight: 500; }
+  main { margin-left: 232px; padding: 84px 32px 120px; }
+  h1 { font: 500 34px/1.1 ui-serif, Georgia, serif; margin: 0 0 4px; }
+  .bajada { color: var(--secundario); margin: 0 0 22px; }
+  .placa { background: var(--serena-fondo); border: 1px solid var(--serena-borde); box-shadow: var(--serena-sombra); backdrop-filter: var(--serena-filtro); -webkit-backdrop-filter: var(--serena-filtro); border-radius: 22px; }
+  .cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .cifra { padding: 18px 20px; }
+  .cifra small { color: var(--tenue); font-size: 13px; }
+  .cifra b { display: block; font: 500 30px/1.15 ui-serif, Georgia, serif; font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .cifra em { font-style: normal; font-size: 13px; color: var(--color-verde); }
+  .cifra em.baja { color: var(--color-ambar); }
+  .filtros { display: flex; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--hilo); align-items: center; }
+  .chip { height: 34px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; border: 1px solid var(--serena-borde); background: var(--serena-fondo); font-size: 13px; }
+  .chip.puesto { background: color-mix(in srgb, var(--color-tinta) 92%, transparent); color: var(--color-crema); border-color: transparent; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 500; font-size: 13px; color: var(--tenue); padding: 12px 18px; border-bottom: 1px solid var(--hilo); }
+  td { padding: 13px 18px; border-bottom: 1px solid var(--hilo); }
+  tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .est { display: inline-flex; height: 24px; padding: 0 10px; border-radius: 999px; align-items: center; font-size: 13px; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
+  .est.amb { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar); }
+  .nota { margin-top: 18px; color: var(--secundario); font-size: 13px; }
+
+  /* ================= LA BARRA DE LA MAQUETA ================= */
+  .barra { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; gap: 6px; padding: 8px; border-radius: 18px; background: color-mix(in srgb, var(--color-tinta) 92%, transparent); box-shadow: 0 20px 40px -20px color-mix(in srgb, var(--color-sombra) 70%, transparent); }
+  .barra button { height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: transparent; color: var(--color-crema); font: inherit; cursor: pointer; white-space: nowrap; }
+  .barra button[aria-pressed="true"] { background: var(--color-crema); color: var(--color-tinta); font-weight: 600; }
+  .barra .sep { width: 1px; background: color-mix(in srgb, var(--color-crema) 25%, transparent); margin: 6px 4px; }
+  [data-limpio] .barra { display: none; }
+  .rotulo { position: fixed; right: 24px; bottom: 24px; z-index: 40; padding: 8px 14px; border-radius: 12px; background: color-mix(in srgb, var(--color-tinta) 92%, transparent); color: var(--color-crema); font-weight: 600; font-size: 15px; display: none; }
+  [data-limpio] .rotulo { display: block; }
+</style>
+</head>
+<body>
+<div class="fondo" aria-hidden="true"></div>
+
+<aside class="riel">
+  <div class="logo">CAYLA</div>
+  <div class="item"><i></i>Inicio</div>
+  <div class="item"><i></i>Vender</div>
+  <div class="item activa"><i></i>Ventas</div>
+  <div class="item"><i></i>Caja</div>
+  <div class="item"><i></i>Inventario</div>
+  <div class="item"><i></i>Compras</div>
+  <div class="item"><i></i>Clientes</div>
+  <div class="item"><i></i>Finanzas</div>
+</aside>
+
+<header class="cab">
+  <div class="busca">Buscar prenda, cliente o comprobante</div>
+  <div class="acc"><div class="pastilla">Trujillo</div><div class="pastilla">Hoy</div></div>
+</header>
+
+<main>
+  <h1>Ventas</h1>
+  <p class="bajada">Lo vendido hoy en la sede. (Datos inventados para la maqueta.)</p>
+
+  <section class="cifras">
+    <div class="placa cifra"><small>Vendido hoy</small><b>S/ 4,820.00</b><em>12 % más que ayer</em></div>
+    <div class="placa cifra"><small>Ventas</small><b>37</b><em>5 más que ayer</em></div>
+    <div class="placa cifra"><small>Venta promedio</small><b>S/ 130.27</b><em class="baja">3 % menos</em></div>
+    <div class="placa cifra"><small>Prendas</small><b>58</b><em>1,6 por venta</em></div>
+  </section>
+
+  <section class="placa">
+    <div class="filtros">
+      <span class="chip puesto">Todas</span><span class="chip">Efectivo</span><span class="chip">Yape</span><span class="chip">Tarjeta</span>
+    </div>
+    <table>
+      <thead><tr><th>Hora</th><th>Comprobante</th><th>Cliente</th><th>Medio de pago</th><th>Estado</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        <tr><td>18:42</td><td>B001-00002314</td><td>Ejemplo Uno</td><td>Yape</td><td><span class="est">Aceptado</span></td><td class="num">S/ 189.00</td></tr>
+        <tr><td>18:15</td><td>B001-00002313</td><td>Ejemplo Dos</td><td>Efectivo</td><td><span class="est">Aceptado</span></td><td class="num">S/ 79.90</td></tr>
+        <tr><td>17:58</td><td>B001-00002312</td><td>Ejemplo Tres</td><td>Tarjeta</td><td><span class="est amb">En cola</span></td><td class="num">S/ 259.00</td></tr>
+        <tr><td>17:31</td><td>B001-00002311</td><td>Ejemplo Cuatro</td><td>Yape</td><td><span class="est">Aceptado</span></td><td class="num">S/ 119.00</td></tr>
+        <tr><td>17:04</td><td>B001-00002310</td><td>Ejemplo Cinco</td><td>Efectivo</td><td><span class="est">Aceptado</span></td><td class="num">S/ 149.90</td></tr>
+        <tr><td>16:47</td><td>B001-00002309</td><td>Ejemplo Seis</td><td>Tarjeta</td><td><span class="est">Aceptado</span></td><td class="num">S/ 329.00</td></tr>
+        <tr><td>16:20</td><td>B001-00002308</td><td>Ejemplo Siete</td><td>Yape</td><td><span class="est">Aceptado</span></td><td class="num">S/ 99.00</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <p class="nota">Texto directo sobre el fondo: esta línea tiene que leerse sin esfuerzo en cualquier propuesta.</p>
+</main>
+
+<div class="rotulo" id="rotulo"></div>
+<nav class="barra" aria-label="Fondos de la maqueta">
+  <button data-f="actual">Actual · Seda</button>
+  <button data-f="lienzo">A · Lienzo</button>
+  <button data-f="pliegue">B · Un pliegue</button>
+  <button data-f="trama">C · Trama</button>
+  <button data-f="lino">D · Lino</button>
+  <button data-f="papel">E · Papel</button>
+  <span class="sep"></span>
+  <button data-t="claro">Claro</button>
+  <button data-t="oscuro">Oscuro</button>
+</nav>
+
+<script>
+  const raiz = document.documentElement, q = new URLSearchParams(location.search);
+  const nombres = { actual: "Actual · Seda", lienzo: "A · Lienzo", pliegue: "B · Un pliegue", trama: "C · Trama", lino: "D · Lino", papel: "E · Papel" };
+  function poner(f, t) {
+    raiz.dataset.fondo = f; raiz.dataset.tema = t;
+    document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === f));
+    document.querySelectorAll("[data-t]").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === t));
+    document.getElementById("rotulo").textContent = nombres[f];
+  }
+  poner(q.get("f") in nombres ? q.get("f") : "actual", q.get("t") === "oscuro" ? "oscuro" : "claro");
+  if (q.get("limpio")) raiz.dataset.limpio = "";
+  document.querySelector(".barra").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    poner(b.dataset.f || raiz.dataset.fondo, b.dataset.t || raiz.dataset.tema);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+## 2026-11-26 (El fondo del ERP deja las manchas: «Lienzo» reemplaza a Seda)
+Qué hice: el fondo del ERP pasa de Seda (cuatro pliegues con canto casi blanco) a «Lienzo», un solo degradado de arriba abajo sin formas (`.marco-lienzo` en `estilos/vidrio/marco.css`, ADR-0706). La prueba «el fondo Lienzo» de `lib/tema-tokens.test.ts` mide sus dos tonos y rechaza curvas e imágenes; la maqueta con las cinco alternativas quedó en `docs/maquetas/fondo-limpio-2026-11/`.
+Por qué así: Felipe vio «manchas blancas atrás» y pidió algo limpio; eligió la opción A mirando la maqueta. Cualquier forma detrás de un vidrio que desenfoca se vuelve mancha, y Linear, Shopify y Apple dejan el fondo liso.
+Felipe se lleva: el vidrio que dobla casi no se nota sobre el fondo vacío (sí cuando pasa contenido por detrás). Falta mirarlo dentro del ERP con sesión y pasar `/milimetro auditar`; si se siente plano, la segunda opción es «C · Trama».
