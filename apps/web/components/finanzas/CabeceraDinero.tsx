@@ -38,7 +38,13 @@ export function CabeceraDinero({
   onRegistrar,
   panorama = false,
   subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco.",
+  aliadas,
+  aliadaActiva,
 }: {
+  /** ADR-0683: una pestaña por empresa aliada con cuenta, con su nombre; sin la lista, la de siempre (CLAURE). */
+  aliadas?: { clave: string; nombre: string }[] | null;
+  /** La aliada de la cara abierta (su clave), cuando `pestana` es la de las aliadas. */
+  aliadaActiva?: string;
   pestana: PestanaDinero;
   esLider: boolean;
   /** El número en la pestaña de cada cara (lo que pide atención), si hay. */
@@ -63,8 +69,10 @@ export function CabeceraDinero({
 }) {
   const params = useSearchParams();
   // Al cambiar de cara viaja solo la sede (la de la barra, o la vieja `?ver=` mientras dure el cambio), como en la barra común.
-  const conSede = (ruta: string, extra?: string) => {
-    const p = new URLSearchParams();
+  const conSede = (rutaConQuery: string, extra?: string) => {
+    // La ruta puede traer su propia consulta (la pestaña de una aliada: `?empresa=`); se le suma la sede, no se le pone otro «?».
+    const [ruta, propia = ""] = rutaConQuery.split("?");
+    const p = new URLSearchParams(propia);
     for (const k of ["sede", "ver"]) {
       const v = params.get(k);
       if (v) p.set(k, v);
@@ -73,7 +81,10 @@ export function CabeceraDinero({
     const q = p.toString();
     return q ? `${ruta}?${q}` : ruta;
   };
-  const caras = PESTANAS.filter((p) => !p.soloLider || esLider);
+  // La pestaña de CLAURE se vuelve una por aliada (`/finanzas/dinero/claure?empresa=<clave>`), en el mismo lugar.
+  const deAliadas = (aliadas ?? [{ clave: "claure", nombre: "CLAURE" }]).map((a) => ({ clave: `claure:${a.clave}`, etiqueta: a.nombre, href: `/finanzas/dinero/claure?empresa=${encodeURIComponent(a.clave)}` }));
+  const caras = PESTANAS.filter((p) => !p.soloLider || esLider).flatMap((p) => (p.clave === "claure" ? deAliadas : [p]));
+  const valor = pestana === "claure" ? `claure:${aliadaActiva ?? "claure"}` : pestana;
   const dock: AccionDock[] = [
     onRegistrar
       ? { texto: "Registrar movimiento", tecla: "m", icono: <Plus aria-hidden />, principal: true, onClick: onRegistrar }
@@ -97,8 +108,8 @@ export function CabeceraDinero({
       <PestanasFin
         etiqueta="Las caras de Cuentas y dinero"
         guia="fin-dinero.pestanas"
-        valor={pestana}
-        items={caras.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: conSede(p.href), conteo: conteos[p.clave] }))}
+        valor={valor}
+        items={caras.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: conSede(p.href), conteo: conteos[p.clave as PestanaDinero] }))}
       />
       <DockTelar acciones={dock} />
     </>

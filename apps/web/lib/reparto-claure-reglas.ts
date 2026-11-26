@@ -26,7 +26,7 @@ export function leerReparto(crudo: unknown): FilaReparto[] {
       categoria: String(r.categoria ?? ""),
       nombre: String(r.nombre ?? r.categoria ?? ""),
       ejemplos: String(r.ejemplos ?? ""),
-      pct: num(r.pct_claure),
+      pct: num(r.pct ?? r.pct_claure),
       actualizadoEn: r.actualizado_en ? String(r.actualizado_en) : null,
     };
   });
@@ -36,20 +36,38 @@ export function leerReparto(crudo: unknown): FilaReparto[] {
  * Lo que la persona escribió en la casilla («50», «12,5», «12.5 %»). De 0 a 100, con hasta dos decimales: los mismos límites que `guardar_reparto_claure`, dichos con las mismas palabras
  * para que la pantalla y la base no se contradigan.
  */
-export function validarPct(texto: string): { ok: true; valor: number } | { ok: false; error: string } {
+export function validarPct(texto: string, nombre = "CLAURE"): { ok: true; valor: number } | { ok: false; error: string } {
   const limpio = texto.replace(/%/g, "").trim().replace(",", ".");
   if (limpio === "" || !/^\d+(\.\d{0,2})?$/.test(limpio)) return { ok: false, error: "Escribe un número de 0 a 100 (por ejemplo, 50)." };
   const valor = Number(limpio);
-  if (!(valor >= 0 && valor <= 100)) return { ok: false, error: "La parte de CLAURE va de 0 % a 100 %." };
+  if (!(valor >= 0 && valor <= 100)) return { ok: false, error: `La parte de ${nombre} va de 0 % a 100 %.` };
   return { ok: true, valor: Math.round(valor * 100) / 100 };
 }
 
 /** Lo que significa ese porcentaje, en palabras de tienda. */
-export function etiquetaReparto(pct: number): string {
+export function etiquetaReparto(pct: number, nombre = "CLAURE"): string {
   if (pct <= 0) return "Todo de CAYLA";
-  if (pct >= 100) return "Todo de CLAURE";
+  if (pct >= 100) return `Todo de ${nombre}`;
   if (pct === 50) return "Mitad y mitad";
-  return `${pct} % de CLAURE y el resto de CAYLA`;
+  return `${pct} % de ${nombre} y el resto de CAYLA`;
+}
+
+/** El reparto de una empresa aliada (ADR-0683): `empresaId` nulo = el de CLAURE leído por la función de antes (`fn_reparto_claure`). */
+export type RepartoDeAliada = { empresaId: string | null; clave: string; nombre: string; filas: FilaReparto[] };
+
+/** `fn_reparto_aliadas` trae una fila por aliada y categoría: se agrupan por aliada, en el orden en que llegan. */
+export function leerRepartoAliadas(crudo: unknown): RepartoDeAliada[] {
+  if (!Array.isArray(crudo)) return [];
+  const grupos = new Map<string, RepartoDeAliada>();
+  for (const f of crudo) {
+    const r = (f && typeof f === "object" ? f : {}) as Record<string, unknown>;
+    const id = typeof r.empresa_id === "string" ? r.empresa_id : null;
+    if (!id) continue;
+    const g = grupos.get(id) ?? { empresaId: id, clave: String(r.clave ?? ""), nombre: String(r.empresa ?? ""), filas: [] };
+    g.filas.push(...leerReparto([r]));
+    grupos.set(id, g);
+  }
+  return [...grupos.values()];
 }
 
 /** La casilla como se muestra: sin ceros de más («50», «12.5»). */

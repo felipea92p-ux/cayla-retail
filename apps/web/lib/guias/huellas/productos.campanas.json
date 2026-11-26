@@ -192,7 +192,7 @@
       "Casilla «{i.nombre}»",
       "button «Sí, cualquiera de estas»",
       "button «Solo del mismo modelo»",
-      "button «Incluir las de Claurè»",
+      "button «Incluir las de»",
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",

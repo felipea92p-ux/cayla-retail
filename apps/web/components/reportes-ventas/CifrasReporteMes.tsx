@@ -45,9 +45,9 @@ function Cambio({ c, comparacion }: { c: number | null; comparacion: Comparacion
  * «De Ventas a Finanzas», solo para quien ve Estados financieros (lo decide la página con `veModulo`). Solo rotulan: la cifra no cambia (tarea 77).
  * `empresa`: el nombre de la empresa elegida en el filtro (ADR-0665); si hay una, las cifras son solo suyas y el pie de «Vendido» lo dice.
  */
-export function CifrasReporteMes({ r, claure = null, hrefCuadre = null, empresa = null }: { r: ReporteMes; claure?: number | null; hrefCuadre?: string | null; empresa?: string | null }) {
+export function CifrasReporteMes({ r, claure = null, hrefCuadre = null, empresa = null }: { r: ReporteMes; claure?: { monto: number; nombre: string } | null; hrefCuadre?: string | null; empresa?: string | null }) {
   const comparacion = comparacionDe(r);
-  const deClaure = lineaClaure(claure ?? 0);
+  const deClaure = lineaClaure(claure?.monto ?? 0, claure?.nombre);
   const { actual, anterior } = r;
   const ticket = ticketPromedio(actual);
   const porVenta = prendasPorVenta(actual);

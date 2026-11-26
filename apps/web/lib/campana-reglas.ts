@@ -502,7 +502,10 @@ export function fraseDeOferta(
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
   sueltas?: VariantesDichas | null,
+  /** Cómo se nombra a las aliadas que entran (`quienesAliadas`): «CLAURE» o «las aliadas». */
+  aliadas = "las aliadas",
 ): string {
+  const conAliadas = o.incluyeClaure ? `, con las prendas de ${aliadas}` : "";
   const alcance = alcanceDicho(o, nombreCategoria, sueltas);
   const donde = alcance ? `solo en ${alcance}` : "en todas las prendas de la campaña";
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
@@ -513,7 +516,7 @@ export function fraseDeOferta(
     const escalones = (o.escalones ?? []).map((e) => titularDeEscalon(e, o.ahorroEn ?? "soles")).join(", ");
     const que = o.cuenta === "campana" ? `comprando ${alcance ? alcance : "prendas de la campaña"}${fuera}` : `en toda la compra${fuera}`;
     const sinOtras = o.cedeAOtras ? ", sin contar las prendas que ya tienen otra oferta" : "";
-    return `${escalones} ${que}${sinOtras}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+    return `${escalones} ${que}${sinOtras}${conAliadas}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
   }
   if (esDeGrupo(o.tipo)) {
     // «Quien lleva 3 prendas de Polos (se pueden mezclar) paga 2: la más barata va gratis, …» (la frase de la maqueta).
@@ -524,9 +527,9 @@ export function fraseDeOferta(
         : o.tipo === "n_por_monto"
           ? `${o.lleva} prendas${de} cuestan ${soles(o.monto)}`
           : `Cada ${o.lleva} prendas${de}, la más barata tiene ${String(o.porcentaje).replace(".", ",")} % menos`;
-    return `${que}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+    return `${que}${conAliadas}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
   }
-  return `${String(o.porcentaje).replace(".", ",")} % menos ${donde}${fuera}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+  return `${String(o.porcentaje).replace(".", ",")} % menos ${donde}${fuera}${conAliadas}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
 }
 
 // ---- Validar ANTES de ir a la base (la base vuelve a validar todo) ------------------------------------------------------------
@@ -929,7 +932,11 @@ export type InsigniaDeOferta = { id: string; nombre: string; activa: boolean; ca
 export type PrendaDeCampana = {
   id: string;
   categoriaId: string | null;
+  /** De una aliada que entra a las campañas: solo con «incluir las de las aliadas» (ADR-0683). */
   deClaure?: boolean;
+  /** De una aliada que no entra a las campañas: ninguna oferta la alcanza. */
+  fueraDeCampanas?: boolean;
+  aliada?: string;
   modelo?: string;
   productoId?: string;
   /** Las insignias que lleva (marcada a mano o por una categoría de la insignia): las que una oferta «por insignia» alcanza. */
@@ -940,6 +947,21 @@ export type PrendaDeCampana = {
  *  de la campaña (ADR-0488). Sin `modelo`, cada fila cuenta como una. */
 export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "modelo">[]): number {
   return new Set(prendas.map((p) => p.modelo ?? p.id)).size;
+}
+
+/**
+ * ¿Una oferta puede alcanzar a esta prenda por quién es su dueña? (ADR-0683, la misma regla que `fn_campana_alcanza_empresa`.) Lo de CAYLA, sí; lo de
+ * una aliada que entra a las campañas, solo si la oferta incluye a las aliadas; lo de una que no entra, nunca.
+ */
+export function entraALaOferta(p: Pick<PrendaDeCampana, "deClaure" | "fueraDeCampanas">, incluyeAliadas: boolean): boolean {
+  if (p.fueraDeCampanas) return false;
+  return incluyeAliadas || !p.deClaure;
+}
+
+/** Cómo se nombra a las aliadas de unas prendas: la única que hay («CLAURE») o, con varias, «las aliadas». */
+export function quienesAliadas(prendas: readonly Pick<PrendaDeCampana, "deClaure" | "aliada">[]): string {
+  const nombres = [...new Set(prendas.filter((p) => p.deClaure).map((p) => p.aliada).filter((n): n is string => Boolean(n)))];
+  return nombres.length === 1 ? nombres[0]! : "las aliadas";
 }
 
 /** Las prendas que la oferta alcanzaría. Con «solo estas categorías», las de esas categorías, estén o no en la campaña (la oferta dice dónde
@@ -955,7 +977,7 @@ export function prendasQueAlcanza<P extends PrendaDeCampana>(
   } & Partial<Pick<FormaDeOferta, "tipo" | "cuenta">>,
 ): P[] {
   // Un monto de toda la compra (actividad 8) cuenta todo el catálogo, salvo Claurè si no la incluye y lo que deja fuera.
-  if (o.tipo === "monto" && o.cuenta !== "campana") return prendasDelCatalogo.filter((p) => (o.incluyeClaure || !p.deClaure) && !(p.categoriaId && o.categoriasFuera.includes(p.categoriaId)));
+  if (o.tipo === "monto" && o.cuenta !== "campana") return prendasDelCatalogo.filter((p) => entraALaOferta(p, o.incluyeClaure) && !(p.categoriaId && o.categoriasFuera.includes(p.categoriaId)));
   // Con categorías «solo», modelos o insignias elegidos (ADR-0655), la oferta rige en ESAS categorías, ESOS modelos y las prendas de ESAS
   // insignias, estén o no en la campaña (`fn_oferta_alcanza_variante_con_insignias`).
   const productos = o.productosSolo ?? [];
@@ -964,7 +986,7 @@ export function prendasQueAlcanza<P extends PrendaDeCampana>(
   const variantes = o.variantesSolo ?? [];
   const elegida = o.categoriasSolo.length > 0 || productos.length > 0 || insignias.length > 0 || variantes.length > 0;
   return (elegida ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
-    if (!o.incluyeClaure && p.deClaure) return false;
+    if (!entraALaOferta(p, o.incluyeClaure)) return false;
     const c = p.categoriaId;
     const porInsignia = insignias.length > 0 && (p.insignias ?? []).some((i) => insignias.includes(i));
     if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)) || porInsignia || variantes.includes(p.id))) return false;
@@ -979,7 +1001,7 @@ export function contarPorCategoria(prendasDeLaCampana: readonly PrendaDeCampana[
   for (const p of prendasDeLaCampana) {
     if (!p.categoriaId) continue;
     const set = modelos.get(p.categoriaId) ?? new Set<string>();
-    if (incluyeClaure || !p.deClaure) set.add(p.modelo ?? p.id);
+    if (entraALaOferta(p, incluyeClaure)) set.add(p.modelo ?? p.id);
     modelos.set(p.categoriaId, set);
   }
   return new Map([...modelos].map(([id, set]) => [id, set.size]));

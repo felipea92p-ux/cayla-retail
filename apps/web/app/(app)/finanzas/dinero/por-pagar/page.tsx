@@ -10,6 +10,7 @@ import { getProveedores } from "@/lib/proveedores";
 import { getComprobantesProduccion, getServiciosPorPagar } from "@/lib/comprobantes-produccion";
 import { hrefDeLaOrden } from "@/lib/servicios-por-pagar-reglas";
 import { PorPagarConsolidado } from "@/components/finanzas/PorPagarConsolidado";
+import { getAliadasConCuenta } from "@/lib/cuenta-claure";
 import { PagoServicioDesdeUrl, PagoTallerDesdeUrl } from "@/components/finanzas/PorPagarAcciones";
 import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
 import { verDeLaVista } from "@/lib/vista-global";
@@ -30,7 +31,7 @@ export default async function PorPagarFinanzasPage({ searchParams }: { searchPar
 
   const unidades = await getUnidadesPorPagar(persona);
   const ver = leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), unidades, esLider, persona.ubicacionId);
-  const [{ datos: filas, falla }, telar] = await Promise.all([getPorPagarConsolidado(ver), getSedesDelTelar()]);
+  const [{ datos: filas, falla }, telar, aliadas] = await Promise.all([getPorPagarConsolidado(ver), getSedesDelTelar(), getAliadasConCuenta()]);
 
   // El pago que pide la URL, si la fila está en la lista, todavía se debe y esta cuenta la puede pagar.
   const aPagar = filaAPagar(sp.pagar, filas);
@@ -77,7 +78,7 @@ export default async function PorPagarFinanzasPage({ searchParams }: { searchPar
 
   return (
     <>
-      <PorPagarConsolidado filas={filas} ver={ver} unidades={unidades} esLider={esLider} pagaCompras={pagaCompras} hoy={hoy} falla={falla} sedes={telar.sedes} />
+      <PorPagarConsolidado aliadas={aliadas} filas={filas} ver={ver} unidades={unidades} esLider={esLider} pagaCompras={pagaCompras} hoy={hoy} falla={falla} sedes={telar.sedes} />
       {modal}
     </>
   );

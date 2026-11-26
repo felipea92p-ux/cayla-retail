@@ -4,6 +4,8 @@ import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
+import { getAliadasConCuenta } from "@/lib/cuenta-claure";
+import { quienDeVarias } from "@/lib/empresas-aliadas-reglas";
 import { fuenteVentasDeHoy, leerClaureDeHoy, nombreDiaLima, semanaSinClaure, sinClaure } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
@@ -39,8 +41,10 @@ export type HoyDeLaSede = {
   /** Solo la líder ve el comparativo y la meta: son cifras de toda la sede. null = no aplica o falló. */
   semanaAnterior: number | null;
   metaVentaDiaria: number | null;
-  /** Cuánto de lo vendido hoy es de CLAURE y se dejó fuera de `totales` y de la comparación (solo la líder; 0 si la sede no tiene CLAURE). ADR-0560. */
+  /** Cuánto de lo vendido hoy es de una aliada y se dejó fuera de `totales` y de la comparación (solo la líder; 0 si la sede no tiene). ADR-0560, ADR-0683. */
   deClaure: number;
+  /** Cómo se nombra a las aliadas en la nota («CLAURE», o «las empresas aliadas» si hay varias). */
+  nombreAliadas: string;
   /** «viernes»: el día de hoy en Lima, para decir «vs. viernes pasado». Se calcula acá (no en el componente) porque
    *  `Date.now()` es impuro y un componente no debe llamarlo. */
   nombreDia: string;
@@ -57,7 +61,7 @@ export async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Pr
 
 export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Promise<HoyDeLaSede> {
   const supabase = await createClient();
-  const [caja, ventas, claure, semanaAnterior, ubicaciones, parametros] = await Promise.all([
+  const [caja, ventas, claure, semanaAnterior, ubicaciones, parametros, aliadas] = await Promise.all([
     // `getCajaAbierta` devuelve null cuando NO hay caja abierta: no es un fallo. Un fallo real (lanza) se vuelve null
     // acá, y por eso se separan: abierta = true, cerrada = false, no se pudo leer = null.
     getCajaAbierta(ubicacionId).then(
@@ -88,6 +92,7 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
     esLider ? tolerarLectura("la meta de la sede", () => getUbicaciones()) : Promise.resolve(null),
     // La meta de hoy con las campañas (ADR-0195 F1): la misma regla que Caja. `null` = base sin fn_parametros_caja.
     esLider ? getParametrosCaja(ubicacionId, hoyLima()) : Promise.resolve(null),
+    esLider ? getAliadasConCuenta() : Promise.resolve(null),
   ]);
 
   // Solo la líder lee el día de toda la sede (donde está lo de CLAURE): una integrante lee lo que ella atendió.
@@ -97,6 +102,7 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
     cajaAbierta: caja,
     totales: deCasa === null ? null : deCasa.totales,
     deClaure: deCasa === null ? 0 : deCasa.excluido,
+    nombreAliadas: quienDeVarias(aliadas).nombre,
     semanaAnterior: esLider ? semanaSinClaure(semanaAnterior, claure) : semanaAnterior,
     metaVentaDiaria: parametros ? parametros.meta : (ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null),
     nombreDia: nombreDiaLima(Date.now()),

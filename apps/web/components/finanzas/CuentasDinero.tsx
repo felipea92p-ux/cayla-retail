@@ -15,6 +15,7 @@ import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
 import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SalidaFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { conAliada } from "@/lib/empresas-aliadas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesDos, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
@@ -133,9 +134,15 @@ export function PantallaDinero({
   acciones,
   panorama = false,
   subtitulo,
+  aliadas,
+  aliada,
   children,
 }: {
   pestana: PestanaDinero;
+  /** ADR-0683: las empresas aliadas con cuenta (una pestaña por cada una). Sin la lista, la pestaña de siempre (CLAURE). */
+  aliadas?: ComponentProps<typeof CabeceraDinero>["aliadas"];
+  /** ADR-0683: la aliada de esta cara (su pestaña). Solo con ella la hoja ofrece «Pagar a …», y el pago viaja con su `x-aliada`. */
+  aliada?: { id: string; clave: string; nombre: string };
   esLider: boolean;
   conteos?: Partial<Record<PestanaDinero, number>>;
   /** La sede que se mira, como la dice la cabecera («Todas las sedes», «Trujillo»). */
@@ -198,6 +205,8 @@ export function PantallaDinero({
           sedes={sedes}
           hoy={hoy}
           onRegistrar={() => setModal({ que: "deposito" })}
+          aliadas={aliadas}
+          aliadaActiva={aliada?.clave}
           panorama={panorama}
           subtitulo={subtitulo}
           acciones={
@@ -238,6 +247,7 @@ export function PantallaDinero({
           ubicacionId={ver.ubicacionId}
           deuda={deuda}
           hoy={hoy}
+          aliada={aliada}
           onCerrar={() => setModal(null)}
         />
       )}
@@ -647,9 +657,12 @@ function RegistrarMovimientoModal({
   ubicacionId,
   deuda,
   hoy,
+  aliada,
   onCerrar,
 }: {
   inicial: QuePaso;
+  /** ADR-0683: la aliada de la cara desde donde se abre; sin ella no se ofrece pagarle a ninguna (no se sabría a cuál). */
+  aliada?: { id: string; nombre: string };
   /** El mes con que arranca Pagar a SUNAT, si se llega desde Impuestos. */
   mesSunatInicial?: string;
   /** La parte de la planilla con que arranca, si se llega desde un aviso. */
@@ -667,7 +680,9 @@ function RegistrarMovimientoModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const opciones = OPCIONES_QUE_PASO.filter((o) => esLider || !o.soloLider);
+  const opciones = OPCIONES_QUE_PASO.filter((o) => (esLider || !o.soloLider) && (o.valor !== "pago_claure" || aliada)).map((o) =>
+    o.valor === "pago_claure" && aliada ? { ...o, texto: `Pagar a ${aliada.nombre}` } : o,
+  );
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [salidasLeidas, setSalidasLeidas] = useState<LecturaSalidas | null>(null);
@@ -832,7 +847,9 @@ function RegistrarMovimientoModal({
     const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
     if (!v.ok) return avisar.error(v.error);
     setGuardando(true);
-    const { error } = await firmar(createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never), responsable.firma());
+    // ADR-0683: un pago a una aliada lleva a cuál (`x-aliada`); la base lo pone en el pago y no deja uno sin ella.
+    const consulta = createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never);
+    const { error } = await firmar(v.valor.p_tipo === "pago_claure" ? conAliada(consulta, aliada?.id) : consulta, responsable.firma());
     setGuardando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar el movimiento"));

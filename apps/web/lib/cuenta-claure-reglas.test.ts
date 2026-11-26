@@ -25,6 +25,7 @@ import {
   type PagoClaure,
 } from "./cuenta-claure-reglas";
 import { NOTA_CLAURE_VENTAS } from "./ganamos-reglas";
+import { quienDeVarias } from "./empresas-aliadas-reglas";
 import { NOTA_CLAURE_JUNTAS } from "./sedes-juntas-reglas";
 
 // Las mismas filas que arma `scripts/pruebas/claure_cuenta.mjs` contra Postgres: lo que la base devuelve, sumado aquí.
@@ -302,5 +303,24 @@ describe("una cuenta de otra empresa (ADR-0638)", () => {
     expect(nota).toContain("Yape de Claudia · LIM: de CLAURE, no suma.");
     expect(nota).toContain("Este mes S/");
     expect(nota).toContain("0.00");
+  });
+});
+
+describe("los textos de lo vendido y lo debido, con cualquier aliada (ADR-0683)", () => {
+  const ventas = { ventas: 118, igv: 18, base: 100, costo: 40 };
+  it("sin decir de quién, dicen CLAURE y Claudia como siempre", () => {
+    expect(lineaImpuestosClaure(ventas)?.titulo).toMatch(/es de ventas de CLAURE$/);
+    expect(chipsDisponible(1000, 300)[0]?.texto).toContain("es de Claudia");
+  });
+  it("con otra aliada, la nombran a ella", () => {
+    const quien = quienDeVarias([{ clave: "kids", nombre: "CAYLA KIDS" }]);
+    expect(lineaImpuestosClaure({ ...ventas, quien })?.titulo).toMatch(/es de ventas de CAYLA KIDS$/);
+    expect(notaResultadosClaure({ ...ventas, quien })).toContain("Lo vendido de CAYLA KIDS");
+    expect(chipsDisponible(1000, 300, quien)[0]?.texto).toContain("es de CAYLA KIDS");
+  });
+  it("con varias, «las empresas aliadas» y «sus dueñas»", () => {
+    const quien = quienDeVarias([{ clave: "claure", nombre: "CLAURE" }, { clave: "kids", nombre: "CAYLA KIDS" }]);
+    expect(quien).toEqual({ nombre: "las empresas aliadas", duena: "sus dueñas" });
+    expect(chipsDisponible(1000, 300, quien)[0]?.texto).toContain("es de sus dueñas");
   });
 });
