@@ -99,6 +99,8 @@
     padding: 72px 40px 88px;
   }
   .cu-pantalla[data-forma="entrar"] .cu-raya { height: auto; align-self: stretch; }
+  /* «Cambiar mi correo» y «Eliminar mi cuenta»: una columna, con el aire de arriba de las demás. */
+  .cu-pantalla[data-forma="sola"] { padding: 56px 40px 72px; }
   .cu-pantalla[data-forma="entrar"] .cu-lado-t { font-size: 32px; }
   .cu-pantalla:is([data-forma="crear"], [data-forma="acceso"]) {
     display: grid;
