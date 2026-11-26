@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avanceParcial, celdaCsv, celdaPago, celdaRecepcion, nombreDelMes, rangoDelMes, subEmision, vistaActiva } from "./comprobantes-lista-reglas";
+import { avanceParcial, celdaCsv, celdaPago, celdaRecepcion, nombreDelMes, rangoDelMes } from "./comprobantes-lista-reglas";
 import type { CompraResumen } from "./compras-reglas";
 
 const AHORA = new Date("2026-09-19T00:30:00Z"); // 18/09 19:30 en Lima
@@ -80,24 +80,6 @@ describe("avanceParcial", () => {
     expect(avanceParcial(4, 4)).toBeNull();
     expect(avanceParcial(5, 4)).toBeNull();
     expect(avanceParcial(1, 0)).toBeNull();
-  });
-});
-
-describe("subEmision", () => {
-  it("contado, vence y venció", () => {
-    expect(subEmision({ ...base, condicion: "contado", fechaVencimiento: null })).toBe("Contado");
-    expect(subEmision(base)).toBe("Vence 02/10");
-    expect(subEmision({ ...base, vencida: true, fechaVencimiento: "2026-09-12" })).toBe("Venció 12/09");
-  });
-});
-
-describe("vistaActiva", () => {
-  it("deduce la pestaña de la URL", () => {
-    expect(vistaActiva({})).toBe("todos");
-    expect(vistaActiva({ saldo: "1" })).toBe("por-pagar");
-    expect(vistaActiva({ porrecibir: "1" })).toBe("por-recibir");
-    expect(vistaActiva({ vencidas: "1" })).toBe("vencidos");
-    expect(vistaActiva({ pago: "pagada" })).toBe("pagados");
   });
 });
 

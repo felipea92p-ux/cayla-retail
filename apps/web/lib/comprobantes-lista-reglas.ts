@@ -1,5 +1,5 @@
 import type { CompraResumen } from "./compras-reglas";
-import { diaMes, diasHastaLima } from "./fechas-lima";
+import { diasHastaLima } from "./fechas-lima";
 import { diasDeAtraso, textoEsperada } from "./recepciones-reglas";
 
 // Cómo se rotula cada fila de la lista de Comprobantes (maqueta 01, ADR-0111): un estado (chip)
@@ -51,23 +51,6 @@ export function celdaPago(c: CompraResumen, ahora: Date = new Date()): CeldaEsta
     if (d >= 0 && d <= 7) return { tono: "ambar", texto: d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`, sub: falta, pct };
   }
   return c.estadoPago === "parcial" ? { tono: "ambar", texto: "Parcial", sub: falta, pct } : { tono: "neutro", texto: "Pendiente", sub: falta, pct };
-}
-
-/** Bajo la fecha de emisión: «Contado», «Vence 25/09» o «Venció 12/09». */
-export function subEmision(c: CompraResumen): string {
-  if (c.condicion === "credito" && c.fechaVencimiento) return `${c.vencida && c.estadoPago !== "pagada" ? "Venció" : "Vence"} ${diaMes(c.fechaVencimiento)}`;
-  return "Contado";
-}
-
-export type VistaComprobantes = "todos" | "por-pagar" | "por-recibir" | "vencidos" | "pagados";
-
-/** Qué pestaña está activa según la URL (la primera que coincida, en el orden en que se muestran). */
-export function vistaActiva(p: { saldo?: string; porrecibir?: string; vencidas?: string; pago?: string }): VistaComprobantes {
-  if (p.saldo === "1") return "por-pagar";
-  if (p.porrecibir === "1") return "por-recibir";
-  if (p.vencidas === "1") return "vencidos";
-  if (p.pago === "pagada") return "pagados";
-  return "todos";
 }
 
 /** Primer y último día (aaaa-mm-dd) del mes `aaaa-mm`; `null` si el texto no es un mes válido. */

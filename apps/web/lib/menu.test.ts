@@ -438,26 +438,27 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los módulos de Compras ve cuatro filas desde una tienda o un almacén, en el orden plan → mi plata → proveedores → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
+  it("con `verDineroCompras` y los módulos de Compras ve cinco filas desde una tienda o un almacén, en el orden compradores → todas las compras → mis compras → plan → proveedores (ADR-0704; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
-        "compras.plan",
-        "compras.miPlata",
-        "compras.proveedores",
+        "compras.compradores",
         "compras.comprobantes",
+        "compras.miPlata",
+        "compras.plan",
+        "compras.proveedores",
       ]);
     }
   });
 
-  it("la fila «Historial de compras» (ADR-0504) sale con CUALQUIERA de sus tres módulos, y sin ninguno no sale", () => {
+  it("«Todas las compras» sale con su módulo o con Por pagar, y Compradores con el suyo (ADR-0704: Revisar compras ya no es pestaña)", () => {
     // Con una sola hija visible el grupo sale como fila suelta con el nombre del grupo («Compras»): se mira el destino, no la etiqueta.
-    const filas = (modulos: ClaveModulo[]) =>
-      menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href).filter((href) => href === "/compras");
-    expect(filas(["facturas_compra"])).toEqual(["/compras"]);
-    expect(filas(["fondos"])).toEqual(["/compras"]);
-    expect(filas(["por_pagar"])).toEqual(["/compras"]);
-    expect(filas(["fondos", "por_pagar", "facturas_compra"])).toEqual(["/compras"]);
-    expect(filas(["proveedores", "ordenes_compra"])).toEqual([]);
+    const rutas = (modulos: ClaveModulo[]) =>
+      menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href).filter((href) => href.startsWith("/compras"));
+    expect(rutas(["facturas_compra"])).toEqual(["/compras"]);
+    expect(rutas(["por_pagar"])).toEqual(["/compras"]);
+    expect(rutas(["fondos"])).toEqual(["/compras/compradores"]);
+    expect(rutas(["fondos", "facturas_compra"])).toEqual(["/compras/compradores", "/compras"]);
+    expect(rutas(["proveedores", "ordenes_compra"])).not.toContain("/compras");
   });
 
   it("parado en el Taller el líder NO ve Compras: allí se trabaja Producción", () => {
@@ -477,13 +478,13 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     }
   });
 
-  // ADR-0480 (Compras simple, Felipe 2026-10-22): sin «Órdenes de compra» ni «Notas de crédito». ADR-0504 (2026-10-24): «Revisar compras» y «Por pagar»
-  // pasan a pestañas del Historial; Compras queda en 4.
-  it("Compras tiene 4 opciones: Plan de campaña, Mis compras, Proveedores y Historial de compras", () => {
+  // ADR-0480 (Compras simple, Felipe 2026-10-22): sin «Órdenes de compra» ni «Notas de crédito». ADR-0704 (2026-11-26): Compradores es la portada y
+  // el Historial se llama «Todas las compras»; Compras queda en 5, sin pestañas.
+  it("Compras tiene 5 opciones: Compradores, Todas las compras, Mis compras, Plan de campaña y Proveedores", () => {
     const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
     const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
-    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mis compras", "Proveedores", "Historial de compras"]);
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Compradores", "Todas las compras", "Mis compras", "Plan de campaña", "Proveedores"]);
     expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 

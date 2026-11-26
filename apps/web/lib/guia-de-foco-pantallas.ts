@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 46;
+export const PENDIENTES_HOY = 45;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -56,7 +56,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/comercial": PENDIENTE,
   "/comercial/calidad": PENDIENTE,
   // ---- compras ----
-  "/compras": PENDIENTE,
+  // Todas las compras (ADR-0704): una lista que solo se lee; su único campo es el buscador.
+  "/compras": { estado: "no-aplica", motivo: "Todas las compras: una lista que solo se lee; su único campo es el buscador y no hay nada que llenar ni pasos que seguir." },
   "/compras/@modal/(.)factura/[compraId]": PENDIENTE,
   "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra abierta sobre la lista (ADR-0362): se lee, no se llena. Editarla y anularla llegan con su propia guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
@@ -65,7 +66,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // la plata (cuánto llegó y de qué cuenta), completar el papel (serie y número según el papel; el monto si se anotó mal), revisar un gasto
   // (qué papel; su número y RUC, opcionales) y recibir un cierre (la cuenta y el monto); desde una terminal, quién lo hace—, cada uno con su
   // guía. Lo de los fondos (Entregar plata, Lo que devuelve, Anular) sigue en sus hojas (registro de modales).
-  "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
+  // Compradores (ADR-0704): la portada de Compras, una lista de tarjetas por persona que solo se lee; lo que se llena vive en el detalle de cada
+  // persona (su papel, sus gastos, su cierre) y en la hoja «Entregar plata» (registro de modales).
+  "/compras/compradores": { estado: "no-aplica", motivo: "Portada de Compras: tarjetas por persona y rondas cerradas que solo se leen. Lo que se llena vive en el detalle de cada persona y en la hoja «Entregar plata»." },
+  // El detalle de una persona (ADR-0704): lo que se llena es la bandeja de Revisar compras de siempre, filtrada a esa persona, con su guía.
+  "/compras/compradores/[personaId]": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
+  "/compras/fondos": { estado: "no-aplica", motivo: "Solo redirige a Compradores (ADR-0704): lo que se revisaba aquí vive en el detalle de cada persona." },
   "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
   // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
   "/compras/mi-plata/envios": { estado: "no-aplica", motivo: "ADR-0480: solo se lee; su único campo es el buscador de códigos y no hay nada que llenar ni pasos por recorrer." },
@@ -554,6 +560,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/PuntosYCuponModales.tsx": { estado: "no-aplica", motivo: "Dos hojas de UN solo control cada una: el stepper de puntos a canjear y el campo del código del cupón, con su resultado a la vista al instante." },
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/RegistrarBajadaModal.tsx"] },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
+  // «Cerrar su ronda» (ADR-0704): sin campos con la cuenta de una persona; desde una terminal, quién la cierra, con su guía.
+  "components/compras/CerrarRonda.tsx": { estado: "aplicada", evidencia: ["components/compras/CerrarRonda.tsx"] },
   "components/fondos/AccionesFondos.tsx": { estado: "aplicada", evidencia: ["components/fondos/AccionesFondos.tsx"] },
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
   // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
