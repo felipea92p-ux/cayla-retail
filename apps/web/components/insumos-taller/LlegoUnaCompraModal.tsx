@@ -8,11 +8,9 @@ import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/co
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CompraDelInsumo, type ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
-import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -25,13 +23,12 @@ import { UNIDADES_INSUMO, cantidadTexto, leerCantidad, metrosPorKilo, type Mater
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { medioNuevo, mediosParaRpc, type MedioForm } from "@/lib/medios-pago-reglas";
 import { costoUnitarioTexto, leerCostoUnitario } from "@/lib/monto-plata-reglas";
-import { pedidosSinFacturaDe, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 
 // «Llegó una compra» (ADR-0614, actividad 5; ADR-0570, actividad 7): la puerta de lo que se le compró a un proveedor. Varias líneas de un mismo papel, por metro, kilo o
-// rollo, y cómo se paga. Es una hoja sencilla a propósito: el Taller se rediseña después. Lo pedido con una orden de insumos se recibe desde Recibir; lo que ya estaba
+// rollo, y cómo se paga. Es una hoja sencilla a propósito: el Taller se rediseña después. Lo que ya estaba
 // en el estante, con «Saldo inicial»; y lo que aparece en el corte, con «Encontré tela».
 
 const LEER = { cantidad: leerCantidad, precio: leerCostoUnitario };
@@ -72,7 +69,6 @@ export function LlegoUnaCompraModal({
   insumoInicialId,
   tallerId,
   proveedores,
-  pedidos,
   onClose,
 }: {
   insumos: readonly InsumoVista[];
@@ -80,7 +76,6 @@ export function LlegoUnaCompraModal({
   insumoInicialId: string | null;
   tallerId: string;
   proveedores: readonly ProveedorParaCompra[];
-  pedidos: readonly OrdenInsumoPorRecibir[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -102,7 +97,9 @@ export function LlegoUnaCompraModal({
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   const taller = useIdDelTaller();
-  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
+  // «Tu fondo» primero si quien paga tiene uno (Felipe 2026-11-26): lo que compra para el Taller con su fondo por rendir se descuenta de
+  // él. La base valida que el fondo sea de quien paga (`fn_fondo_para_pagar`, en el disparador de los pagos de Producción).
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { conMiFondo: true, propuestaSoloDe: PROPUESTA_DEL_TALLER });
   const responsable = useResponsable();
 
   const plazo = proveedores.find((p) => p.id === proveedorId)?.plazoCreditoDias ?? null;
@@ -129,7 +126,6 @@ export function LlegoUnaCompraModal({
   const listo = problemasLineas.length === 0 && problemas.length === 0 && responsable.listo;
 
   const proveedorNombre = proveedores.find((p) => p.id === proveedorId)?.nombre ?? null;
-  const pedidosAbiertos = pedidosSinFacturaDe(pedidos, proveedorNombre);
 
   const cambiar = (clave: string, cambio: Partial<LineaEscrita>) => setLineas((ls) => ls.map((l) => (l.clave === clave ? { ...l, ...cambio } : l)));
   function elegirInsumo(clave: string, insumoId: string) {
@@ -227,12 +223,6 @@ export function LlegoUnaCompraModal({
             </Boton>
           </div>
         </CampoGuiado>
-
-        {pedidosAbiertos.length > 0 && (
-          <Aviso tono="atencion" chico titulo={`${proveedorNombre} tiene ${pedidosAbiertos.length === 1 ? "un pedido abierto" : `${pedidosAbiertos.length} pedidos abiertos`}`}>
-            {pedidosAbiertos.map((p) => `${p.documento}: ${p.detalle}`).join(" · ")}. Si esto es de ese pedido, regístralo desde <EnlaceVer href="/produccion/recibir">Recibir</EnlaceVer> para no contarlo dos veces.
-          </Aviso>
-        )}
 
         <CompraDelInsumo
           guia={guia}

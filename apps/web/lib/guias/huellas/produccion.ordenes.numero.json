@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 232,
+  "total": 231,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -250,7 +250,6 @@
       "BotonEditar «Editar»",
       "button «prod-orden.anotar-tela»",
       "Boton «prod-orden.editar-tela»",
-      "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
       "Boton «prod-orden.anotar-tela»",
       "Boton «prod-orden.encontre-tela»",
       "Boton «prod-orden.devolver-tela»"

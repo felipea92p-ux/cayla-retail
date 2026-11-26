@@ -385,67 +385,37 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     ]);
   });
 
-  it("Abastecimiento, adentro, tiene Órdenes de insumos primero (ADR-0362 fase 7: pedir → factura → recibir → pagar) y las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
-    expect(hijosDeSubgrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
-      "produccion.ordenesInsumos",
-      "produccion.proveedoresProduccion",
-      "produccion.comprobantesProduccion",
-      "produccion.recibirProduccion",
-      "produccion.porPagarProduccion",
-    ]);
+  // ADR-0702 (2026-11-25): «Órdenes de insumos» y «Recibir» salieron sin uso. Quedan las tres que llevan la plata del Taller.
+  const ABASTECIMIENTO = ["produccion.proveedoresProduccion", "produccion.comprobantesProduccion", "produccion.porPagarProduccion"];
+
+  it("Abastecimiento, adentro, tiene Proveedores, Facturas de insumos y Por pagar; ya no Órdenes de insumos ni Recibir (ADR-0702)", () => {
+    expect(hijosDeSubgrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO);
   });
 
-  // Con la regla fija de antes (un perfil SIN módulos: la fotografía) toda fila que solo depende de su módulo sale; «Órdenes de insumos» no
-  // pide el dinero del Taller (decisión 47), así que Abastecimiento ya no se disuelve en «Recibir»: le quedan dos. Lo que sigue en pie
-  // desde D-G: sin `verDinero` no se ve el Resumen ni ninguna pantalla con datos bancarios y montos del Taller.
-  const OPERATIVAS = ["produccion.ordenes", "produccion.insumos", "produccion.abastecimiento"];
-  const ABASTECIMIENTO_OPERATIVO = ["produccion.ordenesInsumos", "produccion.recibirProduccion"];
+  // Desde D-G, sin `verDinero` no se ve el Resumen ni ninguna pantalla con datos bancarios y montos del Taller. Con las tres hijas de
+  // Abastecimiento detrás de ese permiso, quien trabaja en el Taller ya no ve el subgrupo.
+  const OPERATIVAS = ["produccion.ordenes", "produccion.insumos"];
 
-  it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y, en Abastecimiento, Órdenes de insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
+  it("en el Taller, quien trabaja ahí ve Órdenes e Insumos, pero no el Resumen ni Abastecimiento, que lleva datos bancarios y montos (D-G)", () => {
     for (const permisos of [INTEGRANTE, ["administrar"] as Permiso[]]) {
       expect(hijosDeGrupo({ permisos, ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
-      expect(hijosDeSubgrupo({ permisos, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
     }
   });
 
   it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del dinero del Taller", () => {
     for (const permiso of ["analizar", "verDineroCompras"] as const) {
       expect(hijosDeGrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
-      expect(hijosDeSubgrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
     }
   });
 
-  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Órdenes de insumos, Proveedores, Comprobantes, Recibir y Por pagar", () => {
+  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Proveedores, Facturas de insumos y Por pagar", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.resumenProduccion",
       "produccion.ordenes",
       "produccion.insumos",
       "produccion.abastecimiento",
     ]);
-    expect(hijosDeSubgrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
-      "produccion.ordenesInsumos",
-      "produccion.proveedoresProduccion",
-      "produccion.comprobantesProduccion",
-      "produccion.recibirProduccion",
-      "produccion.porPagarProduccion",
-    ]);
-  });
-
-  // Órdenes de insumos (ADR-0362 fase 7, decisión 47): con los módulos de la cuenta, la abre SU módulo y nada más. No necesita el de
-  // Órdenes de producción (su ruta, `/ordenes-insumos`, no cuelga del layout de `/produccion`), ni el dinero del Taller.
-  it("con módulos: «Órdenes de insumos» sale solo con su módulo; sin él, Abastecimiento se disuelve en «Recibir» como siempre; con él solo, la fila del Taller lleva a la orden", () => {
-    const integrante = (modulos: ClaveModulo[]): PerfilDelMenu => ({ permisos: INTEGRANTE, ubicacionTipo: "taller", modulos });
-    expect(hijosDeGrupo(integrante(["produccion"]), "produccion")).toEqual(["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"]);
-    expect(hijosDeGrupo(integrante(["produccion", "ordenes_insumos"]), "produccion")).toEqual(OPERATIVAS);
-    expect(hijosDeSubgrupo(integrante(["produccion", "ordenes_insumos"]), "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
-    const sola = menuPara(integrante(["ordenes_insumos"])).riel.find((f) => f.id === "produccion");
-    expect(sola ? hojasDe(sola).map((h) => h.href) : []).toEqual(["/ordenes-insumos"]);
-    // En una tienda o un almacén, Producción no se muestra: tampoco con este módulo.
-    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(menuPara({ permisos: LIDER, ubicacionTipo, modulos: ["ordenes_insumos"] }).riel.some((f) => f.id === "produccion")).toBe(false);
-    }
-    // Aterrizar en la orden abre Producción, aunque la ruta no cuelgue de `/produccion`.
-    expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).grupoDe("/ordenes-insumos/ver/x")).toBe("produccion");
+    expect(hijosDeSubgrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO);
   });
 
   it("desde una tienda o un almacén no lo ve nadie, ni el líder", () => {
@@ -505,20 +475,6 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
       }
       expect(hijosDeGrupo({ permisos, ubicacionTipo: "tienda" }, "compras")).not.toContain("compras.recibir");
     }
-  });
-
-  it("no se confunden los dos «Recibir»: en el Taller hay otro, el de tela y avíos de Producción (/produccion/recibir), y no reemplaza al de mercadería", () => {
-    // `hojasDe` baja hasta las pantallas de verdad sin importar si «Recibir» vive suelta (INTEGRANTE, Abastecimiento
-    // disuelto) o dentro del subgrupo Abastecimiento (LIDER, con las 4 hijas visibles).
-    const enElTaller = (permisos: readonly Permiso[]) => menuPara({ permisos, ubicacionTipo: "taller" }).riel.flatMap(hojasDe);
-    for (const permisos of [LIDER, INTEGRANTE]) {
-      const recibir = enElTaller(permisos).filter((f) => f.href === "/produccion/recibir");
-      expect(recibir).toEqual([expect.objectContaining({ id: "produccion.recibirProduccion", etiqueta: "Recibir" })]);
-    }
-    // Y no exige dinero: quien trabaja en el Taller sin verlo también lo tiene.
-    expect(enElTaller(INTEGRANTE).map((f) => f.href)).toContain("/produccion/recibir");
-    // El de mercadería es otra ruta y otro nodo, con otra etiqueta.
-    expect(enElTaller(INTEGRANTE).map((f) => f.href)).toContain("/recibir");
   });
 
   // ADR-0480 (Compras simple, Felipe 2026-10-22): sin «Órdenes de compra» ni «Notas de crédito». ADR-0504 (2026-10-24): «Revisar compras» y «Por pagar»

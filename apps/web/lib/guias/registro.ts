@@ -105,13 +105,7 @@ import {
   GUIA_PROD_ORDEN,
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_PROVEEDORES,
-  GUIA_PROD_RECIBIR,
   GUIA_PROD_RESUMEN,
-  GUIA_ORDENES_INSUMO,
-  GUIA_NUEVA_ORDEN_INSUMO,
-  GUIA_ORDEN_INSUMO,
-  GUIA_EDITAR_ORDEN_INSUMO,
-  GUIA_COMPROBANTE_ORDEN_INSUMO,
 } from "./pantallas/produccion";
 import {
   GUIA_ACTIVIDAD,
@@ -238,17 +232,11 @@ export const GUIAS: readonly Guia[] = [
   GUIA_PROD_ORDENES,
   GUIA_PROD_ORDEN,
   GUIA_PROD_INSUMOS,
-  GUIA_PROD_RECIBIR,
   GUIA_PROD_PROVEEDORES,
   GUIA_PROD_FACTURAS,
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_COTIZACIONES,
   GUIA_PROD_EFICIENCIA,
-  GUIA_ORDENES_INSUMO,
-  GUIA_NUEVA_ORDEN_INSUMO,
-  GUIA_ORDEN_INSUMO,
-  GUIA_EDITAR_ORDEN_INSUMO,
-  GUIA_COMPROBANTE_ORDEN_INSUMO,
   GUIA_INICIO,
   GUIA_ACTIVIDAD,
   GUIA_BUSCAR,
@@ -387,14 +375,6 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/traslados/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_TRASLADO.id },
   // ---- movimientos ----
   "/movimientos": { estado: "no-aplica", motivo: "Solo redirige a Inventario ▸ Movimientos (la dirección vieja). La guía es la de esa pantalla." },
-  // ---- ordenes-insumos ----
-  "/ordenes-insumos": { estado: "aplicada", guia: GUIA_ORDENES_INSUMO.id },
-  "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /ordenes-insumos/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
-  "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
-  "/ordenes-insumos/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN_INSUMO.id },
-  "/ordenes-insumos/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN_INSUMO.id },
-  "/ordenes-insumos/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN_INSUMO.id },
-  "/ordenes-insumos/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN_INSUMO.id },
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": { estado: "aplicada", guia: GUIA_PEDIDOS_NO_ATENDIDOS.id },
   // ---- produccion ----
@@ -407,7 +387,6 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/produccion/ordenes/[numero]": { estado: "aplicada", guia: GUIA_PROD_ORDEN.id },
   "/produccion/por-pagar": { estado: "aplicada", guia: GUIA_PROD_POR_PAGAR.id },
   "/produccion/proveedores": { estado: "aplicada", guia: GUIA_PROD_PROVEEDORES.id },
-  "/produccion/recibir": { estado: "aplicada", guia: GUIA_PROD_RECIBIR.id },
   // ---- productos ----
   "/productos": { estado: "aplicada", guia: GUIA_PRODUCTOS.id },
   "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "La misma vista que /productos/[id]/historial abierta como hoja: comparte su guía." },
