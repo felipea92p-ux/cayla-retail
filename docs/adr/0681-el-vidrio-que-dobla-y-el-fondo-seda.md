@@ -8,6 +8,9 @@
 - **Sigue a:** ADR-0596 (el ERP pasa al vidrio), ADR-0623 (lo que se desplaza no se desenfoca), ADR-0611 mejora 7 (el vidrio que
   aguanta), ADR-0625 (animaciones apagadas de fábrica), ADR-0674 (modo liviano), ADR-0136 (movimiento).
 
+> **Actualización 2026-11-26 (ADR-0706):** el fondo Seda se reemplazó por «Lienzo», un degradado sin formas: sus pliegues se veían como
+> manchas blancas detrás de las tarjetas. Lo del vidrio que dobla sigue vigente.
+
 ## El problema
 
 El vidrio del ERP solo desenfocaba lo de atrás y lo cubría con un 70–88 % de blanco. El vidrio de verdad hace otra cosa: **dobla** la luz
