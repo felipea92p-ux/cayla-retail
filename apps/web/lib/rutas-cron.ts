@@ -36,6 +36,8 @@ export const RUTAS_DE_CRON = [
   // ADR-0633: la foto del diario por mes. Cada 5 minutos rehace las vencidas y las que faltan; cada madrugada (4:00 de Lima), todas.
   "/api/finanzas/foto-diario",
   "/api/finanzas/foto-diario/todas",
+  // ADR-0705: la IA mide los recortes nuevos del probador (qué prenda es, holgura, a qué altura están las axilas), cada 10 minutos.
+  "/api/fotos/medir-recortes",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

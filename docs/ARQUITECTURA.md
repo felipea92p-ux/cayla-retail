@@ -2492,6 +2492,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
   `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
   `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+- `/api/fotos/medir-recortes` → `GET` del cron (cada 10 min, `CRON_SECRET`, ADR-0705): la IA mide los recortes del probador sin medida (`recortes_sin_medida_ia` →
+  OpenAI → `anotar_medida_ia`, `lib/medida-ia-reglas.ts`); `tienda_probador` entrega esa medida (`ia`) y la tienda dimensiona la prenda de arriba por su pecho.
   **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
   `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
   `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).

@@ -1,0 +1,4 @@
+## 2026-11-26 (El probador ya no agranda las blusas con nudo: las mide por el pecho)
+Qué hice: la prenda de arriba del probador se dimensiona por el ancho de su pecho bajo las axilas, no por su borde de abajo; las axilas las dice una IA sola, cada 10 minutos, para cada recorte nuevo (`/api/fotos/medir-recortes`, `retail.anotar_medida_ia`), y la tienda mide el ancho en esa fila (ADR-0705). La «Camisa Dalia» (CMS-0092) dejaba de agrandarse 35 %.
+Por qué así: el nudo junta el bajo y el probador creía que la blusa era chica; el pecho no cambia con el nudo. Probado con 26 recortes reales: la IA acertó el tipo de los 26 por US$0,0008 cada uno. Sin la medida, todo sigue como hoy.
+Felipe se lleva: pegar la migración 20261126153000 en producción (dos partes) y verlo en la tienda; un outfit con falda corta queda más chico que hoy (su tamaño real), y que la figura crezca para llenar el arco queda como decisión aparte.

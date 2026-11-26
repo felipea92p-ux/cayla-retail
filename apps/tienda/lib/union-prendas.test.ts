@@ -4,6 +4,14 @@ import {
   AJUSTE_MAXIMO_DE_ARRIBA,
   ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA,
   anchoDelBajo,
+  anchoDelPecho,
+  anchosPorFila,
+  cajaPorElPecho,
+  FACTOR_MAXIMO_DEL_PECHO,
+  FACTOR_MINIMO_DEL_PECHO,
+  FILAS_DEL_ANCHO,
+  HOLGURA_DEL_PECHO,
+  PECHO_ESTANDAR,
   ANCHO_ESTANDAR_DEL_TORSO,
   BANDA_MUERTA_DEL_TORSO,
   BAJO_CREIBLE_MAXIMO,
@@ -576,5 +584,87 @@ describe("siguienteFase: del ajuste al «Listo» (B1)", () => {
   it("el «Listo» dura lo justo para leerse", () => {
     expect(MS_DEL_LISTO).toBeGreaterThanOrEqual(800);
     expect(MS_DEL_LISTO).toBeLessThanOrEqual(1500);
+  });
+});
+
+/* ======================== ADR-0705: la prenda de arriba por su pecho, no por su bajo ======================== */
+
+describe("anchosPorFila y anchoDelPecho: el ancho de la prenda bajo las axilas", () => {
+  it("guarda el tramo del medio (sin las mangas sueltas) y el de borde a borde", () => {
+    const a = anchosPorFila(imagen(100, 100, polo), 100, 100);
+    expect(a.centro).toHaveLength(FILAS_DEL_ANCHO);
+    // Fila 0,5: el torso (30–70) y las mangas sueltas a los lados.
+    expect(a.centro[25]).toBeCloseTo(0.4, 2);
+    expect(a.extremos[25]).toBeCloseTo(1, 2);
+    // Bajo el torso solo quedan las mangas: no hay tramo en el medio.
+    expect(a.centro[45]).toBeNull();
+  });
+
+  it("una prenda sin mangas cuyo escote corta el medio se mide de borde a borde", () => {
+    // Un halter: tela de 25 a 75 con una abertura de 45 a 55 hasta la fila 50.
+    const halter = (x: number, y: number) => x >= 25 && x < 75 && !(y < 50 && x >= 45 && x < 55);
+    const a = anchosPorFila(imagen(100, 100, halter), 100, 100);
+    expect(anchoDelPecho(a, 0.2, "con_mangas")).toBeNull();
+    expect(anchoDelPecho(a, 0.2, "halter")).toBeCloseTo(0.5, 2);
+  });
+
+  it("sin ancho fila por fila, o con una axila increíble, no hay pecho", () => {
+    expect(anchoDelPecho(null, 0.2, "con_mangas")).toBeNull();
+    expect(anchoDelPecho(anchosPorFila(imagen(100, 100, polo), 100, 100), 0.95, "con_mangas")).toBeNull();
+  });
+
+  it("medirRecorte trae el ancho fila por fila, y una medida vieja sin él se sigue leyendo", () => {
+    const m = medirRecorte(imagen(100, 100, polo), 100, 100);
+    expect(m.anchos?.centro).toHaveLength(FILAS_DEL_ANCHO);
+    expect(medidaDesdeDato(m)?.anchos).toEqual(m.anchos);
+    const vieja: MedidaDelRecorte = { ...m, anchos: undefined };
+    expect(medidaDesdeDato(JSON.parse(JSON.stringify(vieja)))?.anchos).toBeUndefined();
+    // Un ancho mal formado no tira la medida.
+    expect(medidaDesdeDato({ ...m, anchos: { centro: [1], extremos: [] } })?.borde).toBe(m.borde);
+  });
+});
+
+describe("cajaPorElPecho: una blusa se dimensiona por su pecho", () => {
+  // Una blusa de 100×100 en la figura con el torso de 0,5 del ancho bajo la axila (fila 0,3) y un nudo que junta el bajo a 0,25.
+  const conNudo = (x: number, y: number) => (y < 75 ? Math.abs(x - 50) < 25 : Math.abs(x - 50) < 12.5);
+  const medida = medirRecorte(imagen(100, 100, conNudo), 100, 100);
+  const caja = { x: 145, y: 44, w: 100, h: 120 };
+  const ia = { tipo: "con_mangas", holgura: "normal" as const, metida: false, axila: 0.3 };
+
+  it("el nudo ya no la agranda: la regla del bajo la estira y la del pecho la deja de su tamaño", () => {
+    const porElBajo = cajaDeArribaAjustada({ caja, medida, metida: false, porTorso: true });
+    const porElPecho = cajaPorElPecho({ caja, medida, ia });
+    expect(porElBajo!.w).toBeGreaterThan(caja.w);
+    // Pecho: 100 × 0,5 / 2,5 = 20 cm → muy angosto, crece hasta su holgura (con tope).
+    expect(porElPecho).not.toBeNull();
+    expect(porElPecho!.w / caja.w).toBeCloseTo(Math.min(FACTOR_MAXIMO_DEL_PECHO, (PECHO_ESTANDAR * HOLGURA_DEL_PECHO.normal) / 20), 1);
+  });
+
+  it("una blusa cuyo pecho ya es el de su holgura no cambia", () => {
+    const ancha = { ...caja, w: 220, x: 85 };
+    // 220 × 0,5 / 2,5 = 44 cm: con «ajustada» es el estándar.
+    // Devuelve la MISMA caja, no null: con null mandaría la regla del bajo y el nudo la agrandaría (el error de «Camisa Dalia», CMS-0092).
+    expect(cajaPorElPecho({ caja: ancha, medida, ia: { ...ia, holgura: "ajustada" } })).toEqual(ancha);
+  });
+
+  it("una holgada se ve más suelta que una ajustada", () => {
+    const ancha = { ...caja, w: 200, x: 95 };
+    const ajustada = cajaPorElPecho({ caja: ancha, medida, ia: { ...ia, holgura: "ajustada" } });
+    const holgada = cajaPorElPecho({ caja: ancha, medida, ia: { ...ia, holgura: "holgada" } });
+    expect(holgada!.w).toBeGreaterThan(ajustada!.w);
+  });
+
+  it("crece o se encoge desde el centro de los hombros, sin subir, y con topes", () => {
+    const c = cajaPorElPecho({ caja, medida, ia })!;
+    expect(c.y).toBe(caja.y);
+    expect(Math.abs(c.x + c.w / 2 - (caja.x + caja.w / 2))).toBeLessThanOrEqual(1);
+    const enorme = cajaPorElPecho({ caja: { ...caja, w: 1000 }, medida, ia })!;
+    expect(enorme.w / 1000).toBeCloseTo(FACTOR_MINIMO_DEL_PECHO, 2);
+  });
+
+  it("sin lo que dijo la IA, sin axila o sin ancho fila por fila, manda la regla del bajo (null)", () => {
+    expect(cajaPorElPecho({ caja, medida, ia: null })).toBeNull();
+    expect(cajaPorElPecho({ caja, medida, ia: { ...ia, axila: null } })).toBeNull();
+    expect(cajaPorElPecho({ caja, medida: { ...medida, anchos: undefined }, ia })).toBeNull();
   });
 });

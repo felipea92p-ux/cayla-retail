@@ -6,6 +6,7 @@ import {
   cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
   cajaDeArribaAjustada,
+  cajaPorElPecho,
   direccionDeLaMedida,
   hiloDeLaEspera,
   type HiloDeLaEspera,
@@ -213,7 +214,13 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
 
   const ajustando = pendiente && demoraDe === par;
   // 1. La de arriba, ajustada a su propia forma (solo crece, y solo si su bajo es implausiblemente angosto).
-  const cajaArriba = arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida, porTorso: arriba.p.porTorso }) : null;
+  //    Con lo que dijo la IA (ADR-0705), una blusa, un polo o un top se dimensiona por su PECHO (bajo las axilas): un nudo o un fruncido en el bajo ya no la agranda.
+  //    Sin esa medida, manda la regla del bajo de siempre.
+  const porElPecho =
+    arriba && urlArriba && arriba.p.porTorso && !arriba.p.metida ? cajaPorElPecho({ caja: arriba.caja, medida: medidas.get(urlArriba), ia: arriba.c.foto.ia }) : null;
+  const cajaArriba =
+    porElPecho ??
+    (arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida, porTorso: arriba.p.porTorso }) : null);
   const arribaFinal = arriba && cajaArriba ? { ...arriba, caja: cajaArriba } : arriba;
   // 2. La de abajo, unida a la de arriba ya ajustada.
   const unida =
