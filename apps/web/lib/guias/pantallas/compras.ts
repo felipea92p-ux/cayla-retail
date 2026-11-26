@@ -3007,6 +3007,62 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
   ],
 };
 
+// Compras ▸ Compradores (ADR-0704, Felipe 2026-11-26): la portada de Compras. Quién está comprando con plata de CAYLA y en qué la gastó.
+export const GUIA_COMPRADORES: Guia = {
+  id: "compras.compradores",
+  ruta: "/compras/compradores",
+  titulo: "Compradores",
+  resumen: "Quién está comprando con plata de CAYLA, cuánto le diste, cuánto gastó y qué falta revisar.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Quién compra para CAYLA",
+      texto: "Cada persona abre una ronda en «Mis compras», anota lo que compra y lo manda a la tienda. Aquí ves a todas juntas. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "entregar",
+      ancla: "fondos.entregar",
+      opcional: true,
+      titulo: "Darle plata",
+      texto: "Para entregarle plata a alguien antes de que salga a comprar: a quién, cuánto y de qué cuenta sale.",
+    },
+    {
+      id: "cifras",
+      ancla: "compradores.cifras",
+      titulo: "Tres cifras",
+      texto: "Cuántas personas están comprando ahora, cuánto se gastó en el mes y cuántas compras esperan que Compras pase su papel a los libros.",
+    },
+    {
+      id: "por-definir",
+      ancla: "compradores.por-definir",
+      opcional: true,
+      titulo: "Prendas por definir",
+      texto: "Lo que alguien anotó sin saber qué es o a cuánto se vende. «Definir» pone la categoría, el precio o los dos.",
+    },
+    {
+      id: "tarjeta",
+      ancla: "compradores.tarjeta",
+      opcional: true,
+      titulo: "Una tarjeta por persona",
+      texto: "Le diste, gastó y le queda. Si gastó más de lo que le diste, dice «No cuadra» y cuánto. Si lleva 14 días sin comprar, te avisa que su ronda se puede cerrar. Tócala para ver sus compras y revisarlas.",
+    },
+    {
+      id: "cerradas",
+      ancla: "compradores.cerradas",
+      opcional: true,
+      titulo: "Rondas que ya cerraron",
+      texto: "Las de los últimos dos meses: de quién, cuándo, cuánto gastó y cómo cerró.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "Eso es todo",
+      texto: "Para ver cada compra de todas las personas en una sola lista, entra a «Todas las compras».",
+    },
+  ],
+};
+
 export const GUIA_FONDOS: Guia = {
   id: "compras.fondos",
   ruta: "/compras/fondos",

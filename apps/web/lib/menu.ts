@@ -435,20 +435,20 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
-      // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
-      // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
-      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
+      // Compras reestructurado (ADR-0704, Felipe 2026-11-26, maqueta docs/maquetas/compras-reestructura-2026-11/): Compradores, Todas las compras,
+      // Mis compras, Plan de campaña y Proveedores, sin pestañas. La portada es Compradores —quién compra con plata de CAYLA y en qué la gastó—,
+      // con el módulo «fondos» de la antigua «Revisar compras».
+      { id: "compras.compradores", modulo: "fondos", etiqueta: "Compradores", estado: "viva", ruta: "/compras/compradores", icono: "colaboradores", pajaro: "09 Pelícano" },
+      // Todas las compras (antes «Historial de compras», ADR-0504): un solo libro; misma ruta y mismo módulo. Por pagar sigue abriéndola
+      // mientras viva su ruta. «Recibir mercadería» vive en Inventario desde el 2026-10-14.
+      { id: "compras.comprobantes", modulo: "facturas_compra", modulosAlternos: ["por_pagar"], etiqueta: "Todas las compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano" },
       // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mis compras» reusa la
       // clave `ordenes_compra` (unas 40 funciones la usan como llave: recibir, gastos del viaje, datos bancarios, proveedor nuevo,
       // «Nos debe»); las pantallas de órdenes salen del menú. «Notas de crédito» se retiró: «por ahora no manejaremos notas de crédito».
       { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mis compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
+      // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Muestra costos e inversión (ADR-0126).
+      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      // ADR-0504 (Felipe 2026-10-24, opción A): UNA fila, tres pestañas —Historial, Revisar compras (la oficina, `fondos`) y Por pagar—, antes tres
-      // filas sueltas (Compras bajó de 6 a 4). Los TRES módulos siguen en Roles y accesos y la fila se abre con cualquiera; cada pestaña pide el suyo
-      // (`CabeceraHistorialCompras`, `lib/compras-pestanas-reglas.ts`) y las rutas no cambian. Sin `exige`: `verDineroCompras` sale de Historial o Por
-      // pagar y, sumado al módulo, escondería la fila de un rol con solo «Revisar compras».
-      // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
-      { id: "compras.comprobantes", modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"], etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano" },
     ],
   },
 

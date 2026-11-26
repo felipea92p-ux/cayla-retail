@@ -65,6 +65,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // la plata (cuánto llegó y de qué cuenta), completar el papel (serie y número según el papel; el monto si se anotó mal), revisar un gasto
   // (qué papel; su número y RUC, opcionales) y recibir un cierre (la cuenta y el monto); desde una terminal, quién lo hace—, cada uno con su
   // guía. Lo de los fondos (Entregar plata, Lo que devuelve, Anular) sigue en sus hojas (registro de modales).
+  // Compradores (ADR-0704): la portada de Compras, una lista de tarjetas por persona que solo se lee; lo que se llena vive en el detalle de cada
+  // persona (su papel, sus gastos, su cierre) y en la hoja «Entregar plata» (registro de modales).
+  "/compras/compradores": { estado: "no-aplica", motivo: "Portada de Compras: tarjetas por persona y rondas cerradas que solo se leen. Lo que se llena vive en el detalle de cada persona y en la hoja «Entregar plata»." },
   "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
   "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
   // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).

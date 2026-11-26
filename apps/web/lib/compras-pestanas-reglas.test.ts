@@ -75,7 +75,8 @@ describe("coherencia con el resto del sistema (si una cambia sin la otra, esto a
     const fila = (compras as { hijos: readonly (Hoja | { id: string })[] }).hijos.find((h) => h.id === "compras.comprobantes") as Hoja;
     expect(fila.ruta).toBe("/compras");
     const abre = [fila.modulo, ...(fila.modulosAlternos ?? [])];
-    for (const v of VISTAS_DE_COMPRAS) expect(abre, `la fila no abre con «${v.modulo}»`).toContain(v.modulo);
+    // ADR-0704: «Revisar compras» (`fondos`) tiene su propia fila, Compradores; ya no abre la de Todas las compras.
+    for (const v of VISTAS_DE_COMPRAS.filter((x) => x.modulo !== "fondos")) expect(abre, `la fila no abre con «${v.modulo}»`).toContain(v.modulo);
     // `exige` se suma al módulo: con `verDineroCompras` un rol con solo «Revisar compras» no vería la fila (ADR-0504, decisión 2).
     expect(fila.exige).toBeUndefined();
   });
