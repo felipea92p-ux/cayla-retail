@@ -7,5 +7,5 @@
 - [x] `pruebas:ordenes-insumo-retirada` en el CI (reemplaza a las tres suites de órdenes de insumos).
 - [x] Migración pegada en producción el 2026-11-26 con el OK de Felipe (antes de fusionar) y verificada: sin módulo ni roles, aviso con Producción, `crear_orden_insumo` cerrada.
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) después de pegarla.
-- [ ] «Tu fondo» en «Llegó una compra» y en «Pagar servicio» (hoy solo lo ofrecía la orden de insumos, que se fue): Claudia tiene S/ 3.000 de fondo para el Taller.
+- [x] «Tu fondo» en «Llegó una compra» y en «Pagar servicio» (2026-11-26, 0f5796752; pruebas F1/F2 de `produccion_llego_una_compra`). Falta: probarlo con la cuenta de Claudia en producción y, si se quiere, en «Pagar» de una factura a crédito (`PagarComprobanteProduccionModal`).
 - [ ] Opcional: sacar del Resumen y de Nueva orden la lectura de «en camino» de los pedidos (siempre vacía sin órdenes).
