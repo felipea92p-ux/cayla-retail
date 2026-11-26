@@ -1,7 +1,8 @@
 # ADR-0704 — Compras reestructurado: Compradores y Todas las compras, sin pestañas
 
 **Fecha:** 2026-11-26 · **Estado:** aceptado por Felipe (maqueta aprobada el mismo día: «Sí, sigamos»; plan aprobado: «Sí, construye»). La
-migración `20261126152000_compras_compradores_y_todas_las_compras.sql` **no está en producción**: se pega con el OK de Felipe.
+migración `20261126152000_compras_compradores_y_todas_las_compras.sql` **está en producción desde el 2026-11-26** (pegada por Claude con el OK de
+Felipe, antes de fusionar; las cinco funciones verificadas por md5 contra el archivo).
 
 ## Contexto
 
