@@ -132,3 +132,17 @@
   .cu-pantalla[data-foto] .cu-beneficios { margin: 20px 0 24px; gap: 14px; }
   .cu-pantalla[data-foto] .cu-beneficios small { display: none; }
 }
+
+/* ---- Mientras llega la página (`components/cuenta/EsperaDeCuenta.tsx`): la forma del formulario, que brilla. Quieto, liso. ---- */
+.cu-espera > div { display: grid; gap: 18px; }
+.cu-espera-linea, .cu-espera-campo {
+  background: linear-gradient(110deg, var(--hueso) 38%, color-mix(in srgb, var(--hueso) 45%, var(--crema)) 50%, var(--hueso) 62%);
+  background-size: 260% 100%;
+  animation: brillo 1.4s linear infinite;
+}
+.cu-espera-linea { height: 12px; }
+.cu-espera-ceja { width: 90px; }
+.cu-espera-titulo { width: 62%; height: 36px; margin-bottom: 12px; }
+.cu-espera-campo { height: 48px; border-radius: 6px; }
+.cu-espera-boton { border-radius: 999px; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .cu-espera-linea, .cu-espera-campo { animation: none; background: var(--hueso); } }

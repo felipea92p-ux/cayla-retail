@@ -23,6 +23,7 @@ const sinComentarios = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 /** Los bucles de CSS que existen hoy, por archivo (cuenta exacta de `infinite`), con la razón de cada uno. */
 const BUCLES_DE_CSS: Record<string, { cuantos: number; razon: string }> = {
   "estilos/catalogo.css": { cuantos: 2, razon: "el brillo de la foto vacía del esqueleto (`brillo`): dice «ya viene» mientras llega la página y se apaga al llegar" },
+  "estilos/cuenta-mostrador.css": { cuantos: 1, razon: "el brillo de la forma del formulario mientras llega Entrar o Crear cuenta (`EsperaDeCuenta`): se apaga al llegar la página" },
   "estilos/cabecera.css": { cuantos: 1, razon: "el hilo que barre bajo el nombre en el velo del cambio de tienda (ADR-0466): señal de espera, se apaga al llegar la página" },
   "estilos/probador.css": {
     cuantos: 5,
