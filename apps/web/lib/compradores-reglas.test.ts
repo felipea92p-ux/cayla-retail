@@ -6,7 +6,9 @@ import {
   leerCompradores,
   leerTodasLasCompras,
   llegadaDeCompra,
+  puedeCerrarseDesdeCompras,
   quedaDeRonda,
+  rondaElegida,
 } from "./compradores-reglas";
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
@@ -69,6 +71,27 @@ describe("el aviso de cada ronda (Felipe 2026-11-26)", () => {
     const vacia = { ...base, abiertaEn: "2026-10-23T10:00:00Z", ultimaCompraEn: null, compras: [], cuenta: cuenta(0, 0) };
     expect(avisoDeRonda(vacia, "2026-11-26", soles)).toEqual({ tono: "ambar", texto: "Sin compras hace 34 días.", cerrarRonda: true });
     expect(avisoDeRonda({ ...vacia, abiertaEn: "2026-11-13T10:00:00Z" }, "2026-11-26", soles)).toEqual({ tono: "neutro", texto: "Todavía no anota compras." });
+  });
+
+  it("con algo adentro, a los 14 días no ofrece cerrarla: la cierra su dueña", () => {
+    const quieta = { ...base, abiertaEn: "2026-10-01T10:00:00Z", ultimaCompraEn: "2026-11-01T10:00:00Z", cuenta: cuenta(500, 500) };
+    const aviso = avisoDeRonda(quieta, "2026-11-26", soles);
+    expect(aviso?.cerrarRonda).toBeUndefined();
+    expect(aviso?.texto).toContain("Mis compras");
+    expect(puedeCerrarseDesdeCompras({ cerradaEn: null, compras: [], cuenta: { ...cuenta(0, 0), compras: 0 } })).toBe(true);
+    expect(puedeCerrarseDesdeCompras({ cerradaEn: null, compras: [], cuenta: { ...cuenta(100, 0), compras: 0 } })).toBe(false);
+  });
+
+  it("la ronda del detalle: la de la URL si es suya, si no la abierta, si no la más reciente", () => {
+    const rs = [
+      { id: "vieja", cerradaEn: "2026-10-29", abiertaEn: "2026-10-28" },
+      { id: "abierta", cerradaEn: null, abiertaEn: "2026-11-09" },
+      { id: "media", cerradaEn: "2026-11-05", abiertaEn: "2026-11-01" },
+    ];
+    expect(rondaElegida(rs, "vieja")?.id).toBe("vieja");
+    expect(rondaElegida(rs, "de-otra")?.id).toBe("abierta");
+    expect(rondaElegida(rs.filter((r) => r.id !== "abierta"), null)?.id).toBe("media");
+    expect(rondaElegida([], null)).toBeNull();
   });
 
   it("una ronda cerrada que cuadra no avisa nada", () => {

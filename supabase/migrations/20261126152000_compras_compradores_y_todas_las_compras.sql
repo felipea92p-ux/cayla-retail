@@ -8,7 +8,7 @@
 -- había 21 revisadas y 33 que ya habían salido a la tienda en su envío pero no aparecían en ninguna lista de compras: solo en la bandeja
 -- «Revisar compras», como trabajo pendiente, sin decir quién gastó cuánto.
 --
--- QUÉ HACE (solo lecturas: nada se escribe, nada se borra, ninguna tabla ni política nueva)
+-- QUÉ HACE (dos lecturas y un cierre acotado; nada se borra, ninguna tabla ni política nueva)
 --   1. `fn_compradores()` (módulo `fondos`): las rondas abiertas y las cerradas de los últimos 60 días, cada una con quién compra, su
 --      cuenta (`fn_ronda_compras_cuenta`: le dieron, pagó de su plata, gastos), cómo cerró y TODAS sus compras —revisadas o no— con su
 --      papel, lo pagado, el medio, las prendas, el comprobante si ya se revisó y los envíos en que salieron.
@@ -16,8 +16,13 @@
 --      compras» entra desde que sale en un envío a la tienda (decisión de Felipe, 2026-11-26: «luego de hacer el envío, ya que si no la
 --      persona de compras lo puede editar»); su comprobante, si ya existe, va en la misma fila (nunca dos veces). Los comprobantes de
 --      mercadería que no nacieron de «Mis compras» (órdenes de compra de antes) se suman como filas de la oficina.
+--   3. `cerrar_ronda_sin_movimiento(ronda)` (módulo `fondos`): Felipe (2026-11-26) pidió que a los 14 días sin compras Compradores avise con
+--      «Cerrar su ronda». Hoy solo la dueña cierra la suya (`terminar_dia_compras`), porque al cerrar decide qué hace con la plata. Compras
+--      puede cerrar la de otra persona SOLO si la ronda no tiene nada —ni plata anotada, ni compras, ni gastos— y la persona no tiene plata
+--      en la mano: entonces no hay nada que decidir y el cierre es «se queda» con S/ 0. Con algo adentro, la base lo rechaza y la pantalla
+--      pide que la persona la cierre desde «Mis compras». Firma con el responsable (`fn_actor_persona_id(true)`), como todo guardado.
 --
--- Las dos son SECURITY DEFINER y preguntan el módulo antes de leer, como `fn_revisar_compras`. Se pega tal cual en producción: solo
+-- Las tres son SECURITY DEFINER y preguntan el módulo antes de leer, como `fn_revisar_compras`. Se pega tal cual en producción: solo
 -- `create or replace function` con firmas nuevas, idempotente.
 -- ============================================================================
 set lock_timeout = '3s';
@@ -172,3 +177,65 @@ end;
 $function$;
 revoke all on function retail.fn_todas_las_compras(date, date, uuid, text, integer) from public, anon;
 grant execute on function retail.fn_todas_las_compras(date, date, uuid, text, integer) to authenticated;
+
+-- 3. Cerrar una ronda olvidada que no tiene nada adentro.
+create or replace function retail.cerrar_ronda_sin_movimiento(p_ronda uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $function$
+declare
+  v_actor uuid;
+  v_persona uuid;
+  v_numero integer;
+  v_cerrada timestamptz;
+  v_cierre uuid;
+begin
+  if not retail.fn_ve_modulo('fondos') then
+    raise exception 'Cerrar la ronda de otra persona necesita el módulo Compradores en tu rol.' using errcode = '42501', hint = 'fondos_sin_modulo';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién cierra la ronda' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  for v_persona, v_numero, v_cerrada in select r.persona_id, r.numero, r.cerrada_en from retail.compra_rondas r where r.id = p_ronda loop
+    exit;
+  end loop;
+  if v_persona is null then
+    raise exception 'Esa ronda no existe' using errcode = 'P0001', hint = 'compra_ronda_no_existe';
+  end if;
+  -- El mismo candado que abrir y cerrar la ronda de esa persona: si ella anota en este momento, se ponen en fila.
+  perform pg_advisory_xact_lock(hashtextextended('compra_ronda:' || v_persona::text, 0));
+  v_cerrada := (select r.cerrada_en from retail.compra_rondas r where r.id = p_ronda);
+  if v_cerrada is not null then
+    return jsonb_build_object('ronda', retail.fn_ronda_compras_numero_texto(v_numero), 'ya_estaba', true);
+  end if;
+  if exists (select 1 from retail.compra_papeles c where c.ronda_id = p_ronda)
+     or exists (select 1 from retail.compra_gastos g where g.ronda_id = p_ronda)
+     or exists (select 1 from retail.fondo_plata_anotada a where a.ronda_id = p_ronda)
+     or retail.fn_mi_plata_tiene(v_persona) <> 0 then
+    raise exception 'Esta ronda tiene movimientos: la cierra la persona desde «Mis compras».' using errcode = 'P0001', hint = 'compra_ronda_con_movimiento';
+  end if;
+  insert into retail.compra_cierres (persona_id, fecha, decision, monto, cerrado_por, ronda_id)
+  values (v_persona, retail.fn_hoy_lima(), 'se_queda', 0, v_actor, p_ronda)
+  returning id into v_cierre;
+  update retail.compra_rondas set cerrada_en = now(), cierre_id = v_cierre where id = p_ronda;
+  begin
+    perform retail.fn_actividad_anotar('fondos', 'ronda_cerrada_sin_movimiento',
+      'cerró la ronda de compras ' || retail.fn_ronda_compras_numero_texto(v_numero) || ', que no tenía movimientos',
+      v_actor, retail.fn_actividad_terminal_ahora(), null, null, 'compra_cierres', v_cierre::text, now(),
+      jsonb_build_object('ronda', v_numero, 'persona', v_persona), 'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó el cierre de la ronda: %', sqlerrm;
+  end;
+  return jsonb_build_object('ronda', retail.fn_ronda_compras_numero_texto(v_numero), 'ya_estaba', false);
+end;
+$function$;
+revoke all on function retail.cerrar_ronda_sin_movimiento(uuid) from public, anon;
+grant execute on function retail.cerrar_ronda_sin_movimiento(uuid) to authenticated;
+
+-- Firma con la cuenta de una persona sin combo (desde una terminal, el combo), como entregar o anular un fondo.
+insert into retail.acciones_sin_responsable (clave, descripcion) values
+  ('ronda_cerrar_sin_movimiento', 'Cerrar la ronda de compras de otra persona que no tiene movimientos (con la cuenta de una persona firma ella, desde una terminal se elige quién)')
+on conflict (clave) do update set descripcion = excluded.descripcion;

@@ -7,6 +7,7 @@
  *   · Compradores trae la ronda con TODAS sus compras, revisadas o no, y su cuenta.
  *   · Todas las compras: una compra de «Mis compras» entra recién cuando sale en un envío (decisión de Felipe, 2026-11-26); al revisarla,
  *     su comprobante va en la misma fila (nunca dos veces). Un comprobante de la oficina entra como fila propia y se va al filtrar por persona.
+ *   · Cerrar una ronda ajena: solo con el módulo, solo si no tiene nada adentro (con una compra, la base la rechaza), y dos veces es lo mismo.
  *   · Pegar la migración dos veces no rompe nada.
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, filas escritas directo en las tablas y ROLLBACK siempre.
@@ -105,6 +106,20 @@ select count(*) filter (where x ->> 'id' = :'p1'), count(*) filter (where x -> '
 \\echo ==por-persona
 select count(*) filter (where x ->> 'origen' = 'comprobante'), count(*) filter (where x ->> 'id' = :'p1')
   from jsonb_array_elements(retail.fn_todas_las_compras(p_persona => :'compradora')) x;
+
+-- Cerrar la ronda de otra persona: con una compra adentro, no; vacía, sí (y otra vez devuelve «ya estaba»); sin el módulo, nunca.
+reset role;
+insert into public.personas (nombres, apellidos, sede_base_id) select 'Olvido', 'Prueba', sede_base_id from public.personas where id = :'compradora' returning id as otra \\gset
+insert into retail.compra_rondas (persona_id, abierta_por) values (:'otra', :'otra') returning id as vacia \\gset
+\\echo ==cerrar
+${como(MICAELA)}
+select pg_temp.intento(format('select retail.cerrar_ronda_sin_movimiento(%L)', :'vacia'));
+${como(FELIPE)}
+select set_config('request.headers', '{"x-responsable-omitido":"ronda_cerrar_sin_movimiento"}', true) \\g /dev/null
+select pg_temp.intento(format('select retail.cerrar_ronda_sin_movimiento(%L)', :'ronda')),
+       (retail.cerrar_ronda_sin_movimiento(:'vacia') ->> 'ya_estaba'), (retail.cerrar_ronda_sin_movimiento(:'vacia') ->> 'ya_estaba');
+reset role;
+select (select decision || '|' || monto from retail.compra_cierres k join retail.compra_rondas r on r.cierre_id = k.id where r.id = :'vacia');
 rollback;
 `;
 
@@ -127,6 +142,9 @@ const casos = [
   ["antes de revisar: entra la enviada, no la que no salió, y el comprobante de la oficina", bloques["todas-antes"]?.[0], "1|0|1"],
   ["revisada: sigue una sola fila, con su comprobante", bloques["todas-despues"]?.[0], "1|1|t"],
   ["por persona: sin lo de la oficina, con lo suyo", bloques["por-persona"]?.[0], "0|1"],
+  ["cerrar ronda ajena sin el módulo: 42501", bloques["cerrar"]?.[0], "42501"],
+  ["con una compra adentro no se cierra; vacía sí, y la segunda vez «ya estaba»", bloques["cerrar"]?.[1], "P0001|false|true"],
+  ["el cierre de la vacía es «se queda» con S/ 0", bloques["cerrar"]?.[2], "se_queda|0.00"],
 ];
 
 let fallas = 0;

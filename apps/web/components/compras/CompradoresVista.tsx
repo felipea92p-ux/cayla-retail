@@ -8,6 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { TarjetaComprador } from "./TarjetaComprador";
+import { textoCierre } from "./DetalleComprador";
 import { gastoDeRonda, porRevisarDeRonda, type RondaDeCompras } from "@/lib/compradores-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -93,14 +94,6 @@ export function CompradoresVista({ rondas, hoy, entregar, porDefinir }: { rondas
       )}
     </div>
   );
-}
-
-/** Cómo cerró, en palabras de tienda. */
-function textoCierre(r: RondaDeCompras): string {
-  if (!r.cierre) return "Cerrada";
-  if (r.cierre.decision === "devuelve") return `Devolvió ${soles(r.cierre.monto)}`;
-  if (r.cierre.decision === "le_deben") return `CAYLA le debía ${soles(r.cierre.monto)}`;
-  return "Se quedó en cero";
 }
 
 function LineaRondaCerrada({ ronda: r }: { ronda: RondaDeCompras }) {

@@ -11,6 +11,7 @@ import { diasEntreFechas, diaLima } from "./fechas-lima";
 // Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
 export const RPC_COMPRADORES = "fn_compradores";
 export const RPC_TODAS_LAS_COMPRAS = "fn_todas_las_compras";
+export const RPC_CERRAR_RONDA_SIN_MOVIMIENTO = "cerrar_ronda_sin_movimiento";
 
 /** A los cuántos días sin compras una ronda abierta avisa «Cerrar su ronda» (Felipe 2026-11-26: avisa, nadie la cierra sola). */
 export const DIAS_RONDA_OLVIDADA = 14;
@@ -160,12 +161,29 @@ export type AvisoDeRonda = { tono: "ambar" | "neutro"; texto: string; cerrarRond
  * Lo único que pide atención en una ronda, en una frase. Decisiones de Felipe (2026-11-26): si la plata no cuadra, SOLO se avisa (no se
  * pregunta ni se calcula lo que CAYLA le debe); a los 14 días sin compras, se avisa con «Cerrar su ronda» (nadie la cierra sola).
  */
+/**
+ * Compras puede cerrar la ronda de otra persona solo si no tiene nada adentro (`cerrar_ronda_sin_movimiento`, 20261126152000): ni plata
+ * anotada, ni compras, ni gastos. Es lo que la pantalla ofrece; la base además mira que la persona no tenga plata en la mano.
+ */
+export const puedeCerrarseDesdeCompras = (r: Pick<RondaDeCompras, "cerradaEn" | "compras" | "cuenta">): boolean =>
+  r.cerradaEn === null && r.compras.length === 0 && r.cuenta.dieron === 0 && r.cuenta.gastos === 0 && r.cuenta.compras === 0;
+
+/** La ronda que muestra el detalle de una persona: la pedida por la URL, si es suya; si no, la abierta; si no, la más reciente. */
+export function rondaElegida<T extends Pick<RondaDeCompras, "id" | "cerradaEn" | "abiertaEn">>(rondas: readonly T[], pedida: string | null | undefined): T | null {
+  const porUrl = pedida ? rondas.find((r) => r.id === pedida) : undefined;
+  if (porUrl) return porUrl;
+  return rondas.find((r) => r.cerradaEn === null) ?? [...rondas].sort((a, b) => b.abiertaEn.localeCompare(a.abiertaEn))[0] ?? null;
+}
+
 export function avisoDeRonda(r: Pick<RondaDeCompras, "cerradaEn" | "abiertaEn" | "ultimaCompraEn" | "cuenta" | "compras">, hoy: string, soles: (n: number) => string): AvisoDeRonda | null {
   const abierta = r.cerradaEn === null;
   const desde = diaLima(r.ultimaCompraEn ?? r.abiertaEn);
   const quieta = desde ? diasEntreFechas(desde, hoy) : 0;
   if (abierta && quieta >= DIAS_RONDA_OLVIDADA) {
-    return { tono: "ambar", texto: r.compras.length === 0 ? `Sin compras hace ${quieta} días.` : `Sin compras nuevas hace ${quieta} días.`, cerrarRonda: true };
+    // Vacía, Compras la cierra desde el detalle; con algo adentro, la cierra su dueña desde «Mis compras» (decide qué hace con la plata).
+    return r.compras.length === 0 && r.cuenta.dieron === 0 && r.cuenta.gastos === 0
+      ? { tono: "ambar", texto: `Sin compras hace ${quieta} días.`, cerrarRonda: true }
+      : { tono: "ambar", texto: `Sin compras nuevas hace ${quieta} días. Pídele que cierre su ronda en «Mis compras».` };
   }
   const queda = quedaDeRonda(r.cuenta);
   if (queda < -0.005) {

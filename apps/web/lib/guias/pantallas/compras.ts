@@ -3063,6 +3063,57 @@ export const GUIA_COMPRADORES: Guia = {
   ],
 };
 
+// Compras ▸ Compradores ▸ una persona (ADR-0704): su cuenta, lo que espera revisión y todas sus compras.
+export const GUIA_COMPRADOR: Guia = {
+  id: "compras.comprador",
+  ruta: "/compras/compradores/[personaId]",
+  titulo: "Una persona que compra",
+  resumen: "Lo que compró con la plata que le diste, lo que falta revisar y sus otras rondas.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Sus compras, de punta a punta",
+      texto: "Todo lo de una persona en un solo lugar: cuánto le diste, en qué lo gastó y qué falta revisar. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cuenta",
+      ancla: "comprador.cuenta",
+      opcional: true,
+      titulo: "Su cuenta de la ronda",
+      texto: "Le diste, gastó y le queda. Si pagó más de lo que le diste, dice «No cuadra» y cuánto: pregúntale cómo lo pagó.",
+    },
+    {
+      id: "cerrar",
+      ancla: "comprador.cerrar-ronda",
+      opcional: true,
+      titulo: "Cerrar su ronda",
+      texto: "Sale solo si lleva 14 días sin compras y no tiene nada adentro. Si tiene compras o plata, la cierra ella desde «Mis compras».",
+    },
+    {
+      id: "por-revisar",
+      ancla: "comprador.por-revisar",
+      opcional: true,
+      titulo: "Lo que espera revisión",
+      texto: "Su plata por confirmar, sus compras por completar, sus gastos y su cierre. Toca uno y se abre su detalle al lado, como siempre.",
+    },
+    {
+      id: "compras",
+      ancla: "comprador.compras",
+      opcional: true,
+      titulo: "Todas sus compras",
+      texto: "Cada compra con su papel, el envío en que salió a la tienda y si ya se revisó o le falta pagar algo.",
+    },
+    {
+      id: "rondas",
+      ancla: "comprador.rondas",
+      opcional: true,
+      titulo: "Sus otras rondas",
+      texto: "Las de los últimos dos meses. Toca una para ver lo que compró esa vez.",
+    },
+  ],
+};
+
 export const GUIA_FONDOS: Guia = {
   id: "compras.fondos",
   ruta: "/compras/fondos",
