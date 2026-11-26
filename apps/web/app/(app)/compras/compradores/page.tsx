@@ -1,6 +1,8 @@
 import { EntregarFondo } from "@/components/fondos/AccionesFondos";
 import { PorDefinir } from "@/components/mi-plata/PorDefinir";
 import { CompradoresVista } from "@/components/compras/CompradoresVista";
+import { RendicionesPorAprobar } from "@/components/compras/RendicionesPorAprobar";
+import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { getCompradores } from "@/lib/compradores";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPorDefinir } from "@/lib/por-definir";
@@ -17,6 +19,8 @@ export default async function CompradoresPage() {
   const [rondas, datos, porDefinir] = await Promise.all([getCompradores(), getDatosFondos(), getPorDefinir()]);
   const tienePorPersona = Object.fromEntries(datos.fondos.map((f) => [f.personaId, Math.max(f.saldo, 0)]));
   const entregar = datos.falla ? undefined : <EntregarFondo opciones={datos.opciones} tiene={tienePorPersona} />;
+  const deudas = deudasPorPersona(datos.deudas);
+  const porAprobar = datos.rendiciones.filter((r) => r.estado === "por_aprobar");
 
   return (
     <CompradoresVista
@@ -24,6 +28,7 @@ export default async function CompradoresPage() {
       hoy={hoy}
       entregar={entregar}
       porDefinir={porDefinir && <PorDefinir modelos={porDefinir.modelos} categorias={porDefinir.categorias} guia="compradores.por-definir" />}
+      rendiciones={porAprobar.length > 0 ? <RendicionesPorAprobar porAprobar={porAprobar} debe={(id) => deudas.get(id)?.debe ?? 0} /> : undefined}
     />
   );
 }

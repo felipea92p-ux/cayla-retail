@@ -2,7 +2,7 @@
   "guia": "compras.compradores",
   "ruta": "/compras/compradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 50,
   "controles": {
     "components/compras/CompradoresVista.tsx": [
       "Link «{primerNombre(r.persona)}»"
@@ -43,6 +43,22 @@
     "components/fondos/FichasCuenta.tsx": [
       "CampoSelect «{etiqueta}»",
       "button «→() => onValor(c.id)»"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «(sin nombre)»"
+    ],
+    "components/fondos/RevisarRendicion.tsx": [
+      "Boton «fondos.revisar»",
+      "button «Volver a intentar»",
+      "SegmentoDeslizante «Quién asume lo que falta»",
+      "CampoTexto «Nota · opcional»",
+      "ComboResponsable «{responsable}»",
+      "CampoTexto «¿Qué tiene que corregir?»",
+      "Boton «Cancelar»",
+      "Boton «Devolver para corregir»",
+      "Boton «Devolver para corregir» #2",
+      "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
     ],
     "components/mi-plata/PorDefinir.tsx": [
       "Boton «Definir»",

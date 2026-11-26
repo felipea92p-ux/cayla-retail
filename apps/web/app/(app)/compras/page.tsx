@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
-import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
 import { getTodasLasCompras } from "@/lib/compradores";
 import { mesDeParametro } from "@/lib/facturacion-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -18,7 +17,7 @@ import { TodasLasComprasVista, type PersonaDelFiltro } from "@/components/compra
 export default async function TodasLasComprasPage({ searchParams }: { searchParams: Promise<{ m?: string; q?: string; persona?: string }> }) {
   // La ruta abre con el módulo de siempre (`facturas_compra`) o con Por pagar, que sigue colgando de aquí; quien no ve esta lista cae en lo suyo.
   const persona = await exigirModulo("facturas_compra", "por_pagar");
-  if (!veModulo(persona, "facturas_compra")) redirect(entradaDeCompras(persona.modulos.map((m) => m.clave)) ?? "/");
+  if (!veModulo(persona, "facturas_compra")) redirect("/compras/por-pagar");
   const params = await searchParams;
   const hoy = hoyLima();
   const actual = { anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) };

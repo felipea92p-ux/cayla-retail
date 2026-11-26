@@ -71,7 +71,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/compradores": { estado: "no-aplica", motivo: "Portada de Compras: tarjetas por persona y rondas cerradas que solo se leen. Lo que se llena vive en el detalle de cada persona y en la hoja «Entregar plata»." },
   // El detalle de una persona (ADR-0704): lo que se llena es la bandeja de Revisar compras de siempre, filtrada a esa persona, con su guía.
   "/compras/compradores/[personaId]": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
-  "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
+  "/compras/fondos": { estado: "no-aplica", motivo: "Solo redirige a Compradores (ADR-0704): lo que se revisaba aquí vive en el detalle de cada persona." },
   "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
   // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
   "/compras/mi-plata/envios": { estado: "no-aplica", motivo: "ADR-0480: solo se lee; su único campo es el buscador de códigos y no hay nada que llenar ni pasos por recorrer." },

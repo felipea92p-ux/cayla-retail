@@ -20,7 +20,20 @@ import { primerNombre } from "@/lib/fondos-reglas";
 
 const LIMITE_CERRADAS = 8;
 
-export function CompradoresVista({ rondas, hoy, entregar, porDefinir }: { rondas: RondaDeCompras[] | null; hoy: string; entregar?: ReactNode; porDefinir?: ReactNode }) {
+export function CompradoresVista({
+  rondas,
+  hoy,
+  entregar,
+  porDefinir,
+  rendiciones,
+}: {
+  rondas: RondaDeCompras[] | null;
+  hoy: string;
+  entregar?: ReactNode;
+  porDefinir?: ReactNode;
+  /** Las rendiciones de fondo por aprobar (ADR-0362), solo si hay alguna. */
+  rendiciones?: ReactNode;
+}) {
   const abiertas = (rondas ?? []).filter((r) => r.cerradaEn === null);
   const cerradas = (rondas ?? []).filter((r) => r.cerradaEn !== null).slice(0, LIMITE_CERRADAS);
   const mes = hoy.slice(0, 7);
@@ -62,6 +75,7 @@ export function CompradoresVista({ rondas, hoy, entregar, porDefinir }: { rondas
           </div>
 
           {porDefinir}
+          {rendiciones}
 
           <section className="space-y-3">
             <TituloGrupo cuenta={abiertas.length}>Comprando ahora</TituloGrupo>

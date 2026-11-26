@@ -239,3 +239,15 @@ grant execute on function retail.cerrar_ronda_sin_movimiento(uuid) to authentica
 insert into retail.acciones_sin_responsable (clave, descripcion) values
   ('ronda_cerrar_sin_movimiento', 'Cerrar la ronda de compras de otra persona que no tiene movimientos (con la cuenta de una persona firma ella, desde una terminal se elige quién)')
 on conflict (clave) do update set descripcion = excluded.descripcion;
+
+-- Los nombres en Roles y accesos siguen al menú (ADR-0704): «Revisar compras» es Compradores e «Historial de compras», Todas las compras.
+-- Mismas claves y mismas funciones: cambia lo que se lee.
+update retail.modulos
+   set nombre = 'Compradores',
+       incluye = 'Ver quién está comprando con plata de CAYLA y en qué la gastó; entregarle plata y registrar lo que devuelve; confirmar su plata, completar sus compras, revisar sus gastos y recibir sus rondas cerradas; cerrar una ronda olvidada sin movimientos'
+ where clave = 'fondos';
+
+update retail.modulos
+   set nombre = 'Todas las compras',
+       incluye = 'Ver todas las compras, de cada persona y de la oficina, con su papel, su envío y si ya se revisaron; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador'
+ where clave = 'facturas_compra';

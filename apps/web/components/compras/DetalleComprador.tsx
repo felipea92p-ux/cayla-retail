@@ -38,6 +38,7 @@ export function DetalleComprador({
   acciones,
   bandeja,
   cerrarRonda,
+  plata,
   personaId,
 }: {
   nombre: string;
@@ -52,6 +53,8 @@ export function DetalleComprador({
   bandeja?: ReactNode;
   /** La acción «Cerrar su ronda», solo si la ronda se puede cerrar desde Compras. */
   cerrarRonda?: ReactNode;
+  /** Las entregas, devoluciones y pagos de deuda de esta persona, con su «Anular» (antes, la hoja «Entregas y devoluciones»). */
+  plata?: ReactNode;
 }) {
   const aviso = ronda ? avisoDeRonda(ronda, hoy, soles) : null;
   const queda = ronda ? quedaDeRonda(ronda.cuenta) : 0;
@@ -125,6 +128,13 @@ export function DetalleComprador({
             )}
           </section>
         </>
+      )}
+
+      {plata && (
+        <section className="space-y-3" data-guia="comprador.plata">
+          <TituloSeccion>La plata que le diste</TituloSeccion>
+          <div className="card-cayla p-4 sm:p-5">{plata}</div>
+        </section>
       )}
 
       {otras.length > 0 && (

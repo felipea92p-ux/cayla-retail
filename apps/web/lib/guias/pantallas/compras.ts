@@ -14,15 +14,6 @@ const BOTON_FILTROS: PasoGuia = {
   texto: "Abre filtros por proveedor, tienda de destino, condición (contado o crédito) y vencimiento. Cada filtro que pones aparece como una etiqueta con su ✕ para quitarlo.",
 };
 
-/** Las tres pestañas de «Historial de compras» (ADR-0504): el mismo paso en las tres guías. Es `opcional`: quien solo trae una sección no ve la fila. */
-const PASO_PESTANAS: PasoGuia = {
-  id: "pestanas",
-  ancla: "compras.pestanas",
-  opcional: true,
-  titulo: "Las tres secciones de Compras",
-  texto: "Historial es el libro de lo comprado; Revisar compras, lo que anotaron y falta confirmar; Por pagar, lo que se debe. Solo ves las secciones que tu rol trae, y un número en ámbar dice cuánto espera.",
-};
-
 export const GUIA_FACTURAS: Guia = {
   id: "compras",
   ruta: "/compras",
@@ -268,7 +259,6 @@ export const GUIA_POR_PAGAR: Guia = {
       titulo: "Lo que se debe a proveedores",
       texto: "Cada factura registrada, de cualquier tienda, que todavía no se paga del todo aparece aquí, de lo más urgente a lo que puede esperar. Desde aquí se paga. Es una demo: no se paga nada.",
     },
-    PASO_PESTANAS,
     {
       id: "cifras",
       ancla: "por-pagar.cifras",
@@ -3006,6 +2996,20 @@ export const GUIA_COMPRADORES: Guia = {
       texto: "Lo que alguien anotó sin saber qué es o a cuánto se vende. «Definir» pone la categoría, el precio o los dos.",
     },
     {
+      id: "rendiciones",
+      ancla: "fondos.rendiciones",
+      opcional: true,
+      titulo: "Rendiciones por aprobar",
+      texto: "Quien compró rinde su fondo: cuenta lo que tiene en la mano y aquí ves lo que debería tener, lo que dice que tiene y si cuadra o le falta plata. Cada una se revisa con «Revisar».",
+    },
+    {
+      id: "revisar",
+      ancla: "fondos.revisar",
+      opcional: true,
+      titulo: "Revisar una rendición",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
+    },
+    {
       id: "tarjeta",
       ancla: "compradores.tarjeta",
       opcional: true,
@@ -3061,43 +3065,6 @@ export const GUIA_COMPRADOR: Guia = {
       opcional: true,
       titulo: "Lo que espera revisión",
       texto: "Su plata por confirmar, sus compras por completar, sus gastos y su cierre. Toca uno y se abre su detalle al lado, como siempre.",
-    },
-    {
-      id: "compras",
-      ancla: "comprador.compras",
-      opcional: true,
-      titulo: "Todas sus compras",
-      texto: "Cada compra con su papel, el envío en que salió a la tienda y si ya se revisó o le falta pagar algo.",
-    },
-    {
-      id: "rondas",
-      ancla: "comprador.rondas",
-      opcional: true,
-      titulo: "Sus otras rondas",
-      texto: "Las de los últimos dos meses. Toca una para ver lo que compró esa vez.",
-    },
-  ],
-};
-
-export const GUIA_FONDOS: Guia = {
-  id: "compras.fondos",
-  ruta: "/compras/fondos",
-  titulo: "Revisar compras",
-  resumen: "Lo que anotaron las compradoras: confírmalo y pásalo a los libros. Y cuánto tiene cada persona en la mano.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "La plata para comprar",
-      texto: "Quien compra para CAYLA anota desde su celular la plata que le dan, lo que compra y lo que gasta. Aquí lo revisas y lo pasas a los libros, y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
-    },
-    PASO_PESTANAS,
-    {
-      id: "por-definir",
-      ancla: "fondos.por-definir",
-      opcional: true,
-      titulo: "Prendas por definir",
-      texto: "Lo que una compradora anotó sin saber qué es o a cuánto se vende. «Definir» pone la categoría, el precio o los dos; lo que nadie defina antes de que llegue, lo dice la tienda al recibirlo.",
     },
     {
       id: "cifras-revisar",
@@ -3220,55 +3187,6 @@ export const GUIA_FONDOS: Guia = {
       texto: "Eliges dónde entra la plata (o de dónde sale) y cuánto trajo. Lo que no trajo sigue en su plata de compras. En la demo no lo guardamos.",
     },
     {
-      id: "entregar",
-      ancla: "fondos.entregar",
-      titulo: "Entregar plata",
-      texto: "Eliges a quién, de qué banco o caja fuerte sale y para qué es («compras en Gamarra»). No es un gasto: la plata sigue siendo de CAYLA mientras la persona la tiene. Nadie se entrega plata a sí mismo.",
-    },
-    {
-      id: "rendiciones",
-      ancla: "fondos.rendiciones",
-      opcional: true,
-      titulo: "Rendiciones por aprobar",
-      texto: "Quien compró rinde su fondo: cuenta lo que tiene en la mano y aquí ves lo que debería tener, lo que dice que tiene y si cuadra o le falta plata. Cada una se revisa con «Revisar».",
-    },
-    {
-      id: "revisar",
-      ancla: "fondos.revisar",
-      opcional: true,
-      titulo: "Revisar una rendición",
-      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
-    },
-    {
-      id: "quien-tiene",
-      ancla: "fondos.quien-tiene",
-      titulo: "Quién tiene plata",
-      texto: "Abre una hoja con cuánto tienen en la mano todas las personas juntas y, por persona, cuánto se le entregó, cuánto devolvió y cuánto tiene (te la abrimos).",
-    },
-    {
-      id: "vacio",
-      ancla: "fondos.vacio",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "fondos.quien-tiene" }],
-      titulo: "Todavía nadie tiene fondo",
-      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
-    },
-    {
-      id: "cifras",
-      ancla: "fondos.cifras",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "fondos.quien-tiene" }],
-      titulo: "Toda la empresa",
-      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
-    },
-    {
-      id: "lista",
-      ancla: "fondos.lista",
-      opcional: true,
-      titulo: "Quién tiene plata",
-      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto se le entregó, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, lo que dijo tener sale bajo su cifra; si debe por un faltante, lo dice bajo su nombre.",
-    },
-    {
       id: "devolver",
       ancla: "fondos.devolver",
       opcional: true,
@@ -3283,20 +3201,11 @@ export const GUIA_FONDOS: Guia = {
       texto: "Si alguien debe por un faltante y te devuelve la plata, aquí lo registras: cuánto pagó y a qué banco o caja fuerte entró. La deuda baja apenas se guarda. No lo registra quien debe, y no se paga más de lo que debe.",
     },
     {
-      id: "entregas",
-      ancla: "fondos.entregas",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      titulo: "Entregas y devoluciones",
-      texto: "Abre la hoja con cada entrega, devolución y pago de deuda (te la abrimos).",
-    },
-    {
       id: "movimientos",
       ancla: "fondos.movimientos",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "fondos.entregas" }],
       titulo: "Entregas, devoluciones y pagos de deuda",
-      texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
+      texto: "Cada entrega, devolución y pago de deuda de esta persona, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
     },
     {
       id: "anular",
@@ -3306,11 +3215,26 @@ export const GUIA_FONDOS: Guia = {
       texto: "Si una entrega, una devolución o un pago de deuda se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata no se anula, y nadie anula lo de su propio fondo.",
     },
     {
-      id: "fin",
-      ancla: null,
-      preparar: [{ tipo: "escape" }],
-      titulo: "¡Listo!",
-      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Revisar compras.",
+      id: "plata",
+      ancla: "comprador.plata",
+      opcional: true,
+      titulo: "La plata que le diste",
+      texto: "Lo que le entregaste, lo que devolvió y lo que pagó de una deuda, con su «Anular» si se anotó mal.",
+    },
+    {
+      id: "compras",
+      ancla: "comprador.compras",
+      opcional: true,
+      titulo: "Todas sus compras",
+      texto: "Cada compra con su papel, el envío en que salió a la tienda y si ya se revisó o le falta pagar algo.",
+    },
+    {
+      id: "rondas",
+      ancla: "comprador.rondas",
+      opcional: true,
+      titulo: "Sus otras rondas",
+      texto: "Las de los últimos dos meses. Toca una para ver lo que compró esa vez.",
     },
   ],
 };
+
