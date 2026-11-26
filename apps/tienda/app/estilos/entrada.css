@@ -16,14 +16,12 @@
 .en-lado > .en-form { position: relative; width: 100%; max-width: 620px; margin-inline: auto; padding: 40px 22px 28px; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .en-lado > .en-form::before { content: ""; position: absolute; inset: 10px; border: 1px solid var(--t-tinta-fija); pointer-events: none; }
 
-/* En el celular el formulario llega al margen de la tienda (16 px, el del logo de la cabecera), también en «Cambiar mi correo» y
-   «Eliminar mi cuenta» (`.en-sola`): a 375 px la caja del correo medía 179 px junto a «Obtener código» y su ejemplo se cortaba
+/* En el celular el formulario llega al margen de la tienda (16 px, el del logo de la cabecera); «Cambiar mi correo» y
+   «Eliminar mi cuenta» usan `PantallaDeCuenta` desde el 2026-11-26. A 375 px la caja del correo medía 179 px junto a «Obtener código» y su ejemplo se cortaba
    («tucorreo@gmail.cor»); ahora mide 220. El pie fijo («Falta: …» y el botón) sigue llegando a los dos bordes de la pantalla. */
 @container tienda (max-width: 959.98px) {
   .en-form .w-ficha { padding-inline: 0; }
   .en-form .w-pie-form { margin-inline: -11px; padding-inline: 11px; }
-  /* «Cambiar mi correo» y «Eliminar mi cuenta» (`.en-sola`) siguen en la página blanca, sin hoja: su pie llega a los bordes de la pantalla. */
-  .en-form.en-sola .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 }
 
 /* ---- El panel ---- */
