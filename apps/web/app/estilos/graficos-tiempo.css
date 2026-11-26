@@ -61,7 +61,7 @@
     .linea-marca:hover .linea-marca-fondo { stroke-width: 2.5; }
   }
   .linea-globo, .barra-t-globo {
-    position: absolute; z-index: 10; padding: 6px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+    position: absolute; z-index: 10; padding: 6px 10px; border-radius: var(--radius-md); white-space: nowrap; pointer-events: none;
     background: var(--color-tinta); color: var(--color-crema); font-size: var(--text-xs); line-height: 1.4; font-variant-numeric: tabular-nums;
     box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   }
@@ -89,7 +89,7 @@
   /* El momento elegido (`onElegir`): una raya roja; el gráfico se recorre con el teclado como un deslizador. */
   .linea-elegido { stroke: var(--color-rojo); stroke-width: 1.5; pointer-events: none; }
   .linea-elegible { cursor: pointer; outline: none; }
-  .linea-elegible:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; border-radius: 6px; }
+  .linea-elegible:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; border-radius: var(--radius-sm); }
 
   /* ---------- Las barras por tiempo ---------- */
   /* `container-type` porque el globito de cada barra mide contra la zona (`cqw`). De paso, lo que se sale de la zona se pinta pero no cuenta
@@ -103,16 +103,16 @@
   .barras-tiempo-eje-y > span { position: absolute; right: 100%; margin-right: 8px; translate: 0 -50%; white-space: nowrap; font-size: 10.5px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
   .barras-tiempo-ref { position: absolute; left: 0; right: 0; z-index: 1; border-top: 2px dashed var(--color-taupe); pointer-events: none; }
   /* El rótulo de la referencia lleva el color del fondo detrás: si cae sobre una barra, se sigue leyendo (maqueta de Reportes). */
-  .barras-tiempo-ref > span { position: absolute; right: 0; bottom: 3px; padding: 0 6px; border-radius: 6px; font-size: 10.5px; color: var(--color-taupe-profundo); background: color-mix(in srgb, var(--barras-fondo, var(--color-papel)) 85%, transparent); }
+  .barras-tiempo-ref > span { position: absolute; right: 0; bottom: 3px; padding: 0 6px; border-radius: var(--radius-sm); font-size: 10.5px; color: var(--color-taupe-profundo); background: color-mix(in srgb, var(--barras-fondo, var(--color-papel)) 85%, transparent); }
   .barra-t { position: relative; display: block; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: none; text-align: center; cursor: default; transition: opacity 200ms var(--ease-cayla); }
   button.barra-t { cursor: pointer; }
   .barra-t[data-apagada] { opacity: .4; }
   .barra-t-relleno {
-    position: absolute; left: 50%; width: min(78%, 28px); translate: -50% 0; border-radius: 4px 4px 0 0; background: var(--color-grafico-neutro);
+    position: absolute; left: 50%; width: min(78%, 28px); translate: -50% 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--color-grafico-neutro);
     transform-origin: bottom; animation: cayla-barras-crece 560ms var(--ease-cayla) backwards; animation-delay: calc(140ms + var(--i, 0) * 34ms);
     transition: background-color 200ms var(--ease-cayla), height 500ms var(--ease-cayla);
   }
-  .barra-t-relleno[data-baja] { border-radius: 0 0 4px 4px; transform-origin: top; }
+  .barra-t-relleno[data-baja] { border-radius: 0 0 var(--radius-sm) var(--radius-sm); transform-origin: top; }
   .barra-t[data-tono="tinta"] .barra-t-relleno { background: var(--color-tinta); }
   .barra-t[data-tono="rojo"] .barra-t-relleno { background: var(--color-rojo); }
   .barra-t[data-tono="ambar"] .barra-t-relleno { background: var(--color-ambar); }

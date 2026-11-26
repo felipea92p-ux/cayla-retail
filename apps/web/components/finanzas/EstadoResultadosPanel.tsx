@@ -371,8 +371,8 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, desde, hasta, titulo
         <ul className="fin-lista mt-3" aria-hidden>
           {[0, 1, 2].map((i) => (
             <li key={i}>
-              <span className="h-3 w-40 rounded bg-hueso" />{/* beige-fijo: esqueleto de carga */}
-              <span className="h-3 w-16 rounded bg-hueso" />{/* beige-fijo: esqueleto de carga */}
+              <span className="h-3 w-40 rounded-sm bg-hueso" />{/* beige-fijo: esqueleto de carga */}
+              <span className="h-3 w-16 rounded-sm bg-hueso" />{/* beige-fijo: esqueleto de carga */}
             </li>
           ))}
         </ul>

@@ -12,7 +12,7 @@
   gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--color-sand);
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
 }
 
 /* «Qué pasa en Finanzas»: un renglón por lugar, con su marca (✓ lo cuenta, ✗ no, reloj: todavía no), separados por un filo. */
@@ -50,7 +50,7 @@
   padding: 10px 14px;
   text-align: left;
   border: 1px solid var(--color-borde-control);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
 }

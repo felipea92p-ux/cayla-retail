@@ -8,13 +8,13 @@ export default function LoadingLibroReclamaciones() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando el Libro de Reclamaciones">
         <div>
-          <div className="h-3 w-64 max-w-full rounded bg-sand" />
-          <div className="mt-3 h-9 w-72 max-w-full rounded bg-sand sm:h-[46px]" />
-          <div className="mt-2.5 h-3 w-[28rem] max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-64 max-w-full rounded-sm bg-sand" />
+          <div className="mt-3 h-9 w-72 max-w-full rounded-sm bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[28rem] max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-24 rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="card-cayla divide-y divide-sand">
@@ -24,9 +24,9 @@ export default function LoadingLibroReclamaciones() {
           </div>
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="h-3 w-24 rounded bg-sand" />
-              <div className="h-3 w-40 rounded bg-sand" />
-              <div className="ml-auto h-3 w-1/4 rounded bg-sand/70" />
+              <div className="h-3 w-24 rounded-sm bg-sand" />
+              <div className="h-3 w-40 rounded-sm bg-sand" />
+              <div className="ml-auto h-3 w-1/4 rounded-sm bg-sand/70" />
             </div>
           ))}
         </div>

@@ -92,7 +92,7 @@
 /* En el celular el riel es el cajón que entra desde la izquierda: su borde de afuera se redondea, y la gota entra en la cascada
    del cajón (globals.css) con el turno de su fila (`--k`, lo copia el AppShell): sin esto llegaba sola, antes que las filas. */
 @media (max-width: 639.98px) {
-  .marco-riel { border-radius: 0 28px 28px 0; }
+  .marco-riel { border-radius: 0 var(--radius-cajon) var(--radius-cajon) 0; }
   .marco-riel[data-cajon="abierto"] .marco-gota {
     animation: cayla-pieza-cajon 460ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--k, 0) * 45ms + 90ms);
@@ -107,7 +107,7 @@
   height: 40px;
   padding-left: var(--fila-x);
   padding-right: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: var(--text-detalle);
   --fila-x: 12px;
 }
@@ -136,7 +136,7 @@
   left: 0;
   width: 0;
   height: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   pointer-events: none;
   opacity: 0;
   background: var(--menu-activa-fondo);
@@ -161,7 +161,7 @@
    Felipe 2026-11-02), sin líneas ni ramas (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
    ya está dentro de una. */
 .lateral-hijos[data-bandeja] > div {
-  border-radius: 16px;
+  border-radius: var(--radius-campo);
   transition: margin 300ms var(--ease-cayla), padding 300ms var(--ease-cayla), background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla);
 }
 .lateral-hijos[data-bandeja][data-abierto="true"] > div {
@@ -236,7 +236,7 @@
   gap: 4px;
   height: var(--fila-alto, 54px);
   padding: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
 }
 .marco-riel[data-compacto] .marco-fila :is(.marco-etiqueta, .marco-chevron) { display: none; }
 .marco-riel[data-compacto] .marco-fila .marco-icono { translate: none; }
@@ -436,14 +436,14 @@
 /* ---------- El cajón de un módulo con el menú plegado ----------
    Flota junto al riel con el vidrio de lo que flota; la pantalla en la que estás es la gota con su marca roja, como en el riel. */
 .marco-cajon-grupo {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--marco-vidrio-borde);
   background: var(--vidrio-flota-fondo);
   -webkit-backdrop-filter: var(--vidrio-flota-filtro);
   backdrop-filter: var(--vidrio-flota-filtro);
   box-shadow: var(--vidrio-flota-sombra);
 }
-.marco-cajon-fila { border-radius: 12px; }
+.marco-cajon-fila { border-radius: var(--radius-md); }
 .marco-cajon-fila[aria-current="page"] {
   padding-left: 20px;
   background: var(--menu-activa-fondo);
@@ -487,13 +487,13 @@
   gap: 6px;
   margin: 8px 12px 14px;
   padding: 8px 8px 8px 8px;
-  border-radius: 20px;
+  border-radius: calc(var(--radius-cajon) - 12px);
   border: 1px solid var(--placa-borde);
   background: var(--placa-fondo);
   box-shadow: var(--placa-luz);
   transition: margin 300ms var(--ease-cayla), padding 300ms var(--ease-cayla), background 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
 }
-.marco-yo-quien { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: 14px; }
+.marco-yo-quien { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: calc(var(--radius-cajon) - 20px); }
 .marco-yo-lente {
   flex: none;
   display: grid;
@@ -569,7 +569,7 @@
     width: 4px;
     height: 44px;
     margin-top: -22px;
-    border-radius: 4px;
+    border-radius: 999px;
     background: var(--cajon-movil-asa);
     pointer-events: none;
   }

@@ -75,7 +75,7 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
       <span className="btn-cayla btn-secundario mov-boton banda-ajustar-boton">
         Ajustar stock
         {/* La tecla, solo con el mouse encima o con el foco del teclado (/formidable 2026-11-24). */}
-        <kbd className="invisible hidden rounded border border-sand px-1.5 text-xs text-secundario group-hover:visible group-focus-visible:visible sm:inline">6</kbd>
+        <kbd className="invisible hidden rounded-sm border border-sand px-1.5 text-xs text-secundario group-hover:visible group-focus-visible:visible sm:inline">6</kbd>
       </span>
     </button>
   );

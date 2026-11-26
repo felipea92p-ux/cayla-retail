@@ -229,13 +229,13 @@ export function NuevaProformaModal({
           </div>
 
           {filas.length === 0 ? (
-            <div className="rounded-[12px] border border-tinta/10">
+            <div className="rounded-campo border border-tinta/10">
               <Vacio tamano="chico" icono={<Shirt />}>
                 Todavía no hay prendas. Búscalas arriba.
               </Vacio>
             </div>
           ) : (
-            <ul className="divide-y divide-tinta/10 rounded-[12px] border border-tinta/10">
+            <ul className="divide-y divide-tinta/10 rounded-campo border border-tinta/10">
               {filas.map((f) => {
                 const id = f.prenda.varianteId;
                 const descuento = descuentoDe(f);
@@ -319,7 +319,7 @@ export function NuevaProformaModal({
               />
               <CampoTexto etiqueta="Nota para el cliente" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
             </div>
-            <dl data-guia="proformas.modal-total" className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
+            <dl data-guia="proformas.modal-total" className="space-y-1 self-end rounded-campo bg-tinta/[0.03] px-4 py-3 text-sm">
               <div className="flex justify-between text-tinta/70">
                 <dt>
                   {totales.prendas} {totales.prendas === 1 ? "prenda" : "prendas"} · descuentos
@@ -368,10 +368,10 @@ export function NuevaProformaModal({
 export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: string | null; referencia: string } }) {
   if (prenda.fotoUrl) {
     return (
-      <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] vd-hundido">
+      <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-sm vd-hundido">
         <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" /* beige-fijo: color de prenda sin color, es el dato */ }} />} />
       </span>
     );
   }
-  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-[4px] border border-tinta/10" style={{ background: prenda.colorHex ?? "var(--color-hueso)" /* beige-fijo: color de prenda sin color, es el dato */ }} />;
+  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-sm border border-tinta/10" style={{ background: prenda.colorHex ?? "var(--color-hueso)" /* beige-fijo: color de prenda sin color, es el dato */ }} />;
 }

@@ -236,12 +236,12 @@ export function EsqueletoBusqueda() {
     <div className="space-y-3 pt-2" aria-label="Buscando" role="status">
       {[0, 1].map((i) => (
         <div key={i} className="animate-pulse rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.05]">
-          <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-48 rounded bg-sand/70" />
+          <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-48 rounded-sm bg-sand/70" />
           <div className="mt-5 flex items-center gap-4">
             <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-12 w-12 rounded-md bg-sand/60" />
             <div className="flex-1 space-y-2">
-              <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3.5 w-40 rounded bg-sand/70" />
-              <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-24 rounded bg-sand/50" />
+              <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3.5 w-40 rounded-sm bg-sand/70" />
+              <div /* beige-fijo: esqueleto de carga que espera datos */ className="h-3 w-24 rounded-sm bg-sand/50" />
             </div>
           </div>
         </div>

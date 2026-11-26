@@ -130,7 +130,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 8px 12px 12px;
-  border-radius: 16px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--color-sand);
   background: var(--color-papel);
   box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
@@ -156,7 +156,7 @@
 .ca-lista:focus-visible {
   outline: 2px solid var(--color-rojo);
   outline-offset: 2px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 .ca-lista::-webkit-scrollbar {
   width: 8px;
@@ -178,7 +178,7 @@
   gap: 12px;
   align-items: flex-start;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border-left: 5px solid var(--c);
   border-top: 1px solid var(--color-sand);
   border-right: 1px solid var(--color-sand);
@@ -320,7 +320,7 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 85%, transparent);
 }
 .ca-panel {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--placa-borde);
   background: var(--vidrio-flota-fondo);
   -webkit-backdrop-filter: var(--vidrio-flota-filtro);
@@ -328,7 +328,7 @@
   box-shadow: var(--vidrio-flota-sombra);
 }
 .ca-aviso {
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
   background: linear-gradient(
     180deg,

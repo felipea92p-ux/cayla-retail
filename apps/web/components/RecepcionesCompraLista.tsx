@@ -112,7 +112,7 @@ export function RecepcionesCompraLista({
         data-guia="recibidas.fila"
         onClick={() => setAbierta(r)}
         aria-current={abierta && idFila(abierta) === id ? "true" : undefined}
-        className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
+        className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-sm before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
       >
         <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(diaLima(r.fechaRecepcion))}</span>
         <span className={celda("izq")}>

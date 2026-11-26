@@ -22,7 +22,7 @@
   pointer-events: none;
 }
 .clientas-fila {
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   transition: background 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
 @media (hover: hover) {

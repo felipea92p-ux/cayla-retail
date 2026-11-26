@@ -213,7 +213,7 @@
 
   /* ---------- Esqueleto de carga ---------- */
   .cmp-sk {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(90deg, var(--color-sand) 25%, color-mix(in srgb, var(--color-sand) 45%, var(--color-papel)) 50%, var(--color-sand) 75%); /* beige-fijo: esqueleto de carga */
     background-size: 200% 100%;
     animation: cmp-brilla 1.3s linear infinite;

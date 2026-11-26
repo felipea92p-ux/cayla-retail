@@ -277,7 +277,7 @@
   .selector-mes > [data-flecha="adelante"]:not(:disabled):hover svg { translate: 2px 0; }
   .selector-mes-panel button:not(:disabled, [aria-current="true"]):hover { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); } /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
 }
-.selector-mes-grilla > button { border-radius: 14px; border: 1px solid transparent; }
+.selector-mes-grilla > button { border-radius: var(--radius-campo); border: 1px solid transparent; }
 .selector-mes-grilla > button[aria-current="true"] {
   color: var(--color-crema);
   border-color: var(--ahumado-denso-borde);

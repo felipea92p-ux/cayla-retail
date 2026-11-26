@@ -811,7 +811,7 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
                         style={{ background: fondoDePunto(p.metodos) }}
                       />
                     )}
-                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-tinta px-1.5 py-0.5 text-xs text-crema opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-sm bg-tinta px-1.5 py-0.5 text-xs text-crema opacity-0 transition-opacity group-hover:opacity-100">
                       {money(p.total)} · {p.hora}
                     </span>
                   </span>

@@ -23,7 +23,7 @@ import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
  *  Su cara es vidrio (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): la gota suelta; la elegida, la gota ahumada
  *  (`posv-opcion-puesta`); la que no hay aquí, el hueco punteado (`posv-opcion-hueco`). La pinta vidrio/posventa.css. */
 export const OPCION =
-  "min-h-11 rounded-[14px] border px-[17px] py-2 text-detalle font-medium transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
+  "min-h-11 rounded-campo border px-[17px] py-2 text-detalle font-medium transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
 export const OPCION_INACTIVA = `${OPCION} posv-opcion`;
 export const OPCION_ACTIVA = `${OPCION} posv-opcion posv-opcion-puesta`;
 

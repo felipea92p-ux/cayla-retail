@@ -8,7 +8,7 @@
 .taller-sec {
   background: var(--color-papel);
   border: 1px solid var(--color-sand);
-  border-radius: 16px;
+  border-radius: var(--radius-tarjeta);
 }
 .taller-sec-cab {
   display: flex;
@@ -153,7 +153,7 @@
   min-height: 52px;
   padding: 8px 14px;
   border: 1.5px dashed color-mix(in oklab, var(--color-taupe) 65%, transparent);
-  border-radius: 12px;
+  border-radius: var(--radius-campo);
   background: var(--gota-fondo-encima); box-shadow: var(--gota-luz);
   color: var(--color-tinta);
   text-align: left;
@@ -206,7 +206,7 @@
   gap: 8px 12px;
   border: 1px solid color-mix(in srgb, var(--color-ambar) 40%, var(--color-sand));
   background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel));
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 9px 12px;
   margin-top: 10px;
   font-size: var(--text-detalle);
@@ -222,7 +222,7 @@
   margin-left: auto;
   background: var(--color-ambar);
   color: var(--color-crema);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
   font-size: var(--text-detalle);
   font-weight: 600;
@@ -244,7 +244,7 @@
 .taller-panel-foto {
   background: var(--color-papel);
   border: 1px solid var(--color-sand);
-  border-radius: 16px;
+  border-radius: var(--radius-tarjeta);
   overflow: hidden;
 }
 .taller-foto-grande {
@@ -372,7 +372,7 @@
 .taller-tarjeta {
   background: var(--color-papel);
   border: 1px solid var(--color-sand);
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   padding: 13px 14px;
 }
 .taller-tit {

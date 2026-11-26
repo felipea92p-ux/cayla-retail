@@ -98,7 +98,7 @@ export function ComparacionPrendas({
         <FichaPrenda titulo={cantidad > 1 ? `Se lleva (${cantidad})` : "Nueva prenda"} prenda={nueva} vacia="Elige la talla y el color que se lleva." lado="lleva" />
       </div>
       {nueva && otras.length > 0 && (
-        <div className="rounded-[18px] bg-tinta/[0.06] p-[18px]">
+        <div className="rounded-tarjeta bg-tinta/[0.06] p-[18px]">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-tinta/65">Y también se lleva</p>
           <ul className="mt-3 space-y-3">
             {otras.map((p, i) => (
