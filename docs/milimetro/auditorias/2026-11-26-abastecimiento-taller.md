@@ -1,6 +1,6 @@
 # Auditoría al milímetro — Producción ▸ Abastecimiento achicado (PR #2025, ADR-0702) · 2026-11-26 · claude/registro-costos-taller-930684 @ d4b2987c4
 Medido: 1440×900 claro (vivo y quieto) · 375×812 claro · 1440 oscuro · foco con teclado (Facturas)     Servidor: `http://milimetro.localhost:3147` (worktree, sin base: `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:9`)
-Resumen: 0 graves · 2 medias abiertas · 1 leve · 4 previos al PR · 3 decididos a propósito
+Resumen: 0 graves · 0 medias abiertas (2 corregidas) · 1 leve · 4 previos al PR · 3 decididos a propósito
 
 Cómo se midió: una página temporal (`app/auth/prueba-milimetro`, ya borrada) dibujó los componentes reales con datos inventados. Fueron
 `ComprobantesProduccionPanel` con lista (3 facturas) y vacío, y `ResumenProduccionPanel` con 2 asuntos y 3 telas (falta, alcanza, alcanza si llega).
@@ -48,3 +48,7 @@ Ninguno introducido por el PR. Los medidores dieron 0 textos que fallan contrast
   completo. Revisado en el código: el `<Chip>` de «Faltan / Alcanza» sigue en el mismo contenedor `flex flex-wrap gap-x-2`, sin hueco ni pieza nueva.
 - Foco con teclado del Resumen: no se corrió `{ foco: true }`, porque el PR no agregó controles ahí, solo quitó dos enlaces.
 - Con una base y una cuenta de verdad: nada. Todo se midió con datos inventados, sin sesión.
+
+## Corregido después de la auditoría (2026-11-26)
+- Media 1: el «¿Por qué?» y el subtítulo de «¿Alcanza la tela?» ya no hablan de pedidos ni de «en camino»: dicen «facturado por recibir».
+- Media 2: el texto del vacío de Facturas de insumos baja a una línea («Se crean al registrar una compra en Insumos.» o «Primero agrega al proveedor.»).

@@ -349,7 +349,7 @@ export function ResumenProduccionPanel({
       )}
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
-        <TituloSeccion dato="lo que hay y lo que viene en camino, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
+        <TituloSeccion dato="lo que hay y lo facturado por recibir, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
         {telas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/70">
             No hay telas en el catálogo.{" "}
@@ -394,7 +394,7 @@ export function ResumenProduccionPanel({
         )}
         <PorQue
           guia="prod-resumen.tela-porque"
-          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «En camino» es lo que falta recibir de cada pedido y se suma a lo que hay; un pedido cuya fecha de entrega ya pasó no se cuenta y sale aparte como atrasado."
+          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «Por recibir» es la tela de una factura que todavía no llegó, y se suma a lo que hay."
         />
       </section>
     </div>

@@ -109,8 +109,7 @@ export function ComprobantesProduccionPanel({
               )
             }
           >
-            Aquí aparece la factura de cada compra del Taller: la tela y los avíos que entran por Insumos, y el corte o el ploteo que se paga en Por pagar. De ella salen cuánto se le debe, cuándo vence y a qué precio subió la tela.
-            {todosLosProveedores.length === 0 ? " Primero agrega al proveedor en Proveedores; después registra la compra en Insumos." : null}
+            {todosLosProveedores.length === 0 ? "Primero agrega al proveedor." : "Se crean al registrar una compra en Insumos."}
           </Vacio>
         </div>
       ) : (
