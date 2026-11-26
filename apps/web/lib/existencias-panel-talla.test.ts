@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { accionesDeTalla, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, resumenDeLugar, fraseDelEstado, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
 import { mejorOrigen } from "./existencias-flujos";
-import { esObjetivo } from "./existencias-mision";
 import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
 import { agruparStockPorSede } from "./stock-por-sede";
 import type { FilaPrenda } from "./existencias-prendas";
@@ -210,9 +209,8 @@ describe("«Pedir a otra sede» cruza la red con las tiendas por id, no por nomb
     const p = queTocaConLaTalla(fila as never, { separa: true, tiendas: new Set(sedes.map((s) => s.id)), puedeColgar: true, puedePedir: true }).find((x) => x.tema === "pedir");
     expect(p).toMatchObject({ respuesta: "Sí", accion: "pedir", detalle: "No hay aquí: Trujillo tiene 4" });
   });
-  it("la tienda a la que conviene pedir y la misión del día la reconocen", () => {
+  it("la tienda a la que conviene pedir la reconoce", () => {
     expect(mejorOrigen(enRed, sedes)).toEqual({ id: "tru", nombre: "Tienda Trujillo", cantidad: 4 });
-    expect(esObjetivo({ varianteId: "v", pisoDisponible: 0, almacenDisponible: 0, disponible: 0, planPiso: null, enRed }, new Set(sedes.map((s) => s.id)))).toBe(true);
   });
 });
 

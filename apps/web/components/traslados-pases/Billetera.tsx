@@ -108,7 +108,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
       <span className="text-tinta">{anillo.pendientes > 0 ? anillo.pendientes : "✓"}</span>
     </Anillo>
   );
-  // La misma píldora del «N de M hoy» de Existencias (`AnilloMision`): 40 px, crema con su línea arena.
+  // La píldora del «N de M hoy» que tuvo Existencias hasta el 2026-11-26 (`AnilloMision`, ya borrado): 40 px, crema con su línea arena.
   const clasePildora = "tp-dia-chico h-10 shrink-0 items-center rounded-full border border-sand bg-crema";
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
@@ -118,7 +118,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
           <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
             {/* Lo de hoy y el buscador. Desde 640 px, la tarjeta arriba y el buscador debajo, como siempre. En el celular (Felipe 2026-11-17:
                 «lo de nada pendiente como en existencias») la tarjeta se pliega al anillo chico del sistema, a la derecha del buscador, como
-                el «N de M hoy» de Existencias (`AnilloMision`): adentro, cuántas te tocan o un ✓ si no queda nada; ámbar mientras falte y
+                el «N de M hoy» que tuvo Existencias (`AnilloMision`, borrado el 2026-11-26): adentro, cuántas te tocan o un ✓ si no queda nada; ámbar mientras falte y
                 verde al día. Las palabras siguen ahí para el lector de pantalla. Es UNA sola pieza que se pliega (`traslados-pases.css`,
                 «Lo de hoy en el celular»): la guía la encuentra en los dos anchos.
                 Si algo te toca, el anillo es un enlace a esa caja (allá abre «Pendientes»; aquí lo pendiente ES una caja). Al día, no se toca. */}
