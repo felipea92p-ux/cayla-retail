@@ -97,7 +97,9 @@ export function LlegoUnaCompraModal({
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   const taller = useIdDelTaller();
-  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
+  // «Tu fondo» primero si quien paga tiene uno (Felipe 2026-11-26): lo que compra para el Taller con su fondo por rendir se descuenta de
+  // él. La base valida que el fondo sea de quien paga (`fn_fondo_para_pagar`, en el disparador de los pagos de Producción).
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { conMiFondo: true, propuestaSoloDe: PROPUESTA_DEL_TALLER });
   const responsable = useResponsable();
 
   const plazo = proveedores.find((p) => p.id === proveedorId)?.plazoCreditoDias ?? null;
