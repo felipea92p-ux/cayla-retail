@@ -81,7 +81,7 @@ export function ElegirModelo({
         ref={caja}
         valor={consulta}
         onCambio={setConsulta}
-        placeholder={`Busca entre los ${total} modelos por nombre o categoría`}
+        placeholder={`Busca entre los ${total} modelos`}
         etiqueta="Buscar un modelo"
         onKeyDown={alTeclearEnLaCaja}
         autoComplete="off"

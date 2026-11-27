@@ -224,7 +224,7 @@ export function NuevaTelaModal({
             <>
               <section data-guia="prod-tela-nueva.que-es" className="space-y-3">
                 <TituloDePaso paso={1}>Qué tela es</TituloDePaso>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                   <CampoGuiado id="nombre" guia={guia}>
                     <CampoTexto sinPie etiqueta={guia.etiqueta("nombre", "Nombre de la tela")} value={nombre} onChange={(ev) => setNombre(ev.target.value)} maxLength={120} placeholder={sugerirInsumo("tela", materiales).nombre} autoComplete="off" />
                   </CampoGuiado>

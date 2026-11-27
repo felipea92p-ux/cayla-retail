@@ -7,7 +7,7 @@
     "components/InsumoModales.tsx": [
       "ComboBuscable «{insumoId}»",
       "CampoTexto «{guia.etiqueta(\"cantidad\", \"Cuánto había\")}»",
-      "CampoMonto «{guia.etiqueta(\"costo\", `Costó ${costoPor(unidad)}»",
+      "CampoMonto «{guia.etiqueta(\"costo\", insumo ? `Costó ${costoPor(unidad)}»",
       "BotonVerMas «Código de lote, documento o nota»",
       "CampoTexto «Código de lote»",
       "CampoTexto «Documento»",
@@ -132,7 +132,7 @@
     "components/insumos-taller/LlegoUnaCompraModal.tsx": [
       "ComboBuscable «{l.insumoId}»",
       "CampoTexto «{unidad ? `Cantidad, en ${unidad}»",
-      "CampoTexto «{precioDe ? `Precio de ${precioDe}»",
+      "CampoTexto «{precioDeQue ? `Precio ${precioDeQue}»",
       "button «Quitar esta línea»",
       "CampoTexto «{l.como === \"kilo\" ? \"Metros por kilo\" : \"Metros por rollo\"}»",
       "BotonVerMas «Código de lote»",

@@ -22,7 +22,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { argsDeCompra, lineaAlLibro, problemasDeCompra, problemasDeLineas, subtotalDelPapel, totalAPagar, vencimientoPorDefecto, type LineaDelLibro, type LineaEscrita, type TipoPapel } from "@/lib/insumo-compra-reglas";
 import type { InsumoVista } from "@/lib/insumos";
 import { UNIDADES_INSUMO, cantidadTexto, leerCantidad, metrosPorKilo, type MaterialVista } from "@/lib/insumos-reglas";
-import { costoPor, nombreDeInsumoParaLeer } from "@/lib/insumos-vista";
+import { nombreDeInsumoParaLeer, precioDe } from "@/lib/insumos-vista";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { medioNuevo, mediosParaRpc, type MedioForm } from "@/lib/medios-pago-reglas";
 import { costoUnitarioTexto, leerCostoUnitario } from "@/lib/monto-plata-reglas";
@@ -175,7 +175,7 @@ export function LlegoUnaCompraModal({
                   const esTela = insumo?.tipo === "tela";
                   const unidadLibro = insumo ? UNIDADES_INSUMO[insumo.unidad].corta : "";
                   const unidad = l.como === "kilo" ? "kg" : l.como === "rollo" ? "rollos" : unidadLibro;
-                  const precioDe = l.como === "kilo" ? costoPor("kilo") : l.como === "rollo" ? costoPor("rollo") : insumo ? costoPor(insumo.unidad) : "";
+                  const precioDeQue = l.como === "kilo" ? precioDe("kilo") : l.como === "rollo" ? precioDe("rollo") : insumo ? precioDe(insumo.unidad) : "";
                   const enLibro = lineaAlLibro(l, LEER);
                   // El subtotal se dice en cuanto hay cantidad y precio que se entienden: es lo que dice el papel de esa línea, sin IGV.
                   const hayCuenta = LEER.cantidad(l.cantidad) !== null && LEER.precio(l.precio) !== null;
@@ -203,9 +203,9 @@ export function LlegoUnaCompraModal({
                       <div className="order-4 min-w-0">
                         {/* «sin IGV» a la vista: el total de abajo suma el 18 %, y sin esta palabra no se sabe si el precio ya lo trae. */}
                         <span aria-hidden className="mb-1 block text-xs text-tenue">
-                          {precioDe ? `Precio de ${precioDe}, sin IGV` : "Precio, sin IGV"}
+                          Precio, sin IGV
                         </span>
-                        <CampoTexto caja sinPie antes="S/" etiqueta={precioDe ? `Precio de ${precioDe}, sin IGV` : "Precio, sin IGV"} inputMode="decimal" className="tabular-nums" value={l.precio} onChange={(e) => cambiar(l.clave, { precio: e.target.value })} />
+                        <CampoTexto caja sinPie antes="S/" etiqueta={precioDeQue ? `Precio ${precioDeQue}, sin IGV` : "Precio, sin IGV"} inputMode="decimal" className="tabular-nums" value={l.precio} onChange={(e) => cambiar(l.clave, { precio: e.target.value })} />
                       </div>
                       <p className="order-5 col-span-3 flex items-baseline justify-between gap-3 text-sm font-semibold tabular-nums text-tinta @min-[36rem]:col-span-2 @min-[36rem]:block @min-[36rem]:self-end @min-[36rem]:pb-2 @min-[36rem]:text-right">
                         <span className="text-xs font-normal text-tenue @min-[36rem]:block">Subtotal</span>

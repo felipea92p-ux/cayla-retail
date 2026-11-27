@@ -4,6 +4,7 @@ import {
   alcanzaPara,
   coincideConBusqueda,
   costoPor,
+  precioDe,
   detalleDeLote,
   diaEnPalabras,
   fichaParaLeer,
@@ -214,5 +215,16 @@ describe("ningún texto de la pantalla separa datos con un punto medio", () => {
       tituloDeEliminado({ cantidad: 12, ingreso: "2026-11-12" }, "metro", HOY),
     ];
     for (const t of textos) expect(t, t).not.toContain("·");
+  });
+});
+
+describe("precioDe", () => {
+  it("dice de qué es el precio de corrido, sin «de el»", () => {
+    expect(precioDe("metro")).toBe("del metro");
+    expect(precioDe("kilo")).toBe("del kilo");
+    expect(precioDe("rollo")).toBe("del rollo");
+    expect(precioDe("unidad")).toBe("de cada uno");
+    expect(precioDe("docena")).toBe("de la docena");
+    for (const u of ["metro", "kilo", "unidad", "cono", "par", "docena", "rollo"] as const) expect(precioDe(u)).not.toMatch(/de el /);
   });
 });

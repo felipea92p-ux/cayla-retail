@@ -103,6 +103,12 @@ export function costoPor(unidad: UnidadInsumo | "rollo"): string {
   return COSTO_POR[unidad];
 }
 
+/** De qué es un precio, para decirlo de corrido: «Precio del metro», «Precio de la docena», «Precio de cada uno» (nunca «de el metro»). */
+export function precioDe(unidad: UnidadInsumo | "rollo"): string {
+  const por = COSTO_POR[unidad];
+  return por.startsWith("el ") ? `del ${por.slice(3)}` : `de ${por}`;
+}
+
 /** De dónde viene un lote, como título: «Compra del 12 de noviembre» o «Lo que ya tenías» (el saldo inicial). */
 export function tituloDeLote(l: Pick<LoteInsumo, "origen" | "ingreso">, hoy: string): string {
   return l.origen === "saldo_inicial" ? "Lo que ya tenías" : `Compra del ${diaEnPalabras(l.ingreso, hoy)}`;

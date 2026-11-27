@@ -106,7 +106,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
         </CampoGuiado>
         <div className="grid grid-cols-2 gap-3">
           <CampoGuiado id="cantidad" guia={guia}>
-            <ConUnidad unidad={UNIDADES_INSUMO[unidad].corta}>
+            <ConUnidad unidad={insumo ? UNIDADES_INSUMO[unidad].corta : ""}>
               <CampoTexto
                 etiqueta={guia.etiqueta("cantidad", "Cuánto había")}
                 inputMode="decimal"
@@ -120,7 +120,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           </CampoGuiado>
           <CampoGuiado id="costo" guia={guia}>
             <CampoMonto
-              etiqueta={guia.etiqueta("costo", `Costó ${costoPor(unidad)}`)}
+              etiqueta={guia.etiqueta("costo", insumo ? `Costó ${costoPor(unidad)}` : "Cuánto costó")}
               pie={costoIlegible ? COSTO_UNITARIO_ILEGIBLE : "Sin IGV."}
               tono={costoIlegible ? "error" : undefined}
               inputMode="decimal"
