@@ -2020,6 +2020,9 @@ export const PRUEBAS = [
   // Compras reestructurado (ADR-0704): Compradores y Todas las compras piden su módulo; una compra entra al libro al salir en un
   // envío y, revisada, sigue en UNA fila con su comprobante; lo de la oficina se va al filtrar por persona. ROLLBACK.
   "pruebas:compras-compradores",
+  // Compradores lee la plata del fondo (ADR-0704, act. 2026-11-26): la ronda abierta dice lo que la persona tiene en la mano aunque no
+  // lo haya anotado en la ronda, y quien tiene plata sin ronda abierta sale en su propia lectura. ROLLBACK.
+  "pruebas:compras-compradores-plata",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
   // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).

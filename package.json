@@ -424,6 +424,7 @@
     "pruebas:arranque-igv": "node scripts/pruebas/arranque_igv.mjs",
     "pruebas:compras-simple-revisar": "node scripts/pruebas/compras_simple_revisar.mjs",
     "pruebas:compras-compradores": "node scripts/pruebas/compras_compradores.mjs",
+    "pruebas:compras-compradores-plata": "node scripts/pruebas/compras_compradores_plata.mjs",
     "pruebas:compras-simple-marca": "node scripts/pruebas/compras_simple_marca_nueva.mjs",
     "pruebas:recibir-crea-proveedor-y-marca": "node scripts/pruebas/recibir_crea_proveedor_y_marca.mjs",
     "pruebas:compras-simple-corregir": "node scripts/pruebas/compras_simple_corregir.mjs",

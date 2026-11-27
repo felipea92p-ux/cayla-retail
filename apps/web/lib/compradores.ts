@@ -2,10 +2,13 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
   RPC_COMPRADORES,
+  RPC_COMPRADORES_SIN_RONDA,
   RPC_TODAS_LAS_COMPRAS,
   leerCompradores,
+  leerCompradoresSinRonda,
   leerTodasLasCompras,
   type CompraDelLibro,
+  type CompradorSinRonda,
   type RondaDeCompras,
 } from "@/lib/compradores-reglas";
 
@@ -23,6 +26,20 @@ export async function getCompradores(): Promise<RondaDeCompras[] | null> {
     return null;
   }
   return leerCompradores(r.data);
+}
+
+/**
+ * Quién tiene plata en la mano y todavía no abrió su ronda (20261126223000). `null` si no se pudo leer —la web publicada antes que la
+ * migración, o la base caída—: queda en el registro del servidor y la pantalla no dibuja ese grupo, sin inventar que no hay nadie.
+ */
+export async function getCompradoresSinRonda(): Promise<CompradorSinRonda[] | null> {
+  const supabase = await createClient();
+  const r = (await supabase.rpc(RPC_COMPRADORES_SIN_RONDA as never)) as unknown as Awaited<Respuesta>;
+  if (r.error) {
+    console.error(`compradores sin ronda: ${r.error.message}`);
+    return null;
+  }
+  return leerCompradoresSinRonda(r.data);
 }
 
 export type FiltrosTodasLasCompras = { desde?: string | null; hasta?: string | null; personaId?: string | null; busqueda?: string | null };

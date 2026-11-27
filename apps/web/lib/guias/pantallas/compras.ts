@@ -2988,7 +2988,7 @@ export const GUIA_COMPRADORES: Guia = {
   id: "compras.compradores",
   ruta: "/compras/compradores",
   titulo: "Compradores",
-  resumen: "Quién está comprando con plata de CAYLA, cuánto le diste, cuánto gastó y qué falta revisar.",
+  resumen: "Quién tiene plata de CAYLA, cuánto le diste, cuánto gastó, cuánto le queda y qué falta revisar.",
   pasos: [
     {
       id: "bienvenida",
@@ -3006,8 +3006,8 @@ export const GUIA_COMPRADORES: Guia = {
     {
       id: "cifras",
       ancla: "compradores.cifras",
-      titulo: "Tres cifras",
-      texto: "Cuántas personas están comprando ahora, cuánto se gastó en el mes y cuántas compras esperan que Compras pase su papel a los libros.",
+      titulo: "Cuatro cifras",
+      texto: "Cuánta plata de CAYLA está en manos de la gente, cuánto se gastó en el mes, cuántas compras esperan que Compras pase su papel a los libros y cuánto falta pagar a proveedores.",
     },
     {
       id: "por-definir",
@@ -3031,18 +3031,18 @@ export const GUIA_COMPRADORES: Guia = {
       texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
     },
     {
-      id: "tarjeta",
-      ancla: "compradores.tarjeta",
+      id: "personas",
+      ancla: "compradores.personas",
       opcional: true,
-      titulo: "Una tarjeta por persona",
-      texto: "Le diste, gastó y le queda. Si gastó más de lo que le diste, dice «No cuadra» y cuánto. Si lleva 14 días sin comprar, te avisa que su ronda se puede cerrar. Tócala para ver sus compras y revisarlas.",
+      titulo: "Quién tiene plata",
+      texto: "Una fila por persona, primero quien más tiene en la mano: le diste, gastó y le queda, con el total abajo. También sale quien recibió plata y aún no abre su ronda. «Qué pide» dice lo que toca: revisar papeles, pagar lo que falta o cerrar una ronda quieta. Toca la fila para ver sus compras.",
     },
     {
       id: "cerradas",
       ancla: "compradores.cerradas",
       opcional: true,
       titulo: "Rondas que ya cerraron",
-      texto: "Las de los últimos dos meses: de quién, cuándo, cuánto gastó y cómo cerró.",
+      texto: "Las de los últimos dos meses: de quién, cuándo, cuántas compras, cuánto gastó, cómo cerró y si todavía tiene papeles por revisar.",
     },
     {
       id: "fin",
@@ -3071,7 +3071,7 @@ export const GUIA_COMPRADOR: Guia = {
       ancla: "comprador.cuenta",
       opcional: true,
       titulo: "Su cuenta de la ronda",
-      texto: "Le diste, gastó y le queda. Si pagó más de lo que le diste, dice «No cuadra» y cuánto: pregúntale cómo lo pagó.",
+      texto: "Le diste (y en cuántas entregas), gastó (con la parte de su plata que ya usó), le queda en la mano y lo que espera revisión o pago. Si pagó más de lo que le diste, dice «No cuadra» y cuánto: pregúntale cómo lo pagó.",
     },
     {
       id: "cerrar",
@@ -3236,18 +3236,18 @@ export const GUIA_COMPRADOR: Guia = {
       texto: "Si una entrega, una devolución o un pago de deuda se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata no se anula, y nadie anula lo de su propio fondo.",
     },
     {
-      id: "plata",
-      ancla: "comprador.plata",
-      opcional: true,
-      titulo: "La plata que le diste",
-      texto: "Lo que le entregaste, lo que devolvió y lo que pagó de una deuda, con su «Anular» si se anotó mal.",
-    },
-    {
       id: "compras",
       ancla: "comprador.compras",
       opcional: true,
       titulo: "Todas sus compras",
-      texto: "Cada compra con su papel, el envío en que salió a la tienda y si ya se revisó o le falta pagar algo.",
+      texto: "Cada compra con su papel, el envío en que salió a la tienda y si ya se revisó o le falta pagar algo; arriba, lo que suman.",
+    },
+    {
+      id: "plata",
+      ancla: "comprador.plata",
+      opcional: true,
+      titulo: "Su plata",
+      texto: "Al costado, entrega por entrega: lo que le diste, lo que devolvió y lo que pagó de una deuda, con su «Anular» si se anotó mal.",
     },
     {
       id: "rondas",
