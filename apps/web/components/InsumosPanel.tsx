@@ -570,7 +570,7 @@ function FilaInsumo({
         data-guia={indice === 0 ? "prod-insumos.fila-cabecera" : undefined}
         onClick={onAlternar}
         aria-expanded={abierto}
-        className={`insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 px-5 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] ${COLUMNAS_COLOR}`}
+        className={`insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 px-5 py-3.5 text-left focus-visible:-outline-offset-2 ${COLUMNAS_COLOR}`}
       >
         {/* De qué color es (y, en un insumo suelto, lo que diga su ficha: sin tejido ni color «Nueva orden» no puede proponer la tela del color de la prenda). */}
         <span data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="flex min-w-0 items-center gap-3">

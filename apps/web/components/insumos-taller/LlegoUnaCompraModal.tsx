@@ -326,7 +326,8 @@ export function LlegoUnaCompraModal({
           <Boton type="button" peso="fantasma" onClick={onClose} disabled={cargando}>
             Cancelar
           </Boton>
-          <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Registrando…" disabled={!listo}>
+          {/* No se apaga por lo que falta (ADR-0611, mejora 4): al tocarlo, cada campo pendiente dice lo suyo y el cursor va al primero. `guardar` sigue sin registrar nada mientras falte algo. */}
+          <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Registrando…" disabled={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
             Registrar la compra
           </Boton>
         </PieAcciones>

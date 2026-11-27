@@ -110,7 +110,7 @@ export function ElegirModelo({
                       data-fila-modelo
                       data-guia="prod-orden-nueva.modelo-fila"
                       onClick={() => onElegir(m.productoId)}
-                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left outline-none transition-colors vd-pasa"
+                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors vd-pasa focus-visible:-outline-offset-2"
                     >
                       <Prenda modelo={m} tamano="md" />
                       <span className="min-w-0 flex-1">
@@ -145,7 +145,7 @@ export function ElegirModelo({
           type="button"
           data-fila-modelo
           onClick={() => onCrear(escrito)}
-          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left outline-none transition-colors vd-pasa"
+          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left transition-colors vd-pasa focus-visible:-outline-offset-2"
         >
           <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-dashed border-taupe text-taupe">
             <Plus className="h-5 w-5" />

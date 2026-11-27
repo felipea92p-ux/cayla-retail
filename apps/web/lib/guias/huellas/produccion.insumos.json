@@ -142,7 +142,7 @@
       "CampoTexto «Nota»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «Registrar la compra»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/NuevaTelaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
