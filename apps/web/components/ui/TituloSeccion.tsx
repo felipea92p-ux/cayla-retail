@@ -86,11 +86,14 @@ export function TituloGrupo({
   children,
   cuenta,
   nota,
+  paso,
   nivel = 3,
   retraso,
   className = "",
 }: {
   children: ReactNode;
+  /** El número del paso en una hoja que se llena por pasos («1 · Qué tela es»): un círculo de tinta delante del nombre (2026-11-26, Producción más clara). */
+  paso?: number;
   /** Cuántos tiene el grupo: el globito pegado al nombre («GENERADAS 3»). */
   cuenta?: number;
   /** Una aclaración que no es un número («no se edita ni se borra»): al lado, en minúscula y con el tono del título (más tenue no se lee). */
@@ -101,8 +104,14 @@ export function TituloGrupo({
   className?: string;
 }) {
   return (
-    <Etiqueta nivel={nivel} className={`titulo-grupo ${className}`}>
+    <Etiqueta nivel={nivel} className={`titulo-grupo ${paso !== undefined ? "titulo-grupo-paso" : ""} ${className}`}>
       <span className="titulo-grupo-texto" style={retraso !== undefined ? ({ ["--retraso" as string]: `${retraso}ms` } as CSSProperties) : undefined}>
+        {paso !== undefined && (
+          <span aria-hidden className="-mr-1 inline-grid size-6 shrink-0 place-items-center rounded-full bg-tinta text-xs font-semibold tracking-normal text-crema">
+            {paso}
+          </span>
+        )}
+        {paso !== undefined && <span className="sr-only">Paso {paso}: </span>}
         {children}
         {cuenta !== undefined && <Cuenta n={cuenta} />}
         {nota !== undefined && nota !== null && <span className="titulo-grupo-cuenta"> · {nota}</span>}

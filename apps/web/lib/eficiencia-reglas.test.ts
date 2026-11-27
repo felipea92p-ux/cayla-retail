@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eficienciaDePeriodo, etiquetaPeriodo, repartoDelGasto, variacion, ventanasDePeriodos, type GastoTaller, type OrdenParaEficiencia, type PlanillaPeriodo } from "./eficiencia-reglas";
+import { eficienciaDePeriodo, etiquetaPeriodo, repartoDelGasto, ventanasDePeriodos, type GastoTaller, type OrdenParaEficiencia, type PlanillaPeriodo } from "./eficiencia-reglas";
 
 const planilla = (ini: string, fin: string, costo: number): PlanillaPeriodo => ({ periodoId: `p-${ini}`, ini, fin, personas: 5, pagado: costo * 0.85, provisiones: costo * 0.15, costoTotal: costo });
 const orden = (id: string, extra: Partial<OrdenParaEficiencia> = {}): OrdenParaEficiencia => ({
@@ -79,17 +79,12 @@ describe("eficienciaDePeriodo", () => {
   });
 });
 
-describe("variacion y reparto del gasto", () => {
-  it("cambio porcentual, y null si no hay base", () => {
-    expect(variacion(110, 100)).toBeCloseTo(0.1, 5);
-    expect(variacion(90, 100)).toBeCloseTo(-0.1, 5);
-    expect(variacion(10, 0)).toBeNull();
-    expect(variacion(null, 100)).toBeNull();
-  });
+describe("reparto del gasto", () => {
   it("el reparto suma 100 % y omite lo que no se gastó", () => {
     const e = eficienciaDePeriodo(V, [orden("a")], [{ categoria: "alquiler", total: 900, fecha: "2026-08-05" }]);
     const r = repartoDelGasto(e);
     expect(r.map((x) => x.clave)).toEqual(["planilla", "materiales", "maquila", "gastos"]);
+    expect(r.map((x) => x.etiqueta)).toEqual(["Planilla", "Tela y avíos", "Servicios de afuera", "Gastos generales"]);
     expect(r.reduce((s, x) => s + x.parte, 0)).toBeCloseTo(1, 5);
     expect(repartoDelGasto(eficienciaDePeriodo({ ...V, planilla: null }, [], []))).toEqual([]);
   });

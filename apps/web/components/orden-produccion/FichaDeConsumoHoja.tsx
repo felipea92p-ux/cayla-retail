@@ -202,7 +202,7 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
     cerrarTrasGuardar();
   }
 
-  const titulo = `Ficha de consumo · ${ficha?.referencia ?? referencia}`;
+  const titulo = `Ficha de consumo de ${ficha?.referencia ?? referencia}`;
   const subtitulo = "Cuánta tela lleva cada prenda de este modelo y qué avíos. Las órdenes nuevas lo proponen solas.";
   return (
     <Modal titulo={titulo} subtitulo={subtitulo} variante="hoja" tamano="ancha" onClose={onClose} conCerrar={!puedeEditar} antesDeCerrar={avisoSalida.pedirAccion}>
@@ -388,7 +388,7 @@ function PanelAvios({
         const insumo = fila.insumoId ? insumos.find((i) => i.id === fila.insumoId) : undefined;
         const opciones: Opcion<string>[] = delEstante.map((i) => ({ valor: i.id, texto: i.nombre }));
         if (!insumo && delModelo) opciones.unshift({ valor: delModelo.insumoId, texto: delModelo.nombre });
-        if (insumo && !opciones.some((o) => o.valor === insumo.id)) opciones.unshift({ valor: insumo.id, texto: `${insumo.nombre} · ${insumo.archivado ? "archivado" : "no es un avío"}`, deshabilitada: true });
+        if (insumo && !opciones.some((o) => o.valor === insumo.id)) opciones.unshift({ valor: insumo.id, texto: `${insumo.nombre} (${insumo.archivado ? "archivado" : "no es un avío"})`, deshabilitada: true });
         const faltas = problemas.filter((p) => p.campo === "avios" && p.fila === fila.clave);
         const deAvio = faltas.find((p) => !/cuánto lleva|tiene que ser|puede pasar|Escribe/.test(p.texto));
         const deCantidad = faltas.find((p) => /cuánto lleva|tiene que ser|puede pasar|Escribe/.test(p.texto));
@@ -502,7 +502,7 @@ function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolve
                 <span className="min-w-0">
                   <span className="block whitespace-nowrap">
                     <span className="font-semibold text-tinta">Orden {o.numero}</span>
-                    {o.cuando && <span className="text-tinta/70"> · {o.cuando}</span>}
+                    {o.cuando && <span className="text-tinta/70">, {o.cuando}</span>}
                   </span>
                   {!o.cuenta && (
                     <span className="block text-sm text-tinta/70" title="Se cerró antes de la última vez que se escribió la ficha: ya no cuenta para lo medido">

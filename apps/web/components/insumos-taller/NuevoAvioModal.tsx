@@ -5,23 +5,20 @@ import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
-import { Punto } from "@/components/alta-producto/Punto";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { ConUnidad, TablaDeColores, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
-import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { medidaProhibida, nombreDeMaterial, UNIDADES_MEDIDA, type ClaseDeAvio, type UnidadMedidaAvio } from "@/lib/avio-clases-reglas";
 import {
   camposDeAvioNuevo,
   claseDeLaEntrada,
-  codigoDeVistaPreviaAvio,
-  columnasDeLaTablaAvio,
   avioParecido,
   llevaMerma,
   nombreCompuesto,
@@ -29,13 +26,14 @@ import {
   problemasDeAvioNuevo,
   tituloDeLaMedida,
   unidadCorta,
-  unidadSingular,
   type EntradaAvioNuevo,
 } from "@/lib/avio-nuevo-reglas";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { traducirError } from "@/lib/error-escritura";
+import { PALABRAS_DE_AVIO, conPalabrasDeLaHoja } from "@/lib/insumos-hojas";
 import { CANTIDAD_ILEGIBLE, UNIDADES_INSUMO, unidadesPermitidas, type MaterialVista, type UnidadInsumo } from "@/lib/insumos-reglas";
+import { costoPor } from "@/lib/insumos-vista";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -58,6 +56,10 @@ import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 //
 // También sirve para AGREGAR colores a un avío que ya existe (`agregarA`), igual que la hoja de tela. Lo crea quien opera el Taller (Felipe, 2026-10-30, decisión 3); el saldo inicial con su
 // costo sigue siendo del líder (`puedeSaldo`), y la base lo vuelve a comprobar. Un reintento por un corte de red no duplica nada: el envío lleva su token.
+//
+// «Producción más clara» (Felipe 2026-11-26; maqueta docs/maquetas/produccion-resumen-2026-11/): tres pasos numerados («Qué avío es», «Cómo lo cuentas», «Qué colores tiene»), lo que explica cada
+// uno detrás de su «?», y las palabras de quien la llena («Ya tengo», «Me costó cada uno», «Avísame si baja de»). El código del avío y el de cada color ya no van a la vista: los sigue armando la
+// base. No cambia nada de lo que se valida ni de lo que se guarda.
 
 export function NuevoAvioModal({
   tallerId,
@@ -111,10 +113,9 @@ export function NuevoAvioModal({
   const clase = claseDeLaEntrada(e, clasesVivas);
   const pideColor = clase?.pideColor !== false;
   const laMedida = agregarA ? null : tituloDeLaMedida(clase);
-  const campos = camposDeAvioNuevo(e, clasesVivas);
+  // Los mismos campos de la validación, con las palabras que la hoja usa a la vista.
+  const campos = conPalabrasDeLaHoja(camposDeAvioNuevo(e, clasesVivas), PALABRAS_DE_AVIO);
   const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos);
-  const codigo = agregarA ? agregarA.codigo : codigoDeVistaPreviaAvio(clase, materiales);
-  const tabla = columnasDeLaTablaAvio({ puedeSaldo });
   const corta = unidadCorta(e.unidad);
   const parecido = agregarA ? null : avioParecido({ nombre, medida, medidaUnidad }, materiales);
   const ejemplo = sugerirAvio(clase?.prefijo ?? null, materiales);
@@ -230,7 +231,7 @@ export function NuevoAvioModal({
     const n = filas.length;
     const conSaldo = filas.filter(tieneSaldo).length;
     avisar.exito(agregarA ? `${n} ${n === 1 ? "color" : "colores"} más en ${nombreDeMaterial(agregarA)}` : `${nombreCompuesto(e)} ya está en Insumos`, {
-      detalle: pideColor ? `${n} ${n === 1 ? "color" : "colores"}${conSaldo > 0 ? ` · ${conSaldo} con su saldo inicial` : ""}` : "Sin color: es lo que lo distingue su nombre",
+      detalle: pideColor ? `${n} ${n === 1 ? "color" : "colores"}${conSaldo > 0 ? `, ${conSaldo} con lo que ya tenías` : ""}` : "Sin color: es lo que lo distingue su nombre",
     });
     cerrarTrasGuardar();
   }
@@ -240,7 +241,7 @@ export function NuevoAvioModal({
   return (
     <Modal
       titulo={agregarA ? `Agregar colores a «${nombreDeMaterial(agregarA)}»` : "Nuevo avío"}
-      subtitulo={agregarA ? `${agregarA.codigo} · se cuenta en ${UNIDADES_INSUMO[agregarA.unidad].larga.toLowerCase()}` : "Un avío, todos sus colores, en un solo paso"}
+      subtitulo={agregarA ? `Se cuenta en ${UNIDADES_INSUMO[agregarA.unidad].larga.toLowerCase()}` : undefined}
       variante="hoja"
       tamano="ancha"
       onClose={onClose}
@@ -255,48 +256,43 @@ export function NuevoAvioModal({
           {!agregarA && (
             <>
               <section data-guia="prod-avio-nuevo.que-es" className="space-y-3">
-                <TituloGrupo>Qué avío es</TituloGrupo>
-                <CampoGuiado id="clase" guia={guia}>
-                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller." sinPie={false}>
-                    {leyoClases ? (
-                      <ComboBuscable
-                        valor={claseId}
-                        onValor={elegirClase}
-                        opciones={clasesVivas.map((c) => ({ valor: c.id, texto: c.nombre }))}
-                        marcador="Botón, cierre, hilo, etiqueta…"
-                        etiquetaAccesible="Clase de avío"
-                        crear={{ etiqueta: (t) => `+ Crear la clase «${t.trim()}»`, onCrear: (t) => void crearClase(t), pista: "¿Es otra cosa? Escribe cómo se llama" }}
-                      />
-                    ) : (
-                      <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
-                    )}
-                  </Campo>
-                </CampoGuiado>
-
-                <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
-                  <CampoGuiado id="nombre" guia={guia}>
-                    <CampoTexto
-                      etiqueta={guia.etiqueta("nombre", "Nombre del avío")}
-                      pie={nombre.trim() !== "" ? `Se va a llamar «${nombreCompuesto(e)}».` : undefined}
-                      value={nombre}
-                      onChange={(ev) => setNombre(ev.target.value)}
-                      maxLength={120}
-                      placeholder={ejemplo.nombre}
-                      autoComplete="off"
-                    />
+                <TituloDePaso
+                  paso={1}
+                  ayuda={
+                    <>
+                      De la clase salen en qué se cuenta, si lleva color y qué medida se le pide. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller.
+                      {laMedida && <> {laMedida.porQue}</>}
+                    </>
+                  }
+                >
+                  Qué avío es
+                </TituloDePaso>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CampoGuiado id="clase" guia={guia}>
+                    <Campo etiqueta={guia.etiqueta("clase", "Clase")} sinPie>
+                      {leyoClases ? (
+                        <ComboBuscable
+                          valor={claseId}
+                          onValor={elegirClase}
+                          opciones={clasesVivas.map((c) => ({ valor: c.id, texto: c.nombre }))}
+                          marcador="Botón, cierre, hilo, etiqueta…"
+                          etiquetaAccesible="Clase de avío"
+                          crear={{ etiqueta: (t) => `+ Crear la clase «${t.trim()}»`, onCrear: (t) => void crearClase(t), pista: "¿Es otra cosa? Escribe cómo se llama" }}
+                        />
+                      ) : (
+                        <p className="rounded-md vd-placa px-3 py-2 text-sm text-secundario">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
+                      )}
+                    </Campo>
                   </CampoGuiado>
-                  <div>
-                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">
-                      Código <span className="font-normal normal-case tracking-normal text-tinta/60">· se arma solo</span>
-                    </p>
-                    <p className="flex h-12 items-center rounded-lg border border-dashed border-borde-control vd-hundido px-3 font-mono text-sm font-semibold text-tinta">{codigo}</p>
-                  </div>
+                  <CampoGuiado id="nombre" guia={guia}>
+                    <CampoTexto sinPie etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(ev) => setNombre(ev.target.value)} maxLength={120} placeholder={ejemplo.nombre} autoComplete="off" />
+                  </CampoGuiado>
                 </div>
 
                 {parecido && (
                   <Aviso
                     tono="atencion"
-                    titulo={parecido.igual ? `Ya existe «${nombreDeMaterial(parecido.avio)}» (${parecido.avio.codigo})` : `¿Es el mismo que «${nombreDeMaterial(parecido.avio)}» (${parecido.avio.codigo})?`}
+                    titulo={parecido.igual ? `Ya existe «${nombreDeMaterial(parecido.avio)}»` : `¿Es el mismo que «${nombreDeMaterial(parecido.avio)}»?`}
                     accion={
                       alElegirExistente ? (
                         <Boton type="button" peso="fantasma" onClick={() => alElegirExistente(parecido.avio)}>
@@ -313,7 +309,7 @@ export function NuevoAvioModal({
 
                 {laMedida && (
                   <CampoGuiado id="medida" guia={guia}>
-                    <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <CampoTexto
                         etiqueta={guia.etiqueta("medida", laMedida.titulo)}
                         inputMode="decimal"
@@ -321,7 +317,7 @@ export function NuevoAvioModal({
                         onChange={(ev) => setMedida(ev.target.value)}
                         placeholder={laMedida.ejemplo}
                         tono={numeroMalEscrito(medida) ? "error" : undefined}
-                        pie={numeroMalEscrito(medida) ? CANTIDAD_ILEGIBLE : laMedida.porQue}
+                        pie={numeroMalEscrito(medida) ? CANTIDAD_ILEGIBLE : undefined}
                       />
                       {laMedida.unidades.length > 1 ? (
                         <Segmentado
@@ -329,21 +325,31 @@ export function NuevoAvioModal({
                           valor={medidaUnidad === "" ? laMedida.unidades[0] : medidaUnidad}
                           onValor={(v: UnidadMedidaAvio) => setMedidaUnidad(v)}
                           opciones={laMedida.unidades.map((u) => ({ valor: u, texto: UNIDADES_MEDIDA[u].larga }))}
-                          pie={UNIDADES_MEDIDA[(medidaUnidad === "" ? laMedida.unidades[0] : medidaUnidad) as UnidadMedidaAvio].ayuda}
                         />
                       ) : (
                         <div>
-                          <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">En qué se mide</p>
-                          <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
+                          <p className="campo-etiqueta mb-1.5">En qué se mide</p>
+                          <p className="flex min-h-10 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">{UNIDADES_MEDIDA[laMedida.unidades[0]].larga}</p>
                         </div>
                       )}
                     </div>
                   </CampoGuiado>
                 )}
+                {nombre.trim() !== "" && <p className="text-detalle text-tenue">Se va a llamar «{nombreCompuesto(e)}».</p>}
               </section>
 
               <section data-guia="prod-avio-nuevo.unidad" className="space-y-3">
-                <TituloGrupo>Cómo lo cuentas</TituloGrupo>
+                <TituloDePaso
+                  paso={2}
+                  ayuda={
+                    <>
+                      Como lo compras y como lo vas a contar en el estante. El hilo va en conos; el elástico y la pretina, en metros. Es la única decisión de la hoja que después no se puede cambiar: en
+                      cuanto entre el primer ingreso, queda fija.
+                    </>
+                  }
+                >
+                  Cómo lo cuentas
+                </TituloDePaso>
                 <CampoGuiado id="unidad" guia={guia}>
                   <Segmentado
                     etiqueta={guia.etiqueta("unidad", "Se cuenta en")}
@@ -353,24 +359,22 @@ export function NuevoAvioModal({
                       if (v !== "metro") setMerma("");
                     }}
                     opciones={unidades.map((u) => ({ valor: u, texto: UNIDADES_INSUMO[u].larga }))}
-                    pie="Como lo compras y como lo vas a contar en el estante."
+                    pie="Después del primer ingreso ya no se puede cambiar."
+                    tono="aviso"
                   />
                 </CampoGuiado>
-                <Aviso tono="atencion" chico>
-                  Esta es la única decisión de la hoja que después no se puede cambiar: en cuanto entre el primer lote, la unidad queda fija. El hilo va en <strong>conos</strong>; el elástico y la
-                  pretina, en <strong>metros</strong>.
-                </Aviso>
                 {llevaMerma(e) && (
                   <CampoGuiado id="merma" guia={guia}>
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <CampoTexto
-                        etiqueta={guia.etiqueta("merma", "Merma al cortar (%)")}
-                        pie="Lo que se pierde de cada corte"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={merma}
-                        onChange={(ev) => setMerma(ev.target.value)}
-                      />
+                      <ConUnidad unidad="%">
+                        <CampoTexto
+                          inputMode="decimal"
+                          etiqueta={guia.etiqueta("merma", "Se pierde al cortar")}
+                          placeholder="0"
+                          value={merma}
+                          onChange={(ev) => setMerma(ev.target.value)}
+                        />
+                      </ConUnidad>
                     </div>
                   </CampoGuiado>
                 )}
@@ -380,7 +384,25 @@ export function NuevoAvioModal({
 
           {pideColor ? (
             <section data-guia="prod-avio-nuevo.colores" className="space-y-3">
-              <TituloGrupo cuenta={n}>Colores</TituloGrupo>
+              <TituloDePaso
+                paso={agregarA ? undefined : 3}
+                cuenta={n}
+                ayuda={
+                  puedeSaldo ? (
+                    <>
+                      Búscalo por su nombre o tócalo en la carta. Si de un color todavía no llegó nada, deja «Ya tengo» vacío: se crea en cero. Si lo llenas, queda anotado como lo que ya tenías, con
+                      ese costo. «Avísame si baja de» es lo mínimo que quieres tener: con menos, el color sale en «Por acabarse».
+                    </>
+                  ) : (
+                    <>
+                      Búscalo por su nombre o tócalo en la carta. Los colores se crean en cero: lo que ya hay de cada uno, con su costo, lo anota el líder. «Avísame si baja de» es lo mínimo que quieres
+                      tener.
+                    </>
+                  )
+                }
+              >
+                Qué colores tiene
+              </TituloDePaso>
               <CampoGuiado id="colores" guia={guia} retiene="fila">
                 {leyoColores ? (
                   <ElegirColores
@@ -397,84 +419,13 @@ export function NuevoAvioModal({
                     enfocarBuscador={eligioColor}
                   />
                 ) : (
-                  <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                  <p className="rounded-md vd-placa px-3 py-2 text-sm text-secundario">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
                 )}
               </CampoGuiado>
               {n === 0 ? (
-                <p className="text-sm text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
+                <p className="text-sm text-tenue">Todavía no elegiste ninguno.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
-                    <div className={`${FILA} vd-placa text-xs font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                      <span>Color</span>
-                      <span>Código</span>
-                      {puedeSaldo && <span className="text-right">¿Ya tienes? ({corta})</span>}
-                      {puedeSaldo && <span className="text-right">Costo por {unidadSingular(e.unidad)}</span>}
-                      <span className="text-right">Mínimo ({corta})</span>
-                      <span />
-                    </div>
-                    {filas.map((f) => {
-                      const c = porCodigo.get(f.color);
-                      const nombreColor = c?.nombre ?? f.color;
-                      return (
-                        <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: tabla.plantilla }}>
-                          <span className="flex min-w-0 items-center gap-2 text-detalle text-tinta">
-                            <Punto hex={c?.hex ?? null} familia={c?.familiaColor} tipo={c?.tipo} />
-                            <span className="truncate">{nombreColor}</span>
-                          </span>
-                          <span className="truncate font-mono text-xs text-tinta/75">
-                            {codigo}-{f.color}
-                          </span>
-                          {puedeSaldo && (
-                            <CampoTexto
-                              caja
-                              sinPie
-                              etiqueta={`Cuánto hay de ${nombreColor} (${corta})`}
-                              inputMode="decimal"
-                              className="text-right tabular-nums"
-                              placeholder="0"
-                              value={f.ya}
-                              onChange={(ev) => cambiarFila(f.color, { ya: ev.target.value })}
-                              tono={numeroMalEscrito(f.ya) ? "error" : undefined}
-                            />
-                          )}
-                          {puedeSaldo && (
-                            <CampoTexto
-                              caja
-                              sinPie
-                              etiqueta={`Costo de ${nombreColor}`}
-                              inputMode="decimal"
-                              className="text-right tabular-nums"
-                              placeholder="0.00"
-                              value={f.costo}
-                              onChange={(ev) => cambiarFila(f.color, { costo: ev.target.value })}
-                              tono={montoIlegible(f.costo) ? "error" : undefined}
-                            />
-                          )}
-                          <CampoTexto
-                            caja
-                            sinPie
-                            etiqueta={`Mínimo de ${nombreColor}`}
-                            inputMode="decimal"
-                            className="text-right tabular-nums"
-                            placeholder="—"
-                            value={f.minimo}
-                            onChange={(ev) => cambiarFila(f.color, { minimo: ev.target.value })}
-                            tono={numeroMalEscrito(f.minimo) ? "error" : undefined}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => alternarColor(f.color)}
-                            aria-label={`Quitar ${nombreColor}`}
-                            className="grid h-8 w-8 place-items-center rounded-full text-lg leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <TablaDeColores filas={filas} porCodigo={porCodigo} puedeSaldo={puedeSaldo} unidadYa={corta} unidadMinimo={corta} rotuloCosto={`Me costó ${costoPor(e.unidad)}`} onCambiar={cambiarFila} onQuitar={alternarColor} />
               )}
               {filas.some((f) => numeroMalEscrito(f.ya) || numeroMalEscrito(f.minimo)) && (
                 <Aviso tono="error" chico>
@@ -486,28 +437,36 @@ export function NuevoAvioModal({
                   {MONTO_ILEGIBLE}
                 </Aviso>
               )}
-              {n > 0 && puedeSaldo && <p className="nota-cayla">«¿Ya tienes?» déjalo vacío si todavía no llegó nada: el color se crea en cero. Si lo llenas, se abre su lote de saldo inicial con ese costo.</p>}
-              {n > 0 && !puedeSaldo && <p className="nota-cayla">Los colores se crean en cero. Lo que ya hay de cada uno, con su costo, lo anota el líder.</p>}
             </section>
           ) : (
             <section data-guia="prod-avio-nuevo.colores" className="space-y-3">
-              <TituloGrupo>Cuánto hay</TituloGrupo>
-              <p className="nota-cayla">
-                «{clase?.nombre ?? "Este avío"}» no lleva color: lo que lo distingue es su nombre. Se crea una sola línea de stock{puedeSaldo ? ", y aquí puedes anotar lo que ya tienes." : "; lo que ya hay, con su costo, lo anota el líder."}
-              </p>
-              {puedeSaldo && (
+              <TituloDePaso
+                paso={agregarA ? undefined : 3}
+                ayuda={
+                  <>
+                    «{clase?.nombre ?? "Este avío"}» no lleva color: lo que lo distingue es su nombre.{" "}
+                    {puedeSaldo ? "Si todavía no llegó nada, deja «Ya tengo» vacío: se crea en cero." : "Se crea en cero: lo que ya hay, con su costo, lo anota el líder."}
+                  </>
+                }
+              >
+                Cuánto tienes
+              </TituloDePaso>
+              {puedeSaldo ? (
                 <div className="grid gap-3 sm:grid-cols-3">
+                  <ConUnidad unidad={corta}>
+                    <CampoTexto
+                      etiqueta="Ya tengo"
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={filas[0]?.ya ?? ""}
+                      onChange={(ev) => setFilas([{ color: "", ya: ev.target.value, costo: filas[0]?.costo ?? "", minimo: filas[0]?.minimo ?? "" }])}
+                      tono={numeroMalEscrito(filas[0]?.ya ?? "") ? "error" : undefined}
+                      pie={numeroMalEscrito(filas[0]?.ya ?? "") ? CANTIDAD_ILEGIBLE : undefined}
+                    />
+                  </ConUnidad>
                   <CampoTexto
-                    etiqueta={`¿Ya tienes? (${corta})`}
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={filas[0]?.ya ?? ""}
-                    onChange={(ev) => setFilas([{ color: "", ya: ev.target.value, costo: filas[0]?.costo ?? "", minimo: filas[0]?.minimo ?? "" }])}
-                    tono={numeroMalEscrito(filas[0]?.ya ?? "") ? "error" : undefined}
-                    pie={numeroMalEscrito(filas[0]?.ya ?? "") ? CANTIDAD_ILEGIBLE : "Déjalo vacío si todavía no llegó nada."}
-                  />
-                  <CampoTexto
-                    etiqueta={`Costo por ${unidadSingular(e.unidad)}`}
+                    etiqueta={`Me costó ${costoPor(e.unidad)}`}
+                    antes="S/"
                     inputMode="decimal"
                     placeholder="0.00"
                     value={filas[0]?.costo ?? ""}
@@ -515,16 +474,19 @@ export function NuevoAvioModal({
                     tono={montoIlegible(filas[0]?.costo ?? "") ? "error" : undefined}
                     pie={montoIlegible(filas[0]?.costo ?? "") ? MONTO_ILEGIBLE : "Sin IGV."}
                   />
-                  <CampoTexto
-                    etiqueta={`Mínimo (${corta})`}
-                    inputMode="decimal"
-                    placeholder="—"
-                    value={filas[0]?.minimo ?? ""}
-                    onChange={(ev) => setFilas([{ color: "", ya: filas[0]?.ya ?? "", costo: filas[0]?.costo ?? "", minimo: ev.target.value }])}
-                    tono={numeroMalEscrito(filas[0]?.minimo ?? "") ? "error" : undefined}
-                    pie={numeroMalEscrito(filas[0]?.minimo ?? "") ? CANTIDAD_ILEGIBLE : "Avisa cuando quede menos de esto."}
-                  />
+                  <ConUnidad unidad={corta}>
+                    <CampoTexto
+                      etiqueta="Avísame si baja de"
+                      inputMode="decimal"
+                      value={filas[0]?.minimo ?? ""}
+                      onChange={(ev) => setFilas([{ color: "", ya: filas[0]?.ya ?? "", costo: filas[0]?.costo ?? "", minimo: ev.target.value }])}
+                      tono={numeroMalEscrito(filas[0]?.minimo ?? "") ? "error" : undefined}
+                      pie={numeroMalEscrito(filas[0]?.minimo ?? "") ? CANTIDAD_ILEGIBLE : undefined}
+                    />
+                  </ConUnidad>
                 </div>
+              ) : (
+                <p className="text-sm text-tenue">Se crea en cero.</p>
               )}
             </section>
           )}
@@ -565,5 +527,3 @@ export function NuevoAvioModal({
     </Modal>
   );
 }
-
-const FILA = "grid items-center gap-3 px-3 py-2";

@@ -1499,6 +1499,39 @@ ESCENARIOS.push(
 const COMPRAS = ["admin", "admin-taller"];
 const idDeCompra = () => consultarLocal("select id from retail.compras order by created_at limit 1");
 const idDeProveedor = () => consultarLocal("select id from retail.proveedores where nombre ilike '%Textiles Andina%' limit 1");
+// Producción ▸ Insumos tras «Producción más clara» (ADR-0708, 2026-11-26): las hojas ya no cuelgan de un botón con su nombre. «Nueva tela» y «Nuevo avío» están dentro del menú
+// «Nueva tela o avío», «Lo que ya tenías» dentro de «Más», y las telas y los avíos viven cada uno en su pestaña. Todo se toca por su `data-guia`, que no depende del texto.
+// Ningún escenario guarda: abren, eligen y escriben en la hoja, nunca tocan el botón que confirma.
+const HOJA = "[role=dialog]";
+/** Insumos ▸ «Nueva tela o avío» ▸ la opción pedida («nueva-tela» o «nuevo-avio»). */
+const abrirAltaDeInsumo = (cual) => secuencia(clicGuia("prod-insumos.nuevo"), clicGuia(`prod-insumos.${cual}`));
+/** Elige en un combo de la hoja la primera opción que calza (nunca «+ Crear …», que abriría otro formulario). */
+const elegirEnLaHoja = (combo, texto) => async (pagina) => {
+  await pagina.locator(HOJA).getByRole("combobox", { name: combo }).first().click({ timeout: 8000 });
+  await esperar(pagina, 500);
+  const opciones = pagina.getByRole("option").filter({ hasNotText: /Crear/ });
+  await (texto ? opciones.filter({ hasText: texto }) : opciones).first().click({ timeout: 8000 });
+  await esperar(pagina, 700);
+};
+/** Un color de la carta, por el buscador de la hoja: aparece su fila en la tabla de colores. El Escape cierra la lista del buscador, no la hoja (ADR-0136). */
+const elegirUnColor = async (pagina) => {
+  const buscador = pagina.locator(HOJA).getByRole("combobox", { name: /Buscar un color/i }).first();
+  await buscador.click({ timeout: 8000 });
+  await buscador.fill("negro");
+  await esperar(pagina, 700);
+  await pagina.getByRole("option").filter({ hasNotText: /Crear/ }).first().click({ timeout: 8000 });
+  await esperar(pagina, 800);
+  await pagina.keyboard.press("Escape");
+  await esperar(pagina, 300);
+};
+/** La fila de un color en Insumos: se busca en la pestaña abierta (Telas) y, si ahí ninguna calza, en la de Avíos. */
+const filaDeInsumo = async (pagina, filtrar) => {
+  const buscar = () => filtrar(pagina.locator('article[data-guia="prod-insumos.fila"]')).first();
+  if ((await buscar().count()) === 0) await clicGuia("prod-insumos.pestana-avios")(pagina);
+  return buscar();
+};
+/** Una tela de la base local para «Llegó una compra»: primero la que se compra por kilo (trae su rinde de la ficha). */
+const nombreDeUnaTela = () => consultarLocal("select nombre from retail.materiales where tipo = 'tela' and archivado_at is null order by (unidad_compra = 'kilo') desc, created_at limit 1");
 ESCENARIOS.push(
   { id: "compras.filtros", ruta: "/compras", cuentas: COMPRAS, nombre: "Historial de compras · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
   { id: "porpagar.pagar", ruta: "/compras/por-pagar", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Por pagar · «Pagar» un comprobante", preparar: clicRol("button", /^Pagar$/i) },
@@ -1542,31 +1575,36 @@ ESCENARIOS.push(
   { id: "produccion.resumen-porque", ruta: "/produccion", cuentas: ["admin-taller"], abre: '[data-guia="prod-resumen.porque"][aria-expanded="true"]', nombre: "Producción · Resumen · la cuenta de un modelo abierta bajo «¿Por qué?»", async preparar(pagina) { await pagina.locator('[data-guia="prod-resumen.porque"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); } },
   { id: "produccion.orden-nueva-red", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.red-abrir"][aria-expanded="true"]', nombre: "Producción · «Nueva orden» con el consejo de la red abierto («¿Por qué?»: curva, cubrir y motor de demanda)", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); await pagina.locator('[data-guia="prod-orden-nueva.red-abrir"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); }) },
   { id: "produccion.ver-modelo", ruta: "/produccion", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · Resumen · «Ver el modelo» (la hoja de un modelo)", async preparar(pagina) { await pagina.locator('[data-guia="prod-resumen.modelo"]').first().click({ timeout: 8000 }); await esperar(pagina, 900); } },
-  { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo (insumo|avío)/i) },
-  // «Nueva tela» (ADR-0554, actividad 2): la tela con todos sus colores en una sola hoja. Solo se dibuja con la migración de `materiales` pegada.
-  { id: "produccion.tela-nueva", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Nueva tela» (la tela con sus colores)", preparar: clicRol("button", /Nueva tela/i) },
+  // «Nuevo avío» (ADR-0580) vive desde ADR-0708 dentro del menú «Nueva tela o avío». `abre` exige el primer paso de SU hoja, no cualquier hoja.
+  { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-guia="prod-avio-nuevo.que-es"]`, nombre: "Producción · la hoja «Nuevo avío» (dentro de «Nueva tela o avío»)", preparar: abrirAltaDeInsumo("nuevo-avio") },
+  // «Nueva tela» (ADR-0554, actividad 2): la tela con todos sus colores en una sola hoja. Solo se dibuja con la migración de `materiales` pegada. Desde ADR-0708, dentro del mismo menú.
+  { id: "produccion.tela-nueva", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-guia="prod-tela-nueva.que-es"]`, nombre: "Producción · la hoja «Nueva tela» (la tela con sus colores)", preparar: abrirAltaDeInsumo("nueva-tela") },
   // «Editar tela» (ADR-0554, actividad 3): la misma hoja con lo que la tela ya dice (el lápiz de su encabezado; solo el líder).
   { id: "produccion.tela-editar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Editar tela» (corregir una tela que ya existe)", preparar: clicRol("button", /Editar la tela/i) },
   // La ficha de una tela (ADR-0400, actividad 8e): el capital pedido con un toque y la hoja «Ficha de la tela» (el primer insumo, abierto).
-  { id: "produccion.insumo-ingresar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ingresar insumo» (abre un lote)", preparar: clicRol("button", /Ingresar insumo/i) },
-  { id: "produccion.insumos-capital", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.capital"]', nombre: "Producción · Insumos con el capital pedido con un toque", preparar: clicRol("button", /Ver el capital en insumos/i) },
+  // «Ingresar insumo» se llama «Llegó una compra» desde ADR-0708 (el botón negro de la cabecera). Solo se abre: no se registra nada.
+  { id: "produccion.insumo-ingresar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-guia="prod-ingreso.lineas"]`, nombre: "Producción · la hoja «Llegó una compra» (abre un lote)", preparar: clicGuia("prod-insumos.comprar") },
+  // «Valor de lo guardado» entra oculto y se pide con «Mostrar». `abre` exige el «Ocultar» que aparece junto a la cifra: sin el toque, el escenario no pasa en verde.
+  { id: "produccion.insumos-capital", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.capital"] button:has-text("Ocultar")', nombre: "Producción · Insumos con el valor de lo guardado pedido con un toque", preparar: clicRol("button", /Mostrar el valor de lo guardado/i) },
   // Desde ADR-0554 la ficha es solo de un insumo SUELTO (un avío, o una tela de antes de las telas): el color de una tela se corrige en «Editar tela». Se abre la fila que trae el botón (necesita un insumo suelto en la base local).
   // El botón de una fila cerrada ya está en el árbol de accesibilidad pero recortado por la fila: hay que abrir ESA fila antes de pulsarlo.
+  // Desde ADR-0708 las telas y los avíos van cada uno en su pestaña: el insumo suelto se busca en Telas y, si no está, en Avíos.
   { id: "produccion.insumo-ficha", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ficha de la tela» (tejido y color)", preparar: secuencia(async (pagina) => {
-    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Completar tejido y color|Completar el color|Editar la ficha/i }) }).first();
+    const fila = await filaDeInsumo(pagina, (filas) => filas.filter({ has: pagina.getByRole("button", { name: /Completar tejido y color|Completar el color|Editar la ficha/i }) }));
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
   }, clicRol("button", /Completar tejido y color|Completar el color|Editar la ficha/i)) },
   // «Retirar color» (ADR-0554): la hoja que esconde de la lista un color de tela elegido por error. Dos estados: sin saldo (la nota y el botón rojo) y con saldo (el aviso y el botón apagado). Se abre la fila que corresponde antes de pulsar (el botón de una fila cerrada está recortado).
+  // Qué fila tiene saldo ya no se lee de sus lotes («saldo inicial», «compra · …» dejaron de escribirse con ADR-0708): lo dice el estado de su cabecera, «Se acabó» si no queda nada.
   { id: "produccion.color-retirar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» (sin saldo: se puede)", preparar: secuencia(async (pagina) => {
-    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasNotText: /saldo inicial|compra · / }).first();
+    const fila = await filaDeInsumo(pagina, (filas) => filas.filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasText: /Se acabó/ }));
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
     await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
     await esperar(pagina, 600);
   }) },
   { id: "produccion.color-retirar-con-saldo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» con saldo (el aviso y el botón apagado)", preparar: secuencia(async (pagina) => {
-    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasText: /saldo inicial|compra · / }).first();
+    const fila = await filaDeInsumo(pagina, (filas) => filas.filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasNotText: /Se acabó/ }));
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
     await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
@@ -1583,7 +1621,7 @@ ESCENARIOS.push(
   }) },
   // «Restaurar» un ingreso eliminado: necesita uno eliminado en la base local (se elimina uno desde «Corregir este ingreso» y se vuelve a correr).
   { id: "produccion.ingreso-restaurar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Restaurar este ingreso»", preparar: secuencia(async (pagina) => {
-    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /^Restaurar$/ }) }).first();
+    const fila = await filaDeInsumo(pagina, (filas) => filas.filter({ has: pagina.getByRole("button", { name: /^Restaurar$/ }) }));
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
     await fila.getByRole("button", { name: /^Restaurar$/ }).first().click({ timeout: 8000 });
@@ -1596,7 +1634,43 @@ ESCENARIOS.push(
   { id: "produccion.tarifas", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: '[data-guia="prod-tarifas.lista"]', nombre: "Producción · Proveedores ▸ «Servicios y tarifas»", preparar: clicRol("tab", /Servicios y tarifas/i) },
   { id: "produccion.tarifa-nueva", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Nueva tarifa» de un servicio", preparar: secuencia(clicRol("tab", /Servicios y tarifas/i), clicRol("button", /Nueva tarifa/i)) },
   { id: "produccion.tarifa-cambiar", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Cambiar la tarifa» de un servicio, con la vigente a la vista", preparar: secuencia(clicRol("tab", /Servicios y tarifas/i), clicRol("button", /^Cambiar$/, { exact: true })) },
-  { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
+  // El período es una píldora anclada por su lugar (la segunda es «el otro mes»), no por su nombre, que cambia cada mes. Necesita más de un mes con órdenes cerradas. `abre` exige que quede elegida.
+  { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], abre: '[data-guia="prod-eficiencia.periodo-otro"][aria-pressed="true"]', nombre: "Producción · Eficiencia de otro mes", preparar: clicGuia("prod-eficiencia.periodo-otro") },
+  // ---------- «Producción más clara» (ADR-0708, 2026-11-26): lo que el rediseño agregó y no se ve al cargar ----------
+  // Insumos: los dos menús de la cabecera abiertos (flotan sobre la página).
+  { id: "produccion.insumos-menu-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.nueva-tela"]', nombre: "Producción · Insumos · el menú «Nueva tela o avío» abierto", preparar: clicGuia("prod-insumos.nuevo") },
+  { id: "produccion.insumos-menu-mas", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.ya-tenias"]', nombre: "Producción · Insumos · el menú «Más» abierto", preparar: clicGuia("prod-insumos.mas") },
+  // «Lo que ya tenías» (el saldo inicial; solo el líder): abre sin tela ni avío elegido (Felipe 2026-11-26). `abre` exige un campo de SU hoja.
+  { id: "produccion.ya-tenias", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-campo="costo"]`, nombre: "Producción · la hoja «Lo que ya tenías» (sin nada elegido)", preparar: secuencia(clicGuia("prod-insumos.mas"), clicGuia("prod-insumos.ya-tenias")) },
+  // «Nueva tela» por kilo con un color: el ancho, el gramaje y el rinde, y la tabla de colores con sus unidades dentro de la caja («kg», «m»). `abre` exige la fila del color.
+  { id: "produccion.tela-nueva-kilo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-guia="prod-tela-nueva.colores"] .insumo-con-unidad`, nombre: "Producción · «Nueva tela» por kilo, con un color en la tabla", preparar: secuencia(abrirAltaDeInsumo("nueva-tela"), async (pagina) => { await pagina.locator(HOJA).getByRole("radio", { name: /por kilo/i }).first().click({ timeout: 8000 }); await esperar(pagina, 500); }, elegirUnColor) },
+  // La carta de colores abierta dentro de la hoja (las muestras son color de dato: no cambian con el tema).
+  { id: "produccion.tela-nueva-carta", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} button[aria-expanded="true"]:has-text("Ocultar la carta")`, nombre: "Producción · «Nueva tela» con la carta de colores abierta", preparar: secuencia(abrirAltaDeInsumo("nueva-tela"), clicRol("button", /Ver los \d+ colores/i)) },
+  // «Nuevo avío» de una clase que no lleva color (la etiqueta): el tercer paso pasa a ser «Cuánto tienes», con sus cajas sueltas. Necesita una clase sin color en la base local.
+  { id: "produccion.avio-nuevo-sin-color", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-guia="prod-avio-nuevo.colores"] .insumo-con-unidad`, nombre: "Producción · «Nuevo avío» de una clase sin color: «Cuánto tienes»", preparar: secuencia(abrirAltaDeInsumo("nuevo-avio"), elegirEnLaHoja(/Clase de avío/i, /Etiqueta/i)) },
+  // «Llegó una compra» con una tela por kilo (su «Se compró» y su rinde), cantidad y precio escritos y «Ya la pagué»: salen los medios de pago y el total. Se escribe y NO se registra.
+  { id: "produccion.compra-por-kilo-pagada", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: `${HOJA} [data-campo="pago"] [role=radio][aria-checked="true"]:has-text("Ya la pagué")`, nombre: "Producción · «Llegó una compra» con una tela por kilo y «Ya la pagué»", preparar: secuencia(clicGuia("prod-insumos.comprar"), async (pagina) => {
+    await elegirEnLaHoja(/Qué llegó en esta línea/i, nombreDeUnaTela())(pagina);
+    const linea = pagina.locator(`${HOJA} [data-guia="prod-ingreso.lineas"]`);
+    await linea.getByRole("radio", { name: /por kilo/i }).first().click({ timeout: 8000 });
+    await esperar(pagina, 500);
+    await linea.locator("input:not([role=combobox])").nth(0).fill("10");
+    await linea.locator("input:not([role=combobox])").nth(1).fill("38");
+    await esperar(pagina, 500);
+    await pagina.locator(HOJA).getByRole("radio", { name: /Ya la pagué/i }).first().click({ timeout: 8000 });
+    await esperar(pagina, 800);
+  }) },
+  // Insumos: la pestaña Movimientos (el libro, a todo el ancho) y un color abierto (de dónde viene lo que queda y sus botones).
+  { id: "produccion.insumos-movimientos", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.libro"]', nombre: "Producción · Insumos · la pestaña «Movimientos»", preparar: clicGuia("prod-insumos.pestana-movimientos") },
+  { id: "produccion.insumos-color-abierto", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: 'article[data-guia="prod-insumos.fila"][data-abierto]', nombre: "Producción · Insumos · un color abierto (de dónde viene lo que queda)", preparar: clicGuia("prod-insumos.fila-cabecera") },
+  // Resumen: el recuadro de telas desplegado («¿Alcanza la tela?») y los «¿Por qué?» de «Por resolver» abiertos (el botón pasa a decir «Ocultar»). Necesitan una tela y un asunto con su cuenta.
+  { id: "produccion.resumen-telas", ruta: "/produccion", cuentas: ["admin-taller"], abre: '[data-guia="prod-resumen.tela-detalle"]', nombre: "Producción · Resumen · el recuadro de telas desplegado", preparar: clicGuia("prod-resumen.tela") },
+  { id: "produccion.resumen-por-resolver-porque", ruta: "/produccion", cuentas: ["admin-taller"], abre: 'main button[aria-expanded="true"]:has-text("Ocultar")', nombre: "Producción · Resumen · los «¿Por qué?» de «Por resolver» abiertos", async preparar(pagina) {
+    const cerrados = pagina.locator('main button[aria-expanded="false"]:has-text("¿Por qué?")');
+    for (let n = 0; n < 6 && (await cerrados.count()) > 0; n++) { await cerrados.first().click({ timeout: 8000 }); await esperar(pagina, 500); }
+  } },
+  // Órdenes: el único filtro, «Piden atención», puesto (solo se dibuja si alguna orden pide atención).
+  { id: "produccion.ordenes-piden-atencion", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-ordenes.filtros"][aria-pressed="true"]', nombre: "Producción · Órdenes · el filtro «Piden atención» puesto", preparar: clicGuia("prod-ordenes.filtros") },
 );
 
 // ---------- La orden de producción en su página (ADR-0400, actividad 3) ----------

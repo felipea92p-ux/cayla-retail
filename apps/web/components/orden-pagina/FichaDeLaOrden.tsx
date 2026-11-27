@@ -26,7 +26,7 @@ export function FichaDeLaOrden({ datos, hoy }: { datos: OrdenPagina; hoy: string
             {estado.texto}
           </Chip>
           <Chip tono={orden.esMuestra ? "ambar" : "neutro"} versalitas={false}>
-            {orden.esMuestra ? "Muestra · no entra al stock" : "Lote de producción"}
+            {orden.esMuestra ? "Muestra, no entra al stock" : "Para vender"}
           </Chip>
           {orden.urgente && <Chip tono="ambar">Urgente</Chip>}
         </div>

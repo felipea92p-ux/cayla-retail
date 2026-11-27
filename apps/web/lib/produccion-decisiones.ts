@@ -1,13 +1,16 @@
 // Resumen de Producción: «¿qué necesita mi decisión hoy?» (ADR-0133, F6). Puro: sin Supabase ni React.
 //
+// Desde el 2026-11-26 («Producción más clara») cada asunto de «Por resolver» es una tarjeta con un título corto que se entiende solo, una línea que dice de qué o de quién
+// habla (`de`) y sus datos en piezas (`pares`: rótulo arriba, valor abajo), nunca una frase larga con los datos pegados. La cuenta de la que sale sigue bajo «¿Por qué?».
+//
 // Cada tarjeta nace de datos que YA existen y lleva su evidencia; ninguna es un texto fijo, y desaparece sola cuando el dato cambia (se recibe la tela,
 // se paga, se cierra la orden). Solo HECHOS y cuentas sobre datos medidos: no hay plazos por etapa, ni «días de trabajo que faltan», ni tiempo de una corrida
 // inventados (contrato del plan). Donde no hay base honesta —sin ritmo de venta, sin rendimiento medido— la tarjeta no se dibuja, en vez de adivinar.
 
 import { DIAS_RITMO_RECIENTE, UMBRAL_COBERTURA_ALTA_DIAS, UMBRAL_COBERTURA_RIESGO_DIAS, UMBRAL_COBERTURA_SALUDABLE_DIAS, UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
-import { redondear2, type ComprobanteProduccion } from "./comprobantes-produccion-reglas";
+import { diasHasta, type ComprobanteProduccion } from "./comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "./insumos-reglas";
-import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, urlLlevarATiendas, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
+import { estadoEntrega, etapaActual, etapasDe, urlLlevarATiendas, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
@@ -23,6 +26,8 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 export type OrdenParaDecidir = {
   id: string;
+  /** «OP-000031», si quien llama lo conoce (la lista de Órdenes): va en la línea «de» de su asunto. Sin él, el asunto nombra solo el modelo. */
+  numeroTexto?: string;
   referencia: string;
   productoId: string;
   estado: string;
@@ -46,19 +51,27 @@ export type RotuloDeVariante = { varianteId: string; talla: string | null; color
 /** `variantesIds` manda (qué variantes tiene el modelo); `variantes`, si viene, solo les pone nombre: sin él la fila guarda las cifras de cada variante y la talla y el color en `null`. */
 export type ModeloParaDecidir = { productoId: string; referencia: string; variantesIds: string[]; variantes?: RotuloDeVariante[] };
 
+/** Un dato de un asunto: el rótulo chico arriba y el valor abajo (`<ParDato>`). El tono solo cuando el dato dice algo: ámbar pide atención, rojo es plata vencida. */
+export type ParDeDato = { rotulo: string; valor: string; tono?: "ambar" | "rojo" | "verde" };
+
 export type Decision = {
   id: string;
   /** 3 = pide acción ya; 2 = conviene mirarlo pronto; 1 = informativo. */
   severidad: 1 | 2 | 3;
   tipo: "entrega" | "insumo" | "recibir" | "pago" | "producir" | "trasladar" | "sobrestock" | "minimo";
+  /** Qué pasa, corto y sin datos adentro: «Una orden está atrasada», «Falta tela para cortar». */
   titulo: string;
-  detalle: string;
-  accion: { texto: string; href: string };
+  /** De qué o de quién habla: el modelo (y su orden), la tela, los proveedores. */
+  de: string;
+  /** Los datos del asunto, cada uno una pieza. */
+  pares: ParDeDato[];
+  /** `ver`: el botón solo lleva a mirar otra pantalla (la flecha de «Ver»). `modelo`: abre la hoja «Ver el modelo» de ese modelo en vez de navegar (`href` queda de respaldo). */
+  accion: { texto: string; href: string; ver?: boolean; modelo?: string };
   /** Los modelos de que habla la tarjeta (el que es, o los 3 más urgentes si junta varios), para dibujar su foto. Vacío o ausente en las que no son de un modelo. */
   productoIds?: string[];
   /** Cuántos asuntos junta la tarjeta (los modelos por producir, en la que los reúne). Ausente = 1. Si no cabe en pantalla, «y N más» cuenta estos, no la tarjeta. */
   asuntos?: number;
-  /** La cuenta de la que sale el asunto (cuánto piden las órdenes, cuánto hay, qué viene en camino): se ve bajo un «¿Por qué?» a un toque, no siempre abierta. Solo en los asuntos de tela. */
+  /** La cuenta de la que sale el asunto (cuánto piden las órdenes, cuánto hay, qué viene en camino, en cuántas ventas se apoya): se ve bajo un «¿Por qué?» a un toque, no siempre abierta. */
   porque?: string;
 };
 
@@ -161,12 +174,12 @@ export type FilaModelo = {
 
 export const ETIQUETA_ESTADO_MODELO: Record<EstadoModelo, string> = {
   producir_ya: "Producir ya",
-  trasladar: "Trasladar al piso",
+  trasladar: "Llevar a tienda",
   en_produccion: "Ya hay orden abierta",
   vigilar: "Vigilar",
   alcanza: "Alcanza",
-  sobrestock: "Sobrestock",
-  sin_ritmo: "Sin ritmo medido",
+  sobrestock: "Hay de sobra",
+  sin_ritmo: "Sin ventas todavía",
 };
 
 /** Cuánto dura el stock, dicho como se lee: «agotado» con 0 en tiendas (nunca «0 días» ni «se agota en 1 día»), «1 día» en singular y «N días»
@@ -195,10 +208,10 @@ export function baseDelRitmo(ventas: number): { pocaBase: boolean; largo: string
  * de una no cubre a otra). Lo que falta se reparte en lo que ya está hecho en el Taller (se traslada) y lo que hay que fabricar. Sin ritmo medido no se opina.
  *
  *   - diasRed ≤ 7 y queda algo por fabricar        → «Producir ya» (aunque haya una orden: una de 1 prenda no apaga una falta de 30)
- *   - diasRed ≤ 30 y lo que falta está en el Taller → «Trasladar al piso»
+ *   - diasRed ≤ 30 y lo que falta está en el Taller → «Llevar a tienda»
  *   - diasRed ≤ 30 y las órdenes abiertas cubren todo → «Ya hay orden abierta» (solo si CUBREN: una que no alcanza no se anuncia como si resolviera)
  *   - diasRed ≤ 30 en cualquier otro caso           → «Vigilar» (falta algo pero no urge, o lo cubre lo que viene en camino)
- *   - más de 30 días                               → «Alcanza» (hasta 60) o «Sobrestock»
+ *   - más de 30 días                               → «Alcanza» (hasta 60) o «Hay de sobra»
  */
 export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDecidir[], enProduccionPorVariante: Record<string, number>, diasObjetivo: number = DIAS_OBJETIVO_PRODUCCION): FilaModelo[] {
   const porVariante = new Map(demanda.map((d) => [d.varianteId, d]));
@@ -268,9 +281,9 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
 /** Cuántas tallas y colores nombra el aviso de «se vendían y ya no hay» antes de decir «y N más». */
 const NOMBRADAS_AGOTADAS = 3;
 
-/** «S · Negro»: una talla y color como se lee en una frase. Sin ninguno de los dos, «una variante» (no se inventa un nombre). */
+/** «S Negro»: una talla y color como se lee en una frase (sin punto medio: en una lista ya las separa la coma). Sin ninguno de los dos, «una variante» (no se inventa un nombre). */
 export function nombreDeVariante(v: Pick<RotuloDeVariante, "talla" | "color">): string {
-  return [v.talla, v.color].filter(Boolean).join(" · ") || "una variante";
+  return [v.talla, v.color].filter(Boolean).join(" ") || "una variante";
 }
 
 /** «Se vendió y ya no hay en tiendas»: más ventas que el umbral de poca base (con menos es ruido, ADR-0346) y nada en tiendas. La única definición: la fila, el aviso y la hoja «Ver el modelo». */
@@ -278,7 +291,7 @@ export const seVendioYYaNoHay = (ventas: number, stockRed: number): boolean => s
 
 /**
  * Las tallas y colores de un modelo que SÍ tiene stock en alguna otra, y que ya se agotaron en las tiendas pero se vendían (más de `UMBRAL_POCA_BASE_VENTAS` ventas
- * en la ventana: con menos es ruido, ADR-0346). Es solo un AVISO: el consejo del modelo («Alcanza», «Sobrestock»…) no cambia por esto. Si TODO el modelo está
+ * en la ventana: con menos es ruido, ADR-0346). Es solo un AVISO: el consejo del modelo («Alcanza», «Hay de sobra»…) no cambia por esto. Si TODO el modelo está
  * agotado no hay aviso: su estado y su cobertura ya lo dicen. Va primero la que más se vendía.
  */
 export function agotadasQueSeVendian(f: Pick<FilaModelo, "stockRed" | "variantes">): VarianteDeFila[] {
@@ -286,7 +299,7 @@ export function agotadasQueSeVendian(f: Pick<FilaModelo, "stockRed" | "variantes
   return f.variantes.filter((v) => seVendioYYaNoHay(v.ventasNetas, v.stockRed)).sort((a, b) => b.ventasNetas - a.ventasNetas);
 }
 
-/** «Se vendían y ya no hay en tiendas: S · Negro, M · Negro y 2 más». Vacío si no hay ninguna. */
+/** «Se vendían y ya no hay en tiendas: S Negro, M Negro y 2 más». Vacío si no hay ninguna. */
 export function textoAgotadas(vs: VarianteDeFila[]): string {
   if (vs.length === 0) return "";
   const nombradas = vs.slice(0, NOMBRADAS_AGOTADAS).map(nombreDeVariante).join(", ");
@@ -298,8 +311,8 @@ export function textoAgotadas(vs: VarianteDeFila[]): string {
 const SIN_TALLA_EN_FRASE = "sin talla";
 
 /**
- * ¿El consejo del modelo habla de fabricar (o de llevar del Taller)? «Alcanza», «Sobrestock» y «Sin ritmo medido» NO: el Resumen dice «no produzcas más» o no opina, y una frase como «faltan 15, hay
- * que fabricarlas» o un botón «Abrir orden sugerida» en la misma hoja diría lo contrario. Una talla agotada dentro de un modelo así solo AVISA (decisión de Felipe, 2026-10-13: «solo avisar»).
+ * ¿El consejo del modelo habla de fabricar (o de llevar del Taller)? «Alcanza», «Hay de sobra» y «Sin ventas todavía» NO: el Resumen dice «no fabriques más» o no opina, y una frase como «faltan 15, hay
+ * que fabricarlas» o un botón «Preparar orden» con cantidad en la misma hoja diría lo contrario. Una talla agotada dentro de un modelo así solo AVISA (decisión de Felipe, 2026-10-13: «solo avisar»).
  */
 export const estadoPideFabricar = (estado: EstadoModelo): boolean => estado === "producir_ya" || estado === "trasladar" || estado === "en_produccion" || estado === "vigilar";
 
@@ -316,10 +329,10 @@ export function sugerenciaDeOrden(m: Pick<FilaModelo, "estado" | "ventasBase" | 
   return { total: m.producir, porTalla: orden.map(([talla, cantidad]) => ({ talla, cantidad })) };
 }
 
-/** «Sugerido: 52 prendas (S 8 · M 16 · L 16 · XL 12)». Con una sola talla el desglose repetiría la cifra («36 prendas (M 36)»): se omite. */
+/** «Sugerido: 52 prendas (S 8, M 16, L 16, XL 12)». Con una sola talla el desglose repetiría la cifra («36 prendas (M 36)»): se omite. */
 export function textoSugerencia(s: NonNullable<ReturnType<typeof sugerenciaDeOrden>>): string {
   const cuantas = s.total === 1 ? "1 prenda" : `${s.total} prendas`;
-  return s.porTalla.length < 2 ? `Sugerido: ${cuantas}` : `Sugerido: ${cuantas} (${s.porTalla.map((t) => `${t.talla} ${t.cantidad}`).join(" · ")})`;
+  return s.porTalla.length < 2 ? `Sugerido: ${cuantas}` : `Sugerido: ${cuantas} (${s.porTalla.map((t) => `${t.talla} ${t.cantidad}`).join(", ")})`;
 }
 
 /** A «Nueva orden» con el modelo elegido; con `sugerida`, además trae escritas las cantidades sugeridas. El `?nueva=` es el contrato de siempre (también lo usan Análisis y Nuevo producto): `sugerida` es opcional y quien no lo manda no cambia. */
@@ -327,7 +340,7 @@ export function hrefNuevaOrden(productoId: string, sugerida: boolean): string {
   return `/produccion/ordenes?nueva=${productoId}${sugerida ? "&sugerida=1" : ""}`;
 }
 
-/** A dónde lleva «Trasladar al piso»: Mover mercadería con el Taller de origen y las prendas (lo que cubre la falta de cada talla y color) ya puestas. `null` sin Taller o sin nada que llevar. */
+/** A dónde lleva «Llevar a tienda»: Mover mercadería con el Taller de origen y las prendas (lo que cubre la falta de cada talla y color) ya puestas. `null` sin Taller o sin nada que llevar. */
 export function urlTrasladarModelo(m: Pick<FilaModelo, "variantes">, tallerId: string | null | undefined): string | null {
   if (!tallerId) return null;
   return urlLlevarATiendas(tallerId, m.variantes.filter((v) => v.trasladar > 0).map((v) => ({ varianteId: v.varianteId, cantidadBuenas: v.trasladar })));
@@ -345,12 +358,14 @@ export type ContextoDecisiones = {
   demanda: Map<string, DemandaInsumo>;
   comprobantes: ComprobanteProduccion[];
   modelos: FilaModelo[];
-  /** El Taller, de donde salen las prendas que «Trasladar al piso» lleva. Sin él no se dibuja esa tarjeta (la fila de la tabla sí dice el estado). */
+  /** El Taller, de donde salen las prendas que «Llevar a tienda» lleva. Sin él no se dibuja esa tarjeta (la fila de la tabla sí dice el estado). */
   tallerId?: string | null;
   /** Lo que viene en camino de cada tela y avío (por insumo): lo que FALTA RECIBIR de las órdenes de insumos, sin los pedidos atrasados, que se cuenta como tela que llega (regla de Felipe del 2026-10-16). Sin ello nada viene. */
   enCamino?: Map<string, CaminoDeInsumo>;
   /** Los modelos por producir tienen su propia lista («¿Qué fabrico primero?», `lib/produccion-primero.ts`): con `true` no se arman sus tarjetas, para no decir lo mismo dos veces. De fábrica `false`. */
   producirAparte?: boolean;
+  /** La fase en que está cada orden abierta, con el nombre de la lista de Órdenes («Por plotear», «En costura»), por id de orden. Sin él (la lista no se pudo leer) se dice la etapa de siempre. */
+  faseDeLaOrden?: Readonly<Record<string, string>>;
 };
 
 /** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (lo que falta recibir de pedidos cuya fecha ya pasó: no cuenta) y los `pedidos`, los que cuentan primero. */
@@ -359,10 +374,18 @@ export type CaminoDeInsumo = { cuenta: number; atrasado: number; pedidos: Pedido
 const MAX_TARJETAS = 7;
 /** Ninguna clase de asunto ocupa más de 3 tarjetas: con 9 entregas vencidas se ven 3 y el resto se cuenta en «y N más» (con el pago por vencer a la vista). */
 const MAX_POR_TIPO = 3;
-/** Hasta 3 modelos por producir tienen su propia tarjeta (con su «Abrir orden sugerida»); con más, UNA tarjeta los junta y manda a la tabla de abajo. */
+/** Hasta 3 modelos por producir tienen su propia tarjeta (con su «Preparar orden»); con más, UNA tarjeta los junta y manda a la lista. */
 const MAX_PRODUCIR_INDIVIDUALES = 3;
 /** Cuántos modelos nombra la tarjeta que junta a los que hay que producir. */
 const NOMBRADOS_EN_GRUPO = 3;
+/** Cuántos nombres (proveedores, insumos) caben en la línea «de» de un asunto antes de decir «y N más». */
+const NOMBRADOS_EN_DE = 3;
+
+/** El `id` del bloque «Qué fabricar primero» y el de «Lo demás está en orden» (donde se despliega la tabla de modelos): a ellos manda un «y N más» de modelos. La pantalla los pone con estas mismas constantes. */
+export const ID_FABRICAR = "primero";
+export const ID_LO_DEMAS = "lo-demas";
+const ANCLA_FABRICAR = `#${ID_FABRICAR}`;
+const ANCLA_LO_DEMAS = `#${ID_LO_DEMAS}`;
 
 /** Los asuntos de una clase que no cupieron, para decir «y N más» y a dónde ir a verlos. */
 export type DecisionesOcultas = { tipo: Decision["tipo"]; cantidad: number; texto: string; href: string };
@@ -381,14 +404,30 @@ const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: str
   insumo: { uno: "insumo que falta", varios: "insumos que faltan", href: "/produccion/insumos" },
   recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/comprobantes" },
   pago: { uno: "pago", varios: "pagos", href: "/produccion/por-pagar" },
-  producir: { uno: "modelo por producir", varios: "modelos por producir", href: "#produce" },
-  trasladar: { uno: "modelo por trasladar", varios: "modelos por trasladar", href: "#produce" },
-  sobrestock: { uno: "modelo con sobrestock", varios: "modelos con sobrestock", href: "#produce" },
-  minimo: { uno: "insumo bajo el mínimo", varios: "insumos bajo el mínimo", href: "/produccion/insumos" },
+  producir: { uno: "modelo por producir", varios: "modelos por producir", href: ANCLA_FABRICAR },
+  trasladar: { uno: "modelo por llevar a tienda", varios: "modelos por llevar a tienda", href: ANCLA_LO_DEMAS },
+  sobrestock: { uno: "modelo con stock de sobra", varios: "modelos con stock de sobra", href: ANCLA_LO_DEMAS },
+  minimo: { uno: "insumo por acabarse", varios: "insumos por acabarse", href: "/produccion/insumos" },
 };
 
 /** «5,1»: lo que se vende por semana (el ritmo es por día). */
 export const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 10).toLocaleString("es-PE");
+
+const prendasTexto = (n: number) => (n === 1 ? "1 prenda" : `${n} prendas`);
+
+/** «Lino, Denim y Gabardina» o, si son más de `tope`, «Lino, Denim, Gabardina y 2 más»: los nombres de la línea «de». */
+function enumerar(nombres: string[], tope: number = NOMBRADOS_EN_DE): string {
+  const unicos = [...new Set(nombres)];
+  if (unicos.length > tope) return `${unicos.slice(0, tope).join(", ")} y ${unicos.length - tope} más`;
+  if (unicos.length <= 1) return unicos[0] ?? "";
+  return `${unicos.slice(0, -1).join(", ")} y ${unicos[unicos.length - 1]}`;
+}
+
+/** Lo que queda en las tiendas, como dato: el número, o «Agotado» en ámbar (nunca «0»). */
+const parEnTiendas = (stockRed: number): ParDeDato => (stockRed <= 0 ? { rotulo: "En tiendas", valor: "Agotado", tono: "ambar" } : { rotulo: "En tiendas", valor: String(stockRed) });
+
+/** Un pedido dicho en una frase, sin punto medio: «OI-000003, 50 m a Textiles Andinos, llega el vie 23 oct». */
+const pedidoEnFrase = (p: PedidoDeInsumo) => textoDePedido(p).replaceAll(" · ", ", ");
 
 /**
  * «no hay orden abierta», o, si ya hay una que no alcanza, lo dice —la tarjeta nunca afirma «no hay orden» delante de una orden— y cuánto falta, salvo con poca base (una cantidad ahí es ruido,
@@ -397,6 +436,7 @@ export const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 
 const frasePorOrden = (m: FilaModelo) =>
   m.enProduccion === 0 ? "no hay orden abierta" : baseDelRitmo(m.ventasBase).pocaBase ? "lo que ya se fabrica no alcanza" : `lo que ya se fabrica no alcanza (faltan ${m.producir})`;
 
+// Las dos tarjetas de «producir» solo se arman sin `producirAparte`. El Resumen las pide aparte (su lista «Qué fabricar primero»), así que hoy no se dibujan: conservan su frase de siempre.
 function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
   const sugerida = sugerenciaDeOrden(m);
   return {
@@ -407,16 +447,19 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
       m.stockRed <= 0
         ? `«${m.referencia}» ya se agotó en las tiendas y ${frasePorOrden(m)}`
         : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y ${frasePorOrden(m)}`,
-    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.${sugerida ? ` ${textoSugerencia(sugerida)}.` : ""}`,
-    // «Sugerida» solo si de verdad hay una cantidad que decir: con poca base la orden se abre vacía y el botón no promete lo que no trae.
-    accion: sugerida ? { texto: "Abrir orden sugerida", href: hrefNuevaOrden(m.productoId, true) } : { texto: "Abrir orden", href: hrefNuevaOrden(m.productoId, false) },
+    de: m.referencia,
+    pares: [parEnTiendas(m.stockRed), { rotulo: "Venta por semana", valor: porSemana(m.ritmoDia) }],
+    porque: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por llevar a tienda` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.${sugerida ? ` ${textoSugerencia(sugerida)}.` : ""}`,
+    // Un solo nombre para el botón (Felipe 2026-11-26): «Preparar orden». Con una cantidad que decir la orden se abre con ella escrita; con poca base, vacía.
+    accion: { texto: "Preparar orden", href: hrefNuevaOrden(m.productoId, sugerida !== null) },
     productoIds: [m.productoId],
   };
 }
 
-/** Una sola tarjeta para cuando son muchos: nombra a los más urgentes (la lista ya viene ordenada) y manda a la tabla, donde está cada uno con su botón. */
+/** Una sola tarjeta para cuando son muchos: nombra a los más urgentes (la lista ya viene ordenada) y manda a la lista, donde está cada uno con su botón. */
 function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Decision {
-  const nombrados = ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana, ${baseDelRitmo(m.ventasBase).corto})`);
+  const urgentes = ms.slice(0, NOMBRADOS_EN_GRUPO);
+  const nombrados = urgentes.map((m) => `«${m.referencia}» (${m.stockRed <= 0 ? "ya se agotó" : `quedan ${m.stockRed}`}, ${porSemana(m.ritmoDia)} por semana, ${baseDelRitmo(m.ventasBase).corto})`);
   const resto = ms.length - nombrados.length;
   const conOrden = ms.filter((m) => m.enProduccion > 0).length;
   return {
@@ -424,27 +467,56 @@ function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Dec
     severidad: 3,
     tipo: "producir",
     titulo: `${ms.length} modelos por producir ${conOrden === 0 ? "y ninguno tiene orden abierta" : `y en ${conOrden} lo que ya se fabrica no alcanza`}`,
-    detalle: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
-    accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
-    productoIds: ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => m.productoId),
+    de: enumerar(ms.map((m) => m.referencia), NOMBRADOS_EN_GRUPO),
+    pares: [
+      { rotulo: "Modelos", valor: String(ms.length) },
+      { rotulo: "Con orden abierta", valor: conOrden === 0 ? "Ninguno" : String(conOrden) },
+    ],
+    porque: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
+    accion: { texto: `Ver los ${ms.length} modelos`, href: ANCLA_FABRICAR, ver: true },
+    productoIds: urgentes.map((m) => m.productoId),
     asuntos: ms.length,
   };
 }
 
 /** Lo que falta ya está hecho y guardado en el Taller: no hay que fabricar nada, hay que llevarlo a las tiendas. */
 function tarjetaTrasladar(m: FilaModelo & { ritmoDia: number }, href: string): Decision {
+  const enTiendas = m.stockRed <= 0 ? "Ya se agotó en las tiendas" : `Lo que queda en las tiendas alcanza para ${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)}`;
   return {
     id: `trasladar-${m.productoId}`,
     severidad: 3,
     tipo: "trasladar",
-    titulo:
-      m.stockRed <= 0
-        ? `«${m.referencia}» ya se agotó en las tiendas, pero hay ${m.stockTaller} en el Taller`
-        : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)}, pero hay ${m.stockTaller} en el Taller`,
-    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}). Llevar ${m.trasladar} al piso${m.enCamino + m.enProduccionContada > 0 ? ", junto con lo que ya viene," : ""} cubre ${DIAS_OBJETIVO_PRODUCCION} días de venta: no hace falta fabricar.`,
-    accion: { texto: "Trasladar al piso", href },
+    titulo: "Prendas listas sin llevar a tienda",
+    de: m.referencia,
+    pares: [{ rotulo: "En el Taller", valor: prendasTexto(m.stockTaller) }, parEnTiendas(m.stockRed)],
+    porque: `${enTiendas} y se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}). Llevar ${m.trasladar} a tienda${m.enCamino + m.enProduccionContada > 0 ? ", junto con lo que ya viene," : ""} cubre ${DIAS_OBJETIVO_PRODUCCION} días de venta: no hace falta fabricar.`,
+    accion: { texto: "Llevar a tienda", href },
     productoIds: [m.productoId],
   };
+}
+
+/** Los pagos que vencen: lo vencido manda (severidad 3, monto en rojo); si no hay vencido, lo que vence en 7 días. Una sola tarjeta: se paga en la misma pantalla. */
+function tarjetaPago(comprobantes: ComprobanteProduccion[], hoy: string): Decision | null {
+  const tramos = tramosPorPagar(comprobantes, hoy);
+  const vencido = tramos.find((t) => t.clave === "vencido");
+  const semana = tramos.find((t) => t.clave === "semana");
+  const tramo = vencido ?? semana;
+  if (!tramo) return null;
+  const n = tramo.comprobantes.length;
+  // El tramo viene ordenado: el primero es el que venció (o vence) antes.
+  const primero = tramo.comprobantes[0].fechaVencimiento;
+  const dias = primero ? diasHasta(primero, hoy) : null;
+  const documentos = `${tramo.comprobantes.slice(0, 3).map((x) => `${x.proveedor} ${x.serie}-${x.numero}`).join(", ")}${n > 3 ? ` y ${n - 3} más` : ""}`;
+  const comun = { id: "pago", tipo: "pago" as const, de: enumerar(tramo.comprobantes.map((x) => x.proveedor)), accion: { texto: "Ir a Por pagar", href: "/produccion/por-pagar", ver: true } };
+  if (vencido) {
+    const pares: ParDeDato[] = [{ rotulo: "Monto", valor: soles(vencido.monto), tono: "rojo" }];
+    if (dias !== null && dias < 0) pares.push({ rotulo: n === 1 ? "Venció" : "El primero venció", valor: `Hace ${plural(-dias, "día", "días")}` });
+    if (semana) pares.push({ rotulo: "Vence esta semana", valor: soles(semana.monto) });
+    return { ...comun, severidad: 3, titulo: n === 1 ? "Un pago está vencido" : `${n} pagos están vencidos`, pares, porque: `Lo vencido: ${documentos}.` };
+  }
+  const pares: ParDeDato[] = [{ rotulo: "Monto", valor: soles(tramo.monto) }];
+  if (dias !== null) pares.push({ rotulo: n === 1 ? "Vence" : "El primero vence", valor: dias <= 0 ? "Hoy" : dias === 1 ? "Mañana" : `En ${dias} días` });
+  return { ...comun, severidad: 2, titulo: n === 1 ? "Vence un pago esta semana" : "Vencen pagos esta semana", pares, porque: `Lo que vence: ${documentos}.` };
 }
 
 export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones {
@@ -455,25 +527,30 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   for (const o of c.ordenes) {
     if (o.estado !== "en_proceso") continue;
     const e = estadoEntrega(o.fechaEntrega, c.hoy);
+    if (e.tipo !== "vencida" && e.tipo !== "pronto") continue;
     const etapa = etapaActual(o.etapas, o.esMuestra);
-    const dondeEsta = etapa === "listo" ? "lista para cerrar" : `en ${etapasDe(o.esMuestra).find((x) => x.clave === etapa)?.etiqueta.toLowerCase() ?? etapa}`;
+    // La fase la dice la lista de Órdenes cuando se pudo leer: así las dos pantallas nombran igual dónde está («Por plotear», no «Corte»).
+    const fase = c.faseDeLaOrden?.[o.id];
+    const dondeEsta: ParDeDato = fase
+      ? { rotulo: "Dónde está", valor: fase }
+      : etapa === "listo"
+        ? { rotulo: "Está", valor: "Lista para el stock" }
+        : { rotulo: "Está en", valor: etapasDe(o.esMuestra).find((x) => x.clave === etapa)?.etiqueta ?? etapa };
+    const comun = {
+      id: `entrega-${o.id}`,
+      tipo: "entrega" as const,
+      de: o.numeroTexto ? `${o.referencia}, ${o.esMuestra ? "muestra" : "orden"} ${o.numeroTexto}` : `${o.referencia}${o.esMuestra ? " (muestra)" : ""}`,
+      accion: { texto: "Ver la orden", href: `/produccion/ordenes?orden=${o.id}`, ver: true },
+    };
+    const son: ParDeDato = { rotulo: "Son", valor: prendasTexto(o.cantidadPlan) };
     if (e.tipo === "vencida")
+      out.push({ ...comun, severidad: 3, titulo: "Una orden está atrasada", pares: [{ rotulo: "Debía entregarse", valor: `Hace ${plural(e.dias, "día", "días")}`, tono: "ambar" }, dondeEsta, son] });
+    else
       out.push({
-        id: `entrega-${o.id}`,
-        severidad: 3,
-        tipo: "entrega",
-        titulo: `«${o.referencia}» debía entregarse hace ${plural(e.dias, "día", "días")} y sigue en proceso`,
-        detalle: `Son ${o.cantidadPlan} prendas${o.esMuestra ? " (muestra)" : ""}, hoy ${dondeEsta}.`,
-        accion: { texto: "Ver la orden", href: `/produccion/ordenes?orden=${o.id}` },
-      });
-    else if (e.tipo === "pronto")
-      out.push({
-        id: `entrega-${o.id}`,
+        ...comun,
         severidad: 2,
-        tipo: "entrega",
-        titulo: e.dias === 0 ? `«${o.referencia}» se entrega hoy y sigue en proceso` : `«${o.referencia}» se entrega en ${plural(e.dias, "día", "días")} y sigue en proceso`,
-        detalle: `Son ${o.cantidadPlan} prendas${o.esMuestra ? " (muestra)" : ""}, hoy ${dondeEsta}.`,
-        accion: { texto: "Ver la orden", href: `/produccion/ordenes?orden=${o.id}` },
+        titulo: e.dias === 0 ? "Una orden se entrega hoy" : "Una orden se entrega pronto",
+        pares: [e.dias === 0 ? { rotulo: "Se entrega", valor: "Hoy", tono: "ambar" } : { rotulo: "Se entrega", valor: `En ${plural(e.dias, "día", "días")}` }, dondeEsta, son],
       });
   }
 
@@ -487,26 +564,33 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
     const falta = d.necesita - i.saldo;
     const viene = llegadasPorInsumo.get(i.id) ?? [];
     const porLlegar = viene.reduce((s, l) => s + l.pendiente, 0);
+    const esTela = i.tipo === "tela";
     const pide = `Las órdenes abiertas (${d.ordenes.join(", ")}) todavía necesitan ${cantidadTexto(d.necesita, i.unidad)} y hay ${cantidadTexto(i.saldo, i.unidad)}`;
     yaAvisados.add(i.id);
     if (porLlegar + 1e-9 >= falta && viene.length > 0) {
+      const facturas = [...new Set(viene.map((l) => l.documento))];
       const docs = [...new Set(viene.map((l) => `${l.documento} (${l.proveedor})`))].join(", ");
       out.push({
         id: `insumo-${i.id}`,
         severidad: 3,
         tipo: "recibir",
-        titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} para lo que hay que cortar — pero ya está facturado`,
-        detalle: `Falta recibir ${cantidadTexto(porLlegar, i.unidad)}: ${docs}. Recibirlo destraba el corte.`,
-        porque: `${pide}.`,
+        titulo: esTela ? "Falta recibir tela ya comprada" : "Falta recibir avíos ya comprados",
+        de: i.nombre,
+        pares: [
+          { rotulo: "Faltan", valor: cantidadTexto(falta, i.unidad), tono: "ambar" },
+          { rotulo: "Por recibir", valor: cantidadTexto(porLlegar, i.unidad) },
+          { rotulo: facturas.length === 1 ? "Factura" : "Facturas", valor: facturas.length === 1 ? facturas[0] : `${facturas[0]} y ${facturas.length - 1} más` },
+        ],
+        porque: `${pide}. Falta recibir ${cantidadTexto(porLlegar, i.unidad)}: ${docs}. Recibirlo destraba el corte.`,
         // Sin la pantalla Recibir del Taller (ADR-0702): se va a la factura, donde se ve qué falta.
-        accion: { texto: "Ver la factura", href: "/produccion/comprobantes" },
+        accion: { texto: "Ver la factura", href: "/produccion/comprobantes", ver: true },
       });
       continue;
     }
     // Lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados) se SUMA a lo que hay: una orden de insumos ya se liga a la recepción (ADR-0362), así que no se cuenta dos veces.
     const camino = c.enCamino?.get(i.id) ?? { cuenta: 0, atrasado: 0, pedidos: [] };
     const viaja = porLlegar + camino.cuenta;
-    const nombrados = camino.pedidos.slice(0, 2).map(textoDePedido).join("; ");
+    const nombrados = camino.pedidos.slice(0, 2).map(pedidoEnFrase).join("; ");
     const mas = camino.pedidos.length > 2 ? ` y ${camino.pedidos.length - 2} más` : "";
     const cuenta = [
       `${pide}`,
@@ -521,54 +605,51 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         id: `insumo-${i.id}`,
         severidad: 2,
         tipo: "insumo",
-        titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} hoy, pero ya vienen ${cantidadTexto(viaja, i.unidad)} en camino`,
-        detalle: "Alcanza cuando llegue lo pedido. Si ya llegó, anótalo en Insumos y este número baja.",
-        porque: `${cuenta}.`,
-        accion: { texto: "Ver en Insumos", href: "/produccion/insumos" },
+        titulo: esTela ? "Falta tela, pero ya viene" : "Faltan avíos, pero ya vienen",
+        de: i.nombre,
+        pares: [
+          { rotulo: "Faltan", valor: cantidadTexto(falta, i.unidad), tono: "ambar" },
+          { rotulo: "En camino", valor: cantidadTexto(viaja, i.unidad) },
+        ],
+        porque: `${cuenta}. Alcanza cuando llegue lo pedido. Si ya llegó, anótalo en Insumos y este número baja.`,
+        accion: { texto: "Ver en Insumos", href: "/produccion/insumos", ver: true },
       });
     } else {
       const atrasados = camino.pedidos.filter((p) => p.atrasado);
+      // Lo que dice depende de lo que viene: si viene algo, «ni con lo que viene»; si solo hay pedidos atrasados, que no se cuentan; y si no hay nada pedido, que no hay nada pedido.
+      const loQueViene: ParDeDato[] = [];
+      if (viaja > 0) loQueViene.push({ rotulo: "En camino", valor: cantidadTexto(viaja, i.unidad) });
+      if (atrasados.length > 0) loQueViene.push(atrasados.length === 1 ? { rotulo: "Pedido atrasado", valor: "No se cuenta", tono: "ambar" } : { rotulo: "Pedidos atrasados", valor: `${atrasados.length}, no se cuentan`, tono: "ambar" });
+      if (loQueViene.length === 0) loQueViene.push({ rotulo: "Pedido en camino", valor: "Ninguno" });
+      const explica =
+        viaja > 0
+          ? `No alcanza ni con lo que viene.${atrasados.length > 0 ? ` Hay ${atrasados.length === 1 ? "un pedido atrasado" : `${atrasados.length} pedidos atrasados`} que no cuento.` : ""}`
+          : atrasados.length > 0
+            ? "No alcanza: lo pedido está atrasado y no lo cuento."
+            : "No alcanza y no hay nada pedido.";
       out.push({
         id: `insumo-${i.id}`,
         severidad: 3,
         tipo: "insumo",
-        titulo: `Faltan ${cantidadTexto(falta - viaja, i.unidad)} de ${i.nombre} para lo que hay que cortar${camino.cuenta > 0 ? ", aun contando lo que viene" : ""}`,
-        // Lo que dice depende de lo que viene: si viene algo, «ni con lo que viene»; si solo hay pedidos atrasados, que no se cuentan; y si no hay nada pedido, que no hay nada pedido.
-        detalle:
-          viaja > 0
-            ? `No alcanza ni con lo que viene.${atrasados.length > 0 ? ` Hay ${atrasados.length === 1 ? "un pedido atrasado" : `${atrasados.length} pedidos atrasados`} que no cuento.` : ""}`
-            : atrasados.length > 0
-              ? "No alcanza: lo pedido está atrasado y no lo cuento."
-              : "No alcanza y no hay nada pedido.",
-        porque: `${cuenta}.`,
+        titulo: esTela ? "Falta tela para cortar" : "Faltan avíos",
+        de: i.nombre,
+        pares: [{ rotulo: "Faltan", valor: cantidadTexto(falta - viaja, i.unidad), tono: "ambar" }, ...loQueViene],
+        porque: `${cuenta}. ${explica}`,
         // Sin Órdenes de insumos (ADR-0702, 2026-11-25): lo que falta se compra y se anota en Insumos ▸ «Llegó una compra».
-        accion: atrasados.length > 0 ? { texto: "Ver en Insumos", href: "/produccion/insumos" } : { texto: i.tipo === "tela" ? "Comprar la tela" : "Comprar los avíos", href: "/produccion/insumos" },
+        accion: atrasados.length > 0 ? { texto: "Ver en Insumos", href: "/produccion/insumos", ver: true } : { texto: esTela ? "Comprar tela" : "Comprar avíos", href: "/produccion/insumos" },
       });
     }
   }
 
   // 3 · plata que vence
-  const tramos = tramosPorPagar(c.comprobantes, c.hoy);
-  const vencido = tramos.find((t) => t.clave === "vencido");
-  const semana = tramos.find((t) => t.clave === "semana");
-  if (vencido || semana) {
-    const partes = [vencido ? `${soles(vencido.monto)} vencidos` : null, semana ? `${soles(semana.monto)} por vencer en 7 días` : null].filter(Boolean).join(" y ");
-    const quienes = (vencido ?? semana)!.comprobantes.slice(0, 3).map((x) => `${x.proveedor} ${x.serie}-${x.numero}`).join(", ");
-    out.push({
-      id: "pago",
-      severidad: vencido ? 3 : 2,
-      tipo: "pago",
-      titulo: partes,
-      detalle: `${quienes}${(vencido ?? semana)!.comprobantes.length > 3 ? " y más" : ""}. Pagar tarde a un proveedor de tela pone en riesgo el crédito del que depende el Taller.`,
-      accion: { texto: "Ir a Por pagar", href: "/produccion/por-pagar" },
-    });
-  }
+  const pago = tarjetaPago(c.comprobantes, c.hoy);
+  if (pago) out.push(pago);
 
   // 4 · qué producir: hasta 3 modelos, una tarjeta cada uno; con más, una sola que los junta (los 9 «producir» ya no se comen a lo demás)
   const porProducir = c.producirAparte ? [] : c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
   if (porProducir.length > MAX_PRODUCIR_INDIVIDUALES) out.push(tarjetaProducirAgrupada(porProducir));
   else for (const m of porProducir) out.push(tarjetaProducir(m));
-  // Lo que falta ya está en el Taller: se traslada. Solo cuando de verdad urge (la misma barra que «Producir ya»); más allá de 7 días lo dice la fila de la tabla.
+  // Lo que falta ya está en el Taller: se lleva a tienda. Solo cuando de verdad urge (la misma barra que «Producir ya»); más allá de 7 días lo dice la fila de la tabla.
   for (const m of c.modelos) {
     const href = urlTrasladarModelo(m, c.tallerId);
     if (m.estado === "trasladar" && m.ritmoDia && href && (m.diasRed ?? Infinity) <= UMBRAL_COBERTURA_RIESGO_DIAS) out.push(tarjetaTrasladar(m as FilaModelo & { ritmoDia: number }, href));
@@ -579,10 +660,15 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         id: `sobrestock-${m.productoId}`,
         severidad: 1,
         tipo: "sobrestock",
-        titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
-        detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
-        // «Verlo abajo», no «Ver qué producir»: la tarjeta dice «no produzcas más» y su botón no puede decir lo contrario (segunda prueba ciega, 2026-10-27).
-        accion: { texto: "Verlo abajo", href: "#produce" },
+        titulo: "Hay de sobra: no fabriques más",
+        de: m.referencia,
+        pares: [
+          { rotulo: "En tiendas", valor: String(m.stockRed) },
+          { rotulo: "Alcanza para", valor: `${Math.round(m.diasRed ?? 0)} días` },
+        ],
+        porque: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
+        // «Ver el modelo», no «Ver qué producir»: la tarjeta dice «no fabriques más» y su botón no puede decir lo contrario (segunda prueba ciega, 2026-10-27). Abre su hoja; sin ella, baja a la tabla.
+        accion: { texto: "Ver el modelo", href: ANCLA_LO_DEMAS, modelo: m.productoId },
         productoIds: [m.productoId],
       });
   }
@@ -590,15 +676,23 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   // 5 · insumos bajo el mínimo (los que ya tienen su tarjeta de falta no se repiten)
   // «No hay pedido en camino»: ni facturado por recibir ni un pedido que cuente; un pedido atrasado no cuenta como en camino.
   const bajos = c.insumos.filter((i) => (i.tono === "bajo" || i.tono === "sin_saldo") && !yaAvisados.has(i.id) && !(llegadasPorInsumo.get(i.id)?.length) && !((c.enCamino?.get(i.id)?.cuenta ?? 0) > 0));
-  if (bajos.length > 0)
+  if (bajos.length > 0) {
+    const [uno] = bajos;
+    const paresDeUno: ParDeDato[] = [{ rotulo: "Quedan", valor: cantidadTexto(uno.saldo, uno.unidad), tono: "ambar" }];
+    if (uno.minimo !== null) paresDeUno.push({ rotulo: "Lo mínimo es", valor: cantidadTexto(uno.minimo, uno.unidad) });
+    paresDeUno.push({ rotulo: "Pedido en camino", valor: "Ninguno" });
     out.push({
       id: "minimo",
       severidad: 2,
       tipo: "minimo",
-      titulo: `${bajos.map((i) => i.nombre).join(" y ")} ${bajos.length > 1 ? "están" : "está"} bajo el mínimo y no hay pedido en camino`,
-      detalle: bajos.map((i) => `${i.nombre}: ${cantidadTexto(i.saldo, i.unidad)}${i.minimo !== null ? ` (mínimo ${cantidadTexto(i.minimo, i.unidad)})` : ""}`).join(" · "),
-      accion: { texto: "Ver Insumos", href: "/produccion/insumos" },
+      titulo: bajos.length === 1 ? "Un insumo por acabarse" : "Insumos por acabarse",
+      de: enumerar(bajos.map((i) => i.nombre)),
+      // Uno solo: lo que queda contra su mínimo. Varios: lo que queda de cada uno (hasta 3; el resto está en la línea «de» y en el porqué).
+      pares: bajos.length === 1 ? paresDeUno : bajos.slice(0, NOMBRADOS_EN_DE).map((i) => ({ rotulo: i.nombre, valor: cantidadTexto(i.saldo, i.unidad), tono: "ambar" as const })),
+      porque: `${bajos.map((i) => `${i.nombre}: quedan ${cantidadTexto(i.saldo, i.unidad)}${i.minimo !== null ? ` y lo mínimo es ${cantidadTexto(i.minimo, i.unidad)}` : ""}`).join("; ")}. No hay pedido en camino.`,
+      accion: { texto: "Ver Insumos", href: "/produccion/insumos", ver: true },
     });
+  }
 
   // Del más urgente al menos (el orden es estable: dentro de una severidad quedan en el orden en que se armaron). Se dibuja hasta MAX_TARJETAS y sin
   // pasar de MAX_POR_TIPO por clase; lo que no cabe NO se pierde en silencio: se cuenta por clase para decir «y N más» y a dónde ir a verlo.
@@ -617,54 +711,25 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   return { decisiones, ocultas, total: ordenadas.length };
 }
 
+/** Cuántos asuntos de cada clase hay en «Por resolver», se vean o estén en «y N más»: con esto «Lo demás está en orden» sabe qué ya se dijo arriba y no lo repite como alarma. */
+export function asuntosPorTipo(r: Pick<ResumenDeDecisiones, "decisiones" | "ocultas">): Partial<Record<Decision["tipo"], number>> {
+  const cuenta: Partial<Record<Decision["tipo"], number>> = {};
+  for (const d of r.decisiones) cuenta[d.tipo] = (cuenta[d.tipo] ?? 0) + (d.asuntos ?? 1);
+  for (const o of r.ocultas) cuenta[o.tipo] = (cuenta[o.tipo] ?? 0) + o.cantidad;
+  return cuenta;
+}
+
 // ---------------------------------------------------------------------------
-// Cifras de arriba
+// Lo que se debe a los proveedores del Taller
 // ---------------------------------------------------------------------------
 
-export type CifrasResumen = {
-  capitalInsumos: number | null;
-  insumosBajoMinimo: number;
-  valorEnProceso: number;
-  ordenesEnProceso: number;
-  porPagar: number;
-  vencido: number;
-  entregasEnRiesgo: number;
-  /** Cuántos insumos hay cargados en el Taller: con 0, un «S/ 0.00» de capital no es «no tengo nada» sino «todavía no se cargó» (Formidable, 2026-10-27). */
-  insumosCargados: number;
-  /** Órdenes abiertas (sin las muestras, que no suman al valor) que todavía no tienen costo de tela ni de avíos: su valor es 0 porque falta el dato, no porque valgan 0. */
-  ordenesSinCosto: number;
-  /** Cuántas facturas de proveedores se han cargado alguna vez: con 0, «no se debe nada» sería afirmar lo que no se sabe. */
-  facturasCargadas: number;
-  /** Órdenes abiertas sin fecha de entrega: no pueden estar «vencidas», porque no tienen fecha. */
-  ordenesSinFecha: number;
-};
+/** Lo que el Resumen necesita saber de los pagos para decir si están al día: lo vencido, lo que vence en 7 días, el total y si hay alguna factura cargada (sin ninguna, «no se debe nada» sería afirmar lo que no se sabe). */
+export type PagosDelTaller = { porPagar: number; vencido: number; estaSemana: number; facturasCargadas: number };
 
-/** «Entregas en riesgo» = solo lo que los hechos dicen: la fecha ya pasó o falta `DIAS_ENTREGA_PRONTO` días o menos. */
-export function cifrasResumen(args: {
-  hoy: string;
-  ordenes: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[];
-  insumos: InsumoParaDecidir[];
-  capitalInsumos: number | null;
-  comprobantes: ComprobanteProduccion[];
-}): CifrasResumen {
-  const abiertas = args.ordenes.filter((o) => o.estado === "en_proceso");
-  const tramos = tramosPorPagar(args.comprobantes, args.hoy);
-  return {
-    capitalInsumos: args.capitalInsumos,
-    insumosBajoMinimo: args.insumos.filter((i) => i.tono === "bajo" || i.tono === "sin_saldo").length,
-    valorEnProceso: redondear2(abiertas.filter((o) => !o.esMuestra).reduce((s, o) => s + o.costoTela + o.costoAvios, 0)),
-    ordenesEnProceso: abiertas.length,
-    porPagar: redondear2(tramos.reduce((s, t) => s + t.monto, 0)),
-    vencido: tramos.find((t) => t.clave === "vencido")?.monto ?? 0,
-    insumosCargados: args.insumos.length,
-    ordenesSinCosto: abiertas.filter((o) => !o.esMuestra && o.costoTela + o.costoAvios === 0).length,
-    facturasCargadas: args.comprobantes.length,
-    ordenesSinFecha: abiertas.filter((o) => o.fechaEntrega === null).length,
-    entregasEnRiesgo: abiertas.filter((o) => {
-      const e = estadoEntrega(o.fechaEntrega, args.hoy);
-      return e.tipo === "vencida" || (e.tipo === "pronto" && e.dias <= DIAS_ENTREGA_PRONTO);
-    }).length,
-  };
+export function pagosDelTaller(comprobantes: ComprobanteProduccion[], hoy: string): PagosDelTaller {
+  const tramos = tramosPorPagar(comprobantes, hoy);
+  const monto = (clave: "vencido" | "semana") => tramos.find((t) => t.clave === clave)?.monto ?? 0;
+  return { porPagar: Math.round(tramos.reduce((s, t) => s + t.monto, 0) * 100) / 100, vencido: monto("vencido"), estaSemana: monto("semana"), facturasCargadas: comprobantes.length };
 }
 
 // ---------------------------------------------------------------------------

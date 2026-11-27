@@ -85,6 +85,8 @@ export function AyudaCabecera({
     };
     const alEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // Este Escape es del globo: dentro de una hoja no llega a cerrarla (ADR-0136, «Escape dentro de una hoja»).
+      e.stopPropagation();
       setAbierto(false);
       boton.current?.focus();
     };
