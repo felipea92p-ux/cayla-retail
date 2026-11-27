@@ -93,7 +93,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
     <Modal titulo="Lo que ya tenías" subtitulo="Tela o avío que ya había antes de usar el sistema." variante="hoja" onClose={onClose}>
       <form onSubmit={guardar} className="mt-3.5 space-y-4">
         <CampoGuiado id="insumo" guia={guia}>
-          <Campo etiqueta={guia.etiqueta("insumo", "Qué tela o avío")} pie={insumo ? `Hoy figuran ${cantidadTexto(insumo.saldo, insumo.unidad)}.` : undefined}>
+          <Campo etiqueta={guia.etiqueta("insumo", "Qué tela o avío")} pie={insumo ? `Hoy figuran ${cantidadTexto(insumo.saldo, insumo.unidad).replace(/\.$/, "")}.` : undefined}>
             <ComboBuscable
               valor={insumoId}
               onValor={(v) => setInsumoId(v)}

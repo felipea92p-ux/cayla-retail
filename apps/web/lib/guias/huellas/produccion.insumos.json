@@ -156,7 +156,7 @@
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
       "Boton «Agregar colores a ese»",
       "CampoTexto «{guia.etiqueta(\"medida\", laMedida.titulo)}»",
-      "CampoTexto «0»",
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Se pierde al cortar\")}»",
       "CampoTexto «Ya tengo»",
       "CampoTexto «{`Me costó ${costoPor(e.unidad)}»",
       "CampoTexto «Avísame si baja de»",
@@ -176,8 +176,8 @@
       "CampoTexto «Ancho abierto (cm)»",
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
-      "CampoTexto «0»",
-      "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Se pierde al cortar\")}»",
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Se pierde al cortar (%)\")}»"
     ],
     "components/insumos-taller/ProveedorDelLoteModal.tsx": [
       "ComboBuscable «{proveedorId}»",

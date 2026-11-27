@@ -35,6 +35,7 @@ import { ordenesParaLaLista, type OrdenParaMolde } from "@/lib/orden-modelo-regl
 import { DIAS_SIN_MOVERSE } from "@/lib/orden-pagina-reglas";
 import {
   caminoDeLasOrdenes,
+  pestanaDe,
   cuantasPidenAtencion,
   cuentasDePestanas,
   filtrarFilas,
@@ -151,7 +152,8 @@ export function OrdenesLista({
   const filas = useMemo(() => lista?.filas ?? [], [lista]);
   // Para la lista de «Nueva orden»: cuántas órdenes abiertas tiene cada modelo y cuáles fueron los últimos (ADR-0396).
   const paraLaLista = useMemo(() => ordenesParaLaLista(ordenes), [ordenes]);
-  const camino = useMemo(() => caminoDeLasOrdenes(filas), [filas]);
+  // La franja cuenta las órdenes de la pestaña abierta: en «En curso» los lotes y en «Muestras» las muestras, para que «Todas» y cada tramo den lo mismo que la lista de abajo. En «Terminadas» no hay abiertas: se cuentan todas las que siguen en el Taller.
+  const camino = useMemo(() => caminoDeLasOrdenes(pestana === "terminadas" ? filas : filas.filter((f) => pestanaDe(f) === pestana)), [filas, pestana]);
   const cuentas = useMemo(() => cuentasDePestanas(filas), [filas]);
   const visibles = useMemo(() => ordenarFilas(filtrarFilas(filas, { pestana, tramo, piden, texto }), pestana), [filas, pestana, tramo, piden, texto]);
   const cuantasPiden = useMemo(() => cuantasPidenAtencion(filas, { pestana, tramo, texto }), [filas, pestana, tramo, texto]);
@@ -299,7 +301,7 @@ export function OrdenesLista({
                 <span className="ml-1.5 font-medium tracking-normal tabular-nums">{cuantasPiden}</span>
               </button>
             )}
-            <Buscador valor={texto} onCambio={setTexto} placeholder="Buscar por modelo, color u orden" atajo guia="prod-ordenes.buscador" className="w-full @min-[60rem]:ml-auto @min-[60rem]:w-72" />
+            <Buscador valor={texto} onCambio={setTexto} placeholder="Buscar modelo, color u orden" atajo guia="prod-ordenes.buscador" className="w-full @min-[60rem]:ml-auto @min-[60rem]:w-72" />
           </div>
 
           <div data-resultados>

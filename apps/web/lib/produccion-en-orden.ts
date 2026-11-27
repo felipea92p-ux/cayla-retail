@@ -83,11 +83,16 @@ export function recuadroDeTelas(telas: readonly Pick<FilaTela, "estado">[], avis
   const alcanzan = telas.filter((t) => t.estado === "alcanza").length;
   const noAlcanzan = telas.filter((t) => t.estado === "falta" || t.estado === "alcanza_si_llega").length;
   if (alcanzan + noAlcanzan === 0) return { ...base, tono: "neutro", titulo: "Ninguna orden pide tela", linea: `Hay ${cuantas(telas.length, "tela", "telas")} en el Taller` };
-  const titulo = alcanzan === 0 ? "Ninguna tela alcanza" : alcanzan === 1 ? "1 tela alcanza" : `${alcanzan} telas alcanzan`;
+  const titulo = alcanzan === 1 ? "1 tela alcanza" : `${alcanzan} telas alcanzan`;
   if (noAlcanzan === 0) return { ...base, tono: "bien", titulo, linea: "Para los cortes" };
   const avisadas = (avisados.insumo ?? 0) + (avisados.recibir ?? 0) >= noAlcanzan;
+  // Ninguna alcanza: el recuadro dice lo que pasa («1 tela no alcanza»), no una negación de lo que no hay («Ninguna tela alcanza»).
+  if (alcanzan === 0) {
+    const cuales = noAlcanzan === 1 ? "1 tela no alcanza" : `${noAlcanzan} telas no alcanzan`;
+    return { ...base, tono: avisadas ? "neutro" : "atencion", titulo: cuales, linea: avisadas ? (noAlcanzan === 1 ? "Ya está en Por resolver" : "Ya están en Por resolver") : "Mira cuáles" };
+  }
   const linea = noAlcanzan === 1 ? `1 no alcanza${avisadas ? ": está en Por resolver" : ""}` : `${noAlcanzan} no alcanzan${avisadas ? ": están en Por resolver" : ""}`;
-  return { ...base, tono: !avisadas ? "atencion" : alcanzan > 0 ? "bien" : "neutro", titulo, linea };
+  return { ...base, tono: avisadas ? "bien" : "atencion", titulo, linea };
 }
 
 /** Los modelos que hoy no piden fabricar (todos menos «Producir ya», que está en «Qué fabricar primero»). `null` si no queda ninguno: no hay recuadro. Si la red no se pudo leer, lo dice. */

@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ExisteTambien, type EstadoExisteTambien } from "@/components/ui/ExisteTambien";
-import { ConUnidad, Opcional } from "@/components/insumos-taller/PiezasDeHoja";
+import { ConUnidad } from "@/components/insumos-taller/PiezasDeHoja";
 import { proponerValorVocabulario } from "@/lib/alta-producto-ejes";
 import { existentesParecidos, preguntaPendiente } from "@/lib/atributo-parecido";
 import { CANTIDAD_ILEGIBLE, type CompraDeTela } from "@/lib/insumos-reglas";
@@ -143,8 +143,8 @@ export function PreguntaDelTejido({ pregunta }: { pregunta: PreguntaDeTejido | n
   return <ExisteTambien que="tejido" nombre={pregunta.nombre} estado={pregunta.estado} si={(existente) => ({ texto: `Usar ${existente.nombre}`, onClick: () => pregunta.usar(existente.id) })} />;
 }
 
-/** De qué está hecha la tela. `titulo`: «Nueva tela» lo pregunta con palabras de Taller («De qué está hecha»); «Editar tela» conserva «Composición». */
-export function CampoComposicion({ guia, composicion, onComposicion, titulo = "Composición" }: { guia: GuiaCampos; composicion: string; onComposicion: (texto: string) => void; titulo?: string }) {
+/** De qué está hecha la tela. `titulo`: con palabras de Taller («De qué está hecha»), igual en «Nueva tela» y en «Editar tela». */
+export function CampoComposicion({ guia, composicion, onComposicion, titulo = "De qué está hecha" }: { guia: GuiaCampos; composicion: string; onComposicion: (texto: string) => void; titulo?: string }) {
   return (
     <CampoGuiado id="composicion" guia={guia}>
       <CampoTexto
@@ -287,12 +287,7 @@ export function CompraDeLaTela({
             <ConUnidad unidad="%">
               <CampoTexto
                 inputMode="decimal"
-                etiqueta={
-                  <>
-                    {guia.etiqueta("merma", "Se pierde al cortar")}
-                    <Opcional />
-                  </>
-                }
+                etiqueta={guia.etiqueta("merma", "Se pierde al cortar")}
                 placeholder="0"
                 value={merma}
                 onChange={(ev) => onMerma(ev.target.value)}
@@ -314,7 +309,7 @@ export function CompraDeLaTela({
       {avisos}
       <div className="grid gap-3 sm:grid-cols-3">
         <CampoGuiado id="merma" guia={guia}>
-          <CampoTexto etiqueta={guia.etiqueta("merma", "Merma al cortar (%)")} pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(ev) => onMerma(ev.target.value)} />
+          <CampoTexto etiqueta={guia.etiqueta("merma", "Se pierde al cortar (%)")} pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(ev) => onMerma(ev.target.value)} />
         </CampoGuiado>
       </div>
     </>

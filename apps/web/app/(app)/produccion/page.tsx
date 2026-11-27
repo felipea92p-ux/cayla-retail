@@ -5,6 +5,7 @@ import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
 import { getInsumosDelTaller } from "@/lib/insumos";
+import { nombreDeInsumoParaLeer } from "@/lib/insumos-vista";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
@@ -69,7 +70,7 @@ export default async function ProduccionPage() {
     cantidadPlan: o.cantidadPlan,
     etapas: o.etapas,
   }));
-  const insumos: InsumoParaDecidir[] = datosInsumos.insumos.map((i) => ({ id: i.id, nombre: i.nombre, unidad: i.unidad, tipo: i.tipo, saldo: i.saldo, minimo: i.minimo, tono: i.estado.tono }));
+  const insumos: InsumoParaDecidir[] = datosInsumos.insumos.map((i) => ({ id: i.id, nombre: nombreDeInsumoParaLeer(i), unidad: i.unidad, tipo: i.tipo, saldo: i.saldo, minimo: i.minimo, tono: i.estado.tono }));
   const llegadas = lineas.filter((l) => l.pendiente > 0).map((l) => ({ insumoId: l.insumoId, documento: `${l.serie}-${l.numero}`, proveedor: l.proveedor, pendiente: l.pendiente }));
   const consumoNeto: Record<string, Record<string, number>> = {};
   for (const [ordenId, cs] of Object.entries(datosInsumos.consumosPorOrden)) {
@@ -104,7 +105,9 @@ export default async function ProduccionPage() {
   );
 
   // Los modelos por producir tienen su propia lista («Qué fabricar primero»): «Por resolver» queda para lo demás (entregas, tela, pagos, prendas por llevar a tienda, lo que hay de sobra).
-  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo, producirAparte: true });
+  // Dónde está cada orden, con las palabras de la lista de Órdenes: el asunto «Una orden está atrasada» dice lo mismo que esa pantalla.
+  const faseDeLaOrden = Object.fromEntries((dondeEstan.lista?.filas ?? []).filter((f) => f.estado === "en_proceso").map((f) => [f.id, f.donde.fase]));
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo, producirAparte: true, faseDeLaOrden });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas, enCaminoPorInsumo);
 
   return (

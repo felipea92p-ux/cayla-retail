@@ -296,7 +296,7 @@ export function InsumosPanel({
                 { clave: "movimientos", etiqueta: "Movimientos", ayuda: "Lo que entró y lo que salió, del más reciente al más viejo.", guia: "prod-insumos.pestana-movimientos" },
               ]}
             />
-            <Buscador guia="prod-insumos.buscar" className="w-full sm:w-72" valor={busqueda} onCambio={setBusqueda} placeholder="Buscar una tela o un color" />
+            <Buscador guia="prod-insumos.buscar" className="w-full sm:w-72" valor={busqueda} onCambio={setBusqueda} placeholder={vista === "avio" ? "Buscar un avío o un color" : vista === "movimientos" ? "Buscar en los movimientos" : "Buscar una tela o un color"} />
             {/* Lo que vale lo guardado es dinero que el líder mira cuando lo necesita, no una cifra de portada (ADR-0400, «Pantallas» punto 4): entra oculto y se pide con un toque. */}
             {esLider && capital !== null && (
               <span data-guia="prod-insumos.capital" className="sm:ml-auto sm:text-right">

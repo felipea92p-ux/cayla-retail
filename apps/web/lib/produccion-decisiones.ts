@@ -364,6 +364,8 @@ export type ContextoDecisiones = {
   enCamino?: Map<string, CaminoDeInsumo>;
   /** Los modelos por producir tienen su propia lista («¿Qué fabrico primero?», `lib/produccion-primero.ts`): con `true` no se arman sus tarjetas, para no decir lo mismo dos veces. De fábrica `false`. */
   producirAparte?: boolean;
+  /** La fase en que está cada orden abierta, con el nombre de la lista de Órdenes («Por plotear», «En costura»), por id de orden. Sin él (la lista no se pudo leer) se dice la etapa de siempre. */
+  faseDeLaOrden?: Readonly<Record<string, string>>;
 };
 
 /** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (lo que falta recibir de pedidos cuya fecha ya pasó: no cuenta) y los `pedidos`, los que cuentan primero. */
@@ -527,7 +529,13 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
     const e = estadoEntrega(o.fechaEntrega, c.hoy);
     if (e.tipo !== "vencida" && e.tipo !== "pronto") continue;
     const etapa = etapaActual(o.etapas, o.esMuestra);
-    const dondeEsta: ParDeDato = etapa === "listo" ? { rotulo: "Está", valor: "Lista para el stock" } : { rotulo: "Está en", valor: etapasDe(o.esMuestra).find((x) => x.clave === etapa)?.etiqueta ?? etapa };
+    // La fase la dice la lista de Órdenes cuando se pudo leer: así las dos pantallas nombran igual dónde está («Por plotear», no «Corte»).
+    const fase = c.faseDeLaOrden?.[o.id];
+    const dondeEsta: ParDeDato = fase
+      ? { rotulo: "Dónde está", valor: fase }
+      : etapa === "listo"
+        ? { rotulo: "Está", valor: "Lista para el stock" }
+        : { rotulo: "Está en", valor: etapasDe(o.esMuestra).find((x) => x.clave === etapa)?.etiqueta ?? etapa };
     const comun = {
       id: `entrega-${o.id}`,
       tipo: "entrega" as const,

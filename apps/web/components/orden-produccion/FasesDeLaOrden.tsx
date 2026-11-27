@@ -331,7 +331,8 @@ export function FilaFase({
   return (
     <div className="space-y-3 px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1">
+        {/* Con un piso de ancho: en una pantalla angosta el selector baja a su renglón en vez de aplastar la explicación a una palabra por línea. */}
+        <div className="min-w-[min(100%,14rem)] flex-1">
           <p className="flex items-center gap-1.5 font-display text-lg leading-tight text-tinta">
             {def.nombre}
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}

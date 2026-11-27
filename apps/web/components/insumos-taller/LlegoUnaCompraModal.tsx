@@ -8,7 +8,7 @@ import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/co
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CompraDelInsumo, type ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
-import { ConUnidad, ROTULO_APILADO, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
+import { ConUnidad, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
@@ -170,13 +170,6 @@ export function LlegoUnaCompraModal({
           <CampoGuiado id="lineas" guia={guia}>
             <div className="@container">
               <div className="overflow-hidden rounded-xl border border-sand">
-                <div className={`${FILA} hidden vd-placa text-xs font-semibold uppercase tracking-[0.1em] text-secundario @min-[36rem]:grid ${COLUMNAS}`}>
-                  <span>Tela o avío</span>
-                  <span>Cantidad</span>
-                  <span>Precio</span>
-                  <span className="text-right">Subtotal</span>
-                  <span />
-                </div>
                 {lineas.map((l, k) => {
                   const insumo = insumos.find((i) => i.id === l.insumoId);
                   const esTela = insumo?.tipo === "tela";
@@ -189,8 +182,8 @@ export function LlegoUnaCompraModal({
                   const codigoAbierto = conCodigo.includes(l.clave) || l.codigoLote.trim() !== "";
                   const idCodigo = `compra-codigo-${l.clave}`;
                   return (
-                    <div key={l.clave} className={`${FILA} grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] ${COLUMNAS} ${k > 0 ? "border-t border-sand" : "@min-[36rem]:border-t @min-[36rem]:border-sand"}`}>
-                      <div className="order-1 col-span-2 min-w-0 @min-[36rem]:order-none @min-[36rem]:col-span-1">
+                    <div key={l.clave} className={`${FILA} grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] ${COLUMNAS} ${k > 0 ? "border-t border-sand" : ""}`}>
+                      <div className="order-1 col-span-2 min-w-0 @min-[36rem]:col-span-3">
                         <ComboBuscable
                           valor={l.insumoId}
                           onValor={(v) => elegirInsumo(l.clave, v)}
@@ -199,22 +192,22 @@ export function LlegoUnaCompraModal({
                           etiquetaAccesible="Qué llegó en esta línea"
                         />
                       </div>
-                      <div className="order-3 min-w-0 @min-[36rem]:order-none">
-                        <span aria-hidden className={ROTULO_APILADO}>
+                      <div className="order-3 min-w-0">
+                        <span aria-hidden className="mb-1 block text-xs text-tenue">
                           Cantidad
                         </span>
                         <ConUnidad unidad={unidad}>
                           <CampoTexto caja sinPie etiqueta={unidad ? `Cantidad, en ${unidad}` : "Cantidad"} inputMode="decimal" className="tabular-nums" value={l.cantidad} onChange={(e) => cambiar(l.clave, { cantidad: e.target.value })} />
                         </ConUnidad>
                       </div>
-                      <div className="order-4 min-w-0 @min-[36rem]:order-none">
-                        <span aria-hidden className={ROTULO_APILADO}>
+                      <div className="order-4 min-w-0">
+                        <span aria-hidden className="mb-1 block text-xs text-tenue">
                           Precio
                         </span>
                         <CampoTexto caja sinPie antes="S/" etiqueta={precioDe ? `Precio de ${precioDe}, sin IGV` : "Precio, sin IGV"} inputMode="decimal" className="tabular-nums" value={l.precio} onChange={(e) => cambiar(l.clave, { precio: e.target.value })} />
                       </div>
-                      <p className="order-5 col-span-3 flex items-baseline justify-between gap-3 text-sm font-semibold tabular-nums text-tinta @min-[36rem]:order-none @min-[36rem]:col-span-1 @min-[36rem]:block @min-[36rem]:text-right">
-                        <span className="text-xs font-normal text-tenue @min-[36rem]:hidden">Subtotal</span>
+                      <p className="order-5 col-span-3 flex items-baseline justify-between gap-3 text-sm font-semibold tabular-nums text-tinta @min-[36rem]:col-span-2 @min-[36rem]:block @min-[36rem]:self-end @min-[36rem]:pb-2 @min-[36rem]:text-right">
+                        <span className="text-xs font-normal text-tenue @min-[36rem]:block">Subtotal</span>
                         {hayCuenta ? soles(subtotalDelPapel([l], LEER)) : <span className="font-normal text-tenue">—</span>}
                       </p>
                       {lineas.length > 1 ? (
@@ -222,16 +215,16 @@ export function LlegoUnaCompraModal({
                           type="button"
                           aria-label="Quitar esta línea"
                           title="Quitar esta línea"
-                          className="icono-fila order-2 grid h-8 w-8 place-items-center justify-self-end @min-[36rem]:order-none"
+                          className="icono-fila order-2 grid h-8 w-8 place-items-center justify-self-end"
                           onClick={() => setLineas((ls) => ls.filter((x) => x.clave !== l.clave))}
                         >
                           <X className="h-4 w-4" aria-hidden />
                         </button>
                       ) : (
-                        <span className="order-2 @min-[36rem]:order-none" />
+                        <span className="order-2" />
                       )}
                       {/* Lo que solo algunas líneas piden va debajo, a todo el ancho: cómo se compró una tela (y su rinde), y el código de lote, plegado. */}
-                      <div className="order-6 col-span-full space-y-2.5 empty:hidden @min-[36rem]:order-none">
+                      <div className="order-6 col-span-full space-y-2.5 empty:hidden">
                         {esTela && (
                           <div className="grid gap-3 @min-[36rem]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                             <Segmentado
@@ -343,5 +336,5 @@ export function LlegoUnaCompraModal({
 
 /** Lo que comparten el encabezado y cada línea. Sin `grid`: el encabezado lo pide solo cuando la hoja es ancha (angosta va escondido), y cada línea lo trae siempre. */
 const FILA = "items-center gap-x-3 gap-y-2 px-4 py-2.5";
-/** Las columnas de una línea cuando la hoja es ancha: qué llegó, cantidad, precio, subtotal y la ×. Angosta, la línea se apila. */
-const COLUMNAS = "@min-[36rem]:grid-cols-[minmax(0,2.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_6.5rem_2rem]";
+/** Una línea cuando la hoja es ancha: arriba qué llegó, a todo el ancho (un nombre como «Botón nácar 1.8 cm, color Blanco» se cortaba en una columna), y debajo cantidad, precio y subtotal. Angosta, el subtotal baja a su renglón. */
+const COLUMNAS = "@min-[36rem]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_2rem]";

@@ -193,6 +193,13 @@ describe("la fila, dato por dato: ninguna pieza junta dos datos con un punto med
     expect(dos.insignia).toBe("Falta tela");
     expect(dos.motivo).toBe("Faltan 44 m de lino y otro insumo");
   });
+  it("el nombre de la tela que falta se lee sin punto medio: «lino, color crudo», y con dos colores «lino, color vino y beige»", () => {
+    const unColor = fila({ fases: enCorte, insumos: [{ ...LINO, nombre: "Lino · Crudo" }] }).atencion[0];
+    expect(unColor.motivo).toBe("Faltan 44 m de lino, color crudo");
+    const dosColores = fila({ fases: enCorte, insumos: [{ ...LINO, nombre: "Lino lavado · Vino · Beige" }] }).atencion[0];
+    expect(dosColores.motivo).toBe("Faltan 44 m de lino lavado, color vino y beige");
+    expect(dosColores.motivo).not.toContain("·");
+  });
   it("la atención nunca dice más ni menos que la página: una causa por cada una de `rojoDeLaOrden`, en su orden", () => {
     const f = fila({ orden: { fecha_entrega: "2026-10-15" }, fases: enCorte, insumos: [LINO], linea_de_tiempo: [{ id: "e", cuando: "2026-10-13T14:05:00+00:00", tipo: "apertura" }] });
     expect(f.atencion.map((a) => a.clave)).toEqual(f.causas.map((c) => c.clave));

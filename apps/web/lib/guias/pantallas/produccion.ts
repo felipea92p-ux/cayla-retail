@@ -36,7 +36,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "que-producir",
       ancla: "prod-resumen.que-producir",
       titulo: "Qué fabricar primero",
-      texto: "Los modelos que se están agotando en las tiendas y sí se venden, con el más urgente arriba. Cada uno dice cuántas prendas conviene fabricar. «Preparar orden» abre Nueva orden con esa cantidad ya escrita: no guarda nada hasta que tú la abras. El «?» del título explica la lista.",
+      texto: "Los modelos que se están agotando en las tiendas y sí se venden (3 o más ventas en el mes), con el más urgente arriba. Cada uno dice cuántas prendas conviene fabricar. «Preparar orden» abre Nueva orden con esa cantidad escrita y no guarda nada. Los de 1 o 2 ventas van aparte, abajo, en «para vigilar».",
     },
     {
       id: "modelo",

@@ -169,8 +169,9 @@ function atencionDeLaFila(p: OrdenPagina, causas: readonly CausaRoja[]): Atencio
       const faltan = filasDeTela(p.insumos, corteTerminado(p)).filter((f) => !f.alcanza);
       const [primera] = faltan;
       if (primera) {
-        // El nombre de un insumo de un solo color llega como «Lino · crudo»: aquí se dice «lino, color crudo».
-        const nombre = primera.nombre.toLocaleLowerCase("es").replace(" · ", ", color ");
+        // El nombre llega como «Lino · crudo», o «Lino · vino · beige» si la orden lleva la tela en dos colores: aquí se dice «lino, color crudo» o «lino, color vino y beige».
+        const [tela, ...colores] = primera.nombre.toLocaleLowerCase("es").split(" · ");
+        const nombre = colores.length > 0 ? `${tela}, color ${colores.join(" y ")}` : tela;
         const mas = faltan.length - 1;
         return {
           clave: c.clave,

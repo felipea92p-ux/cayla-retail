@@ -104,7 +104,7 @@ export function TituloGrupo({
   className?: string;
 }) {
   return (
-    <Etiqueta nivel={nivel} className={`titulo-grupo ${className}`}>
+    <Etiqueta nivel={nivel} className={`titulo-grupo ${paso !== undefined ? "titulo-grupo-paso" : ""} ${className}`}>
       <span className="titulo-grupo-texto" style={retraso !== undefined ? ({ ["--retraso" as string]: `${retraso}ms` } as CSSProperties) : undefined}>
         {paso !== undefined && (
           <span aria-hidden className="-mr-1 inline-grid size-6 shrink-0 place-items-center rounded-full bg-tinta text-xs font-semibold tracking-normal text-crema">

@@ -6,7 +6,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
-import { ConUnidad, Opcional, TablaDeColores, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
+import { ConUnidad, TablaDeColores, TituloDePaso } from "@/components/insumos-taller/PiezasDeHoja";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -369,12 +369,7 @@ export function NuevoAvioModal({
                       <ConUnidad unidad="%">
                         <CampoTexto
                           inputMode="decimal"
-                          etiqueta={
-                            <>
-                              {guia.etiqueta("merma", "Se pierde al cortar")}
-                              <Opcional />
-                            </>
-                          }
+                          etiqueta={guia.etiqueta("merma", "Se pierde al cortar")}
                           placeholder="0"
                           value={merma}
                           onChange={(ev) => setMerma(ev.target.value)}

@@ -37,11 +37,6 @@ export function TituloDePaso({
   );
 }
 
-/** La palabra que marca un campo que se puede dejar vacío, junto a su título. */
-export function Opcional() {
-  return <span className="ml-1.5 font-normal normal-case tracking-normal text-tenue">Opcional</span>;
-}
-
 /** La unidad de lo que se escribe, dentro de la caja y a la derecha («30 m», «3 %»): el título del campo queda con palabras y sin paréntesis (vidrio/insumos.css). */
 export function ConUnidad({ unidad, children }: { unidad: string; children: ReactNode }) {
   return (

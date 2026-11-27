@@ -148,7 +148,7 @@
     "components/orden-produccion/TelaDeLaOrden.tsx": [
       "Boton «Ficha del modelo»",
       "CampoSelect «Tela»",
-      "CampoTexto «{`${unidadDeLaFila}»",
+      "CampoTexto «{`${insumo ? unidadLarga(insumo.unidad) : \"Metros\"}»",
       "CampoTexto «{`Talla ${x.talla}»",
       "button «Una cifra para todas las tallas»",
       "button «Separar por talla»",

@@ -94,7 +94,7 @@ export function CompraDelInsumo({
         <CampoGuiado id="proveedor" guia={guia}>
           {proveedores.length === 0 ? (
             <Aviso tono="atencion" chico titulo="No hay proveedores en el directorio">
-              Una compra se le hace a alguien: registra primero al proveedor en Producción ▸ Proveedores.
+              Una compra se le hace a alguien: registra primero al proveedor en Abastecimiento ▸ Proveedores.
             </Aviso>
           ) : (
             <Campo etiqueta={guia.etiqueta("proveedor", "Proveedor")} sinPie>

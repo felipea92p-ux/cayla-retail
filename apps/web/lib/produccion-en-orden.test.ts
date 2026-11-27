@@ -91,8 +91,9 @@ describe("el recuadro de telas", () => {
   });
 
   it("si ninguna alcanza nunca lleva el visto, aunque ya esté avisado", () => {
-    expect(recuadroDeTelas([tela("falta")], { insumo: 1 })).toMatchObject({ tono: "neutro", titulo: "Ninguna tela alcanza" });
-    expect(recuadroDeTelas([tela("falta")], {})).toMatchObject({ tono: "atencion", titulo: "Ninguna tela alcanza" });
+    expect(recuadroDeTelas([tela("falta")], { insumo: 1 })).toMatchObject({ tono: "neutro", titulo: "1 tela no alcanza", linea: "Ya está en Por resolver" });
+    expect(recuadroDeTelas([tela("falta")], {})).toMatchObject({ tono: "atencion", titulo: "1 tela no alcanza", linea: "Mira cuáles" });
+    expect(recuadroDeTelas([tela("falta"), tela("alcanza_si_llega")], { insumo: 1, recibir: 1 })).toMatchObject({ tono: "neutro", titulo: "2 telas no alcanzan", linea: "Ya están en Por resolver" });
   });
 
   it("si ninguna orden pide tela no afirma que alcanza; sin telas cargadas manda a Insumos", () => {
