@@ -20,9 +20,8 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   const persona = await exigirModulo("existencias");
   const esLider = persona.rol === "lider";
   const { ubicacion, item } = await searchParams;
-  // El líder ve las de todas sus sedes (cada fila dice cuál); los demás, las de la suya (RLS igual lo cuida). Un líder que llega desde
-  // «Para hoy» de Existencias trae la sede (`?ubicacion=`, ADR-0331): ve la cola de ESA sede, la misma que contó allá
-  // (`contarPorRegularizar`). Una sede que no existe se ignora y vuelve a «todas».
+  // El líder ve las de todas sus sedes (cada fila dice cuál); los demás, las de la suya (RLS igual lo cuida). Con `?ubicacion=` (ADR-0331;
+  // hasta el 2026-11-26 lo traía «Para hoy» de Existencias) ve la cola de ESA sede. Una sede que no existe se ignora y vuelve a «todas».
   // relleno-a-proposito: Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;

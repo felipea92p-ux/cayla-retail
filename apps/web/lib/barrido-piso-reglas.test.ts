@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   textoDeError,
   avisoDeBarrido,
+  AL_TERMINAR_EL_BARRIDO,
   DIAS_ENTRE_BARRIDOS,
   camposGuiaConfirmar,
   dondeLaTiene,
@@ -424,8 +425,8 @@ describe("la entrada en Existencias", () => {
     personas: [{ personaId: "ana", nombre: "Ana Pérez", unidades: 120, lecturas: 118, ultima: ahora.toISOString() }] };
 
   it("con un barrido abierto invita a sumarse, con cuánto llevan y quién escanea", () => {
-    expect(avisoDeBarrido({ barrido: abierto, cuadradoEn: hace(3), ahora })).toEqual({ tipo: "en_curso", titulo: "Barrido en curso · 120 prendas", detalle: "Ana está escaneando", boton: "Sumarme" });
-    expect(avisoDeBarrido({ barrido: { ...abierto, unidades: 1, personas: [] }, cuadradoEn: null, ahora })).toMatchObject({ titulo: "Barrido en curso · 1 prenda", detalle: null });
+    expect(avisoDeBarrido({ barrido: abierto, cuadradoEn: hace(3), ahora })).toEqual({ tipo: "en_curso", titulo: "Barrido en curso · 120 prendas escaneadas", detalle: "Ana está escaneando. Al terminarlo, el piso queda cuadrado.", boton: "Sumarme" });
+    expect(avisoDeBarrido({ barrido: { ...abierto, unidades: 1, personas: [] }, cuadradoEn: null, ahora })).toMatchObject({ titulo: "Barrido en curso · 1 prenda escaneada", detalle: AL_TERMINAR_EL_BARRIDO });
   });
 
   it("a los 30 días del último cuadre toca el del mes; antes, nada", () => {
