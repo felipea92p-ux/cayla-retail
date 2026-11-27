@@ -1,8 +1,8 @@
 # ADR-0710 — El líder se lleva efectivo de la caja fuerte sin depositarlo todavía
 
-- **Fecha:** 2026-11-26 · **Estado:** PROPUESTA construida en la rama `claude/intelligent-elbakyan-89f80b`, a la espera de que Felipe la
-  apruebe. Es un cambio de reglas de dinero: la migración `20261127010000_lider_se_lleva_de_la_caja_fuerte.sql` **no está pegada en
-  producción**. Número y versión reservados con `pnpm reservar`.
+- **Fecha:** 2026-11-26 · **Estado:** aprobada por Felipe el 2026-11-26. La migración `20261127010000_lider_se_lleva_de_la_caja_fuerte.sql`
+  **está en producción** desde ese día (la pegó él; la huella md5 del candado, leída después, es la esperada). La web entra al fusionar y
+  publicar el PR #2044. Número y versión reservados con `pnpm reservar`.
 - **Pidió:** Felipe, 2026-11-26, cuadrando bancos: la caja fuerte de una tienda decía en el ERP más plata de la que tenía adentro,
   porque él se había llevado una parte para depositarla después y no había dónde anotarlo sin escribir directo en las tablas (no se hizo).
 - **Sigue a:** ADR-0195 (Cuentas y dinero: los tipos de cuenta `caja_fuerte` y `por_rendir`, y el candado de qué va en cada punta de un
