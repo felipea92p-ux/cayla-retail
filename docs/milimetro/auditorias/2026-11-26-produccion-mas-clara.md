@@ -27,7 +27,7 @@ Capturas: `docs/milimetro/auditorias/2026-11-26-produccion-mas-clara/`.
 > 1. «Llegó una compra»: el botón ya no se apaga por lo que falta (`confirma={guia}`); al tocarlo con la hoja vacía muestra 6 errores, pone el cursor en el primer campo y no llama a la base.
 > 2. Insumos: la fila de un color muestra el anillo de foco (`solid 2px`).
 > 3. Nueva orden ▸ elegir modelo: cada fila muestra el anillo de foco.
-> 4. Hojas con pie pegado: `scroll-margin-bottom: 6rem` en `app/globals.css`; 0 controles tapados en 40 paradas de Tab, a 1440 y a 375. Medido inyectando la misma regla, porque el servidor de desarrollo no recompiló `globals.css` durante la corrida: falta verlo con el servidor reiniciado.
+> 4. Hojas con pie pegado: `scroll-margin-bottom: 6rem` en `app/globals.css`; 0 controles tapados en 40 paradas de Tab, a 1440 y a 375. Confirmado con el servidor reiniciado y la hoja de estilos compilada (sin inyectar nada).
 >
 > Lo que sigue es lo que se midió antes de corregir.
 1. **El botón que confirma se apaga por lo que falta** — «Llegó una compra»: `<Boton type="submit" … disabled={!listo}>`,

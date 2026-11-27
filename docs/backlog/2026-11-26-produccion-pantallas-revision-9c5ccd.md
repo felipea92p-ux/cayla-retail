@@ -11,7 +11,7 @@
 
 ### Sin hacer (dicho sin adornos)
 
-- [ ] **Auditorías obligatorias sin correr:** `/milimetro auditar` de las cinco rutas, `tema:auditar` (modo oscuro medido; solo se miraron capturas), `/formidable` y `/chaos` de las cuatro hojas y de Nueva orden.
+- [x] Auditorías obligatorias corridas el 2026-11-26 (ver abajo): `/milimetro auditar`, `tema:auditar`, `/sugerir`, `/formidable` y `/chaos`.
 - [ ] **Sin ver con datos:** «Qué fabricar primero», el recuadro de modelos y la hoja del modelo (los 10 modelos del seed están pendientes de aprobar y el Resumen no los cuenta); «Prendas listas sin llevar a tienda» y «Un pago está vencido»; Eficiencia con planilla y con más de un mes.
 - [ ] **Sin probar con otra cuenta:** todo se probó como Admin. Falta el combo «Responsable», la vista de quien no es líder y el candado de dinero.
 - [ ] **Sin guardar de verdad:** una compra «Ya la pagué» o «sin factura» y una tela por rollo (solo se llenaron y se capturaron).
@@ -42,6 +42,35 @@ Informe: `docs/formidable/produccion-mas-clara.md`. Siete lectores ciegos (uno p
 - [ ] **Felipe dijo «ninguno por ahora»** a los cambios de texto y distribución propuestos (tres por pantalla, en el informe). Los que más pesan: «Comprar tela» no compra, solo lleva a Insumos; la tela que falta no dice para qué orden es; «Anotar compra», «Llegó una compra» y «Llegó más de este color» abren la misma hoja con tres nombres; el aviso de planilla de Eficiencia no dice qué hacer; el ejemplo «Popelina blanca» invita a poner el color en el nombre.
 - [ ] «Llegó una compra» y «Lo que ya tenías» se cierran con Escape sin preguntar aunque haya datos escritos (viene de antes; «Nueva tela» y «Nuevo avío» sí preguntan).
 - [ ] Nadie entendió «plotear» en la prueba ciega: es palabra del oficio; se ve en la pasada real.
+
+### `/milimetro auditar` (2026-11-26)
+
+Informe: `docs/milimetro/auditorias/2026-11-26-produccion-mas-clara.md`. 4 graves medidos, los 4 corregidos y vueltos a medir (botón de «Llegó una compra» apagado, foco invisible en la fila de un color y en la de un modelo, control tapado por el pie de la hoja).
+
+- [ ] 4 medias y 10 leves, en el informe (rótulos a mano en la línea de la compra, «Abrir orden» apagado si falta el responsable, «Llegó una compra» de la cabecera apagado sin motivo, foco tras confirmar en «Nuevo avío», y detalles de espaciado y letra).
+- [ ] **De piezas de todo el ERP (rompen una norma AA; tocan `components/ui/`, lo decide Felipe):** el foco de `<Segmentado>` casi no se ve (1,16:1), en `<Modal>` el foco se pierde una parada al dar la vuelta con Tab, y `<Chip tono="pizarra">` mide 3,57:1 en oscuro.
+
+### Modo oscuro y `/sugerir` (2026-11-26)
+
+- [x] `tema:auditar` en las cuatro rutas con `--escenarios`: 0 hallazgos solo en oscuro, 0 manchas y 0 velos a 1440 y 375 px; 30 de 34 escenarios abren (los otros 4 piden datos que el banco no tiene). El registro de escenarios quedó al día: 9 arreglados y 12 nuevos.
+- [x] Corregido de `/sugerir`: el marcador del tejido cortado en «Nueva tela», «Precio de el kilo», «Costó cada uno» sin nada elegido en «Lo que ya tenías» y el buscador de modelos cortado a 375 px.
+- [ ] Los puntos de color oscuros (negro, vino) casi no se distinguen en modo oscuro (pieza `Punto`, compartida con Nuevo producto).
+- [ ] El ejemplo del nombre de la tela («Popelina blanca») no sigue al tejido y trae un color (queda con lo de `/formidable`); «Lo que sepas, por ejemplo: Algodón» tampoco sigue al tejido; `sugerirAvio` no tiene prueba; el buscador de colores se corta a 375 px (pieza compartida); «Sale de la ficha…» aparece aunque la ficha no traiga rinde.
+- [ ] La hoja «Retirar color» titula con punto medio («Botón nácar 1.8 cm · Negro»).
+
+### `/chaos` (2026-11-26), semilla 2043
+
+Las cinco piezas que guardan, en banco propio y navegador, a 1440 y 375 px. **0 estados imposibles** (30 invariantes del repo + 13 de Insumos y Órdenes) y **ningún hallazgo grave nace del rediseño**. Resiste doble clic, ráfagas, diez sesiones a la vez, red cortada, respuesta perdida, unidades y lo plegado. Informe local (fuera de git): `.chaos/informes/produccion-mas-clara-2026-11-26.md`. Estado para el tablero: «atacada, con hallazgos abiertos», todos de antes.
+
+- [x] Corregido lo único del rediseño: el aviso «Elige si es un lote de producción o una muestra» ahora dice «para vender».
+- [ ] **Decide Felipe (dinero), venía de antes:** «Llegó una compra» con «Ya la pagué» deja guardar el pago **sin cuenta** si las cuentas todavía cargan o su lectura falló (`LlegoUnaCompraModal.tsx`, `MediosDePago.tsx`).
+- [ ] **Decide Felipe (dinero), venía de antes:** «Lo que ya tenías» manda el costo total redondeado a céntimos, y el costo unitario guardado no es el escrito (3 a S/ 0.045 quedan a 0.0467; 1 a S/ 0.004 queda a 0).
+- [ ] Fechas imposibles (vence o entrega en 2999) y caracteres invisibles en nombres se guardan sin aviso (venía de antes).
+- [ ] **De todo el ERP, por confirmar en un build de producción:** con las animaciones apagadas (como nace toda cuenta) el aviso de éxito no llegó a verse tras guardar; en Nueva orden se pierde con él el enlace «Ver OP-…» (`components/ui/Avisos.tsx`, `lib/avisos-reglas.ts`). Medido en el servidor de desarrollo.
+- [ ] Enter en «Nota» abre la orden y Enter en «Costó» guarda el saldo (falta `enterNoGuarda`); dos mensajes de la compra dicen otra cosa de la que pasa (la misma tela en dos líneas; vencimiento ya pasado); errores crudos de Postgres con un carácter nulo pegado.
+- [ ] Un hallazgo de permisos se le dijo a Felipe en el chat y no se escribe aquí (regla «Caos»).
+- [ ] Sin cubrir: una cuenta que no sea líder con Producción en el Taller, dos navegadores a la vez, teléfono real.
+- [ ] La página de la orden todavía dice «lote de producción» en «Pasar a lote de producción» y en su línea de tiempo.
 
 ### Para Dynamic
 
