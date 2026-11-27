@@ -2,7 +2,7 @@
   "guia": "compras.comprador",
   "ruta": "/compras/compradores/[personaId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 63,
+  "total": 70,
   "controles": {
     "components/compras/CerrarRonda.tsx": [
       "Boton «comprador.cerrar-ronda»",
@@ -12,7 +12,13 @@
     ],
     "components/compras/DetalleComprador.tsx": [
       "Volver «/compras/compradores»",
-      "Link «{r.cerradaEn ? `Del ${diaMes(r.abiertaEn)}»"
+      "a «Revisar»"
+    ],
+    "components/compras/EstadoDeCuenta.tsx": [
+      "button «Todo»",
+      "button «Pendiente»",
+      "button «) : (»",
+      "SegmentoDeslizante «Período»"
     ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
@@ -88,6 +94,11 @@
       "CampoMonto «fondos.plata-monto»",
       "ComboResponsable «{responsable}»",
       "Boton «fondos.plata-confirmar»"
+    ],
+    "components/rendimiento/RangoRendimiento.tsx": [
+      "button «Mes anterior»",
+      "button «Mes siguiente»",
+      "button «{`${fechaLarga(d.iso)}»"
     ]
   }
 }

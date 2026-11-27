@@ -1,0 +1,4 @@
+## 2026-11-26 (Compradores «como tu banco»: una línea por persona y su estado de cuenta por fechas)
+Qué hice: Compradores muestra una sola cifra arriba (la plata en la calle) y una línea por persona con lo que le queda; al tocarla, su estado de cuenta día por día, con el filtro de fechas de Rendimiento. Pensado para crecer: subtotales por día, días viejos plegados, filtros, buscador y «Ver más». Sin migración.
+Por qué así: la tabla que se publicó horas antes mostraba demasiado y a Felipe no le agradó; pidió solo lo necesario, palabras precisas y que aguante muchas compras. Eligió esta dirección mirando dos maquetas con sus datos, y la pulió en tres rondas.
+Felipe se lleva: un rediseño se elige mirando y se prueba con el caso de hoy y con uno grande antes de construir; lo que se quitó de la pantalla está escrito en el ADR, por si un dato hace falta.
