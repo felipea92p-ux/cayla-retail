@@ -5,8 +5,8 @@ quien construye una de las dos partes no inventa lo que la otra espera. Decision
 
 ## La base ya trae (migración `20261012205000_compras_lineas_de_orden.sql`)
 
-- `compra_items.producto_id` puede ir vacío si la línea trae `categoria_id` y `marca_id` (candado `compra_items_prenda_o_categoria_marca`;
-  y `compra_items_variante_con_prenda`). Columnas nuevas: `categoria_id`, `marca_id`, `orden_compra_item_id` (N a 1),
+- `compra_items.producto_id` puede ir vacío si la línea trae `categoria_id` (candado `compra_items_prenda_o_categoria`; desde
+  `20261127152000` la marca es opcional —antes `compra_items_prenda_o_categoria_marca` la exigía—; y `compra_items_variante_con_prenda`). Columnas nuevas: `categoria_id`, `marca_id`, `orden_compra_item_id` (N a 1),
   `precio_venta_sugerido` (opcional, ≥ 0).
 - `compras.orden_compra_id` y `compras.huella_envio`. El papel (proveedor, serie, número) es único solo entre los **vigentes**
   (`compras_papel_vigente_unico`).
