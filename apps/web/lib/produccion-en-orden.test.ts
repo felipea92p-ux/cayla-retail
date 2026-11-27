@@ -24,8 +24,9 @@ import {
 // «Lo demás está en orden» (Producción ▸ Resumen, versión C): cada recuadro resume una sección en dos líneas y es HONESTO. Solo lleva el visto (`bien`) si lo que dice es cierto y no
 // pide nada; lo que ya está en «Por resolver» se nombra sin volver a hacer de alarma; y una lectura que falló se dice.
 
-const orden = (extra: { atrasada?: boolean; fecha?: string | null; causas?: string[]; estado?: string } = {}): OrdenEnCurso => ({
+const orden = (extra: { atrasada?: boolean; fecha?: string | null; causas?: string[]; estado?: string; esMuestra?: boolean } = {}): OrdenEnCurso => ({
   estado: extra.estado ?? "en_proceso",
+  esMuestra: extra.esMuestra ?? false,
   entrega: { fecha: extra.fecha === undefined ? "2026-12-01" : extra.fecha, atrasada: extra.atrasada ?? false },
   causas: (extra.causas ?? []).map((clave) => ({ clave })),
 });
@@ -34,6 +35,9 @@ describe("el recuadro de órdenes", () => {
   it("todas a tiempo: el visto y «Ninguna atrasada»; cuenta solo las abiertas", () => {
     expect(recuadroDeOrdenes([orden(), orden(), orden({ estado: "terminada" })], {})).toEqual({ clave: "ordenes", href: "/produccion/ordenes", tono: "bien", titulo: "2 órdenes en curso", linea: "Ninguna atrasada" });
     expect(recuadroDeOrdenes([orden()], {}).titulo).toBe("1 orden en curso");
+    // Como la lista de Órdenes: una muestra no se cuenta como orden «en curso».
+    expect(recuadroDeOrdenes([orden(), orden({ esMuestra: true })], {}).titulo).toBe("1 orden y 1 muestra en curso");
+    expect(recuadroDeOrdenes([orden({ esMuestra: true }), orden({ esMuestra: true })], {}).titulo).toBe("2 muestras en curso");
   });
 
   it("un atraso que ya está en «Por resolver» no se repite como alarma: «Sin más atrasos»", () => {

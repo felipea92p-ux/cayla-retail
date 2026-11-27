@@ -201,8 +201,9 @@ export function LlegoUnaCompraModal({
                         </ConUnidad>
                       </div>
                       <div className="order-4 min-w-0">
+                        {/* «sin IGV» a la vista: el total de abajo suma el 18 %, y sin esta palabra no se sabe si el precio ya lo trae. */}
                         <span aria-hidden className="mb-1 block text-xs text-tenue">
-                          Precio
+                          {precioDe ? `Precio de ${precioDe}, sin IGV` : "Precio, sin IGV"}
                         </span>
                         <CampoTexto caja sinPie antes="S/" etiqueta={precioDe ? `Precio de ${precioDe}, sin IGV` : "Precio, sin IGV"} inputMode="decimal" className="tabular-nums" value={l.precio} onChange={(e) => cambiar(l.clave, { precio: e.target.value })} />
                       </div>

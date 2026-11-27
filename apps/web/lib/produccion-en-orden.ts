@@ -48,7 +48,7 @@ export type Recuadro = {
 export type AsuntosAvisados = Partial<Record<Decision["tipo"], number>>;
 
 /** Lo que el recuadro de órdenes mira de cada fila de la lista de Órdenes (`FilaDeLista` lo cumple). */
-export type OrdenEnCurso = { estado: string; entrega: { fecha: string | null; atrasada: boolean }; causas: readonly { clave: string }[] };
+export type OrdenEnCurso = { estado: string; esMuestra?: boolean; entrega: { fecha: string | null; atrasada: boolean }; causas: readonly { clave: string }[] };
 
 const cuantas = (n: number, uno: string, varios: string) => (n === 1 ? `1 ${uno}` : `${n} ${varios}`);
 
@@ -61,7 +61,15 @@ export function recuadroDeOrdenes(filas: readonly OrdenEnCurso[] | null, avisado
   if (filas === null) return { ...base, tono: "atencion", titulo: "Órdenes sin leer", linea: "Míralas en Órdenes" };
   const abiertas = filas.filter((f) => f.estado === "en_proceso");
   if (abiertas.length === 0) return { ...base, tono: "neutro", titulo: "Ninguna orden en curso", linea: "No hay nada fabricándose" };
-  const titulo = cuantas(abiertas.length, "orden en curso", "órdenes en curso");
+  // Como la lista de Órdenes: los lotes en «En curso» y las muestras en su pestaña. «2 órdenes en curso» con una muestra adentro no cuadraba con el «En curso 1» de allá.
+  const muestras = abiertas.filter((f) => f.esMuestra).length;
+  const lotes = abiertas.length - muestras;
+  const titulo =
+    muestras === 0
+      ? cuantas(lotes, "orden en curso", "órdenes en curso")
+      : lotes === 0
+        ? cuantas(muestras, "muestra en curso", "muestras en curso")
+        : `${cuantas(lotes, "orden", "órdenes")} y ${cuantas(muestras, "muestra", "muestras")} en curso`;
   const con = (clave: string) => abiertas.filter((f) => f.causas.some((c) => c.clave === clave)).length;
   const paradas = con("sin_moverse");
   const sinTela = con("tela_no_llega");

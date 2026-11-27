@@ -193,11 +193,12 @@ describe("la fila, dato por dato: ninguna pieza junta dos datos con un punto med
     expect(dos.insignia).toBe("Falta tela");
     expect(dos.motivo).toBe("Faltan 44 m de lino y otro insumo");
   });
-  it("el nombre de la tela que falta se lee sin punto medio: «lino, color crudo», y con dos colores «lino, color vino y beige»", () => {
+  it("el nombre de la tela que falta se lee sin punto medio: «lino, color crudo»; el color de la PRENDA que la página agrega al final no se confunde con el de la tela", () => {
     const unColor = fila({ fases: enCorte, insumos: [{ ...LINO, nombre: "Lino · Crudo" }] }).atencion[0];
     expect(unColor.motivo).toBe("Faltan 44 m de lino, color crudo");
     const dosColores = fila({ fases: enCorte, insumos: [{ ...LINO, nombre: "Lino lavado · Vino · Beige" }] }).atencion[0];
-    expect(dosColores.motivo).toBe("Faltan 44 m de lino lavado, color vino y beige");
+    expect(dosColores.motivo).toBe("Faltan 44 m de lino lavado, color vino");
+    expect(dosColores.motivo).not.toContain("beige");
     expect(dosColores.motivo).not.toContain("·");
   });
   it("la atención nunca dice más ni menos que la página: una causa por cada una de `rojoDeLaOrden`, en su orden", () => {
