@@ -59,3 +59,67 @@ vencimiento, seis de los ocho filtros, el N.° de documento y el RUC en la lista
 - Quien tenía solo «Revisar compras» ve ahora Compradores, no la lista de todas las compras: para verla necesita `facturas_compra`.
 - La revisión ya no es una sola cola de todas las personas: se revisa persona por persona (la portada dice cuántas esperan y la tarjeta, de quién).
 - «Todas las compras» lee por mes (hasta 300 filas por lado): suficiente para 3 tiendas; si un mes pasara de eso, se pagina.
+
+## Actualización 2026-11-26 (b): la cuenta de cada persona sale de su fondo
+
+**Qué pasó.** El mismo día de la publicación, Felipe preguntó por qué Bhekam salía con «Le diste S/ 0 · Le queda S/ 0» y por qué Claudia, que
+tenía plata, no aparecía. En producción Bhekam tenía S/ 13,800 y Claudia S/ 4,967 en su fondo. Dos causas, las dos de lectura:
+
+1. «Le diste» salía de `fn_ronda_compras_cuenta`, que solo suma la plata que la persona **anotó dentro de su ronda**
+   (`fondo_plata_anotada.ronda_id`). Lo que la oficina entrega con «Entregar plata» va directo a su fondo (`movimientos_dinero`,
+   `entrega_fondo`) y no deja fila ahí. Tampoco contaba lo anotado segundos antes de abrir la ronda ni lo que quedó de la anterior. De ahí
+   salían también dos avisos falsos: «pagó S/ 1,497.10 sin plata registrada» (Catherine, con S/ 11,086 entregados) y «pagó S/ 2,941 más de lo
+   que le diste» (Lizzelott).
+2. `fn_compradores` recorre `compra_rondas`: quien no abrió su ronda no tenía tarjeta, y la hoja «Quién tiene plata» ya no existía.
+
+**Decisión.** Una sola fuente de verdad (principio 4): la plata de una persona es la de su fondo, y la pantalla hace la cuenta igual que
+«Mis compras» (`resumenRonda`), despejando desde lo que tiene hoy:
+
+- **Le queda** = `fn_mi_plata_tiene(persona)`, la misma cifra que ella ve en «Mis compras».
+- **Gastó** = lo de su ronda (compras pagadas más gastos), como antes.
+- **Le diste** = le queda + gastó. Incluye lo que traía al abrir la ronda: es lo que tuvo para comprar.
+- Una ronda **cerrada** conserva su cuaderno (`tiene` nulo).
+- **Quien tiene plata a favor y no tiene ronda abierta** sale en un grupo propio, «Con plata, sin ronda abierta», con lo que tiene y su última
+  entrega. Lo que CAYLA le debe a alguien ya sale en su ronda cerrada: ahí no se repite.
+- «Cerrar su ronda» desde Compras ya no se ofrece si la persona tiene plata en la mano (la base lo rechazaba igual).
+
+**Base.** `20261126223000` (una parte, sin políticas, solo `create or replace function`): `fn_compradores()` suma `tiene` a cada ronda abierta y
+nace `fn_compradores_sin_ronda()` (módulo `fondos`). Prueba: `scripts/pruebas/compras_compradores_plata.mjs` (5 casos). La web vieja ignora el
+dato nuevo y la nueva, sin la migración, sigue con la cuenta de antes y sin el grupo: no importa cuál llegue primero.
+
+**Lo que cuesta.** «Le diste» ya no es «lo anotado en esta ronda» sino «lo que tuvo para comprar»: si alguien arrastra plata de una ronda
+anterior, entra ahí. Cada tarjeta abierta llama a `fn_mi_plata_tiene`, que lee el libro de dinero una vez por persona: con las 4 a 6 personas
+que compran hoy no pesa; si fueran decenas, se lee el libro una sola vez (como `fn_fondos`). «Mis compras» sigue llamando «Te dieron» solo a
+lo anotado en la ronda y «tenías» a lo demás: no se tocó.
+
+## Actualización 2026-11-26 (c): Compradores es una tabla de «quién tiene plata», y el detalle va en dos columnas
+
+**Qué pidió Felipe.** Con los números ya corregidos: «la pantalla puede mejorar más, información precisa, que realmente sirva», y el detalle de
+cada persona «distribuido de manera profesional». Se le mostró en imágenes, con los datos reales del día, y dijo «Sí, constrúyela». Reemplaza la
+tarjeta por persona de la decisión 2 de este ADR.
+
+**Compradores.**
+- **Una sola tabla, «Quién tiene plata»:** una fila por persona —la que tiene su ronda abierta y la que tiene plata sin haberla abierto, juntas—,
+  primero quien más tiene en la mano. Columnas: le diste, gastó (con la parte de su plata ya usada), le queda, sus compras y prendas, y «Qué
+  pide»: una etiqueta por lo que toca hacer (por revisar, falta pagar, ronda quieta, cerrar su ronda, sin abrir su ronda) o «Al día». Al pie, el
+  total. Un cero va en tono tenue: no compite con las cifras que dicen algo.
+- **Cuatro cifras:** «Plata en la calle» (lo que suman las manos de la gente; es igual al total de «Le queda»), lo gastado en el mes con cuántas
+  compras y de cuántas personas, lo que espera revisión y de cuántas personas, y «Falta pagar» a proveedores. Se fue «Comprando ahora»: lo
+  dice el contador del título de la tabla.
+- **Rondas que ya cerraron**, como tabla (compras, prendas, gastó, cómo cerró y si le quedan papeles por revisar). Una ronda cerrada sin
+  compras, sin gastos y sin plata no se lista.
+- **En el celular** la tabla pasa sola a su forma de una columna (`corteDePlantilla`); ahí cada fila nombra sus tres cifras, porque no hay
+  cabecera que las nombre.
+
+**El detalle de una persona.** Cuatro cifras que dicen de dónde sale cada número («En 3 entregas, la última el 13/11»; la barra de lo usado;
+lo que falta pagar). Debajo, dos columnas desde 1280 px: a la izquierda lo que se hace ahí (la bandeja de revisión y sus compras, con el número
+del comprobante si ya se revisó y cuánto pagó si quedó debiendo); a la derecha su plata, entrega por entrega —sin repetir su nombre en cada
+renglón, con su «Anular» de siempre— y sus otras rondas. «Todavía no anota compras» ya no se dice dos veces.
+
+**Dónde vive.** Las cuentas, puras y con pruebas sobre los datos de producción de ese día, en `lib/compradores-reglas.ts`
+(`filasDeCompradores`, `loQuePide`, `resumenDeCompradores`, `rondasCerradasConAlgo`, `entregasDe`, `faltaPagarDeCompra`, `pctUsado`); el dibujo,
+en `components/compras/CompradoresVista.tsx` y `DetalleComprador.tsx`, con las piezas del sistema (`Tabla`, `TarjetaCifra`, `Chip`,
+`BarraAvance`). `TarjetaComprador.tsx` se borró. Sin migración: usa lo que ya manda `20261126223000`.
+
+**Lo que cuesta.** Se pierden de la portada las tres últimas compras de cada persona (están a un toque, en su detalle). «Qué pide» junta en
+una celda lo que antes era un aviso con frase completa: es más corto y dice menos del porqué.
