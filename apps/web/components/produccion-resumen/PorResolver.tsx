@@ -58,7 +58,10 @@ export function PorResolver({
   totalAsuntos,
   hojas,
   presentaciones,
+  aLoAncho = false,
 }: {
+  /** El bloque ocupa todo el ancho de la pantalla (cuando «Qué fabricar primero» no tiene nada): los asuntos van de a dos si caben. */
+  aLoAncho?: boolean;
   decisiones: Decision[];
   /** Los asuntos que no cupieron, por clase: nunca se cortan en silencio. */
   ocultas: DecisionesOcultas[];
@@ -81,7 +84,7 @@ export function PorResolver({
         </div>
       ) : (
         // La lista es el contenedor: cada tarjeta decide por SU ancho si el botón cabe al costado o baja a todo el ancho (la columna de dos, el celular).
-        <ul className="@container space-y-2.5">
+        <ul className={`@container ${aLoAncho ? "grid grid-cols-1 items-start gap-2.5 min-[90rem]:grid-cols-2" : "space-y-2.5"}`}>
           {decisiones.map((d, i) => {
             const Icono = ICONO[d.tipo];
             return (

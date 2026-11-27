@@ -54,6 +54,9 @@ export function ResumenProduccionPanel({
   sede: string;
 }) {
   const primero = queFabricarPrimero(modelos);
+  // ¿Los dos bloques de acción tienen algo que mostrar? Solo entonces (o si ninguno tiene) comparten la fila.
+  const hayQueFabricar = primero.firmes.length > 0 || Boolean(falloRed);
+  const ladoALado = hayQueFabricar === decisiones.length > 0;
   // Los de «Producir ya» ya están en «Qué fabricar primero»: la tabla que se despliega es el resto del catálogo (llevar a tienda, vigilar, alcanza, hay de sobra, sin ventas).
   const resto = modelos.filter((m) => m.estado !== "producir_ya");
   const recuadros = recuadrosDeLoDemas({
@@ -98,9 +101,10 @@ export function ResumenProduccionPanel({
 
       {/* El cuerpo mira SU ancho (`@container`), no el de la ventana: con el menú abierto o plegado decide solo si los dos bloques de acción van lado a lado. */}
       <div className="@container space-y-8">
-        <div className="grid grid-cols-1 items-start gap-x-7 gap-y-8 @min-[56rem]:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
+        {/* Lado a lado solo si los dos bloques tienen algo (o ninguno): con uno vacío, su aviso de una línea dejaba un hueco del alto del otro (Felipe 2026-11-26). Entonces van uno bajo el otro y el que tiene contenido usa todo el ancho. */}
+        <div className={`grid grid-cols-1 items-start gap-x-7 gap-y-8 ${ladoALado ? "@min-[56rem]:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]" : ""}`}>
           <ListaQueFabricarPrimero datos={primero} falloRed={falloRed} nota={notaDeHistoria} presentaciones={presentaciones} hojas={hojas} />
-          <PorResolver decisiones={decisiones} ocultas={ocultas} totalAsuntos={totalAsuntos} hojas={hojas} presentaciones={presentaciones} />
+          <PorResolver decisiones={decisiones} ocultas={ocultas} totalAsuntos={totalAsuntos} hojas={hojas} presentaciones={presentaciones} aLoAncho={!ladoALado} />
         </div>
 
         <LoDemasEnOrden
