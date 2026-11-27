@@ -747,6 +747,9 @@ export function textoDelResultado(r: ResumenBarrido): string {
 // La entrada en Existencias: el barrido en curso («súmate») y el barrido del mes.
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** Lo que el aviso del barrido en curso dice siempre: terminarlo cuadra el piso. */
+export const AL_TERMINAR_EL_BARRIDO = "Al terminarlo, el piso queda cuadrado.";
+
 /** Cada cuánto toca barrer el piso (Felipe, 2026-11-22: una vez al mes). */
 export const DIAS_ENTRE_BARRIDOS = 30;
 
@@ -762,8 +765,11 @@ export type AvisoDeBarrido = { tipo: "en_curso" | "toca"; titulo: string; detall
 export function avisoDeBarrido({ barrido, cuadradoEn, ahora }: { barrido: BarridoAbierto | null; cuadradoEn: string | null; ahora: Date }): AvisoDeBarrido | null {
   if (barrido) {
     const quienes = quienesEscanean(barrido.personas, ahora);
-    const lleva = barrido.unidades === 1 ? "1 prenda" : `${barrido.unidades.toLocaleString("es-PE")} prendas`;
-    return { tipo: "en_curso", titulo: `Barrido en curso · ${lleva}`, detalle: quienes, boton: "Sumarme" };
+    const lleva = barrido.unidades === 1 ? "1 prenda escaneada" : `${barrido.unidades.toLocaleString("es-PE")} prendas escaneadas`;
+    // Un barrido confirmado ES el cuadre del piso (ADR-0690 §5): desde el 2026-11-26 este aviso es el ÚNICO que habla del piso en
+    // Existencias mientras hay un barrido abierto (la franja «nunca se ha cuadrado» se calla), así que lo dice.
+    const detalle = quienes ? `${quienes}. ${AL_TERMINAR_EL_BARRIDO}` : AL_TERMINAR_EL_BARRIDO;
+    return { tipo: "en_curso", titulo: `Barrido en curso · ${lleva}`, detalle, boton: "Sumarme" };
   }
   const t = cuadradoEn ? Date.parse(cuadradoEn) : NaN;
   if (!Number.isFinite(t)) return null;

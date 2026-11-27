@@ -18,7 +18,7 @@ export function BotonSonidoConfirmar({ conNombre = false }: { /** Con su nombre 
         onClick={() => fijarSonidoConfirmar(!activo)}
         aria-pressed={activo}
         title={activo ? "Suena al colgar, subir, ajustar o reportar · toca para silenciar" : "Sin sonido al confirmar · toca para activarlo"}
-        className={`label-cayla group flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-xs transition-colors ${activo ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
+        className={`area-dedo label-cayla group flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-xs transition-colors ${activo ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
       >
         <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 ${activo ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
         <span className={activa(activo)}>Sonido al confirmar:</span>

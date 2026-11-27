@@ -34,7 +34,7 @@ import {
 } from "./inicio-almacen-reglas";
 import type { ClaveModulo } from "./modulos";
 import { filtrarExistencias, filtrosDeUrl, indiceDeExistencias } from "./existencias-filtros";
-import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type EntradaParaHoy } from "./existencias-para-hoy";
+import { porColgarDeLaSede } from "./existencias-para-hoy";
 import { agruparPorPrenda, queHacerPrenda, type FilaPrenda } from "./existencias-prendas";
 import { tarjetasDeExistencias } from "./existencias-tarjetas";
 import { avisosInicio } from "./inicio-avisos";
@@ -520,19 +520,6 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     // La página de Existencias: la lectura pasa por el motor y cada fila recibe su decisión; la lista del día va a la pantalla.
     const { filas: stock, plan, lectura } = conMotor(crudo, { cuadradoEn, ventas });
     const cuenta = porColgarDeLaSede(stock, plan.listaDelDia);
-    // «Para hoy»: lo mismo que arma `InventarioPanel`.
-    const entrada: EntradaParaHoy = {
-      separa: true,
-      porColgar: entradaPorColgar(cuenta),
-      piso: { enPausa: cuenta.enPausa, fallo: false },
-      sinStockAtras: { tallas: 0 },
-      sinRegistrar: null,
-      danadas: 0,
-      resuelveDanadas: false,
-      apartados: { vencidos: 0 },
-      enCamino: { traslados: 0, atrasados: 0, proximaLlegada: null },
-    };
-    const tareas = tareasParaHoy(entrada);
     // El filtro «Hoy ▸ Por colgar» (lo que abre el aviso del Inicio y el botón «Ver cuáles» de «Para hoy»), con sus tarjetas.
     const elegidos = filtrosDeUrl("hoy=por_colgar", { separa: true });
     const lista = filtrarExistencias(indiceDeExistencias(stock), elegidos).filas;
@@ -540,19 +527,20 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     // El servidor del Inicio: NO lee Existencias; cuenta sobre la misma lectura del motor (`getExistenciasDeAlmacen`).
     const inicio = existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia);
     const aviso = avisosInicio(fuentesDeAlmacen({ existencias: inicio, fotos: null, porCompletar: null })).find((a) => a.clave === "reponer");
-    return { stock, cuenta, tareas, lista, tarjetas, inicio, aviso };
+    return { stock, cuenta, lista, tarjetas, inicio, aviso };
   }
 
   describe("con el piso cuadrado", () => {
     const e = escena();
-    const paraHoy = e.tareas.find((t) => t.tipo === "por_colgar");
+    // La cuenta de la sede (la que leía «Para hoy» hasta que se fue, el 2026-11-26): la de Existencias, su filtro y el Inicio.
+    const cifra = e.cuenta.tallas;
 
-    it("«Hoy», «Para hoy», el bloque y el aviso del Inicio dicen el mismo número de tallas", () => {
-      expect(paraHoy?.cifra).toBe(4);
-      expect(e.lista.length).toBe(paraHoy?.cifra);
-      expect(e.tarjetas.reduce((s, t) => s + (queHacerPrenda(t.colores[0].tallas)?.n ?? 0), 0)).toBe(paraHoy?.cifra);
-      expect(e.inicio.porColgar.tallas).toBe(paraHoy?.cifra);
-      expect(e.aviso?.cantidad).toBe(paraHoy?.cifra);
+    it("«Hoy», la cuenta de la sede, el bloque y el aviso del Inicio dicen el mismo número de tallas", () => {
+      expect(cifra).toBe(4);
+      expect(e.lista.length).toBe(cifra);
+      expect(e.tarjetas.reduce((s, t) => s + (queHacerPrenda(t.colores[0].tallas)?.n ?? 0), 0)).toBe(cifra);
+      expect(e.inicio.porColgar.tallas).toBe(cifra);
+      expect(e.aviso?.cantidad).toBe(cifra);
     });
 
     it("el enlace del aviso abre la lista «Hoy ▸ Por colgar» con esas mismas tallas", () => {
@@ -571,7 +559,6 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
         ["Pantalón Carla", "Beige", ["28"]],
       ]);
       expect(e.inicio.porColgar).toEqual({ tallas: 4, unidades: 8, prendas: 3, enPausa: 0 });
-      expect(paraHoy?.detalle).toMatch(/^8 guardadas y ninguna colgada: empieza por Casaca Nina, Blusa Emma y 1 más/);
     });
 
     // La lectura del motor tiene que traer lo que el resto del ERP usa para dibujar una prenda sin foto: si el Inicio armara sus
@@ -601,18 +588,17 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
 
   describe("con el piso sin cuadrar (así está toda tienda el día que se pega el motor)", () => {
     const e = escena(null);
-    const espera = e.tareas.find((t) => t.tipo === "piso_en_pausa");
 
-    it("nadie manda a colgar: «Hoy ▸ Por colgar» vacío, «Para hoy» sin fila «por colgar» y el Inicio en 0 tallas", () => {
+    it("nadie manda a colgar: «Hoy ▸ Por colgar» vacío, la cuenta en 0 y el Inicio en 0 tallas", () => {
       expect(e.lista).toEqual([]);
-      expect(e.tareas.some((t) => t.tipo === "por_colgar")).toBe(false);
+      expect(e.cuenta.tallas).toBe(0);
       expect(e.inicio.porColgar.tallas).toBe(0);
     });
 
-    it("«Para hoy» y el Inicio dicen cuántas tallas esperan el cuadre, con la misma cifra, nunca «al día»", () => {
-      expect(espera?.cifra).toBe(4);
-      expect(e.inicio.porColgar.enPausa).toBe(espera?.cifra);
-      expect(e.aviso).toMatchObject({ titulo: "Cuadrar el piso", cantidad: espera?.cifra, ahora: "Cuadra el piso antes de colgar", href: "/inventario" });
+    it("la cuenta de la sede y el Inicio dicen cuántas tallas esperan el cuadre, con la misma cifra, nunca «al día»", () => {
+      expect(e.cuenta.enPausa).toBe(4);
+      expect(e.inicio.porColgar.enPausa).toBe(e.cuenta.enPausa);
+      expect(e.aviso).toMatchObject({ titulo: "Cuadrar el piso", cantidad: e.cuenta.enPausa, ahora: "Cuadra el piso antes de colgar", href: "/inventario" });
       expect(e.aviso?.detalle).toBe("4 tallas esperan el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.");
     });
   });
@@ -629,8 +615,7 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     const fuente = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
     const panel = fuente("components/InventarioPanel.tsx");
     expect(panel).toMatch(/porColgarDeLaSede\(stock, listaDelDia\)/);
-    expect(panel).toMatch(/porColgar: entradaPorColgar\(cuentaPorColgar\)/);
-    expect(panel).toMatch(/enPausa: cuentaPorColgar\.enPausa/);
+    expect(panel).toMatch(/tallasEnPausa = cuentaPorColgar\.enPausa/);
     // La página le pasa al panel el MISMO plan (en dos tiempos desde el 2026-11-13: la promesa, recortada a las tallas de la sede), y el
     // panel pone en cada fila la decisión del motor y toma la lista del día de ese plan (`aplicarPlan`).
     const pagina = fuente("app/(app)/inventario/page.tsx");

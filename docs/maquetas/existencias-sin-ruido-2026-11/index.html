@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Existencias sin ruido · antes y después</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Existencias (/inventario) — antes y después de «sin ruido» (docs/pantallas/inventario.md, análisis 2026-11-26)
+   ANTES: la cabecera tal cual la captura de Felipe (TRU, 26-nov, 17:09; panel de filtros abierto porque ese equipo lo dejó abierto).
+   DESPUÉS: las tareas #1–#6, #8–#10 y #12 del análisis, cada una con su número. Lo que NO cambia (buscador, escáner, Filtros, cifras de
+   los chips salvo #6, filas PRENDA y Ver como/Ordenar, tarjetas de prenda) se dibuja igual en las dos.
+   Las cifras son las de la captura; la de «Sin stock atrás» en el después NO se conoce (#6/#7) y se muestra como «?». Las tarjetas de
+   prenda son bloques sin datos. Solo tokens (los de docs/maquetas/vidrio-base-2026-10/marco.css), claro y oscuro.
+   ==================================================================== */
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo);color:var(--tinta);font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ---------- la barra de la maqueta (no es parte de la pantalla) ---------- */
+.mq{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 20px;
+  background:color-mix(in srgb,var(--papel) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--t12)}
+.mq h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;margin-right:auto}
+.seg{display:inline-flex;padding:3px;border-radius:99px;background:var(--t06);border:1px solid var(--t12)}
+.seg button{height:32px;padding:0 14px;border-radius:99px;font-size:13px;font-weight:600;color:var(--t65)}
+.seg button.on{background:var(--tinta);color:var(--crema)}
+.mq label{font-size:13px;display:inline-flex;gap:6px;align-items:center;color:var(--t80)}
+
+.escenario{padding:24px 20px 80px;display:grid;gap:28px}
+.lado{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.lado.uno{grid-template-columns:1fr}
+.col h3{font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;margin:0 0 10px 4px;display:flex;gap:10px;align-items:center}
+.col h3 small{letter-spacing:0;text-transform:none;font-weight:500;color:var(--t65);font-size:13px}
+.marco{position:relative;overflow:hidden;border-radius:14px;box-shadow:0 0 0 1px var(--t12),0 24px 50px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.escala{width:1600px;transform-origin:0 0}
+
+/* ---------- la página (copiada de la captura) ---------- */
+.pag{position:relative;width:1600px;padding:22px 12px 24px;
+  background:radial-gradient(120% 80% at 70% -10%,color-mix(in srgb,var(--vidrio) 55%,transparent),transparent 60%),
+             linear-gradient(180deg,color-mix(in srgb,var(--hueso) 70%,var(--crema)),var(--crema))}
+.pliegue{position:absolute;left:0;right:0;top:680px;height:0;border-top:2px dashed var(--rojo);z-index:5;pointer-events:none}
+.pliegue span{position:absolute;right:14px;top:-26px;font-size:13px;font-weight:700;color:var(--rojo);background:var(--papel);padding:2px 10px;border-radius:99px;box-shadow:0 0 0 1px var(--t12)}
+.velo-pliegue{position:absolute;left:0;right:0;top:680px;bottom:0;background:color-mix(in srgb,var(--sombra) 10%,transparent);pointer-events:none;z-index:4}
+
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.meta{display:flex;align-items:center;gap:14px;font-size:13px;letter-spacing:.2em;font-weight:600;color:var(--t80);margin-top:2px}
+.meta::before{content:"";width:30px;height:1px;background:var(--t50)}
+.tit{display:flex;align-items:flex-start;gap:6px;margin-top:12px}
+.tit h1{font-family:'EB Garamond',serif;font-weight:500;font-size:44px;line-height:1;letter-spacing:-.01em}
+.q{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 0 0 1px var(--t12);margin-top:-2px}
+.btns{display:flex;gap:12px;margin-top:18px}
+.btn{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 20px;border-radius:99px;border:1px solid var(--t50);
+  font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:color-mix(in srgb,var(--vidrio) 30%,transparent)}
+.cifras{display:flex;align-items:stretch;border-radius:24px;padding:16px 22px;min-width:444px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 20px 40px -26px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.cifra{padding:0 16px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cifra+.cifra{border-left:1px solid var(--t12)}
+.cifra .n{font-family:'EB Garamond',serif;font-size:40px;line-height:1;display:flex;align-items:baseline;gap:6px}
+.cifra .n small{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t80)}
+.cifra .l{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t80);margin-top:8px}
+.cifra .s{font-size:13px;color:var(--t65);margin-top:2px}
+.cifra .ver{font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:4px;margin-top:8px}
+.cifra .n.chico{font-size:20px;font-family:'DM Sans',sans-serif;font-weight:600}
+
+.banda{display:flex;align-items:center;gap:12px;margin-top:22px;padding:8px 12px 8px 8px;border-radius:14px;
+  background:color-mix(in srgb,var(--pizarra) 9%,var(--papel));box-shadow:0 0 0 1px var(--t12)}
+.banda .ic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--t06);color:var(--pizarra)}
+.banda .tx{flex:1;font-size:14px;font-weight:600;color:var(--t80)}
+.banda .tx small{display:block;font-weight:400;color:var(--t65);font-size:13px;margin-top:1px}
+.pil{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 18px;border-radius:99px;border:1px solid var(--t50);font-size:13px;font-weight:600;
+  text-decoration:underline;text-underline-offset:4px;background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.enlace{display:inline-block;margin-top:22px;font-size:15px;text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--t25)}
+
+.bloque{margin-top:16px;border-radius:16px;padding:16px 20px 12px;background:color-mix(in srgb,var(--vidrio) 45%,transparent);box-shadow:0 0 0 1px var(--t06)}
+.fila{display:flex;align-items:center;gap:10px}
+.bus{flex:1;display:flex;align-items:center;gap:10px;height:44px;padding:0 10px 0 16px;border-radius:99px;border:1px solid var(--t50);
+  background:var(--t06);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent);font-size:14px;color:var(--t65)}
+.bus .k{margin-left:auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;box-shadow:0 0 0 1px var(--t25)}
+.cuad{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;box-shadow:0 0 0 1px var(--t12);background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.fil{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--rojo);color:var(--tinta);font-size:14px;font-weight:600;background:var(--papel)}
+.anillo{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 4px;border-radius:99px;background:var(--t06)}
+.anillo .o{width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--ambar) 28%,transparent)}
+.anillo b{font-size:15px}.anillo span{font-size:14px;color:var(--t80);line-height:1.1}
+.total{font-size:15px;margin-left:6px}.total b{font-weight:700}
+
+.chips{display:flex;align-items:center;gap:6px;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:99px;border:1px solid var(--t12);font-size:15px;color:var(--t80);background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.chip.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.chip .n{min-width:22px;height:22px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;font-size:14px;font-weight:600;box-shadow:0 0 0 1px var(--t25)}
+.chip .n.pausa{width:14px;min-width:0;height:14px;padding:0;border-radius:3px;background:var(--t25);box-shadow:none}
+.chip .n.duda{border:1.5px dashed var(--t50);box-shadow:none;color:var(--t65)}
+.rot{font-size:13px;letter-spacing:.16em;font-weight:700;color:var(--t80);margin:0 4px 0 12px}
+
+.panel{margin-top:10px;border-radius:14px;background:var(--t06);box-shadow:inset 0 0 0 1px var(--t12);padding:4px 4px}
+.pf{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.pf+.pf{border-top:1px solid var(--t12)}
+.pf .r{width:80px;font-size:13px;letter-spacing:.16em;font-weight:700;color:var(--t80)}
+.pld{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:99px;border:1px solid var(--t25);font-size:14px;font-weight:500;background:var(--papel)}
+.vc{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.14em;font-weight:700;color:var(--t80)}
+.vc .seg2{display:inline-flex;padding:2px;border-radius:10px;background:var(--t06)}
+.vc .seg2 span{display:inline-flex;gap:6px;align-items:center;height:28px;padding:0 10px;border-radius:8px}
+.vc .seg2 span.on{background:var(--papel);box-shadow:0 0 0 1px var(--t12);color:var(--tinta)}
+.son{padding-right:20px;font-size:13px;letter-spacing:.14em;font-weight:700;color:var(--t80);display:inline-flex;gap:6px;align-items:center;margin-left:10px}
+
+.franja{display:flex;align-items:center;gap:14px;margin-top:14px;padding:10px 14px 10px 12px;border-radius:14px;
+  background:color-mix(in srgb,var(--ambar) 7%,var(--papel));box-shadow:0 0 0 1px color-mix(in srgb,var(--ambar) 25%,transparent)}
+.franja .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 1px var(--t25)}
+.franja .tx{flex:1;font-size:14px;color:var(--t80)}.franja .tx b{display:block;color:var(--ambar);font-weight:700;margin-bottom:3px}
+
+/* las prendas: bloques sin datos, iguales en las dos */
+.rej{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px}
+.vt{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:10px;border-radius:20px;background:var(--papel);box-shadow:0 0 0 1px color-mix(in srgb,var(--sand) 70%,transparent),0 10px 24px -14px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.vt .foto{height:150px;border-radius:14px;background:color-mix(in srgb,var(--c) 70%,var(--hueso))}
+.vt .ln{height:12px;border-radius:6px;background:var(--t12);margin-top:10px}
+.vt .ln.a{width:80%;height:16px;margin-top:4px}.vt .ln.b{width:40%}.vt .ln.c{width:60%}
+.vt .tallas{display:flex;gap:6px;margin-top:16px}.vt .tallas i{width:34px;height:40px;border-radius:8px;background:var(--hueso)}
+.rotulo-prendas{grid-column:1/-1;font-size:13px;color:var(--t65);letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+
+/* los números de cambio */
+[data-n]{position:relative}
+.marcas [data-n]::after{content:attr(data-n);position:absolute;top:-22px;right:-14px;z-index:6;min-width:24px;height:24px;padding:0 6px;border-radius:99px;
+  display:grid;place-items:center;font:700 13px/1 'DM Sans',sans-serif;letter-spacing:0;text-transform:none;text-decoration:none;
+  color:var(--crema);background:var(--rojo);box-shadow:0 0 0 3px var(--papel)}
+.marcas [data-n].fuera{outline:2px dashed var(--rojo);outline-offset:3px;border-radius:14px}
+.marcas .antes-marca [data-n]::after{background:var(--t65)}
+.marcas .rot[data-n]{margin-right:22px}
+
+/* la lista de cambios */
+.lista{background:var(--papel);border-radius:16px;padding:20px 24px;box-shadow:0 0 0 1px var(--t12)}
+.lista h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;margin-bottom:12px}
+.lista ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px 28px}
+.lista li{display:grid;grid-template-columns:30px 1fr;gap:10px;font-size:14px;line-height:1.45;color:var(--t80)}
+.lista li b{color:var(--tinta)}
+.lista .bn{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--crema);background:var(--rojo)}
+.lista .nota{margin-top:16px;font-size:13px;color:var(--t65);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="mq">
+  <h2>Existencias sin ruido · antes y después</h2>
+  <div class="seg" id="vista"><button data-v="lado" class="on">Lado a lado</button><button data-v="uno">Uno sobre otro</button></div>
+  <div class="seg" id="estado"><button data-e="hoy" class="on">Hoy: barrido abierto</button><button data-e="sin">Sin barrido abierto</button></div>
+  <div class="seg" id="tema"><button data-t="claro" class="on">Claro</button><button data-t="oscuro">Oscuro</button></div>
+  <label><input type="checkbox" id="numeros" checked> Números</label>
+  <label><input type="checkbox" id="pliegue" checked> Lo que se ve sin desplazar</label>
+</div>
+
+<div class="escenario marcas" id="esc">
+  <div class="lado" id="lado">
+    <div class="col">
+      <h3>Antes <small>tal cual la captura de TRU, 26-nov 17:09</small></h3>
+      <div class="marco"><div class="escala" data-escala><div class="pag" id="antes"></div></div></div>
+    </div>
+    <div class="col">
+      <h3>Después <small>los números se explican abajo</small></h3>
+      <div class="marco"><div class="escala" data-escala><div class="pag" id="despues"></div></div></div>
+    </div>
+  </div>
+
+  <section class="lista">
+    <h3>Qué cambia, y por qué</h3>
+    <ol>
+      <li><span class="bn">1</span><span><b>Un solo aviso del piso.</b> Con un barrido abierto queda solo su banda, que dice que al terminarlo el piso queda cuadrado. La franja ámbar «nunca se ha cuadrado» y su «Cuadrar el piso» desaparecen: eran la misma tarea con otra puerta. Sin barrido abierto, la franja vuelve y su botón lleva al barrido (mira «Sin barrido abierto» arriba).</span></li>
+      <li><span class="bn">2</span><span><b>Fuera el botón «Barrido en curso»</b> mientras la banda está a la vista: llevaba al mismo lugar que «Sumarme». Sin barrido abierto vuelve como «Barrido del piso».</span></li>
+      <li><span class="bn">3</span><span><b>«691» sin «de 480 · por cuadrar».</b> Sin cuadre ninguna de las dos cifras es confiable y «691 de 480» se lee como «211 de más». Dice «según el sistema» hasta el primer cuadre.</span></li>
+      <li><span class="bn">4</span><span><b>Fuera la fila GESTIÓN</b> del panel de filtros: «Hoy» y «Condición» hacían lo mismo que los chips y que tocar las cifras.</span></li>
+      <li><span class="bn">5</span><span><b>Fuera el chip «Por colgar»</b> mientras el piso esté en pausa: no filtraba nada (su cuadrito era un ícono de pausa). Vuelve con su número cuando el piso se cuadre.</span></li>
+      <li><span class="bn">6</span><span><b>Los chips cuentan productos, como la lista.</b> «Sin stock atrás 918» contaba modelo + color y la lista «386 productos»: el filtro parecía traer más que todo. La cifra nueva <b>no se conoce todavía</b> (por eso el «?»): sale de la consulta del análisis, y nunca pasará de 386.</span></li>
+      <li><span class="bn">8</span><span><b>Fuera el anillo «0 de 74 hoy»</b> y la ventana «Pendientes de hoy» que abría (Felipe, 2026-11-26). Todo lo que listaba ya se ve en otro lado: el piso sin cuadrar, las dañadas, lo que viene en camino y «sin stock atrás» en esta misma pantalla; las ventas sin registrar, los apartados vencidos y los traslados atrasados en los avisos de Inicio.</span></li>
+      <li><span class="bn">9</span><span><b>«Sonido al confirmar» sale del panel de filtros:</b> es un ajuste del equipo, no un filtro. Pasa a la hoja de la talla, que es donde suena.</span></li>
+      <li><span class="bn">10</span><span><b>«Ver el valor a costo» entra a la tarjeta de cifras</b> como tercera cifra (solo quien ve dinero). Ya no ocupa una línea sola entre las bandas.</span></li>
+      <li><span class="bn">12</span><span><b>Fuera «Se acaban» y «Sin ventas»</b> con su rótulo «Recomendados» (Felipe, 2026-11-26): cómo se vende cada prenda ya se mira en Gestión ▸ Análisis.</span></li>
+    </ol>
+    <p class="nota">No entran aquí la #7 («Sin stock atrás» solo con tallas centrales o vendidas: cambia el número, no la forma) ni la #11 (decidir si la tienda cuadra con el barrido o con «Cuadrar el piso»: la maqueta asume el barrido, que es lo recomendado). Los «·» de la cabecera se dejan como están: cambiarlos en el ERP es decisión aparte. La línea roja punteada marca hasta dónde llegaba tu captura (680 px de alto): en el antes no se ve ninguna prenda; en el después asoma la primera fila. Las prendas son bloques sin datos.</p>
+  </section>
+</div>
+
+<template id="t-pag">
+  <div class="velo-pliegue" data-pl></div><div class="pliegue" data-pl><span>Hasta aquí llegaba tu captura</span></div>
+  <div class="cab">
+    <div>
+      <div class="meta">TIENDA TRU · JUEVES, 26 DE NOVIEMBRE · VISTA DE LAS 17:09</div>
+      <div class="tit"><h1>Existencias</h1><span class="q">?</span></div>
+      <div class="btns">
+        <span class="btn"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/></svg>Ajustar stock</span>
+        <span class="btn" data-solo="antes" data-n="2"><svg viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16"/></svg>Barrido en curso</span>
+        <span class="btn" data-solo="sin"><svg viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16"/></svg>Barrido del piso</span>
+      </div>
+    </div>
+    <div class="cifras">
+      <div class="cifra">
+        <div class="n" data-solo="antes">691 <small>de 480 · por cuadrar</small></div>
+        <div class="n" data-solo="despues" data-n="3">691 <small>según el sistema</small></div>
+        <div class="l"><svg viewBox="0 0 24 24"><path d="M12 4a2 2 0 0 1 2 2c0 1-2 2-2 3l8 6H4l8-6"/></svg>Colgadas en el piso</div>
+        <div class="s">+ 61 accesorios</div>
+      </div>
+      <div class="cifra">
+        <div class="n">1150</div>
+        <div class="l"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v10l-8 4-8-4V7l8-4zM4 7l8 4 8-4M12 11v10"/></svg>Guardadas en el almacén</div>
+      </div>
+      <div class="cifra" data-solo="despues" data-n="10">
+        <div class="n chico">S/ ···</div>
+        <div class="l"><svg viewBox="0 0 24 24"><path d="M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/></svg>Valor a costo</div>
+        <div class="ver">Ver</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="banda" data-solo="barrido" data-n-despues="1">
+    <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span>
+    <span class="tx" data-solo="antes">Barrido en curso · 1 prenda</span>
+    <span class="tx" data-solo="despues">Barrido en curso · 1 prenda escaneada<small>Al terminarlo queda cuadrado el piso de la tienda.</small></span>
+    <span class="pil">Sumarme <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </div>
+
+  <a class="enlace" data-solo="antes" data-n="10">Ver el valor a costo</a>
+
+  <div class="bloque">
+    <div class="fila">
+      <div class="bus"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Prenda, marca o código…<span class="k">/</span></div>
+      <span class="cuad"><svg viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16"/></svg></span>
+      <span class="fil"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros <svg viewBox="0 0 24 24" style="width:12px"><path d="M6 15l6-6 6 6"/></svg></span>
+      <span class="anillo" data-solo="antes" data-n="8"><span class="o"></span><span><b>0 de 74</b><br>hoy</span></span>
+      <span class="total"><b>386</b> productos</span>
+    </div>
+    <div class="chips">
+      <span class="chip on"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>Todo</span>
+      <span class="chip" data-solo="antes" data-n="5"><svg viewBox="0 0 24 24"><path d="M12 4a2 2 0 0 1 2 2c0 1-2 2-2 3l8 6H4l8-6"/></svg>Por colgar <span class="n pausa"></span></span>
+      <span class="chip" data-n="6"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v10l-8 4-8-4V7l8-4zM4 7l8 4 8-4"/></svg>Sin stock atrás
+        <span class="n" data-solo="antes">918</span><span class="n duda" data-solo="despues">?</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7zM9 7a3 3 0 0 1 6 0"/></svg>Apartadas <span class="n">6</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01"/></svg>Dañadas <span class="n">20</span></span>
+      <span class="rot" data-solo="antes" data-n="12">RECOMENDADOS</span>
+      <span class="chip" data-solo="antes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Se acaban <span class="n">27</span></span>
+      <span class="chip" data-solo="antes"><svg viewBox="0 0 24 24"><path d="M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z"/></svg>Sin ventas <span class="n">203</span></span>
+    </div>
+    <div class="panel">
+      <div class="pf"><span class="r">PRENDA</span>
+        <span class="pld">Categoría ⌄</span><span class="pld">Talla ⌄</span><span class="pld">Color ⌄</span><span class="pld">Marca ⌄</span></div>
+      <div class="pf" data-solo="antes" data-n="4"><span class="r">GESTIÓN</span><span class="pld">Hoy ⌄</span><span class="pld">Condición ⌄</span></div>
+      <div class="pf"><span class="r">VISTA</span>
+        <span class="vc">VER COMO: <span class="seg2"><span class="on">▦ TARJETAS</span><span>▤ TABLA</span><span>☰ POR TALLA</span></span></span>
+        <span class="pld" style="margin-left:18px">⇅ Ordenar por: <b>Prioridad</b> ⌄</span>
+        <span class="son" data-solo="antes" data-n="9">🔈 SONIDO AL CONFIRMAR: <b>SÍ</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="franja" data-solo="franja" data-n-antes="1">
+    <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01"/></svg></span>
+    <span class="tx"><b>El piso de esta tienda nunca se ha cuadrado</b>Lo que dice «en almacén» puede estar colgado hasta el primer cuadre.</span>
+    <span class="pil" data-solo="antes">Cuadrar el piso</span>
+    <span class="pil" data-solo="despues">Hacer el barrido <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </div>
+
+  <div class="rej">
+    <div class="vt" style="--c:var(--pizarra)"><div class="foto"></div><div><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="tallas"><i></i><i></i><i></i><i></i></div></div></div>
+    <div class="vt" style="--c:var(--taupe)"><div class="foto"></div><div><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="tallas"><i></i><i></i><i></i></div></div></div>
+    <div class="vt" style="--c:var(--verde)"><div class="foto"></div><div><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="tallas"><i></i><i></i><i></i><i></i></div></div></div>
+    <div class="vt" style="--c:var(--sand)"><div class="foto"></div><div><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="tallas"><i></i><i></i></div></div></div>
+  </div>
+</template>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const estado = { barrido: true };
+
+function armar(id, lado) {
+  const pag = document.getElementById(id);
+  pag.replaceChildren($("#t-pag").content.cloneNode(true));
+  const otro = lado === "antes" ? "despues" : "antes";
+  // Lo que es de un solo lado.
+  pag.querySelectorAll(`[data-solo="${otro}"]`).forEach((n) => n.remove());
+  // El botón «Barrido del piso» y la franja solo existen sin barrido abierto, o (la franja) en el antes.
+  const conBarrido = estado.barrido;
+  pag.querySelectorAll('[data-solo="sin"]').forEach((n) => { if (conBarrido) n.remove(); });
+  pag.querySelectorAll('[data-solo="barrido"]').forEach((n) => { if (!conBarrido) n.remove(); });
+  pag.querySelectorAll('[data-solo="franja"]').forEach((n) => { if (lado === "despues" && conBarrido) n.remove(); });
+  if (lado === "antes" && !conBarrido) pag.querySelectorAll('.btn[data-n="2"]').forEach((n) => n.remove());
+  // Los números: en el antes se marca lo que se va (en gris), en el después lo que cambió (en rojo).
+  pag.querySelectorAll("[data-n-despues]").forEach((n) => { if (lado === "despues") n.dataset.n = n.dataset.nDespues; });
+  pag.querySelectorAll("[data-n-antes]").forEach((n) => { if (lado === "antes" && conBarrido) n.dataset.n = n.dataset.nAntes; });
+  // En el antes sin barrido no hay cambio #1/#2 que marcar en la franja; en el después sin barrido, la franja cambia su botón (#1).
+  if (lado === "despues" && !conBarrido) pag.querySelectorAll(".franja").forEach((n) => (n.dataset.n = "1"));
+  pag.parentElement.parentElement.classList.toggle("antes-marca", lado === "antes");
+}
+
+function escalar() {
+  document.querySelectorAll("[data-escala]").forEach((e) => {
+    const ancho = e.parentElement.clientWidth;
+    const k = Math.min(1, ancho / 1600);
+    e.style.transform = `scale(${k})`;
+    e.parentElement.style.height = e.firstElementChild.offsetHeight * k + "px";
+  });
+}
+
+function todo() { armar("antes", "antes"); armar("despues", "despues"); requestAnimationFrame(escalar); }
+
+function seg(id, fn) {
+  $(id).addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    $(id).querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    fn(b);
+  });
+}
+seg("#vista", (b) => { $("#lado").classList.toggle("uno", b.dataset.v === "uno"); requestAnimationFrame(escalar); });
+seg("#estado", (b) => { estado.barrido = b.dataset.e === "hoy"; todo(); });
+seg("#tema", (b) => { document.documentElement.dataset.tema = b.dataset.t; });
+$("#numeros").addEventListener("change", (e) => $("#esc").classList.toggle("marcas", e.target.checked));
+$("#pliegue").addEventListener("change", (e) => document.body.classList.toggle("sin-pliegue", !e.target.checked));
+const st = document.createElement("style"); st.textContent = ".sin-pliegue [data-pl]{display:none}"; document.head.append(st);
+addEventListener("resize", escalar);
+document.fonts.ready.then(escalar);
+todo();
+</script>
+</body>
+</html>

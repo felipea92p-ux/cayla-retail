@@ -1,23 +1,24 @@
 "use client";
 
 import { type ComponentType } from "react";
-import { Clock, LayoutGrid, Moon, Pause, PackageX, ShoppingBag, TriangleAlert } from "lucide-react";
+import { LayoutGrid, PackageX, ShoppingBag, TriangleAlert } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Calculando } from "@/components/Esqueleto";
-import { ATAJOS_RAPIDOS, atajoElegido, CLAVES_RECOMENDADAS, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
+import { ATAJOS_RAPIDOS, atajoElegido, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
 import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "@/lib/existencias-filtros";
 
 /* ====================================================================
-   Atajos de filtro de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): siete botones bajo el buscador
-   para lo que más se pregunta en el piso. Escriben los mismos filtros que el panel «Filtros» (`lib/existencias-rapidos.ts`).
+   Atajos de filtro de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): cinco botones bajo el buscador
+   para lo que más se pregunta en el piso (los dos «Recomendados» salieron el 2026-11-26, `docs/maquetas/existencias-sin-ruido-2026-11/`). Escriben los mismos filtros que el panel «Filtros» (`lib/existencias-rapidos.ts`).
 
    Siempre con su nombre a la vista (2026-10-06): el modo «solo iconos» obligaba a pasar el mouse o adivinar qué era cada figura, y en
    una tablet no hay mouse. Bajo 1280 px (tablet, celular, ventana angosta) la fila se desliza de lado, con el borde derecho desvanecido
    para avisar que sigue: partida en dos o tres líneas se veía amontonada. Desde 1280 px caben en una.
 
-   Con el piso sin cuadrar (`enPausa` > 0), «Por colgar» no cuenta: el motor no manda a colgar nada porque podría ser algo que ya
-   cuelga (ADR-0328, decisión 5). En vez de un «0» que parece «todo listo», el botón lleva una pausa, y la explicación completa que
-   antes era una franja de texto sobre las tarjetas va en su etiqueta y al pasar el mouse.
+   Con el piso sin cuadrar (`enPausa` > 0), «Por colgar» no se dibuja (2026-11-26, «Existencias sin ruido»): el motor no manda a colgar
+   nada porque podría ser algo que ya cuelga (ADR-0328, decisión 5), así que el botón no filtraba nada. Hasta entonces llevaba una pausa
+   en vez de un «0» que parecía «todo listo»; el aviso del piso (la banda del barrido o la franja) ya dice por qué. Con un «Por colgar»
+   ya elegido (un enlace viejo), el botón se queda para que se vea qué está puesto y se pueda volver a «Todo».
    ==================================================================== */
 
 type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
@@ -28,8 +29,6 @@ const ICONO: Record<ClaveRapida, Icono> = {
   sin_stock_atras: PackageX,
   apartadas: ShoppingBag,
   danadas: TriangleAlert,
-  se_acaban: Clock,
-  sin_ventas: Moon,
 };
 
 /** El tono de cada botón encendido: ámbar lo que hay que hacer, pizarra lo informativo (el rojo se reserva a lo vencido, ADR-0169). */
@@ -39,8 +38,6 @@ const TONO_ENCENDIDO: Record<ClaveRapida, string> = {
   sin_stock_atras: "border-pizarra/40 bg-pizarra/10 text-pizarra",
   apartadas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
   danadas: "border-ambar/45 bg-ambar/[0.13] text-ambar-profundo",
-  se_acaban: "border-ambar/45 bg-ambar/[0.13] text-ambar-profundo",
-  sin_ventas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
 };
 
 export function FiltrosRapidos({
@@ -48,16 +45,17 @@ export function FiltrosRapidos({
   conteos,
   onCambiar,
   enPausa = 0,
-  avisoPausa = null,
+  pausaPrevista = false,
   calculando = false,
 }: {
   elegidos: Pick<FiltrosElegidos, "hoy" | "condicion">;
   conteos: Pick<ConteosFiltros, "hoy" | "condicion">;
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
-  /** Tallas que esperan el cuadre del piso: «Por colgar» va en pausa. */
+  /** Tallas que esperan el cuadre del piso: «Por colgar» no se dibuja. */
   enPausa?: number;
-  /** La frase completa de la pausa (`avisoPausaDelPiso`), para la etiqueta y el mouse de «Por colgar». */
-  avisoPausa?: string | null;
+  /** El piso nunca se cuadró, según la capacidad que llega con la lista: mientras el plan se calcula, «Por colgar» tampoco se dibuja
+   *  (sin esto aparecía un instante y se iba, y los demás atajos saltaban a la izquierda; medido el 2026-11-26). */
+  pausaPrevista?: boolean;
   /** «Hoy» viene en camino (Existencias en dos tiempos): «Por colgar» y «Sin stock atrás» guardan el lugar de su cifra, sin un 0 que no se sabe. */
   calculando?: boolean;
 }) {
@@ -72,29 +70,21 @@ export function FiltrosRapidos({
     >
       {ATAJOS_RAPIDOS.map((a) => {
         const Icono = ICONO[a.clave];
-        // Los «Recomendados» van tras una línea y su rótulo: salen del ritmo y no de lo que hay que hacer con la talla.
-        const primeraRecomendada = a.clave === CLAVES_RECOMENDADAS[0];
         const cuenta = cuentaDeAtajo(a.clave, conteos);
         const puesto = encendido === a.clave;
         // Lo que cuenta el plan del piso: mientras llega, su cifra se calcula (el botón sigue sirviendo: la lista lo dice).
         const delPlan = a.clave === "por_colgar" || a.clave === "sin_stock_atras";
         const esperando = calculando && delPlan;
-        const pausado = !esperando && a.clave === "por_colgar" && enPausa > 0;
-        const rotulo = esperando ? `${a.texto}: calculando` : pausado ? `${a.texto}: en pausa. ${avisoPausa ?? ""}`.trim() : rotuloDeAtajo(a, cuenta);
+        // Piso en pausa: el botón no filtraría nada (ver arriba). Si ya está puesto, se queda para poder quitarlo.
+        if (a.clave === "por_colgar" && !puesto && (esperando ? pausaPrevista : enPausa > 0)) return null;
+        const rotulo = esperando ? `${a.texto}: calculando` : rotuloDeAtajo(a, cuenta);
         return (
           <span key={a.clave} className="contents">
-            {primeraRecomendada && (
-              <span className="flex shrink-0 items-center gap-2" aria-hidden>
-                <span className="mx-1 h-5 w-px bg-tinta/15" />
-                {/* El rótulo solo donde sobra ancho: debajo, la línea ya separa y cada botón dice su nombre. */}
-                <span className="label-cayla hidden text-xs text-taupe min-[1400px]:inline">Recomendados</span>
-              </span>
-            )}
             <button
               type="button"
               aria-pressed={puesto}
               aria-label={rotulo}
-              title={pausado ? (avisoPausa ?? undefined) : a.ayuda}
+              title={a.ayuda}
               onClick={() => onCambiar(a.cambios)}
               className={`area-dedo inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-sm transition-colors ${
                 puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/30 hover:text-tinta"
@@ -106,10 +96,6 @@ export function FiltrosRapidos({
                 <span aria-hidden className="ml-0.5 inline-flex">
                   <Calculando className="h-4 w-6 rounded-full" />
                 </span>
-              ) : pausado ? (
-                <b aria-hidden className={`ml-0.5 grid h-[18px] w-[18px] place-items-center rounded-full ${puesto ? "bg-tinta/10" : "bg-pizarra/10 text-pizarra"}`}>
-                  <Pause /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />
-                </b>
               ) : (
                 cuenta !== null && (
                   <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-sm font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "vd-gota-chica text-tinta/75"}`}>

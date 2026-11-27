@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 217,
+  "total": 204,
   "controles": {
     "app/(app)/inventario/page.tsx": [
       "BotonVer «{avisoBarrido.boton}»"
@@ -57,8 +57,6 @@
       "DesplegablePildora «Color»",
       "DesplegablePildora «Marca»",
       "DesplegablePildora «Empresa»",
-      "DesplegablePildora «Hoy»",
-      "DesplegablePildora «Condición»",
       "button «{`existencias.ver-${valor}»",
       "DesplegablePildora «Ordenar por»",
       "FiltroPuesto «{`Quitar filtro ${c.texto}»",
@@ -73,18 +71,14 @@
       "button «Ver»"
     ],
     "components/InventarioPanel.tsx": [
-      "Link «Cuadrar el piso»",
-      "button «existencias.pendientes»",
+      "Link «Hacer el barrido»",
+      "BotonDescargar «Descargar CSV»",
+      "button «Resumen por categoría»",
       "button «Ver todas»",
       "Link «{p.referencia}»",
-      "Link «Cuadrar el piso» #2",
-      "BotonDescargar «Descargar CSV»",
-      "BotonDescargar «Descargar CSV» #2",
+      "Link «Cuadrar el piso»",
       "Casilla «Marcar todas las tallas de esta página»",
       "Casilla «{`Marcar ${f.referencia}»",
-      "BotonDescargar «Descargar CSV» #3",
-      "button «{resumen.apartado}»",
-      "button «Resumen por categoría»",
       "Link «Bajar al piso»",
       "Link «Trasladar»",
       "Link «Etiquetas»",
@@ -201,11 +195,8 @@
       "Boton «Más tarde»",
       "BotonImprimir «Imprimir»"
     ],
-    "components/existencias/AnilloMision.tsx": [
-      "button «existencias.pendientes»"
-    ],
     "components/existencias/AvisosExistencias.tsx": [
-      "BotonVer «Cuadrar el piso»"
+      "BotonVer «Hacer el barrido»"
     ],
     "components/existencias/BotonAjustarStock.tsx": [
       "BotonEditar «Ajustar stock»"
@@ -261,14 +252,6 @@
       "button «Ver piso y almacén»",
       "button «{lectura}» #2",
       "button «{lectura}» #3"
-    ],
-    "components/existencias/ParaHoy.tsx": [
-      "Link «{contenido}»",
-      "button «{contenido}»",
-      "button «Ver cuáles»",
-      "Boton «(sin nombre)»",
-      "button «→() => setAbiertoMovil((v) => !v)»",
-      "BotonVerMas «{`Ver ${guardadas.length}»"
     ],
     "components/existencias/PieTarjeta.tsx": [
       "button «existencias.colgar»",

@@ -467,7 +467,7 @@
 .tp-aro .tp-aro-fondo { stroke: var(--tubo-anillo); }
 
 /* ── Lo de hoy en el celular (Felipe 2026-11-17): la tarjeta se pliega al anillo chico, a la derecha del buscador, como el «N de M hoy» de
-   Existencias (`AnilloMision`). La placa de arriba se apaga y la píldora la dibuja la pieza de adentro (`.tp-dia-chico`, con las mismas
+   Existencias hasta el 2026-11-26 (`AnilloMision`, ya borrado). La placa de arriba se apaga y la píldora la dibuja la pieza de adentro (`.tp-dia-chico`, con las mismas
    utilidades que allá: 40 px, crema, línea arena): corre con la página y no se desenfoca (ADR-0623). Si algo te toca es un enlace a esa
    caja; al día, un dibujo. Bajo 640 px, el mismo corte de los botones de la cabecera (`max-sm`). ── */
 @media (max-width: 639.98px) {

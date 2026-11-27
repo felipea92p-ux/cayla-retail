@@ -9,8 +9,9 @@ import { BotonEnlace } from "@/components/ui/campos";
    stock» (la otra excepción a «la cabecera no lleva botones», ADR-0494). En el celular es solo el ícono, como sus vecinos.
    Solo se dibuja en la sede activa de quien entra y si separa piso y almacén (el barrido barre siempre la sede activa).
    ==================================================================== */
-export function BotonBarrido({ enCurso }: { enCurso: boolean }) {
-  const nombre = enCurso ? "Barrido en curso" : "Barrido del piso";
+export function BotonBarrido() {
+  // Con un barrido abierto la página no lo dibuja (2026-11-26): su banda, debajo, ya lleva a él con «Sumarme».
+  const nombre = "Barrido del piso";
   return (
     <BotonEnlace href="/inventario/barrido" data-guia="existencias.barrido" title={nombre} className="max-sm:min-w-11 max-sm:!px-3">
       <ScanLine aria-hidden className="h-4 w-4" />

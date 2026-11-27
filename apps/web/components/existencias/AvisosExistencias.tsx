@@ -37,7 +37,7 @@ export function AvisosExistencias({
 }: {
   /** Lo que el servidor ya sabe al dibujar la página; el panel lo corrige cuando llega el plan del piso. */
   pisoSinCuadrarAntes: boolean;
-  /** «Cuadrar el piso» cuadra SIEMPRE la sede activa: sin esto (un líder mirando otra sede), el aviso informa y no lleva botón. */
+  /** El barrido barre SIEMPRE la sede activa: sin esto (un líder mirando otra sede), el aviso informa y no lleva botón. */
   puedeCuadrar: boolean;
 }) {
   const panel = useLoQueSabeElPanel();
@@ -74,8 +74,9 @@ export function AvisosExistencias({
           <div className="mt-5 grid gap-4">
             <AvisoPisoSinCuadrar />
             {puedeCuadrar && (
-              <BotonVer href="/inventario/cuadrar" alNavegar={() => setAbierto(false)} className="w-full justify-center">
-                Cuadrar el piso
+              // El barrido es la entrada de la tienda para cuadrar (2026-11-26, como la franja de la computadora).
+              <BotonVer href="/inventario/barrido" alNavegar={() => setAbierto(false)} className="w-full justify-center">
+                Hacer el barrido
               </BotonVer>
             )}
           </div>
