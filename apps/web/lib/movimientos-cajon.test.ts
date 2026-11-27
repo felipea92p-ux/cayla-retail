@@ -151,7 +151,7 @@ describe("construirDetalleCajon — Venta (individual)", () => {
     expect(d.forma).toBe("individual");
     expect(d.titulo).toBe("Venta");
     expect(d.cuando).toBe("Hoy, a las 10:59");
-    expect(d.prenda).toEqual({ referencia: "Blusa Emma", variante: "M · Negro", fotoUrl: "https://cdn/foto.jpg" });
+    expect(d.prenda).toEqual({ referencia: "Blusa Emma", variante: "Negro, talla M", fotoUrl: "https://cdn/foto.jpg" });
   });
 
   it("la frase lleva el número grande y dice qué pasó; abajo dice quién", () => {
@@ -284,8 +284,8 @@ describe("construirDetalleCajon — Cambio", () => {
   const d = construirDetalleCajon(op, CTX_BASE);
 
   it("dice lo que la clienta devolvió y lo que se llevó, sin «sale/entra» (que suena a stock)", () => {
-    expect(d.devolvio).toEqual([expect.objectContaining({ varianteId: "v2", variante: "M · Beige", cantidad: "1 prenda" })]);
-    expect(d.llevo).toEqual([expect.objectContaining({ varianteId: "v1", variante: "M · Negro", cantidad: "1 prenda" })]);
+    expect(d.devolvio).toEqual([expect.objectContaining({ varianteId: "v2", variante: "Beige, talla M", cantidad: "1 prenda" })]);
+    expect(d.llevo).toEqual([expect.objectContaining({ varianteId: "v1", variante: "Negro, talla M", cantidad: "1 prenda" })]);
   });
 
   it("la frase dice que una prenda se cambió por otra; con cantidades distintas lo dice con números", () => {
@@ -373,7 +373,7 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
 
   it("una fila por prenda, con su variante y su foto; sin dirección porque todas son bajadas", () => {
     const d = construirDetalleBajadas("b", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2")]), CTX_BASE);
-    expect(d.filas[0]).toMatchObject({ id: "b1", referencia: "Blusa Emma", variante: "M · Negro", fotoUrl: "https://cdn/foto.jpg", sentido: null });
+    expect(d.filas[0]).toMatchObject({ id: "b1", referencia: "Blusa Emma", variante: "Negro, talla M", fotoUrl: "https://cdn/foto.jpg", sentido: null });
     expect(d.filas[1]).toMatchObject({ fotoUrl: null, sentido: null });
   });
 
@@ -418,7 +418,7 @@ describe("el cajón dice de qué tipo es, por dónde fue y qué pasó (ADR-0353)
     const d = construirDetalleCajon(op, CTX_BASE);
     expect(d.tipo).toBe("venta");
     expect(d.ruta).toEqual({ origen: "Piso", destino: "Cliente", motivo: "venta" });
-    expect(d.pasos.map((p) => p.texto)).toEqual(["Se cobró en caja · Boleta B001-000412", "Salió del piso: 2 prendas", "Se entregó al cliente"]);
+    expect(d.pasos.map((p) => p.texto)).toEqual(["Se cobró en caja (Boleta B001-000412)", "Salió del piso: 2 prendas", "Se entregó al cliente"]);
     expect(d.pasos.every((p) => p.hecho)).toBe(true);
   });
 

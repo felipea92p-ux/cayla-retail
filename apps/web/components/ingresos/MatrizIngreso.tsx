@@ -52,7 +52,10 @@ export function MatrizIngreso({ variantes }: { variantes: readonly VarianteIngre
                 return (
                   <td key={talla} className="px-3 py-1 text-right text-tinta">
                     {n === undefined ? (
-                      <span className="ing-vacia text-tinta/35">·</span>
+                      <span className="ing-vacia text-tenue">
+                        <span aria-hidden>—</span>
+                        <span className="sr-only">sin prendas</span>
+                      </span>
                     ) : (
                       <span className="ing-celda" style={{ "--peso": n / mayor } as CSSProperties}>
                         {n}
