@@ -1004,6 +1004,11 @@ export const PRUEBAS = [
   // cuenta como salida; fn_claure_pagos lo lista y lo quita al anularlo; sin el módulo no se lee y anon no ejecuta. Cada caso: ROLLBACK.
   "pruebas:claure-pago",
 
+  // El líder se lleva efectivo de la caja fuerte sin depositarlo todavía (ADR-0710): un «entre cuentas» de una caja fuerte a «Efectivo entregado
+  // al líder». Es de esa sede; baja una y sube la otra; el mismo token no lo duplica; la caja fuerte no queda bajo cero; solo el líder, también
+  // escribiendo directo en la tabla; el camino de vuelta sigue cerrado; después se deposita y se puede anular. Cada caso: ROLLBACK.
+  "pruebas:lider-se-lleva",
+
   // El cierre de caja de Lima y CLAURE (ADR-0560, actividad 3): fn_claure_cierre da el saldo con Claudia al terminar el día de esa caja, lo del día
   // por medio y el efectivo de las ventas de la caja partido entre CAYLA y CLAURE (suma exacta de lo que espera la caja; la anulada no cuenta);
   // lo lee quien cierra esa caja aunque no tenga Finanzas, y solo el líder puede pagar; una caja de otra sede dice que no hay. Cada caso: ROLLBACK.
