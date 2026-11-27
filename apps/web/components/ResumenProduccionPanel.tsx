@@ -1,57 +1,22 @@
-import Link from "next/link";
-import { BarraAvance } from "@/components/ui/BarraAvance";
-import { cantidadTexto } from "@/lib/insumos-reglas";
-import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
-import { Chip } from "@/components/ui/Chip";
-import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
-import { textoDePedido } from "@/lib/orden-pagina-reglas";
-import { PorQue } from "@/components/produccion-resumen/PorQue";
-import type { CifraDeFase } from "@/lib/ordenes-lista-reglas";
-import { Aviso } from "@/components/ui/Aviso";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { CircleCheck } from "lucide-react";
-import { Vacio } from "@/components/ui/Vacio";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
-import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
-import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
-import { FotoModelo } from "@/components/produccion-resumen/FotoModelo";
-import { ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
-import { queFabricarPrimero } from "@/lib/produccion-primero";
-import { textosDeCifras } from "@/lib/produccion-cifras-textos";
-import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { ID_LO_DEMAS, asuntosPorTipo, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela, type PagosDelTaller } from "@/lib/produccion-decisiones";
+import { recuadrosDeLoDemas, tituloDeLoDemas, type OrdenEnCurso } from "@/lib/produccion-en-orden";
+import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
+import { TEXTO_PARA_VIGILAR, queFabricarPrimero } from "@/lib/produccion-primero";
+import { ListaParaVigilar, ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
+import { LoDemasEnOrden } from "@/components/produccion-resumen/LoDemasEnOrden";
+import { PorResolver } from "@/components/produccion-resumen/PorResolver";
+import { TablaDeModelos } from "@/components/produccion-resumen/TablaDeModelos";
+import { TelasDelTaller } from "@/components/produccion-resumen/TelasDelTaller";
 
-// Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
-// cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
-// vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
-
-/** Lo que viene a una tela, en una línea: «155 m en camino · 40 m facturados por recibir · 35 m atrasados (no los cuento)», o «nada por recibir». */
-function loQueViene(t: FilaTela): string {
-  const partes = [
-    t.enCamino > 0 ? `${cantidadTexto(t.enCamino, t.unidad)} en camino` : null,
-    t.facturado > 0 ? `${cantidadTexto(t.facturado, t.unidad)} facturados por recibir` : null,
-    t.atrasado > 0 ? `${cantidadTexto(t.atrasado, t.unidad)} atrasados (no los cuento)` : null,
-  ].filter(Boolean);
-  return partes.length > 0 ? partes.join(" · ") : "nada por recibir";
-}
-
-const BORDE_SEVERIDAD: Record<Decision["severidad"], string> = { 3: "border-l-ambar", 2: "border-l-ambar/45", 1: "border-l-tinta/20" };
-
-const ICONO: Record<Decision["tipo"], string> = {
-  entrega: "M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-  insumo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
-  recibir: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
-  pago: "M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  producir: "M3 17l6-6 4 4 8-8M15 7h6v6",
-  trasladar: "M5 12h14M13 6l6 6-6 6",
-  sobrestock: "M10 5v14M14 5v14",
-  minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
-};
+// Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Desde el 2026-11-26 («Producción más clara», versión C de la maqueta
+// `docs/maquetas/produccion-resumen-2026-11/`) la pantalla tiene TRES bloques y nada más: «Qué fabricar primero», «Por resolver» y «Lo demás está en orden». Las cuatro cifras de dinero
+// de arriba salieron, y lo que eran secciones enteras para consultar (las órdenes por fase, «¿Alcanza la tela?», la tabla de los demás modelos, los modelos para vigilar) se resume en un
+// recuadro cada una, que lleva a su pantalla o despliega su detalle en el lugar. Es un componente de servidor: solo las piezas que guardan un estado son del navegador.
 
 export function ResumenProduccionPanel({
   sede,
@@ -59,11 +24,11 @@ export function ResumenProduccionPanel({
   decisiones,
   ocultas,
   totalAsuntos,
-  cifras,
   modelos,
   hojas,
   telas,
-  hoyEnElTaller,
+  ordenesEnCurso,
+  pagos,
   falloRed,
   notaDeHistoria,
 }: {
@@ -74,24 +39,35 @@ export function ResumenProduccionPanel({
   ocultas: DecisionesOcultas[];
   /** Todos los asuntos que hay (los que se ven y los que no). */
   totalAsuntos: number;
-  cifras: CifrasResumen;
   modelos: FilaModelo[];
   /** La hoja «Ver el modelo» de cada modelo (por `productoId`): lo vendido por color y talla y los enlaces a la orden y al traslado. Se arma en el servidor con lo que ya se leyó. */
   hojas: Record<string, HojaDeModelo>;
   telas: FilaTela[];
-  /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
-  hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
+  /** Las órdenes de la lista de Órdenes (dónde está cada una y si pide algo). `null`: la lectura falló (el recuadro lo dice y manda a Órdenes). */
+  ordenesEnCurso: OrdenEnCurso[] | null;
+  /** Lo que se debe a los proveedores del Taller: lo vencido, lo que vence esta semana y el total. */
+  pagos: PagosDelTaller;
   falloRed: string | null;
   /** «El sistema lleva 4 semanas de ventas…»: avisa que las cantidades son una guía mientras haya poca historia. `null` cuando ya hay suficiente. */
   notaDeHistoria: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
-  const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
-  // Los de «Producir ya» ya están arriba, en «¿Qué fabrico primero?»: esta tabla es el resto del catálogo (traslados, vigilar, alcanza, sobrestock, sin ritmo).
+  const primero = queFabricarPrimero(modelos);
+  // ¿Los dos bloques de acción tienen algo que mostrar? Solo entonces (o si ninguno tiene) comparten la fila.
+  const hayQueFabricar = primero.firmes.length > 0 || Boolean(falloRed);
+  const ladoALado = hayQueFabricar === decisiones.length > 0;
+  // Los de «Producir ya» ya están en «Qué fabricar primero»: la tabla que se despliega es el resto del catálogo (llevar a tienda, vigilar, alcanza, hay de sobra, sin ventas).
   const resto = modelos.filter((m) => m.estado !== "producir_ya");
-  // Lo que dice cada cifra: si el dato no se cargó, no es un cero sino «aún no hay» (Formidable, 2026-10-27).
-  const textos = textosDeCifras(cifras);
+  const recuadros = recuadrosDeLoDemas({
+    ordenes: ordenesEnCurso,
+    telas,
+    modelos,
+    falloRed: falloRed !== null,
+    pagos,
+    paraVigilar: primero.vigilar.length,
+    avisados: asuntosPorTipo({ decisiones, ocultas }),
+  });
 
   return (
     <div className="space-y-6">
@@ -123,280 +99,33 @@ export function ResumenProduccionPanel({
         ]}
       />
 
-      <div data-guia="prod-resumen.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <TarjetaCifra
-          punto={textos.capital.sinDato ? "neutro" : cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
-          etiqueta="Capital en insumos"
-          className="anim-entra"
-          style={{ ["--i" as string]: 0 }}
-          valor={textos.capital.sinDato || cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
-          detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
-        >
-          {textos.capital.contexto}
-        </TarjetaCifra>
-        <TarjetaCifra
-          punto={textos.valorEnProceso.sinDato ? "neutro" : "verde"}
-          etiqueta="Valor en proceso"
-          className="anim-entra"
-          style={{ ["--i" as string]: 1 }}
-          valor={textos.valorEnProceso.sinDato ? null : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
-        >
-          {textos.valorEnProceso.contexto}
-        </TarjetaCifra>
-        <TarjetaCifra
-          punto={textos.porPagar.sinDato ? "neutro" : cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
-          etiqueta="Por pagar a proveedores"
-          className="anim-entra"
-          style={{ ["--i" as string]: 2 }}
-          valor={textos.porPagar.sinDato ? null : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
-          detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
-        >
-          {textos.porPagar.contexto}
-        </TarjetaCifra>
-        <TarjetaCifra
-          punto={textos.entregas.sinDato ? "neutro" : cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
-          etiqueta="Entregas por atender"
-          className="anim-entra"
-          style={{ ["--i" as string]: 3 }}
-          valor={textos.entregas.sinDato ? null : <CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
-        >
-          {textos.entregas.contexto}
-        </TarjetaCifra>
-      </div>
+      {/* El cuerpo mira SU ancho (`@container`), no el de la ventana: con el menú abierto o plegado decide solo si los dos bloques de acción van lado a lado. */}
+      <div className="@container space-y-8">
+        {/* Lado a lado solo si los dos bloques tienen algo (o ninguno): con uno vacío, su aviso de una línea dejaba un hueco del alto del otro (Felipe 2026-11-26). Entonces van uno bajo el otro y el que tiene contenido usa todo el ancho. */}
+        <div className={`grid grid-cols-1 items-start gap-x-7 gap-y-8 ${ladoALado ? "@min-[56rem]:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]" : ""}`}>
+          <ListaQueFabricarPrimero datos={primero} falloRed={falloRed} nota={notaDeHistoria} presentaciones={presentaciones} hojas={hojas} />
+          <PorResolver decisiones={decisiones} ocultas={ocultas} totalAsuntos={totalAsuntos} hojas={hojas} presentaciones={presentaciones} aLoAncho={!ladoALado} />
+        </div>
 
-      <ListaQueFabricarPrimero datos={queFabricarPrimero(modelos)} falloRed={falloRed} nota={notaDeHistoria} presentaciones={presentaciones} hojas={hojas} />
-
-      <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven
-            menos de los que hay, o que no hay nada. */}
-        <TituloSeccion
-          cuenta={totalAsuntos > 0 ? totalAsuntos : undefined}
-          dato={totalAsuntos === 0 ? "nada por ahora" : `lo demás que pide tu decisión${totalAsuntos > decisiones.length ? ` · se ven ${decisiones.length}` : ""}`}
-        >
-          Para decidir
-        </TituloSeccion>
-        {decisiones.length === 0 ? (
-          <div className="card-cayla">
-            <Vacio tamano="chico" icono={<CircleCheck />}>
-              <b className="font-semibold text-tinta">Todo en orden.</b> Nada pide tu decisión ahora.
-            </Vacio>
-          </div>
-        ) : (
-          <ul className="space-y-2.5">
-            {decisiones.map((d, i) => (
-              <li key={d.id} data-guia={i === 0 ? "prod-resumen.asunto" : undefined} className={`card-cayla anim-entra grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border-l-4 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${BORDE_SEVERIDAD[d.severidad]}`} style={{ ["--i" as string]: Math.min(i, 8) }}>
-                {d.productoIds && d.productoIds.length > 0 ? (
-                  <span className="flex -space-x-2.5">
-                    {d.productoIds.map((id) => (
-                      <FotoModelo key={id} productoId={id} presentaciones={presentaciones} ancho={36} className="w-9 ring-2 ring-papel" />
-                    ))}
-                  </span>
-                ) : (
-                  <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-none stroke-tinta/70 stroke-[1.6]" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={ICONO[d.tipo]} />
-                  </svg>
-                )}
-                <div className="min-w-0">
-                  <h3 className="text-detalle font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
-                  <p className="mt-0.5 text-sm text-tinta/70">{d.detalle}</p>
-                  <PorQue texto={d.porque} />
+        <LoDemasEnOrden
+          id={ID_LO_DEMAS}
+          titulo={tituloDeLoDemas(recuadros)}
+          recuadros={recuadros}
+          paneles={{
+            telas: telas.length > 0 ? <TelasDelTaller telas={telas} /> : undefined,
+            modelos: resto.length > 0 ? <TablaDeModelos modelos={resto} hojas={hojas} presentaciones={presentaciones} /> : undefined,
+            vigilar:
+              primero.vigilar.length > 0 ? (
+                <div className="space-y-2.5">
+                  <TituloSeccion nivel={3} cuenta={primero.vigilar.length} ayuda={TEXTO_PARA_VIGILAR}>
+                    Modelos para vigilar
+                  </TituloSeccion>
+                  <ListaParaVigilar filas={primero.vigilar} presentaciones={presentaciones} hojas={hojas} />
                 </div>
-                <Link
-                  href={d.accion.href}
-                  className="btn-cayla btn-secundario col-span-2 text-center sm:col-span-1 sm:justify-self-end"
-                >
-                  {d.accion.texto}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {ocultas.length > 0 && (
-          <p data-guia="prod-resumen.mas" className="px-1 text-sm text-tinta/70">
-            Y{" "}
-            {ocultas.map((o, i) => (
-              <span key={o.tipo}>
-                {i > 0 && (i === ocultas.length - 1 ? " y " : ", ")}
-                <Link href={o.href} className="btn-enlace">
-                  {o.cantidad} {o.texto}
-                </Link>
-              </span>
-            ))}{" "}
-            más, que no caben aquí.
-          </p>
-        )}
-      </section>
-
-      <section data-guia="prod-resumen.hoy" aria-label="Lo que ya se está fabricando" className="space-y-3">
-        <TituloSeccion dato={hoyEnElTaller?.dato} accion={<EnlaceVer href="/produccion/ordenes">Ver las órdenes</EnlaceVer>}>
-          Lo que ya se está fabricando
-        </TituloSeccion>
-        {hoyEnElTaller === null ? (
-          <Aviso tono="atencion" titulo="No pudimos leer dónde está cada orden">
-            Míralas en Órdenes. Lo demás de esta pantalla sigue en pie.
-          </Aviso>
-        ) : (
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}>
-            {hoyEnElTaller.cifras.map((c, i) => (
-              <TarjetaCifra
-                key={c.clave}
-                etiqueta={c.titulo}
-                punto={c.ordenes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
-                valor={<CifraQueCuenta valor={c.ordenes} alMontar />}
-                unidad={c.unidad}
-                href="/produccion/ordenes"
-                className="anim-entra"
-                style={{ ["--i" as string]: i }}
-              >
-                {c.contexto}
-              </TarjetaCifra>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {(resto.length > 0 || (modelos.length === 0 && !falloRed)) && (
-      <section id="produce" aria-label="Los demás modelos" className="space-y-2.5">
-        <TituloSeccion dato="los que hoy no piden fabricar · días que dura el stock de las tiendas · marcas en 7 y 30 días">Los demás modelos</TituloSeccion>
-        {resto.length === 0 ? (
-          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora.</p>
-        ) : (
-          <div className="card-cayla overflow-hidden">
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
-              <span className="label-cayla pl-11 text-xs text-tinta/65">Modelo</span>
-              <span className="label-cayla text-right text-xs text-tinta/65">Stock</span>
-              <span className="label-cayla text-right text-xs text-tinta/65">Ventas/sem.</span>
-              <span className="label-cayla text-xs text-tinta/65">Cobertura</span>
-              <span className="label-cayla hidden text-right text-xs text-tinta/65 xl:block">En prod.</span>
-              <span className="label-cayla text-xs text-tinta/65">Sugerencia</span>
-            </div>
-            <ul>
-              {resto.map((m) => {
-                const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
-                const agotadas = textoAgotadas(agotadasQueSeVendian(m));
-                const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
-                return (
-                  <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
-                    <FilaQueAbreLaHoja
-                      hoja={hojas[m.productoId]}
-                      presentacion={presentaciones[m.productoId]}
-                      className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors vd-pasa focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
-                        <span className="min-w-0">
-                          <span className="line-clamp-2 break-words text-detalle leading-snug text-tinta">{m.referencia}</span>
-                          {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
-                          {origen && (
-                            <span data-origen className="line-clamp-2 break-words text-sm text-tinta/65">
-                              {origen}
-                            </span>
-                          )}
-                          <span className="block text-sm text-tinta/65 lg:hidden">
-                            stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
-                          </span>
-                          {agotadas && (
-                            <span className="mt-0.5 flex items-start gap-1.5 text-sm leading-snug text-ambar">
-                              <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-ambar" />
-                              <span className="min-w-0">{agotadas}</span>
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">{m.stockRed}</span>
-                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">
-                        {m.ritmoDia ? (
-                          <>
-                            {(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}
-                            <span className="mt-0.5 block text-sm leading-tight text-tinta/65">
-                              {baseDelRitmo(m.ventasBase).pocaBase ? <Chip tono="pizarra">Poca base</Chip> : `${m.ventasBase} en ${DIAS_RITMO_RECIENTE} d`}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-tinta/65">—</span>
-                        )}
-                      </span>
-                      <span className="col-span-2 lg:col-span-1">
-                        {m.diasRed === null ? (
-                          <span className="text-sm text-tinta/65">Sin ventas medidas</span>
-                        ) : (
-                          <>
-                            {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
-                            <BarraAvance
-                              pct={pct}
-                              tono="tinta"
-                              marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
-                              etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
-                            />
-                            <span className="mt-1 block text-sm tabular-nums text-tinta/65">
-                              {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
-                            </span>
-                          </>
-                        )}
-                      </span>
-                      <span className="hidden text-right text-sm tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
-                      <span className="col-span-2 lg:col-span-1">
-                        <Chip tono={TONO_ESTADO_MODELO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
-                      </span>
-                    </FilaQueAbreLaHoja>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-      </section>
-      )}
-
-      <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
-        <TituloSeccion dato="lo que hay y lo facturado por recibir, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
-        {telas.length === 0 ? (
-          <p className="card-cayla p-5 text-sm text-tinta/70">
-            No hay telas en el catálogo.{" "}
-            <Link href="/produccion/insumos" className="underline underline-offset-2 hover:text-rojo">
-              Cárgalas en Insumos
-            </Link>
-            .
-          </p>
-        ) : (
-          <ul className="card-cayla @container overflow-hidden">
-            {telas.map((t) => (
-              <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 @min-[36rem]:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
-                <span className="min-w-0">
-                  <span className="block truncate text-detalle text-tinta">{t.nombre}</span>
-                  <span className="block text-sm text-tinta/65">
-                    hay {cantidadTexto(t.saldo, t.unidad)} · {loQueViene(t)}
-                  </span>
-                  {t.pedidos.length > 0 && (
-                    <span className="block text-sm text-tinta/65">
-                      En camino: {t.pedidos.slice(0, 2).map(textoDePedido).join("; ")}
-                      {t.pedidos.length > 2 ? ` y ${t.pedidos.length - 2} más` : ""}
-                    </span>
-                  )}
-                </span>
-                <span className="hidden text-right text-sm tabular-nums text-tinta @min-[36rem]:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
-                <span className="@min-[36rem]:justify-self-end">
-                  {t.estado === "sin_demanda" ? (
-                    <Chip tono="neutro">Sin demanda</Chip>
-                  ) : t.estado === "alcanza" ? (
-                    <Chip tono="verde">Alcanza</Chip>
-                  ) : t.estado === "alcanza_si_llega" ? (
-                    <Chip tono="ambar">Alcanza si llega</Chip>
-                  ) : (
-                    // Sin «Pedir» ni «Ver los pedidos» desde el 2026-11-25 (ADR-0702): Órdenes de insumos se retiró sin uso. La tela se
-                    // compra y se recibe en un paso en Insumos ▸ «Llegó una compra».
-                    <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <PorQue
-          guia="prod-resumen.tela-porque"
-          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «Por recibir» es la tela de una factura que todavía no llegó, y se suma a lo que hay."
+              ) : undefined,
+          }}
         />
-      </section>
+      </div>
     </div>
   );
 }

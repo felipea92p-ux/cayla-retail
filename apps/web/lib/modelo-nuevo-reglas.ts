@@ -227,7 +227,7 @@ export type ProblemaModelo = { campo: "tipo" | "nombre" | "categoria" | "tallas"
  *  —los colores, el precio de una muestra— no es una falta. */
 export function problemasDelModelo(b: BorradorModelo, celdas: readonly CeldaAlta[], costos?: TextosDeOrden): ProblemaModelo[] {
   const p: ProblemaModelo[] = [];
-  if (b.esMuestra === null) p.push({ campo: "tipo", texto: "Elige si es un lote de producción o una muestra." });
+  if (b.esMuestra === null) p.push({ campo: "tipo", texto: "Elige si es para vender o una muestra." });
   if (!b.nombre.trim()) p.push({ campo: "nombre", texto: "Escribe el nombre del modelo." });
   else if (claveReferencia(b.nombre) === "") p.push({ campo: "nombre", texto: "El nombre necesita al menos una letra o un número." });
   else if (nombreDelModelo(b).length > MAX_NOMBRE_MODELO) p.push({ campo: "nombre", texto: `El nombre es muy largo: máximo ${MAX_NOMBRE_MODELO} letras.` });
@@ -277,7 +277,7 @@ export function paramsRpcModeloNuevo(o: {
     return l.tipo === "ok" ? l.valor : l.tipo === "vacio" ? 0 : Number.NaN;
   };
   // `problemasDelModelo` ya frena sin tipo: llegar acá así es un error del formulario, y mandar «lote» en su lugar sería volver al valor de fábrica que se quitó.
-  if (o.borrador.esMuestra === null) throw new Error("Falta elegir si es un lote de producción o una muestra");
+  if (o.borrador.esMuestra === null) throw new Error("Falta elegir si es para vender o una muestra");
   return {
     p_ubicacion_id: o.ubicacionId,
     p_referencia: nombreDelModelo(o.borrador),

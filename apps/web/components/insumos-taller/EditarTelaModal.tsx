@@ -131,7 +131,7 @@ export function EditarTelaModal({
   return (
     <Modal
       titulo={`Editar «${material.nombre}»`}
-      subtitulo={`${material.codigo} · ${textoDeCompra(material)}`}
+      subtitulo={textoDeCompra(material)}
       variante="hoja"
       tamano="mediana"
       onClose={onClose}

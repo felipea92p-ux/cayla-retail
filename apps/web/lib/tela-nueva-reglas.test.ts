@@ -5,14 +5,10 @@ import {
   MENSAJE_GRAMAJE,
   avisosDeTelaNueva,
   camposDeTelaNueva,
-  codigoBaseDeVista,
-  codigoDeVistaPrevia,
-  columnasDeLaTabla,
   costoTotalDeFila,
   filasTrasCambiarCompra,
   metrosDeFila,
   payloadDeTelaNueva,
-  prefijoDeTela,
   problemasDeTelaNueva,
   rindeEscrito,
   telaParecida,
@@ -177,21 +173,6 @@ describe("lo que se manda a la base", () => {
   });
 });
 
-describe("el código se arma solo", () => {
-  it("el prefijo son las 3 primeras letras de la primera palabra; sin letras, TEL", () => {
-    expect(prefijoDeTela("Milano Melange")).toBe("MIL");
-    expect(prefijoDeTela("  Jersey pima")).toBe("JER");
-    expect(prefijoDeTela("Té")).toBe("TE");
-    expect(prefijoDeTela("30/1 algodón")).toBe("TEL");
-    expect(prefijoDeTela("")).toBe("TEL");
-  });
-  it("la vista previa toma el siguiente número de ese prefijo y deja en paz los demás", () => {
-    expect(codigoDeVistaPrevia("Milano Melange", [])).toBe("MIL-01");
-    expect(codigoDeVistaPrevia("Milano Melange", [{ codigo: "MIL-01" }, { codigo: "LIN-07" }])).toBe("MIL-02");
-    expect(codigoDeVistaPrevia("Milano Otro", [{ codigo: "MIL-01" }, { codigo: "MIL-04" }])).toBe("MIL-05");
-  });
-});
-
 describe("¿ya hay una tela así?", () => {
   const telas = [
     { nombre: "Milano Melange", tipo: "tela" as const },
@@ -260,16 +241,6 @@ describe("las cotas del kilo → metro (G9): un ancho en metros o un gramaje de 
   });
 });
 
-describe("el código de cada color en «Agregar colores» sale de la tela elegida, no de una nueva (G10)", () => {
-  it("con una tela elegida, el código es el suyo (MM-01), no el siguiente del prefijo de su nombre (MIL-01)", () => {
-    expect(codigoBaseDeVista({ codigo: "MM-01" }, "Milano Melange", [])).toBe("MM-01");
-    expect(codigoBaseDeVista({ codigo: "MIL-01" }, "Milano Melange", [{ codigo: "MIL-01" }])).toBe("MIL-01");
-  });
-  it("sin tela elegida, la vista previa de una tela nueva de siempre", () => {
-    expect(codigoBaseDeVista(null, "Milano Melange", [{ codigo: "MIL-01" }])).toBe("MIL-02");
-  });
-});
-
 describe("cambiar «Se compra» con cantidades ya escritas (G12)", () => {
   const filas = [fila("ARN", { ya: "40", costo: "18", minimo: "30" }), fila("NEG")];
   it("si había algo escrito, se vacía lo que dependía de la unidad (cantidad y costo) y se avisa; el mínimo, que va en metros, se queda", () => {
@@ -281,23 +252,6 @@ describe("cambiar «Se compra» con cantidades ya escritas (G12)", () => {
   it("si no había nada escrito, o la forma es la misma, no se toca nada ni se avisa", () => {
     expect(filasTrasCambiarCompra([fila("NEG", { minimo: "5" })], "kilo", "rollo")).toEqual({ filas: [fila("NEG", { minimo: "5" })], vacio: false });
     expect(filasTrasCambiarCompra(filas, "kilo", "kilo")).toEqual({ filas, vacio: false });
-  });
-});
-
-describe("la tabla de colores mide lo que sus columnas piden (G14)", () => {
-  it("el ancho mínimo es la suma de las columnas, los huecos, el relleno y el borde: así no se recorta el × ni «Mínimo»", () => {
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).anchoMinimo).toBe(374);
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).anchoMinimo).toBe(590);
-    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBe(682);
-    expect(columnasDeLaTabla({ compra: "rollo", puedeSaldo: false }).anchoMinimo).toBe(374);
-  });
-  it("cabe sin scroll en la hoja ancha (718 px de contenido) con la tabla más ancha: por kilo y con saldo", () => {
-    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBeLessThanOrEqual(718);
-  });
-  it("la plantilla tiene una columna por cada ancho", () => {
-    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).plantilla.split(" ")).toHaveLength(7);
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).plantilla.split(" ")).toHaveLength(6);
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).plantilla.split(" ")).toHaveLength(4);
   });
 });
 

@@ -2042,6 +2042,12 @@ html[data-buscando] [data-resultados] {
       scroll-margin-bottom: 15rem;
     }
   }
+  /* El mismo cuidado dentro de una HOJA con pie pegado (auditoría /milimetro 2026-11-26, Producción): en «Llegó una compra» y «Nueva tela» el control al que
+     llegaba el Tab quedaba entero bajo el pie (WCAG 2.4.11). 6 rem: el pie mide 68 px a 1440 y 64 a 375, más 16 de degradado. Sin `@media`: la hoja
+     pega su pie en todos los anchos. */
+  :is(.hoja-serena, .hoja-vidrio):has(.pie-hoja-fijo) :is(a[href], button, input, select, textarea, summary, [tabindex]):not(.pie-hoja-fijo *) {
+    scroll-margin-bottom: 6rem;
+  }
   /* La cabecera del ERP es `fixed`: la página deja su alto arriba (Felipe 2026-11-16, decisión 1A; ADR-0351 act.). Al enfocar con el
      teclado, seguir un ancla o `scrollIntoView`, el control queda BAJO la cabecera y no debajo de ella (WCAG 2.4.11): con Shift+Tab en
      Finanzas ▸ Gastos eran 14 de 120 los tapados. Un `scroll-mt-*` de una pantalla ya no suma la cabecera, solo el aire que quiera.

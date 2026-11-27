@@ -33,6 +33,10 @@ const ARCHIVOS = [
   "lib/insumos-ficha-reglas.ts",
   "lib/insumos-guia.ts",
   "lib/sugerencias-insumos.ts",
+  "lib/insumos-vista.ts",
+  "lib/insumos-hojas.ts",
+  "lib/produccion-en-orden.ts",
+  "lib/produccion-primero.ts",
 ];
 
 /** Lo que no se le dice a quien trabaja en el Taller, y lo que se dice en su lugar. */

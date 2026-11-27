@@ -291,7 +291,7 @@ export function FilaFase({
 
   // Un proveedor elegido que ya no sirve (se desactivó, cambió de rubro) se sigue viendo con su nombre, pero no se puede volver a elegir.
   const elegidoFuera = fase.proveedorId && !opcionesProveedor.some((o) => o.valor === fase.proveedorId) ? proveedores.find((p) => p.id === fase.proveedorId) : null;
-  const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
+  const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} (ya no hace servicios)`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
   const idBase = `fase-${fase.clave}`;
   // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién; lo que se escriba de costo ya cuenta, y en blanco no suma nada hasta que se registre.
@@ -331,7 +331,8 @@ export function FilaFase({
   return (
     <div className="space-y-3 px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1">
+        {/* Con un piso de ancho: en una pantalla angosta el selector baja a su renglón en vez de aplastar la explicación a una palabra por línea. */}
+        <div className="min-w-[min(100%,14rem)] flex-1">
           <p className="flex items-center gap-1.5 font-display text-lg leading-tight text-tinta">
             {def.nombre}
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
@@ -384,7 +385,7 @@ export function FilaFase({
                   : sugerida && sugerida.fijo > 0 && fase.fijo.trim() === ""
                     ? "de su lista de precios"
                     : fase.fijo.trim() !== "" && totalPrendas > 0
-                      ? `una sola vez por la orden, sin IGV · ${porPrendaDeFijo(fase.fijo, totalPrendas) || "—"} por prenda`
+                      ? `una sola vez por la orden, sin IGV: ${porPrendaDeFijo(fase.fijo, totalPrendas) || "—"} por prenda`
                       : "una sola vez por la orden, sin IGV"
               )}
             />
@@ -407,7 +408,7 @@ export function FilaFase({
               etiqueta="Prometido para"
               valor={fase.fechaPrometida}
               onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+              {...pieDe("fecha", "opcional: cuándo lo devuelve")}
             />
           )}
           {avisoPendiente}
@@ -436,8 +437,8 @@ export function FilaFase({
                 "tarifa",
                 modoTarifa === "total"
                   ? fase.tarifa.trim() !== ""
-                    ? `queda S/\u00a0${fase.tarifa.trim()} por prenda${totalDeLaTarifa(fase.tarifa, totalPrendas) !== Number(totalTexto).toFixed(2) ? ` · las ${totalPrendas} prendas suman S/\u00a0${totalDeLaTarifa(fase.tarifa, totalPrendas)}` : ""} · sin IGV`
-                    : `se reparte entre las ${totalPrendas} prendas · sin IGV`
+                    ? `queda S/\u00a0${fase.tarifa.trim()} por prenda${totalDeLaTarifa(fase.tarifa, totalPrendas) !== Number(totalTexto).toFixed(2) ? ` (las ${totalPrendas} prendas suman S/\u00a0${totalDeLaTarifa(fase.tarifa, totalPrendas)})` : ""}, sin IGV`
+                    : `se reparte entre las ${totalPrendas} prendas, sin IGV`
                   : pieTarifa
               )}
             />
@@ -471,7 +472,7 @@ export function FilaFase({
               etiqueta="Prometido para"
               valor={fase.fechaPrometida}
               onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+              {...pieDe("fecha", "opcional: cuándo lo devuelve")}
             />
           )}
           <div className="sm:col-span-2">

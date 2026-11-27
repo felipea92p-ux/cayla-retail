@@ -256,42 +256,10 @@ export function avisosDeTelaNueva(e: DatosDeLaTela): string[] {
   return a;
 }
 
-/** El prefijo con que la base arma el código de la tela: las 3 primeras letras de su primera palabra («Milano Melange» → MIL; sin letras, TEL). */
-export function prefijoDeTela(nombre: string): string {
-  const letras = (claveTexto(nombre).split(" ")[0] ?? "").replace(/[^a-z]/g, "").slice(0, 3).toUpperCase();
-  return letras.length >= 2 ? letras : "TEL";
-}
-
-/** El código que la base le va a poner a la tela (vista previa: lo asigna ella). Prefijo + el siguiente número libre de ese prefijo. */
-export function codigoDeVistaPrevia(nombre: string, existentes: readonly Pick<MaterialVista, "codigo">[]): string {
-  const p = prefijoDeTela(nombre);
-  const usados = existentes.map((m) => /^([A-Z]{2,3})-(\d+)/i.exec(m.codigo)).filter((r): r is RegExpExecArray => r !== null && r[1].toUpperCase() === p).map((r) => Number(r[2]));
-  return `${p}-${String(Math.max(0, ...usados) + 1).padStart(2, "0")}`;
-}
-
-/** El código de la tela sobre el que se arma el de cada color: el de la tela elegida en «Agregar colores» (`MM-01` → `MM-01-NEG`), o la vista previa de una tela nueva. La base arma `código de la tela + "-" + color`. */
-export function codigoBaseDeVista(agregarA: Pick<MaterialVista, "codigo"> | null, nombre: string, existentes: readonly Pick<MaterialVista, "codigo">[]): string {
-  return agregarA ? agregarA.codigo : codigoDeVistaPrevia(nombre, existentes);
-}
-
 /** Al cambiar cómo se compra la tela, lo escrito en «¿Ya tienes?» y «Costo» estaba en la unidad de antes (kg, m o rollos): se vacía y se avisa, en vez de reinterpretarlo en silencio (G12). El mínimo va siempre en metros. */
 export function filasTrasCambiarCompra(filas: readonly FilaDeColor[], antes: CompraDeTela, despues: CompraDeTela): { filas: FilaDeColor[]; vacio: boolean } {
   if (antes === despues || !filas.some((f) => f.ya.trim() !== "" || f.costo.trim() !== "")) return { filas: [...filas], vacio: false };
   return { filas: filas.map((f) => ({ ...f, ya: "", costo: "" })), vacio: true };
-}
-
-/** Las columnas de la tabla de colores y el ancho que piden (G14): Color, Código, [¿Ya tienes?, ≈ metros (si no es por metro), Costo] (solo el líder), Mínimo, ×. Cada una con su mínimo en px (rem × 16); suma + huecos (12) + relleno (24) + borde (2). */
-export function columnasDeLaTabla(e: Pick<EntradaTelaNueva, "compra" | "puedeSaldo">): { plantilla: string; anchoMinimo: number } {
-  const cols: { css: string; px: number }[] = [
-    { css: "minmax(6.5rem,1.4fr)", px: 104 },
-    { css: "minmax(6rem,1.1fr)", px: 96 },
-    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
-    ...(e.puedeSaldo && e.compra !== "metro" ? [{ css: "5rem", px: 80 }] : []),
-    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
-    { css: "5rem", px: 80 },
-    { css: "2rem", px: 32 },
-  ];
-  return { plantilla: cols.map((c) => c.css).join(" "), anchoMinimo: cols.reduce((suma, c) => suma + c.px, 0) + (cols.length - 1) * 12 + 24 + 2 };
 }
 
 /** Los números de un nombre de tela («30/1», «150», «1x1», «2.5»), en orden, para comparar. En una tela el número ES la identidad: el título del hilo, el gramaje, el ligamento. */

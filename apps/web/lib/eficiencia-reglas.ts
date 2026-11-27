@@ -121,21 +121,18 @@ export function eficienciaDePeriodo(v: VentanaPeriodo, ordenes: OrdenParaEficien
   };
 }
 
-/** Cambio porcentual de `actual` respecto de `anterior` (0,1 = +10 %); `null` si falta alguno o el anterior es 0. */
-export function variacion(actual: number | null, anterior: number | null): number | null {
-  if (actual === null || anterior === null || anterior === 0) return null;
-  return (actual - anterior) / anterior;
-}
-
 export type PartePlata = { clave: "materiales" | "maquila" | "planilla" | "gastos"; etiqueta: string; monto: number; parte: number };
 
-/** «¿En qué se fue la plata del Taller?»: cuánto de lo gastado fue material, maquila, planilla y gastos generales. Vacío si no se gastó nada. */
+/**
+ * «En qué se fue la plata»: cuánto de lo gastado fue planilla, tela y avíos, servicios de afuera y gastos generales. Vacío si no se gastó nada. Los nombres son
+ * cortos (lo que incluye cada uno va detrás del «?» de la pantalla); «Tela y avíos» y «Servicios de afuera» son, juntos, los «Materiales» del costo por prenda.
+ */
 export function repartoDelGasto(e: EficienciaPeriodo): PartePlata[] {
   const total = e.gastadoTotal;
   if (total <= 0) return [];
   const partes: [PartePlata["clave"], string, number][] = [
-    ["planilla", "Planilla (sueldos y cargas)", e.planilla ?? 0],
-    ["materiales", "Tela y avíos de lo que cerró", e.materiales],
+    ["planilla", "Planilla", e.planilla ?? 0],
+    ["materiales", "Tela y avíos", e.materiales],
     ["maquila", "Servicios de afuera", e.maquila],
     ["gastos", "Gastos generales", e.gastos],
   ];

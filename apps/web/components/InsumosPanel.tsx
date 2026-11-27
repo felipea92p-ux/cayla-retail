@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeftRight, ChevronRight, Layers, Package, SearchX } from "lucide-react";
+import { Ayuda } from "@/components/Ayuda";
 import { BarraAvance, type TonoBarraAvance } from "@/components/ui/BarraAvance";
-import { ChevronRight, Layers, ArrowLeftRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
-import { diaLima, diaMes } from "@/lib/fechas-lima";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { ParDato, Pares } from "@/components/ui/ParDato";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
 import type { ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
 import { AjustarLoteModal } from "@/components/insumos-taller/AjustarLoteModal";
@@ -23,21 +29,36 @@ import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
 import { NuevoAvioModal } from "@/components/insumos-taller/NuevoAvioModal";
 import type { ClaseDeAvio } from "@/lib/avio-clases-reglas";
 import type { ColorAlta } from "@/lib/alta-producto";
-import { fichaDeLaTela, textoDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
+import { fichaDeLaTela, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import {
   TIPOS_INSUMO,
   UNIDADES_INSUMO,
-  agruparPorTela,
   cantidadTexto,
   loteMasAntiguoConSaldo,
-  origenDeLote,
-  textoDeCompra,
   textoDeMovimiento,
   tramoDeSaldo,
   type EstadoInsumo,
   type LoteConSaldo,
   type MaterialVista,
+  type TipoInsumo,
 } from "@/lib/insumos-reglas";
+import {
+  alcanzaPara,
+  coincideConBusqueda,
+  costoPor,
+  detalleDeLote,
+  diaEnPalabras,
+  fichaParaLeer,
+  insigniasDeLaTela,
+  insumosPorAcabarse,
+  minimoTexto,
+  nombreDeInsumoParaLeer,
+  tarjetasDeInsumos,
+  textoDeLlegoMas,
+  tituloDeEliminado,
+  tituloDeLote,
+  tituloDeTarjeta,
+} from "@/lib/insumos-vista";
 import type { IngresoEliminado, InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
@@ -51,11 +72,28 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
 // ledger, nunca un número que alguien edite; por eso el libro de movimientos solo se agrega, no se corrige. Los costos de
-// cada lote los ve quien ve Producción parado en el Taller (Felipe, 2026-10-15, ADR-0400 actividad 6: `veCostos`); el CAPITAL
-// total en insumos es una cifra del líder y ya no es de portada: se pide con un toque. Crear el catálogo, ingresar lotes y
-// completar la ficha de una tela (tejido y color, de donde «Nueva orden» saca su sugerencia) siguen siendo del líder.
+// cada lote los ve quien ve Producción parado en el Taller (Felipe, 2026-10-15, ADR-0400 actividad 6: `veCostos`); el VALOR
+// total de lo guardado (el capital en insumos) es una cifra del líder y no es de portada: se pide con un toque (ADR-0400,
+// «Pantallas» punto 4). Crear el catálogo, ingresar lotes y completar la ficha de una tela (tejido y color, de donde
+// «Nueva orden» saca su sugerencia) siguen siendo del líder.
+//
+// «Producción más clara» (Felipe 2026-11-26; maqueta docs/maquetas/produccion-resumen-2026-11/): la pantalla se lee de arriba
+// abajo sin saber nada. Arriba, tres acciones («Llegó una compra», «Nueva tela o avío» y «Más»); después «Por acabarse», lo que
+// hoy pide comprar, con su botón; después las pestañas «Telas | Avíos | Movimientos» con su buscador, y una tarjeta por tela con
+// una fila por color. Cada dato es una pieza con su nombre (rótulo arriba y valor abajo, o una insignia): nunca una línea de
+// datos separados por un punto. El código de cada insumo ya no va a la vista. No cambia quién puede qué ni lo que se guarda.
 
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+type Vista = TipoInsumo | "movimientos";
+
+/** Cuántos «Por acabarse» se ven de entrada: dos filas de dos. Los demás bajan con «Ver N más». */
+const POR_ACABARSE_A_LA_VISTA = 4;
+
+/** Las columnas de un color cuando la tarjeta es ancha: Color, Cuánto queda (la barra), Quedan, Alcanza para, Estado y la flecha. Angosta, la fila se apila. */
+const COLUMNAS_COLOR = "@min-[48rem]:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_7rem_9.5rem_9.5rem_1.25rem]";
+/** El ancla de cada pestaña para la guía interactiva (ADR-0389). Con la forma `{ guia: "…" }` para que el escáner de las guías (`guias/escaner.mjs`) la lea, como en `LoDemasEnOrden`. */
+const GUIA_DE_PESTANA: Record<TipoInsumo, { guia: string }> = { tela: { guia: "prod-insumos.pestana-telas" }, avio: { guia: "prod-insumos.pestana-avios" } };
+/** Las columnas de «Movimientos». */
+const COLUMNAS_LIBRO = "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_9rem_8rem_8rem_7rem]";
 
 /** El tejido de una tela con su nombre (el del vocabulario de Catálogo); `null` si no se dijo. */
 const vocabularioTejido = (v: VocabularioDeTelas, m: MaterialVista): string | null => (m.tejidoId ? (v.tejidos.find((t) => t.id === m.tejidoId)?.nombre ?? null) : null);
@@ -118,34 +156,80 @@ export function InsumosPanel({
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
   const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [verTodoLoQueSeAcaba, setVerTodoLoQueSeAcaba] = useState(false);
 
   const { insumos, libro, capital, eliminados } = datos;
-  const bajos = insumos.filter((i) => i.estado.tono === "bajo" || i.estado.tono === "sin_saldo").length;
-  const primeraTelaId = agruparPorTela(insumos.filter((i) => i.tipo === "tela"), datos.materiales).find((g) => g.material)?.material?.id ?? null;
+  const hoy = hoyLima();
+  const [vista, setVista] = useState<Vista>(() => (insumos.some((i) => i.tipo === "tela") || !insumos.some((i) => i.tipo === "avio") ? "tela" : "avio"));
+
+  const materialDe = (i: InsumoVista) => (i.materialId ? (datos.materiales.find((m) => m.id === i.materialId) ?? null) : null);
+  // El buscador filtra en el navegador, por el nombre de la tela o del avío y por el del color (sin tildes ni mayúsculas).
+  const encontrados = insumos.filter((i) => coincideConBusqueda(busqueda, i.nombre, materialDe(i)?.nombre, fichaDeLaTela(i, vocabulario).color?.nombre));
+  const movimientos = libro.filter((m) => coincideConBusqueda(busqueda, m.insumo));
+  const deLaVista = vista === "movimientos" ? [] : encontrados.filter((i) => i.tipo === vista);
+  const tarjetas = vista === "movimientos" ? [] : tarjetasDeInsumos(deLaVista, datos.materiales);
+  const porAcabarse = insumosPorAcabarse(insumos);
+  const primeraTelaId = vista === "tela" ? (tarjetas.find((t) => t.material)?.material?.id ?? null) : null;
   let indice = 0;
+
+  const pideCompra = (i: InsumoVista, k: number) => (
+    <article key={i.id} className="insumos-placa insumo-por-acabarse @container">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-5 py-4 @min-[30rem]:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <span aria-hidden className="vd-lente grid size-11 place-items-center rounded-full text-tinta">
+          {i.tipo === "tela" ? <Layers className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+        </span>
+        <div className="min-w-0">
+          <p className="text-lg font-semibold leading-snug text-tinta">{nombreDeInsumoParaLeer(i)}</p>
+          <Pares className="mt-2">
+            <ParDato rotulo="Quedan" tono="ambar">
+              {cantidadTexto(i.saldo, i.unidad)}
+            </ParDato>
+            {i.minimo !== null && <ParDato rotulo="Lo mínimo es">{cantidadTexto(i.minimo, i.unidad)}</ParDato>}
+            {i.saldo > 0 && alcanzaPara(i.semanas, i.saldo) !== null && <ParDato rotulo="Alcanza para">{alcanzaPara(i.semanas, i.saldo)}</ParDato>}
+          </Pares>
+        </div>
+        {esLider && (
+          <Boton peso="fantasma" className="col-span-2 @min-[30rem]:col-span-1" data-guia={k === 0 ? "prod-insumos.anotar-compra" : undefined} aria-haspopup="dialog" onClick={() => setComprando({ insumoId: i.id })}>
+            Anotar compra
+          </Boton>
+        )}
+      </div>
+    </article>
+  );
 
   return (
     <div className="space-y-6">
-      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Tres acciones: la compra (la de todos los días, solo del líder), crear una tela o un avío, y lo que casi nunca se usa, en «Más». */}
       <EncabezadoPagina
         sede={sede}
         titulo="Insumos"
-        subtitulo="Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir."
+        subtitulo="Tela y avíos del Taller: lo que hay, para cuánto alcanza y qué pedir."
         acciones={
           <>
-              {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3); el avío y el ingreso de un lote con su costo siguen siendo del líder. */}
-              {datos.hayTelas && (
-                <Boton peso={esLider ? "fantasma" : "primario"} data-guia="prod-insumos.nueva-tela" onClick={() => setNuevaTela({ agregarA: null })}>
-                  + Nueva tela
-                </Boton>
-              )}
-              {/* Un avío lo crea quien opera el Taller, igual que una tela (ADR-0580, decisión 3 de Felipe). */}
+            {/* «Lo que ya tenías» (el saldo inicial) mete dinero: es del líder. */}
+            {esLider && (
+              <MenuAcciones
+                texto="Más"
+                etiqueta="Más acciones de Insumos"
+                guia="prod-insumos.mas"
+                items={[{ clave: "saldo", etiqueta: "Lo que ya tenías", guia: "prod-insumos.ya-tenias", onSelect: () => setIngresando({ insumoId: null }), motivo: insumos.length === 0 ? "Primero crea una tela o un avío." : undefined }]}
+              />
+            )}
+            {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3) y avíos (ADR-0580, decisión 3 de Felipe). Sin las telas en la base (`hayTelas`) solo se ofrece el avío, como antes. */}
+            {datos.hayTelas ? (
+              <MenuAcciones
+                texto="Nueva tela o avío"
+                etiqueta="Crear una tela o un avío"
+                guia="prod-insumos.nuevo"
+                items={[
+                  { clave: "tela", etiqueta: "Nueva tela", guia: "prod-insumos.nueva-tela", onSelect: () => setNuevaTela({ agregarA: null }) },
+                  { clave: "avio", etiqueta: "Nuevo avío", guia: "prod-insumos.nuevo-avio", onSelect: () => setNuevoAvio({ agregarA: null }) },
+                ]}
+              />
+            ) : (
               <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevoAvio({ agregarA: null })}>
                 + Nuevo avío
-              </Boton>
-            {esLider && (
-              <Boton peso="fantasma" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-                Saldo inicial
               </Boton>
             )}
             {esLider && (
@@ -164,42 +248,6 @@ export function InsumosPanel({
         </Aviso>
       ))}
 
-      {/* ==================== cifras ==================== */}
-      <div data-guia="prod-insumos.cifras" className="grid gap-3 sm:grid-cols-2">
-        <TarjetaCifra
-          punto={bajos > 0 ? "ambar" : "verde"}
-          etiqueta="Bajo el mínimo"
-          className="anim-entra"
-          style={{ ["--i" as string]: 0 }}
-          valor={<CifraQueCuenta valor={bajos} alMontar />}
-          detalleTono={bajos > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
-        >
-          {bajos > 0 ? "hay que pedir o esperar lo que viene" : "todo sobre el mínimo"}
-        </TarjetaCifra>
-        <TarjetaCifra punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
-          {plural(insumos.filter((i) => i.tipo === "tela").length, "tela", "telas")} · {plural(insumos.filter((i) => i.tipo === "avio").length, "avío", "avíos")}
-        </TarjetaCifra>
-      </div>
-      {/* El capital en insumos es dinero que el líder mira cuando lo necesita, no la primera cifra de la pantalla del Taller: se pide con un toque. */}
-      {esLider && capital !== null && (
-        <div data-guia="prod-insumos.capital" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tinta/75">
-          {verCapital ? (
-            <>
-              <span>
-                Capital en insumos: <b className="font-display text-lg tabular-nums text-tinta">{soles(capital)}</b> · a costo de cada lote
-              </span>
-              <button type="button" className="btn-enlace text-sm" onClick={() => setVerCapital(false)}>
-                Ocultar
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn-enlace" onClick={() => setVerCapital(true)}>
-              Ver el capital en insumos
-            </button>
-          )}
-        </div>
-      )}
-
       {insumos.length === 0 ? (
         <div className="card-cayla">
           <Vacio
@@ -212,98 +260,199 @@ export function InsumosPanel({
               </Boton>
             }
           >
-            La tela y los avíos del Taller: lo que entra, lo que sale al cortar y lo que queda. Empieza con tu primera tela; los avíos van por «+ Nuevo avío».
+            Empieza por tu primera tela.
           </Vacio>
         </div>
       ) : (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
-          <div data-guia="prod-insumos.lista" className="space-y-6">
-            {TIPOS_INSUMO.map((t) => {
-              const lista = insumos.filter((i) => i.tipo === t.valor);
-              if (lista.length === 0) return null;
-              return (
-                <section key={t.valor} className="space-y-2.5">
-                  <TituloSeccion dato={t.ayuda}>{t.plural}</TituloSeccion>
-                  {agruparPorTela(lista, datos.materiales).map((g) => (
-                    <div key={g.material?.id ?? g.insumos[0].id} className="space-y-2.5">
-                      {/* Cada tela con sus colores debajo: lo de la tela (código, tejido, cómo se compra) se dice una vez. */}
-                      {g.material && (
-                        <div data-guia={g.material.id === primeraTelaId ? "prod-insumos.tela" : undefined} className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 pt-1.5">
-                          <TituloGrupo cuenta={g.insumos.length} nota={[g.material.codigo, vocabularioTejido(vocabulario, g.material), g.material.composicion, textoDeCompra(g.material)].filter(Boolean).join(" · ")}>
-                            {g.material.nombre}
-                          </TituloGrupo>
-                          {t.valor === "tela" && (
-                            <div className="flex items-center gap-1">
-                              <button type="button" className="btn-enlace text-sm" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
-                                + Agregar colores
-                              </button>
-                              {esLider && g.material && (
-                                <LapizEditar que={`la tela ${g.material.nombre}`} guia={g.material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined} onClick={() => setEditandoTela({ material: g.material as MaterialVista, colores: g.insumos.length, desfasados: coloresConNombreDesfasado(g.material as MaterialVista, g.insumos, vocabulario) })} />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {/* «A · Una placa por tela» (vidrio/insumos.css): los colores de una tela, en una sola placa. */}
-                      <div className="insumos-placa @container">
-                        {g.insumos.map((i) => (
-                          <FilaInsumo
-                            key={i.id}
-                            insumo={i}
-                            indice={indice++}
-                            esLider={esLider}
-                            veCostos={veCostos}
-                            vocabulario={vocabulario}
-                            abierto={!!abiertos[i.id]}
-                            onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
-                            onIngresar={() => setComprando({ insumoId: i.id })}
-                            onFicha={() => setFichando(i)}
-                            onRetirar={() => setRetirando(i)}
-                            ingresosEditables={datos.ingresosEditables}
-                            eliminados={eliminados.filter((e) => e.insumoId === i.id)}
-                            onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
-                            onAjustar={(lote) => setAjustando({ insumo: i, lote })}
-                            onNombrar={proveedores.length > 0 ? (lote) => setNombrando({ insumo: i, lote }) : undefined}
-                            onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              );
-            })}
+        <>
+          {/* ==================== por acabarse: lo que hoy pide comprar ==================== */}
+          {porAcabarse.length > 0 && (
+            <section data-guia="prod-insumos.por-acabarse" className="space-y-3">
+              <TituloSeccion cuenta={porAcabarse.length} ayuda="Lo que ya se acabó o quedó por debajo de su mínimo. El mínimo de cada color se pone al crearlo, en «Avísame si baja de».">
+                Por acabarse
+              </TituloSeccion>
+              <div className="grid gap-3 lg:grid-cols-2">{porAcabarse.slice(0, POR_ACABARSE_A_LA_VISTA).map(pideCompra)}</div>
+              {porAcabarse.length > POR_ACABARSE_A_LA_VISTA && (
+                <>
+                  <FilasDeMas abierto={verTodoLoQueSeAcaba} id="insumos-por-acabarse-mas">
+                    <div className="grid gap-3 lg:grid-cols-2">{porAcabarse.slice(POR_ACABARSE_A_LA_VISTA).map((i, k) => pideCompra(i, k + POR_ACABARSE_A_LA_VISTA))}</div>
+                  </FilasDeMas>
+                  <BotonVerMas forma="enlace" abierto={verTodoLoQueSeAcaba} onCambiar={setVerTodoLoQueSeAcaba} texto={`Ver ${porAcabarse.length - POR_ACABARSE_A_LA_VISTA} más`} controla="insumos-por-acabarse-mas" />
+                </>
+              )}
+            </section>
+          )}
+
+          {/* ==================== qué se mira: telas, avíos o movimientos; el buscador y, para el líder, lo que vale lo guardado ==================== */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2">
+            <Pestanas
+              guia="prod-insumos.pestanas"
+              etiquetaAccesible="Qué ver de los insumos"
+              idIndicador="insumos"
+              activa={vista}
+              onCambio={(clave) => setVista(clave as Vista)}
+              items={[
+                ...TIPOS_INSUMO.map((t) => ({ clave: t.valor, etiqueta: t.plural, conteo: encontrados.filter((i) => i.tipo === t.valor).length, ayuda: t.ayuda, guia: GUIA_DE_PESTANA[t.valor].guia })),
+                { clave: "movimientos", etiqueta: "Movimientos", ayuda: "Lo que entró y lo que salió, del más reciente al más viejo.", guia: "prod-insumos.pestana-movimientos" },
+              ]}
+            />
+            <Buscador guia="prod-insumos.buscar" className="w-full sm:w-72" valor={busqueda} onCambio={setBusqueda} placeholder={vista === "avio" ? "Buscar un avío o un color" : vista === "movimientos" ? "Buscar en los movimientos" : "Buscar una tela o un color"} />
+            {/* Lo que vale lo guardado es dinero que el líder mira cuando lo necesita, no una cifra de portada (ADR-0400, «Pantallas» punto 4): entra oculto y se pide con un toque. */}
+            {esLider && capital !== null && (
+              <span data-guia="prod-insumos.capital" className="sm:ml-auto sm:text-right">
+                <ParDato
+                  grande
+                  rotulo={
+                    <>
+                      Valor de lo guardado
+                      <Ayuda titulo="Valor de lo guardado">Lo que costó la tela y los avíos que quedan en el Taller, cada uno al costo con que entró.</Ayuda>
+                    </>
+                  }
+                >
+                  {verCapital ? (
+                    <>
+                      {soles(capital)}
+                      <button type="button" className="btn-enlace ml-2.5 text-detalle font-normal" onClick={() => setVerCapital(false)}>
+                        Ocultar
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="btn-enlace text-sm font-normal" aria-label="Mostrar el valor de lo guardado" onClick={() => setVerCapital(true)}>
+                      Mostrar
+                    </button>
+                  )}
+                </ParDato>
+              </span>
+            )}
           </div>
 
-          {/* ==================== libro de movimientos ==================== */}
-          <aside data-guia="prod-insumos.libro" className="insumos-libro card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
-            <TituloSeccion>Libro de movimientos</TituloSeccion>
-            <p className="mb-2 text-sm text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
-            {libro.length === 0 ? (
-              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Todavía no se movió nada.</Vacio>
-            ) : (
-              <ul className="insumos-libro-lista divide-y divide-tinta/10">
-                {libro.map((m) => {
+          {vista === "movimientos" ? (
+            /* ==================== movimientos: el libro, a todo el ancho ==================== */
+            <Tabla guia="prod-insumos.libro" className="anim-entra">
+              <Encabezado plantilla={COLUMNAS_LIBRO} columnas={[{ titulo: "Qué pasó" }, { titulo: "Tela o avío" }, { titulo: "Orden" }, { titulo: "Lote" }, { titulo: "Día" }, { titulo: "Cantidad", alinear: "der" }]} />
+              {movimientos.length === 0 ? (
+                busqueda.trim() !== "" ? (
+                  <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBusqueda("") }}>
+                    Ningún movimiento de <b>«{busqueda.trim()}»</b>.
+                  </Vacio>
+                ) : (
+                  <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+                    Todavía no se movió nada.
+                  </Vacio>
+                )
+              ) : (
+                movimientos.map((m) => {
                   const entra = m.tipo === "compra" || m.tipo === "devolucion" || (m.tipo === "ajuste" && m.cantidad > 0);
+                  const dia = diaLima(m.creadoEn);
                   return (
-                    <li key={m.id} className="grid grid-cols-[1fr_auto] gap-x-3 py-2.5 text-sm">
-                      <div className="min-w-0">
-                        <p className="text-tinta">{textoDeMovimiento(m)}</p>
-                        <p className="truncate text-sm text-tinta/65">
-                          {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(diaLima(m.creadoEn))}
-                        </p>
-                      </div>
-                      <span data-sentido={entra ? "entra" : "sale"} className={`insumos-libro-cantidad self-start whitespace-nowrap font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
-                        {entra ? "+" : "−"}
-                        {cantidadTexto(Math.abs(m.cantidad), m.unidad)}
+                    <div key={m.id} role="row" className={fila(COLUMNAS_LIBRO)}>
+                      <span className={celda("izq", "text-sm font-semibold text-tinta")}>{textoDeMovimiento(m)}</span>
+                      <span className={celda("izq", "text-sm text-tinta")}>{nombreDeInsumoParaLeer({ nombre: m.insumo, materialId: insumos.find((i) => i.id === m.insumoId)?.materialId })}</span>
+                      <span className={celda("izq", "text-detalle text-secundario")}>{m.orden}</span>
+                      <span className={celda("izq", "font-mono text-detalle text-secundario")}>{m.lote}</span>
+                      <span className={celda("izq", "text-detalle text-secundario")}>{dia ? diaEnPalabras(dia, hoy) : null}</span>
+                      <span className={celda("der")}>
+                        <span data-sentido={entra ? "entra" : "sale"} className={`insumos-libro-cantidad inline-block whitespace-nowrap text-detalle font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
+                          {entra ? "+" : "−"}
+                          {cantidadTexto(Math.abs(m.cantidad), m.unidad)}
+                        </span>
                       </span>
-                    </li>
+                    </div>
                   );
-                })}
-              </ul>
-            )}
-          </aside>
-        </div>
+                })
+              )}
+            </Tabla>
+          ) : tarjetas.length === 0 ? (
+            <div className="insumos-placa">
+              {busqueda.trim() !== "" ? (
+                <Vacio guia="prod-insumos.lista" icono={<SearchX />} titulo={`Nada con «${busqueda.trim()}»`} accion={{ texto: "Borrar la búsqueda", onClick: () => setBusqueda("") }}>
+                  {vista === "tela" ? "Ninguna tela ni color se llama así." : "Ningún avío ni color se llama así."}
+                </Vacio>
+              ) : (
+                <Vacio
+                  guia="prod-insumos.lista"
+                  icono={vista === "tela" ? <Layers /> : <Package />}
+                  titulo={vista === "tela" ? "Todavía no hay telas" : "Todavía no hay avíos"}
+                  acciones={
+                    vista === "avio" || datos.hayTelas ? (
+                      <Boton peso="primario" onClick={() => (vista === "tela" ? setNuevaTela({ agregarA: null }) : setNuevoAvio({ agregarA: null }))}>
+                        {vista === "tela" ? "Crear una tela" : "Crear un avío"}
+                      </Boton>
+                    ) : undefined
+                  }
+                />
+              )}
+            </div>
+          ) : (
+            /* ==================== una tarjeta por tela (o por avío), una fila por color ==================== */
+            <div data-guia="prod-insumos.lista" className="space-y-4">
+              {tarjetas.map((t) => {
+                const material = t.material;
+                const esTela = vista === "tela";
+                return (
+                  <section key={material?.id ?? "sueltos"} className="insumos-placa @container">
+                    {/* Lo de la tela se dice una vez, arriba: su nombre, sus insignias (tejido, de qué está hecha, cómo se compra) y lo que se le puede hacer. */}
+                    <div data-guia={material && material.id === primeraTelaId ? "prod-insumos.tela" : undefined} className="insumos-placa-cabecera flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pb-3.5 pt-4">
+                      <TituloSeccion nivel={3}>{tituloDeTarjeta(t, vista, tarjetas.length > 1)}</TituloSeccion>
+                      {material &&
+                        insigniasDeLaTela(material, vocabularioTejido(vocabulario, material)).map((texto) => (
+                          <Chip key={texto} versalitas={false}>
+                            {texto}
+                          </Chip>
+                        ))}
+                      {material && esTela && (
+                        <span className="flex items-center gap-1 @max-[36rem]:w-full @min-[36rem]:ml-auto">
+                          <Boton peso="fantasma" className="!px-3 !py-2" data-guia={material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} aria-haspopup="dialog" onClick={() => setNuevaTela({ agregarA: material })}>
+                            + Agregar colores
+                          </Boton>
+                          {esLider && (
+                            <LapizEditar
+                              que={`la tela ${material.nombre}`}
+                              guia={material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined}
+                              onClick={() => {
+                                // Todos los colores de la tela, no solo los que el buscador deja a la vista: los cambios le llegan a todos.
+                                const susColores = insumos.filter((i) => i.materialId === material.id);
+                                setEditandoTela({ material, colores: susColores.length, desfasados: coloresConNombreDesfasado(material, susColores, vocabulario) });
+                              }}
+                            />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <Encabezado
+                      visible="hidden @min-[48rem]:grid"
+                      plantilla={COLUMNAS_COLOR}
+                      columnas={[{ titulo: material ? "Color" : esTela ? "Tela" : "Avío" }, { titulo: "Cuánto queda" }, { titulo: "Quedan", alinear: "der" }, { titulo: "Alcanza para" }, { titulo: "Estado" }, { titulo: "" }]}
+                    />
+                    {t.insumos.map((i) => (
+                      <FilaInsumo
+                        key={i.id}
+                        insumo={i}
+                        conFicha={material !== null}
+                        indice={indice++}
+                        hoy={hoy}
+                        esLider={esLider}
+                        veCostos={veCostos}
+                        vocabulario={vocabulario}
+                        abierto={!!abiertos[i.id]}
+                        onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
+                        onIngresar={() => setComprando({ insumoId: i.id })}
+                        onFicha={() => setFichando(i)}
+                        onRetirar={() => setRetirando(i)}
+                        ingresosEditables={datos.ingresosEditables}
+                        eliminados={eliminados.filter((e) => e.insumoId === i.id)}
+                        onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                        onAjustar={(lote) => setAjustando({ insumo: i, lote })}
+                        onNombrar={proveedores.length > 0 ? (lote) => setNombrando({ insumo: i, lote }) : undefined}
+                        onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
+                      />
+                    ))}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {nuevoAvio && (
@@ -364,7 +513,9 @@ export function InsumosPanel({
 
 function FilaInsumo({
   insumo: i,
+  conFicha,
   indice,
+  hoy,
   esLider,
   veCostos,
   vocabulario,
@@ -381,7 +532,11 @@ function FilaInsumo({
   onRestaurar,
 }: {
   insumo: InsumoVista;
+  /** Va dentro de la tarjeta de su tela (o de su avío): la fila se llama por su color. Suelto, por su nombre, con lo que diga su ficha debajo. */
+  conFicha: boolean;
   indice: number;
+  /** El día de hoy en Lima (`aaaa-mm-dd`): las fechas dicen su año solo si no es este. */
+  hoy: string;
   esLider: boolean;
   veCostos: boolean;
   vocabulario: VocabularioDeTelas;
@@ -405,119 +560,134 @@ function FilaInsumo({
   const primero = loteMasAntiguoConSaldo(i.lotes);
   const lotes = [...i.lotes].sort((a, b) => a.ingreso.localeCompare(b.ingreso) || a.creadoEn.localeCompare(b.creadoEn));
   const ficha = fichaDeLaTela(i, vocabulario);
-  const detalle = [
-    `${i.lotes.length} ${i.lotes.length === 1 ? "lote" : "lotes"}`,
-    i.semanas !== null ? `alcanza ~${i.semanas.toLocaleString("es-PE", { maximumFractionDigits: 1 })} sem.` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const alcanza = alcanzaPara(i.semanas, i.saldo);
+  const conLapiz = esLider && ingresosEditables;
 
   return (
-    <article data-guia="prod-insumos.fila" data-abierto={abierto ? "" : undefined} className="insumo-fila card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
+    <article data-guia="prod-insumos.fila" data-abierto={abierto ? "" : undefined} className="insumo-fila card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 2 + indice }}>
       <button
         type="button"
         data-guia={indice === 0 ? "prod-insumos.fila-cabecera" : undefined}
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] @max-[32rem]:grid-cols-[1fr_auto]"
+        className={`insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 px-5 py-3.5 text-left focus-visible:-outline-offset-2 ${COLUMNAS_COLOR}`}
       >
-        <div className="min-w-0">
-          <p className="truncate text-sm text-tinta">{i.nombre}</p>
-          <p className="truncate text-sm text-tinta/65">
-            <span className="font-mono">{i.codigo}</span> · {detalle}
-          </p>
-          {/* La ficha: de qué tejido y de qué color es. Sin ella «Nueva orden» no puede proponer la tela del color de la prenda. */}
-          <p data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-tinta/75">
-            {ficha.color && <span aria-hidden data-color-dato className="size-2.5 shrink-0 rounded-full border border-tinta/20" style={ficha.color.hex ? { backgroundColor: ficha.color.hex } : undefined} />}
-            <span className={`truncate ${ficha.tejido === null && ficha.color === null ? "text-tinta/70" : ""}`}>{textoDeLaFicha(ficha, i.tipo)}</span>
-          </p>
-        </div>
-        <div className="@max-[32rem]:order-3 @max-[32rem]:col-span-2">
+        {/* De qué color es (y, en un insumo suelto, lo que diga su ficha: sin tejido ni color «Nueva orden» no puede proponer la tela del color de la prenda). */}
+        <span data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="flex min-w-0 items-center gap-3">
+          {ficha.color && <span aria-hidden data-color-dato className="size-5 shrink-0 rounded-full border border-tinta/20" style={ficha.color.hex ? { backgroundColor: ficha.color.hex } : undefined} />}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-tinta">{conFicha ? (ficha.color?.nombre ?? "Sin color") : i.nombre}</span>
+            {/* La ficha vacía («Sin tejido ni color») es lo que falta completar: no se escribe más tenue que esto (Formidable de Producción, H11; lo lee `lib/servicios-tarifas-ancho.test.ts`). */}
+            {!conFicha && <span className={`block truncate text-detalle ${ficha.tejido === null && ficha.color === null ? "text-tinta/70" : "text-tenue"}`}>{fichaParaLeer(ficha, i.tipo)}</span>}
+          </span>
+        </span>
+        <span className="order-3 col-span-2 min-w-0 @min-[48rem]:order-none @min-[48rem]:col-span-1">
           {/* Sin mínimo no hay contra qué medir: la barra se llenaba entera con 1 m de tela y mentía (P10 del análisis del Taller, 2026-11-02). */}
-          {marcaMinimo !== null && (
-            <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo * 100} decorativa indice={indice} title={`Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}`} />
-          )}
-          <div className={`${marcaMinimo !== null ? "mt-1.5 " : ""}flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm text-tinta/65`}>
-            <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
-            <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
-          </div>
-        </div>
-        <p className="font-display whitespace-nowrap text-right text-2xl tabular-nums text-tinta">
+          {marcaMinimo !== null && <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo * 100} decorativa indice={indice} />}
+          <span className={`${marcaMinimo !== null ? "mt-1.5 " : ""}block text-xs text-tenue`}>{minimoTexto(i.minimo, i.unidad)}</span>
+        </span>
+        <span className="order-5 whitespace-nowrap text-right font-display text-2xl leading-none tabular-nums text-tinta @min-[48rem]:order-none">
           <CifraQueCuenta valor={i.saldo} decimales={UNIDADES_INSUMO[i.unidad].vista} />
-          <small className="font-sans ml-1 text-sm text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
-        </p>
-        <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla @max-[32rem]:hidden ${abierto ? "rotate-90" : ""}`} />
+          <small className="ml-1 font-sans text-detalle text-tenue">{UNIDADES_INSUMO[i.unidad].corta}</small>
+        </span>
+        <span className="order-4 min-w-0 text-sm text-tinta @min-[48rem]:order-none">
+          {alcanza === null ? (
+            <span aria-hidden className="hidden text-tenue @min-[48rem]:inline">
+              —
+            </span>
+          ) : (
+            <>
+              <span className="text-tenue @min-[48rem]:hidden">Alcanza para </span>
+              {alcanza}
+            </>
+          )}
+        </span>
+        <span className="order-2 justify-self-end @min-[48rem]:order-none @min-[48rem]:justify-self-start">
+          <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
+        </span>
+        <ChevronRight aria-hidden className={`hidden h-4 w-4 text-tenue transition-transform duration-300 ease-cayla @min-[48rem]:block ${abierto ? "rotate-90" : ""}`} />
       </button>
 
       {/* Se abre por `grid-template-rows` (ADR-0128): sin medir alturas, sin salto. */}
-      <div className={`grid transition-[grid-template-rows] duration-300 ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!abierto}>
         <div className="min-h-0 overflow-hidden">
-          <div className="insumo-lotes border-t border-sand px-4 pb-3 pt-1.5">
+          <div className="insumo-lotes border-t border-sand px-5 pb-4 pt-4">
+            <TituloGrupo nivel={4}>De dónde viene lo que queda</TituloGrupo>
             {lotes.length === 0 ? (
-              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>
+                Todavía no entró nada.
+              </Vacio>
             ) : (
               <ul>
-                {lotes.map((l, k) => (
-                  // En el celular la fila de cinco columnas no cabía (375 px): el detalle se quedaba en 0 px y el lápiz salía de la pantalla.
-                  // Con la placa bajo 640 px (celular, tablet o el libro al costado) se arma en tres renglones con áreas: código · cantidad · lápiz /
-                  // el detalle a todo el ancho / el costo. Mira el ancho de la placa (`@container`), no el de la ventana: a 768 la placa mide 434 px.
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto_auto] @max-[40rem]:[grid-template-areas:'codigo_cantidad_lapiz'_'detalle_detalle_detalle'_'costo_costo_costo']" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] @max-[40rem]:[grid-template-areas:'codigo_cantidad'_'detalle_detalle'_'costo_costo']"} items-center gap-x-4 @max-[40rem]:gap-x-2.5 @max-[40rem]:gap-y-1 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
-                    <span className="whitespace-nowrap font-mono font-medium text-tinta @max-[40rem]:[grid-area:codigo]">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
-                    <div className="min-w-0 @max-[40rem]:[grid-area:detalle]">
-                      <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
-                      {/* En renglones que se parten: dentro de un `truncate`, «Decir a quién» se cortaba en una lista angosta (con el libro al costado). */}
-                      <p className="mt-1 flex flex-wrap items-baseline gap-x-1 text-tinta/65">
-                        <span className="min-w-0 truncate">{origenDeLote(l)} · {diaMes(l.ingreso)}</span>
-                        {onNombrar && esLider && l.origen === "compra" && !l.proveedor && (
-                          <>
-                            {" · "}
-                            <button type="button" aria-haspopup="dialog" data-guia={indice === 0 && k === 0 ? "prod-insumos.decir-a-quien" : undefined} className="btn-enlace" onClick={() => onNombrar(l)}>
-                              Decir a quién
-                            </button>
-                          </>
+                {lotes.map((l, k) => {
+                  const detalle = detalleDeLote(l, hoy);
+                  const faltaDecirAQuien = Boolean(onNombrar) && esLider && l.origen === "compra" && !l.proveedor;
+                  return (
+                    // Ancha: de dónde vino, sus pares, «Se usa primero» y el lápiz, en una fila. Angosta (el celular, o la tarjeta bajo 768 px): el título con su lápiz, los pares debajo y la insignia al final.
+                    <li key={l.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 border-b border-tinta/[0.06] py-3 last:border-0 @min-[48rem]:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_auto_auto]">
+                      <div className="order-1 min-w-0 @min-[48rem]:order-none">
+                        <p className="text-sm font-semibold text-tinta">{tituloDeLote(l, hoy)}</p>
+                        {(detalle || faltaDecirAQuien) && (
+                          <p className="flex flex-wrap items-baseline gap-x-2 text-detalle text-tenue">
+                            {detalle && <span className="min-w-0">{detalle}</span>}
+                            {faltaDecirAQuien && onNombrar && (
+                              <button type="button" aria-haspopup="dialog" data-guia={indice === 0 && k === 0 ? "prod-insumos.decir-a-quien" : undefined} className="btn-enlace" onClick={() => onNombrar(l)}>
+                                Decir a quién
+                              </button>
+                            )}
+                          </p>
                         )}
-                        {l.documento ? <span className="min-w-0 truncate">{` · ${l.documento}`}</span> : null}
-                      </p>
-                      {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
-                      {l.nota && <p className="mt-0.5 truncate text-tinta/65" title={l.nota}>{l.nota}</p>}
-                    </div>
-                    <span className="whitespace-nowrap tabular-nums text-tinta @max-[40rem]:[grid-area:cantidad]">
-                      {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}
-                      <span title="Lo que queda de lo que entró">
-                        {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">de {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
+                        {/* El código del lote y la nota del ingreso (la cuenta de kilos a metros, o «Encontré tela»), cada uno en su línea (P11 del análisis del Taller). */}
+                        {l.codigo && (
+                          <p className="text-detalle text-tenue">
+                            Lote <span className="font-mono">{l.codigo}</span>
+                          </p>
+                        )}
+                        {l.nota && <p className="text-detalle text-tenue">{l.nota}</p>}
+                      </div>
+                      <Pares className="order-3 col-span-2 @min-[48rem]:order-none @min-[48rem]:col-span-1">
+                        <ParDato rotulo="Quedan">{cantidadTexto(l.saldo, i.unidad)}</ParDato>
+                        <ParDato rotulo="Entraron">{cantidadTexto(l.cantidadIngresada, i.unidad)}</ParDato>
+                        {veCostos && l.costoUnitario !== null && (
+                          <ParDato rotulo="Costó">
+                            {costoUnitarioTexto(l.costoUnitario)} {costoPor(i.unidad)}
+                          </ParDato>
+                        )}
+                      </Pares>
+                      <span className="order-4 col-span-2 empty:hidden @min-[48rem]:order-none @min-[48rem]:col-span-1 @min-[48rem]:empty:block">
+                        {primero?.id === l.id && (
+                          <Chip tono="pizarra" title="Es el más antiguo que todavía tiene: se descuenta primero">
+                            Se usa primero
+                          </Chip>
+                        )}
                       </span>
-                    </span>
-                    <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75 @max-[40rem]:min-w-0 @max-[40rem]:justify-start @max-[40rem]:[grid-area:costo] @max-[40rem]:empty:hidden">
-                      {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
-                      {primero?.id === l.id && (
-                        <span title="Se descuenta primero: el más antiguo con saldo">
-                          <Chip tono="neutro">1º</Chip>
-                        </span>
+                      {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, lo que se ajusta es lo que queda. */}
+                      {conLapiz && (
+                        <LapizEditar
+                          className="order-2 @min-[48rem]:order-none"
+                          que={l.noSeToca ? "lo que queda de este lote" : "este ingreso"}
+                          guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
+                          title={l.noSeToca ? "Ajustar lo que queda" : "Corregir o eliminar este ingreso"}
+                          onClick={() => (l.noSeToca ? onAjustar(l) : onCorregir(l))}
+                        />
                       )}
-                    </span>
-                    {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
-                    {esLider && ingresosEditables && (
-                      <LapizEditar
-                        className="@max-[40rem]:[grid-area:lapiz]"
-                        que={l.noSeToca ? "lo que queda de este lote" : "este ingreso"}
-                        guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
-                        title={l.noSeToca ? "Ajustar lo que queda" : "Corregir o eliminar este ingreso"}
-                        onClick={() => (l.noSeToca ? onAjustar(l) : onCorregir(l))}
-                      />
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
             {/* Lo eliminado no se borró: queda aquí con su porqué, y «Restaurar» lo devuelve al estante. */}
             {esLider && eliminados.length > 0 && (
-              <div className="mt-1 border-t border-tinta/[0.06] pt-2">
-                <p className="text-sm text-tinta/65">{plural(eliminados.length, "ingreso eliminado", "ingresos eliminados")}</p>
+              <div className="mt-3">
+                <TituloGrupo nivel={4} cuenta={eliminados.length}>
+                  {eliminados.length === 1 ? "Ingreso eliminado" : "Ingresos eliminados"}
+                </TituloGrupo>
                 <ul>
                   {eliminados.map((e) => (
-                    <li key={e.loteId} className="flex items-center justify-between gap-3 py-1.5 text-sm">
-                      <span className="min-w-0 truncate text-tinta/75">
-                        <span className="tabular-nums">{cantidadTexto(e.cantidad, i.unidad)}</span> · {diaMes(e.ingreso)} · «{e.motivo}»
+                    <li key={e.loteId} className="flex items-center justify-between gap-3 border-b border-tinta/[0.06] py-2.5 last:border-0">
+                      <span className="min-w-0">
+                        <span className="block text-sm text-tinta">{tituloDeEliminado(e, i.unidad, hoy)}</span>
+                        <span className="block text-detalle text-tenue">«{e.motivo}»</span>
                       </span>
                       <button type="button" className="btn-enlace shrink-0 text-sm" aria-haspopup="dialog" onClick={() => onRestaurar(e)}>
                         Restaurar
@@ -528,9 +698,9 @@ function FilaInsumo({
               </div>
             )}
             {esLider && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Boton peso="discreto" className="!px-3 !py-2" onClick={onIngresar}>
-                  + Ingresar lote
+              <div className="flex flex-wrap gap-2 pt-3">
+                <Boton peso="fantasma" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.llego-mas" : undefined} aria-haspopup="dialog" onClick={onIngresar}>
+                  + {textoDeLlegoMas(i)}
                 </Boton>
                 {/* El tejido y el color de un color de tela son los de su tela (ADR-0554): no se completan aquí. */}
                 {!i.materialId && (
