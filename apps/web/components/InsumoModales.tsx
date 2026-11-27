@@ -31,7 +31,8 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 
 export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClose }: { insumos: InsumoVista[]; insumoInicialId: string | null; tallerId: string; onClose: () => void }) {
   const router = useRouter();
-  const [insumoId, setInsumoId] = useState(insumoInicialId ?? insumos[0]?.id ?? "");
+  // Abre sin nada elegido (Felipe 2026-11-26): con el primero de la lista ya puesto, quien escribía sin mirar arriba le sumaba saldo y costo a otro insumo.
+  const [insumoId, setInsumoId] = useState(insumoInicialId ?? "");
   const [cantidad, setCantidad] = useState("");
   const [costo, setCosto] = useState("");
   const [codigoLote, setCodigoLote] = useState("");

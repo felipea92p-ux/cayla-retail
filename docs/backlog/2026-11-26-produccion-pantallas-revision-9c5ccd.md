@@ -33,6 +33,16 @@
 - [ ] «Editar tela» tomó las palabras nuevas («De qué está hecha», «Se pierde al cortar») pero no los pasos numerados.
 - [ ] Abreviaturas que quedan: «unid.», «doc.», «m/kg», «N.° de operación».
 
+### `/formidable` (2026-11-26): corrida, con cambios propuestos y sin aplicar
+
+Informe: `docs/formidable/produccion-mas-clara.md`. Siete lectores ciegos (uno por pantalla u hoja) y medición a 1440 y 375 px. Notas de leyes entre 6,9 y 7,6; oficio entre 7 y 9. Ninguna llega a «formidable»: falta la pasada con una colaboradora real.
+
+- [x] Corregido lo que era un error del rediseño: el precio de «Llegó una compra» sin «sin IGV», el motivo «Falta tela» que tomaba el color de la prenda por el de la tela, y el recuadro de órdenes que contaba la muestra.
+- [x] «Lo que ya tenías» abre sin nada elegido (Felipe 2026-11-26): con el primero de la lista puesto, se le sumaba saldo y costo a otro insumo.
+- [ ] **Felipe dijo «ninguno por ahora»** a los cambios de texto y distribución propuestos (tres por pantalla, en el informe). Los que más pesan: «Comprar tela» no compra, solo lleva a Insumos; la tela que falta no dice para qué orden es; «Anotar compra», «Llegó una compra» y «Llegó más de este color» abren la misma hoja con tres nombres; el aviso de planilla de Eficiencia no dice qué hacer; el ejemplo «Popelina blanca» invita a poner el color en el nombre.
+- [ ] «Llegó una compra» y «Lo que ya tenías» se cierran con Escape sin preguntar aunque haya datos escritos (viene de antes; «Nueva tela» y «Nuevo avío» sí preguntan).
+- [ ] Nadie entendió «plotear» en la prueba ciega: es palabra del oficio; se ve en la pasada real.
+
 ### Para Dynamic
 
 - `components/ui/ParDato.tsx` (pieza nueva), `TituloGrupo` con `paso`, `MenuAcciones` con `guia` en cada opción y `AyudaCabecera` (su Escape ya no cierra la hoja de abajo). Están en la carpeta que Dynamic mira: allá queda como tarea si quieren lo mismo.
