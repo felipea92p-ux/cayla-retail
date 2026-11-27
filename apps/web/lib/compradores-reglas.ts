@@ -1,4 +1,5 @@
 import { TIPOS_PAPEL, type TipoPapel } from "./papel-de-compra";
+import type { MovimientoFondo } from "./fondos-reglas";
 import { leerCuaderno, type CuadernoRonda } from "./revisar-compras-reglas";
 import { diasEntreFechas, diaLima, diaMes } from "./fechas-lima";
 
@@ -192,44 +193,12 @@ export const dieronDeRonda = (r: CuentaDeRonda): number => (r.tiene === null ? r
 const sinPlataEnLaMano = (r: Pick<RondaDeCompras, "tiene">): boolean => Math.abs(r.tiene ?? 0) <= 0.005;
 export const porRevisarDeRonda = (r: Pick<RondaDeCompras, "compras">): number => r.compras.filter((c) => !c.revisada).length;
 
-export type AvisoDeRonda = { tono: "ambar" | "neutro"; texto: string; cerrarRonda?: true };
-
-/**
- * Lo único que pide atención en una ronda, en una frase. Decisiones de Felipe (2026-11-26): si la plata no cuadra, SOLO se avisa (no se
- * pregunta ni se calcula lo que CAYLA le debe); a los 14 días sin compras, se avisa con «Cerrar su ronda» (nadie la cierra sola).
- */
 /**
  * Compras puede cerrar la ronda de otra persona solo si no tiene nada adentro (`cerrar_ronda_sin_movimiento`, 20261126152000): ni plata
  * anotada, ni compras, ni gastos. Es lo que la pantalla ofrece; la base además mira que la persona no tenga plata en la mano.
  */
 export const puedeCerrarseDesdeCompras = (r: Pick<RondaDeCompras, "cerradaEn" | "compras" | "cuenta" | "tiene">): boolean =>
   r.cerradaEn === null && r.compras.length === 0 && r.cuenta.dieron === 0 && r.cuenta.gastos === 0 && r.cuenta.compras === 0 && sinPlataEnLaMano(r);
-
-/** La ronda que muestra el detalle de una persona: la pedida por la URL, si es suya; si no, la abierta; si no, la más reciente. */
-export function rondaElegida<T extends Pick<RondaDeCompras, "id" | "cerradaEn" | "abiertaEn">>(rondas: readonly T[], pedida: string | null | undefined): T | null {
-  const porUrl = pedida ? rondas.find((r) => r.id === pedida) : undefined;
-  if (porUrl) return porUrl;
-  return rondas.find((r) => r.cerradaEn === null) ?? [...rondas].sort((a, b) => b.abiertaEn.localeCompare(a.abiertaEn))[0] ?? null;
-}
-
-export function avisoDeRonda(r: Pick<RondaDeCompras, "cerradaEn" | "abiertaEn" | "ultimaCompraEn" | "cuenta" | "compras" | "tiene">, hoy: string, soles: (n: number) => string): AvisoDeRonda | null {
-  const abierta = r.cerradaEn === null;
-  const desde = diaLima(r.ultimaCompraEn ?? r.abiertaEn);
-  const quieta = desde ? diasEntreFechas(desde, hoy) : 0;
-  if (abierta && quieta >= DIAS_RONDA_OLVIDADA) {
-    // Vacía, Compras la cierra desde el detalle; con algo adentro, la cierra su dueña desde «Mis compras» (decide qué hace con la plata).
-    return r.compras.length === 0 && r.cuenta.dieron === 0 && r.cuenta.gastos === 0 && sinPlataEnLaMano(r)
-      ? { tono: "ambar", texto: `Sin compras hace ${quieta} días.`, cerrarRonda: true }
-      : { tono: "ambar", texto: `Sin compras nuevas hace ${quieta} días. Pídele que cierre su ronda en «Mis compras».` };
-  }
-  const queda = quedaDeRonda(r);
-  if (queda < -0.005) {
-    const de = soles(-queda);
-    return { tono: "ambar", texto: dieronDeRonda(r) > 0.005 ? `Pagó ${de} más de lo que le diste.` : `Pagó ${de} sin plata registrada.` };
-  }
-  if (abierta && r.compras.length === 0) return { tono: "neutro", texto: "Todavía no anota compras." };
-  return null;
-}
 
 // ---------- la tabla de Compradores: quién tiene plata (Felipe 2026-11-26: «información precisa, que realmente sirva») ----------
 
@@ -261,6 +230,8 @@ export type FilaComprador = {
   /** Compras puede cerrarle la ronda (no tiene nada adentro ni plata en la mano). */
   cerrable: boolean;
   ultimaEntrega: string | null;
+  /** Cuándo cerró su última ronda, si está en la lista solo por lo que dejó pendiente; si no, `null`. */
+  cerro: string | null;
 };
 
 /**
@@ -292,6 +263,7 @@ export function filasDeCompradores(rondas: readonly RondaDeCompras[], sinRonda: 
         quieta: quieta >= DIAS_RONDA_OLVIDADA ? quieta : null,
         cerrable: puedeCerrarseDesdeCompras(r),
         ultimaEntrega: null,
+        cerro: null,
       };
     });
   const conRonda = new Set(abiertas.map((f) => f.personaId));
@@ -314,89 +286,165 @@ export function filasDeCompradores(rondas: readonly RondaDeCompras[], sinRonda: 
         quieta: null,
         cerrable: false,
         ultimaEntrega: p.ultimaEntrega,
+        cerro: null,
       }),
     );
-  return [...abiertas, ...sueltas].sort((a, b) => b.queda - a.queda || b.gasto - a.gasto || a.persona.localeCompare(b.persona, "es"));
+  // Quien ya cerró su ronda pero dejó compras por revisar o por pagar: sin esto, lo pendiente se contaba arriba y no se veía de quién era.
+  const yaEsta = new Set([...abiertas, ...sueltas].map((f) => f.personaId));
+  const cerradas = rondas.filter((r) => r.cerradaEn !== null && !yaEsta.has(r.personaId));
+  const pendientes = [...new Set(cerradas.map((r) => r.personaId))].flatMap((personaId): FilaComprador[] => {
+    const suyas = cerradas.filter((r) => r.personaId === personaId);
+    const porRevisar = suyas.reduce((a, r) => a + porRevisarDeRonda(r), 0);
+    const faltaPagar = centimos(suyas.flatMap((r) => r.compras).reduce((a, c) => a + faltaPagarDeCompra(c), 0));
+    if (porRevisar === 0 && faltaPagar <= 0.005) return [];
+    const cerro = suyas.map((r) => r.cerradaEn as string).sort().at(-1) ?? null;
+    return [{ personaId, persona: suyas[0].persona, sinRonda: true, dieron: 0, gasto: 0, queda: 0, usado: null, compras: 0, prendas: 0, porRevisar, faltaPagar, diasAbierta: null, quieta: null, cerrable: false, ultimaEntrega: null, cerro }];
+  });
+  return [...abiertas, ...sueltas, ...pendientes].sort(
+    (a, b) => b.queda - a.queda || b.porRevisar - a.porRevisar || b.gasto - a.gasto || a.persona.localeCompare(b.persona, "es"),
+  );
 }
 
-const haceDias = (dias: number): string => (dias <= 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`);
-
-/** La segunda línea de la fila: desde cuándo compra o cuándo recibió su plata. */
-export function estadoDeFila(f: Pick<FilaComprador, "sinRonda" | "diasAbierta" | "ultimaEntrega">): string {
-  if (!f.sinRonda) return `Ronda abierta ${haceDias(f.diasAbierta ?? 0)}`;
-  return f.ultimaEntrega ? `Recibió plata el ${diaMes(f.ultimaEntrega)}` : "Tiene plata en la mano";
+/** Una sola frase por persona. `avisa`: lleva días sin comprar, y va en ámbar. */
+export function fraseDePersona(f: Pick<FilaComprador, "sinRonda" | "diasAbierta" | "quieta" | "cerro">): { texto: string; avisa: boolean } {
+  if (f.cerro) return { texto: `Cerró su ronda el ${diaMes(f.cerro)}`, avisa: false };
+  if (f.sinRonda) return { texto: "Aún no abre su ronda", avisa: false };
+  if (f.quieta !== null) return { texto: `Sin comprar hace ${f.quieta} días`, avisa: true };
+  const d = f.diasAbierta ?? 0;
+  return { texto: d <= 0 ? "Empezó hoy" : d === 1 ? "Empezó ayer" : `Comprando hace ${d} días`, avisa: false };
 }
 
-export type PideComprador = { tono: "ambar" | "pizarra" | "verde"; texto: string };
+/** Las etiquetas de una persona: solo lo que se hace AQUÍ (revisar sus papeles, pagar lo que quedó debiendo, cerrar una ronda vacía). */
+export function etiquetasDePersona(f: Pick<FilaComprador, "porRevisar" | "faltaPagar" | "quieta" | "cerrable">, soles: (n: number) => string): string[] {
+  const e: string[] = [];
+  if (f.porRevisar > 0) e.push(`${f.porRevisar} por revisar`);
+  if (f.faltaPagar > 0.005) e.push(`Falta pagar ${soles(f.faltaPagar)}`);
+  if (f.quieta !== null && f.cerrable) e.push("Cerrar su ronda");
+  return e;
+}
+
+export type FiltroCompradores = "" | "revisar" | "pagar";
+
+const sinTildes = (t: string): string => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** La lista según el filtro y lo buscado (por nombre, sin tildes ni mayúsculas). */
+export function filtrarCompradores(filas: readonly FilaComprador[], filtro: FiltroCompradores, busqueda: string): FilaComprador[] {
+  const q = sinTildes(busqueda.trim());
+  return filas.filter((f) => (filtro === "revisar" ? f.porRevisar > 0 : filtro === "pagar" ? f.faltaPagar > 0.005 : true) && (q === "" || sinTildes(f.persona).includes(q)));
+}
+
+/** Con más personas que esto, aparece el buscador. */
+export const PERSONAS_PARA_BUSCAR = 8;
+/** Hasta este número, quien no tiene plata ni pendientes se muestra igual; con más, se pliega tras «Ver N más». */
+export const SIN_NADA_A_LA_VISTA = 3;
 
 /**
- * Lo que cada persona pide que se haga, en etiquetas: revisar sus papeles, pagar lo que quedó debiendo, cerrar una ronda olvidada. Si no
- * pide nada, dice dónde está (sin abrir su ronda, sin compras todavía) o «Al día». Nunca queda vacío: una celda en blanco no dice nada.
+ * La lista a escala (Felipe 2026-11-26: «siempre piensa en la escalabilidad»): arriba quien tiene plata o pide algo; quien no tiene plata ni
+ * pendientes queda plegado si son más de tres. Filtrando o buscando no se pliega nada: lo que se pidió ver, se ve.
  */
-export function loQuePide(f: FilaComprador, soles: (n: number) => string): PideComprador[] {
-  const pide: PideComprador[] = [];
-  if (f.queda < -0.005) pide.push({ tono: "ambar", texto: `Pagó ${soles(-f.queda)} de más` });
-  if (f.porRevisar > 0) pide.push({ tono: "ambar", texto: `${f.porRevisar} por revisar` });
-  if (f.faltaPagar > 0.005) pide.push({ tono: "ambar", texto: `Falta pagar ${soles(f.faltaPagar)}` });
-  if (f.quieta !== null) pide.push({ tono: "ambar", texto: f.cerrable ? "Cerrar su ronda" : `Quieta ${f.quieta} días` });
-  if (pide.length > 0) return pide;
-  if (f.sinRonda) return [{ tono: "pizarra", texto: "Sin ronda" }];
-  if (f.compras === 0) return [{ tono: "pizarra", texto: "Sin compras" }];
-  return [{ tono: "verde", texto: "Al día" }];
+export function repartoDeLista(filas: readonly FilaComprador[], sinPlegar: boolean): { arriba: FilaComprador[]; plegadas: FilaComprador[] } {
+  const vive = (f: FilaComprador) => Math.abs(f.queda) > 0.005 || f.porRevisar > 0 || f.faltaPagar > 0.005 || (f.quieta !== null && f.cerrable);
+  const sinNada = filas.filter((f) => !vive(f));
+  if (sinPlegar || sinNada.length <= SIN_NADA_A_LA_VISTA) return { arriba: [...filas], plegadas: [] };
+  return { arriba: filas.filter(vive), plegadas: sinNada };
 }
 
-export type ResumenDeCompradores = {
-  enLaCalle: number;
-  conPlata: number;
-  gastadoMes: number;
-  comprasMes: number;
-  personasMes: number;
-  porRevisar: number;
-  quienesPorRevisar: number;
-  faltaPagar: number;
-  comprasPorPagar: number;
-  total: { dieron: number; gasto: number; queda: number };
+/** Lo que hay «en la calle»: la plata que la gente tiene en la mano, y cuántas personas la tienen. */
+export function enLaCalle(filas: readonly FilaComprador[]): { total: number; personas: number } {
+  const conPlata = filas.filter((f) => f.queda > 0.005);
+  return { total: centimos(conPlata.reduce((a, f) => a + f.queda, 0)), personas: conPlata.length };
+}
+
+// ---------- el estado de cuenta de una persona: lo que entra y lo que sale, por fechas ----------
+
+export type LineaDeCuenta = {
+  id: string;
+  fecha: string;
+  clase: "compra" | "entrega" | "devolucion" | "pago_deuda";
+  titulo: string;
+  detalle: string | null;
+  monto: number;
+  /** «+» entra a su mano, «−» sale; «» no mueve su saldo (lo anulado, el pago de una deuda). */
+  signo: "+" | "−" | "";
+  /** Lo que pide esa línea («Por revisar», «Falta pagar S/ 315.00»), si pide algo. */
+  pendiente: string | null;
+  anulada: boolean;
+  /** El movimiento de fondo detrás de la línea, para poder anularlo. */
+  movimiento: MovimientoFondo | null;
 };
 
-/** Las cuatro cifras de arriba y la fila de totales. `hoy` en `aaaa-mm-dd` (Lima): el mes es el suyo. */
-export function resumenDeCompradores(rondas: readonly RondaDeCompras[], filas: readonly FilaComprador[], hoy: string): ResumenDeCompradores {
-  const mes = hoy.slice(0, 7);
-  const delMes = (c: CompraDelLibro) => c.fecha.startsWith(mes);
-  const comprasDelMes = rondas.flatMap((r) => r.compras).filter(delMes);
-  const conPlata = filas.filter((f) => f.queda > 0.005);
-  const deudas = rondas.flatMap((r) => r.compras).filter((c) => faltaPagarDeCompra(c) > 0.005);
+const TITULO_MOVIMIENTO: Record<MovimientoFondo["tipo"], string> = { entrega_fondo: "Le diste", devolucion_fondo: "Devolvió", pago_deuda_fondo: "Pagó su deuda" };
+const CLASE_MOVIMIENTO: Record<MovimientoFondo["tipo"], LineaDeCuenta["clase"]> = { entrega_fondo: "entrega", devolucion_fondo: "devolucion", pago_deuda_fondo: "pago_deuda" };
+
+/**
+ * Las líneas del estado de cuenta entre dos fechas, lo más nuevo primero: cada compra de sus rondas (lo que PAGÓ: lo que quedó debiendo va en
+ * su etiqueta) y cada movimiento de su fondo. Ya no se parte por ronda. Los otros gastos de una ronda (pasajes, bolsas) no vienen uno por uno:
+ * están en el total «Gastó» del resumen, no aquí.
+ */
+export function lineasDeCuenta(
+  rondas: readonly Pick<RondaDeCompras, "compras">[],
+  movimientos: readonly MovimientoFondo[],
+  tramo: { desde: string; hasta: string },
+  soles: (n: number) => string,
+): LineaDeCuenta[] {
+  const compras = rondas.flatMap((r) => r.compras).map((c): LineaDeCuenta => {
+    const e = estadoDeCompra(c, soles);
+    return {
+      id: c.id,
+      fecha: c.fecha.slice(0, 10),
+      clase: "compra",
+      titulo: c.proveedor,
+      detalle: c.prendas > 0 ? `${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"}` : null,
+      monto: centimos(c.monto - faltaPagarDeCompra(c)),
+      signo: "−",
+      pendiente: e.tono === "ambar" ? e.texto : null,
+      anulada: false,
+      movimiento: null,
+    };
+  });
+  const plata = movimientos.map((m): LineaDeCuenta => {
+    const anulada = m.estado === "anulado";
+    return {
+      id: m.id,
+      fecha: m.fecha.slice(0, 10),
+      clase: CLASE_MOVIMIENTO[m.tipo],
+      titulo: TITULO_MOVIMIENTO[m.tipo],
+      // Lo anulado sigue a la vista, con quién lo anuló y por qué (como en la lista de antes).
+      detalle: anulada ? [m.motivo, `Anulada${m.anuladoPor ? ` por ${m.anuladoPor}` : ""}${m.motivoAnulacion ? `: ${m.motivoAnulacion}` : ""}`].filter(Boolean).join(". ") : m.motivo,
+      monto: m.monto,
+      signo: anulada || m.tipo === "pago_deuda_fondo" ? "" : m.tipo === "entrega_fondo" ? "+" : "−",
+      pendiente: null,
+      anulada,
+      movimiento: m,
+    };
+  });
+  return [...compras, ...plata]
+    .filter((l) => l.fecha >= tramo.desde && l.fecha <= tramo.hasta)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha) || Number(a.signo === "+") - Number(b.signo === "+"));
+}
+
+export type DiaDeCuenta = { dia: string; lineas: LineaDeCuenta[]; compras: number; entro: number; salio: number };
+
+/** Lo que entró y lo que salió en unas líneas. Lo anulado y lo que no mueve su saldo no suman. */
+export function totalesDeCuenta(lineas: readonly LineaDeCuenta[]): { entro: number; salio: number } {
   return {
-    enLaCalle: centimos(conPlata.reduce((a, f) => a + f.queda, 0)),
-    conPlata: conPlata.length,
-    gastadoMes: centimos(comprasDelMes.reduce((a, c) => a + c.monto, 0)),
-    comprasMes: comprasDelMes.length,
-    // Quién compró se lee de la ronda: una compra de «Mis compras» siempre es de quien abrió su ronda.
-    personasMes: new Set(rondas.filter((r) => r.compras.some(delMes)).map((r) => r.personaId)).size,
-    porRevisar: rondas.reduce((a, r) => a + porRevisarDeRonda(r), 0),
-    quienesPorRevisar: new Set(rondas.filter((r) => porRevisarDeRonda(r) > 0).map((r) => r.personaId)).size,
-    faltaPagar: centimos(deudas.reduce((a, c) => a + faltaPagarDeCompra(c), 0)),
-    comprasPorPagar: deudas.length,
-    total: {
-      dieron: centimos(filas.reduce((a, f) => a + f.dieron, 0)),
-      gasto: centimos(filas.reduce((a, f) => a + f.gasto, 0)),
-      queda: centimos(filas.reduce((a, f) => a + f.queda, 0)),
-    },
+    entro: centimos(lineas.filter((l) => l.signo === "+").reduce((a, l) => a + l.monto, 0)),
+    salio: centimos(lineas.filter((l) => l.signo === "−").reduce((a, l) => a + l.monto, 0)),
   };
 }
 
-/** Las rondas cerradas que dicen algo: una sin compras, sin gastos y sin plata anotada (abierta y cerrada por error) no se lista. */
-export const rondasCerradasConAlgo = <T extends Pick<RondaDeCompras, "cerradaEn" | "cuenta">>(rondas: readonly T[]): T[] =>
-  rondas.filter((r) => r.cerradaEn !== null && (r.cuenta.compras > 0 || r.cuenta.gastos > 0 || r.cuenta.dieron > 0));
-
-/** Las entregas vigentes de una persona: cuántas, cuánto suman y cuándo fue la última. Dice de dónde salió «Le diste». */
-export function entregasDe(movimientos: readonly { tipo: string; estado: string; fecha: string; monto: number }[]): { cuantas: number; total: number; ultima: string | null } {
-  const vigentes = movimientos.filter((m) => m.tipo === "entrega_fondo" && m.estado === "vigente");
-  return {
-    cuantas: vigentes.length,
-    total: centimos(vigentes.reduce((a, m) => a + m.monto, 0)),
-    ultima: vigentes.map((m) => m.fecha).sort().at(-1) ?? null,
-  };
+/** Las líneas por día, cada día con su subtotal: con muchas compras se entiende el día sin leer fila por fila. */
+export function diasDeCuenta(lineas: readonly LineaDeCuenta[]): DiaDeCuenta[] {
+  return [...new Set(lineas.map((l) => l.fecha))].map((dia) => {
+    const delDia = lineas.filter((l) => l.fecha === dia);
+    return { dia, lineas: delDia, compras: delDia.filter((l) => l.clase === "compra").length, ...totalesDeCuenta(delDia) };
+  });
 }
+
+/** Con más líneas que esto, solo los días más nuevos van abiertos y aparece el filtro «Pendiente». */
+export const LINEAS_PARA_PLEGAR = 12;
+/** Cuántos días van abiertos cuando la lista se pliega. */
+export const DIAS_ABIERTOS = 2;
 
 export const nombreDelPapel = (tipo: string): string => (tipo in TIPOS_PAPEL ? TIPOS_PAPEL[tipo as TipoPapel].nombre : tipo);
 

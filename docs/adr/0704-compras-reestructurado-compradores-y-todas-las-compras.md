@@ -123,3 +123,43 @@ en `components/compras/CompradoresVista.tsx` y `DetalleComprador.tsx`, con las p
 
 **Lo que cuesta.** Se pierden de la portada las tres últimas compras de cada persona (están a un toque, en su detalle). «Qué pide» junta en
 una celda lo que antes era un aviso con frase completa: es más corto y dice menos del porqué.
+
+## Actualización 2026-11-26 (d): Compradores «como tu banco»
+
+**Qué pasó.** Con la tabla de la actualización (c) ya en producción, Felipe dijo que no le agradaba: «se deben mostrar solo datos necesarios que
+realmente aporten, con palabras precisas, sin tanto texto, e intuitiva». Se le mostraron dos direcciones con sus datos reales y eligió «como tu
+banco»; después pidió pulirla, pensar en la escalabilidad («¿y cuando tenga muchas compras?») y un filtro de fechas como el de Rendimiento. Reemplaza
+la tabla y el detalle en dos columnas de (c).
+
+**Compradores.**
+- **Una cifra arriba:** «En la calle», la plata de CAYLA en manos de la gente, y de cuántas personas. Se fueron las otras tres cifras.
+- **Una línea por persona:** su nombre, UNA frase («Comprando hace 5 días», «Aún no abre su ronda», «Cerró su ronda el 17/11»; en ámbar solo «Sin
+  comprar hace N días»), lo que le queda y una barra de cuánto gastó. Etiquetas solo para lo que se hace ahí: revisar, pagar lo que falta o cerrar
+  una ronda vacía. Se fueron las columnas «Le diste», «Gastó» y «Compras», la fila de totales y la tabla de rondas cerradas.
+- **Entra a la lista quien ya cerró su ronda y dejó compras por revisar o por pagar:** antes ese pendiente se contaba arriba sin decir de quién era.
+- **A escala:** filtros «Por revisar» y «Falta pagar» (solo si hay a quién mostrar), buscador desde 9 personas, y quien no tiene plata ni
+  pendientes plegado tras «Ver N más» cuando son más de tres.
+
+**El detalle de una persona es su estado de cuenta.**
+- A la izquierda, lo que le queda con su barra, lo que le diste y lo que gastó; y «Te toca», solo si hay algo que hacer.
+- A la derecha, día por día: lo que le diste entra con «+» y lo que compró sale con «−». Una compra a medio pagar muestra lo PAGADO y dice cuánto
+  falta. Cada día lleva su subtotal; pasadas las 12 líneas, solo los dos días más nuevos van abiertos y aparece el filtro «Pendiente».
+- **Se mira por fechas, no por ronda:** el control de período de Gestión ▸ Rendimiento (Hoy · 7 días · Este mes · Rango, con su calendario), la
+  misma pieza (`SegmentoDeslizante` + `RangoRendimiento`) y sus mismas reglas (`tramoDeUrl`: hasta 30 días, desde el 1.º del mes pasado). El
+  período va en la URL. Se fue «Sus otras rondas».
+- Las entregas, devoluciones y pagos de deuda son líneas del estado de cuenta, con su «Anular» y lo anulado tachado a la vista; se borró
+  `MovimientosDeFondo.tsx`. La herramienta de revisión de siempre queda debajo, sin cambios, y «Revisar» baja hasta ella.
+
+**Dónde vive.** Las cuentas, puras y con pruebas, en `lib/compradores-reglas.ts` (`filasDeCompradores`, `fraseDePersona`, `etiquetasDePersona`,
+`filtrarCompradores`, `repartoDeLista`, `enLaCalle`, `lineasDeCuenta`, `diasDeCuenta`, `totalesDeCuenta`); lo que se toca, en dos piezas de
+cliente: `ListaCompradores.tsx` y `EstadoDeCuenta.tsx`. Sin migración.
+
+**Lo que cuesta.**
+- De la portada ya no se ve lo gastado en el mes ni cuánto falta pagar en total; del detalle, el envío, el número de comprobante, el medio de
+  pago y la cuenta de origen de cada entrega (su motivo sí queda). Felipe lo aceptó mirando la maqueta.
+- Los otros gastos de una ronda (pasajes, bolsas) no vienen uno por uno de la base: están en el total «Gastó» del resumen, no en las líneas, así
+  que la suma de las líneas puede ser menor que «Gastó» por ese monto. El resumen lo dice en su propia fila.
+- El rango de fechas hereda los topes de Rendimiento (30 días, desde el mes pasado) y la lectura trae 60 días de rondas: para mirar más atrás hay
+  que ampliar las dos cosas.
+- **Escala de la base, anotada:** `fn_compradores` llama `fn_mi_plata_tiene` una vez por persona, y cada llamada lee el libro de dinero. Con 5 o 6
+  compradores no pesa; con decenas, se lee el libro una sola vez (como `fn_fondos`). No se tocó aquí.

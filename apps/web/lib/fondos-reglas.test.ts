@@ -17,7 +17,6 @@ import {
   leerResumenMiFondo,
   MAX_FICHAS_PERSONA,
   mostrarTuFondo,
-  movimientosPorDia,
   nombresDeFichas,
   opcionesDeCuentas,
   opcionesDePersonas,
@@ -28,7 +27,6 @@ import {
   problemaDePersona,
   subtituloDevolver,
   topeDevolucion,
-  VUELVE_A_CAYLA,
   type OpcionesFondos,
   type ResumenMiFondo,
 } from "./fondos-reglas";
@@ -344,31 +342,6 @@ describe("lo que dicen los botones", () => {
 });
 
 // ---------- Las hojas de Revisar compras (diseño A, 2026-10-23) ----------
-
-describe("movimientosPorDia", () => {
-  it("agrupa por día en el orden en que llegan y junta un día repetido en su primer lugar", () => {
-    const movs = [
-      { id: "a", fecha: "2026-10-23" },
-      { id: "b", fecha: "2026-10-22T10:00:00" },
-      { id: "c", fecha: "2026-10-23" },
-      { id: "d", fecha: "2026-10-20" },
-    ];
-    expect(movimientosPorDia(movs).map((g) => [g.dia, g.movimientos.map((m) => m.id)])).toEqual([
-      ["2026-10-23", ["a", "c"]],
-      ["2026-10-22", ["b"]],
-      ["2026-10-20", ["d"]],
-    ]);
-  });
-  it("sin movimientos, sin grupos", () => {
-    expect(movimientosPorDia([])).toEqual([]);
-  });
-});
-
-describe("VUELVE_A_CAYLA", () => {
-  it("la devolución y el pago de una deuda vuelven; la entrega sale", () => {
-    expect(VUELVE_A_CAYLA).toEqual({ entrega_fondo: false, devolucion_fondo: true, pago_deuda_fondo: true });
-  });
-});
 
 describe("nombresDeFichas", () => {
   it("el primer nombre, salvo que dos lo compartan", () => {

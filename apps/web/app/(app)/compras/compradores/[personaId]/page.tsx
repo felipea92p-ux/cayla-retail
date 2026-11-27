@@ -1,5 +1,4 @@
 import { DevolverFondo, EntregarFondo, PagarDeudaFondo } from "@/components/fondos/AccionesFondos";
-import { MovimientosDeFondo } from "@/components/compras/MovimientosDeFondo";
 import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import { CerrarRonda } from "@/components/compras/CerrarRonda";
 import { DetalleComprador } from "@/components/compras/DetalleComprador";
@@ -8,19 +7,23 @@ import { getCompradores, getCompradoresSinRonda } from "@/lib/compradores";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
 import { getRevisarCompras } from "@/lib/revisar-compras";
-import { entregasDe, puedeCerrarseDesdeCompras, rondaElegida } from "@/lib/compradores-reglas";
+import { faltaPagarDeCompra, lineasDeCuenta, porRevisarDeRonda, puedeCerrarseDesdeCompras } from "@/lib/compradores-reglas";
+import { soles } from "@/lib/compras-reglas";
+import { tramoDeUrl } from "@/lib/rendimiento-vista-reglas";
 import { primerNombre, topeDevolucion } from "@/lib/fondos-reglas";
 import { estadoPorFondo } from "@/lib/rendicion-reglas";
 import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 
-// Compras ▸ Compradores ▸ una persona (ADR-0704): su cuenta de la ronda, lo que espera revisión y todas sus compras; al costado, su plata. Lo que se revisa es la
+// Compras ▸ Compradores ▸ una persona (ADR-0704, act. d): su resumen, su estado de cuenta por fechas y, debajo, lo que espera revisión. Lo que se revisa es la
 // bandeja de siempre (`BandejaRevisar`: confirmar su plata, completar el papel, revisar un gasto, recibir su cierre), filtrada a esta persona:
 // reemplaza a la pestaña «Revisar compras», donde se mezclaba lo de todas. El layout de Compradores ya pidió el módulo «fondos».
 
-export default async function CompradorPage({ params, searchParams }: { params: Promise<{ personaId: string }>; searchParams: Promise<{ ronda?: string }> }) {
-  const [{ personaId }, { ronda: pedida }] = await Promise.all([params, searchParams]);
+export default async function CompradorPage({ params, searchParams }: { params: Promise<{ personaId: string }>; searchParams: Promise<{ vista?: string; desde?: string; hasta?: string }> }) {
+  const [{ personaId }, periodo] = await Promise.all([params, searchParams]);
   const hoy = hoyLima();
+  // El período del estado de cuenta va en la URL, con las reglas del control de Rendimiento (Hoy, 7 días, Este mes o un rango de hasta 30 días).
+  const tramo = tramoDeUrl(periodo, hoy);
   const [yo, rondas, sinRonda, datos, plata, revisar] = await Promise.all([
     requirePersonaActualV2(),
     getCompradores(),
@@ -30,9 +33,10 @@ export default async function CompradorPage({ params, searchParams }: { params: 
     getRevisarCompras(),
   ]);
   const suyas = (rondas ?? []).filter((r) => r.personaId === personaId);
-  const ronda = rondaElegida(suyas, pedida);
+  // Su ronda abierta manda el resumen; el estado de cuenta junta las compras de todas sus rondas y se mira por fechas.
+  const ronda = suyas.find((r) => r.cerradaEn === null) ?? null;
   // Un id que no es de nadie (o mal escrito) no inventa un nombre: la vista dice que no encontró a la persona (/chaos 2026-11-26, NAV-07).
-  const nombreCompleto = ronda?.persona ?? datos.fondos.find((f) => f.personaId === personaId)?.persona ?? null;
+  const nombreCompleto = suyas[0]?.persona ?? sinRonda?.find((p) => p.personaId === personaId)?.persona ?? datos.fondos.find((f) => f.personaId === personaId)?.persona ?? null;
   const nombre = nombreCompleto ? primerNombre(nombreCompleto) : null;
 
   // Lo suyo de la bandeja de Revisar compras: la plata que anotó, sus compras por completar, sus gastos y su cierre por recibir.
@@ -59,17 +63,20 @@ export default async function CompradorPage({ params, searchParams }: { params: 
       <EntregarFondo opciones={datos.opciones} tiene={tiene} />
     </>
   );
+  const pendiente = {
+    porRevisar: suyas.reduce((a, r) => a + porRevisarDeRonda(r), 0),
+    faltaPagar: suyas.flatMap((r) => r.compras).reduce((a, c) => a + faltaPagarDeCompra(c), 0),
+  };
   return (
     <DetalleComprador
       nombre={nombre}
-      personaId={personaId}
       ronda={ronda}
-      tieneSinRonda={sinRonda?.find((p) => p.personaId === personaId)?.tiene}
-      otras={suyas.filter((r) => r.id !== ronda?.id)}
+      lineas={lineasDeCuenta(suyas, susMovimientos, tramo, soles)}
+      tramo={tramo}
       hoy={hoy}
+      pendiente={pendiente}
+      tieneSinRonda={sinRonda?.find((p) => p.personaId === personaId)?.tiene}
       acciones={acciones}
-      entregas={entregasDe(susMovimientos)}
-      plata={susMovimientos.length > 0 ? <MovimientosDeFondo movimientos={susMovimientos} dePersona /> : undefined}
       cerrarRonda={ronda && nombre && puedeCerrarseDesdeCompras(ronda) ? <CerrarRonda rondaId={ronda.id} nombre={nombre} /> : undefined}
       bandeja={
         hayQueRevisar ? (
