@@ -1573,9 +1573,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`lib/compra-rapida.ts`, `marcasConProveedores`).
 - **Compras reestructurado (ADR-0704, 2026-11-26):** el menú queda en Compradores, Todas las compras, Mis compras, Plan de campaña y Proveedores,
   sin pestañas. `/compras/compradores` (módulo `fondos`) → `lib/compradores.ts:getCompradores` → RPC `fn_compradores()` (y `getCompradoresSinRonda` → `fn_compradores_sin_ronda()`, quien tiene plata sin ronda abierta) + `lib/compradores-reglas.ts`
-  (puro: lectura, aviso de la ronda, la ronda elegida) → `components/compras/CompradoresVista.tsx` + `TarjetaComprador.tsx`; las rendiciones
+  (puro: lectura, quién va en la lista, su frase y sus etiquetas, y las líneas del estado de cuenta por fechas) → `components/compras/CompradoresVista.tsx` + `ListaCompradores.tsx`; las rendiciones
   por aprobar, `RendicionesPorAprobar.tsx`. `/compras/compradores/[personaId]` → la misma lectura + `getRevisarCompras`, `getPlataPorConfirmar`
-  y `getDatosFondos` filtrados a la persona → `DetalleComprador.tsx` con `BandejaRevisar`, `MovimientosDeFondo.tsx` y `CerrarRonda.tsx`
+  y `getDatosFondos` filtrados a la persona, más el período de la URL (`tramoDeUrl`) → `DetalleComprador.tsx` con `EstadoDeCuenta.tsx` (el control de fechas de Rendimiento), `BandejaRevisar` y `CerrarRonda.tsx`
   (`lib/compradores-acciones.ts` → `cerrar_ronda_sin_movimiento`). `/compras` («Todas las compras», módulo `facturas_compra`) →
   `getTodasLasCompras` → RPC `fn_todas_las_compras(desde, hasta, persona, busqueda, limite)` → `TodasLasComprasVista.tsx` + `BuscadorCompras.tsx`.
   `/compras/fondos` redirige a Compradores; `/compras/por-pagar` sigue, fuera del menú, con su vuelta a Todas las compras.
