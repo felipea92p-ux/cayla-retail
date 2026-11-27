@@ -63,12 +63,6 @@ export function rangoDelMes(mes: string): { desde: string; hasta: string } | nul
   return { desde, hasta };
 }
 
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-/** «septiembre» de un `aaaa-mm-dd` o `aaaa-mm`. */
-export function nombreDelMes(iso: string): string {
-  return MESES[Number(iso.slice(5, 7)) - 1] ?? "";
-}
-
 /** Una celda de CSV según RFC 4180: comillas si trae coma, comilla o salto de línea. */
 export function celdaCsv(v: string | number | null | undefined): string {
   const t = v == null ? "" : String(v);
