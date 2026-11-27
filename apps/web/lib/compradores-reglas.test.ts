@@ -234,11 +234,11 @@ describe("la tabla de Compradores: quién tiene plata", () => {
   });
 
   it("lo que pide cada persona nunca queda vacío", () => {
-    expect(loQuePide(de("Bhekam"), soles)).toEqual([{ tono: "pizarra", texto: "Sin compras todavía" }]);
+    expect(loQuePide(de("Bhekam"), soles)).toEqual([{ tono: "pizarra", texto: "Sin compras" }]);
     expect(loQuePide(de("Catherine"), soles).map((p) => p.texto)).toEqual(["2 por revisar", "Falta pagar S/ 315.00"]);
-    expect(loQuePide(de("Claudia"), soles)).toEqual([{ tono: "pizarra", texto: "Sin abrir su ronda" }]);
+    expect(loQuePide(de("Claudia"), soles)).toEqual([{ tono: "pizarra", texto: "Sin ronda" }]);
     expect(loQuePide(de("Lizzelott"), soles).map((p) => p.texto)).toEqual(["Quieta 17 días"]);
-    expect(loQuePide(de("Diego"), soles).map((p) => p.texto)).toEqual(["Cerrar su ronda, 34 días quieta"]);
+    expect(loQuePide(de("Diego"), soles).map((p) => p.texto)).toEqual(["Cerrar su ronda"]);
     expect(loQuePide({ ...de("Lizzelott"), quieta: null }, soles)).toEqual([{ tono: "verde", texto: "Al día" }]);
     expect(loQuePide({ ...de("Lizzelott"), quieta: null, queda: -200 }, soles)[0]).toEqual({ tono: "ambar", texto: "Pagó S/ 200.00 de más" });
     for (const f of filas) expect(loQuePide(f, soles).length).toBeGreaterThan(0);

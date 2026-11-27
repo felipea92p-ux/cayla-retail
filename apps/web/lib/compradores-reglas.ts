@@ -338,10 +338,10 @@ export function loQuePide(f: FilaComprador, soles: (n: number) => string): PideC
   if (f.queda < -0.005) pide.push({ tono: "ambar", texto: `Pagó ${soles(-f.queda)} de más` });
   if (f.porRevisar > 0) pide.push({ tono: "ambar", texto: `${f.porRevisar} por revisar` });
   if (f.faltaPagar > 0.005) pide.push({ tono: "ambar", texto: `Falta pagar ${soles(f.faltaPagar)}` });
-  if (f.quieta !== null) pide.push({ tono: "ambar", texto: f.cerrable ? `Cerrar su ronda, ${f.quieta} días quieta` : `Quieta ${f.quieta} días` });
+  if (f.quieta !== null) pide.push({ tono: "ambar", texto: f.cerrable ? "Cerrar su ronda" : `Quieta ${f.quieta} días` });
   if (pide.length > 0) return pide;
-  if (f.sinRonda) return [{ tono: "pizarra", texto: "Sin abrir su ronda" }];
-  if (f.compras === 0) return [{ tono: "pizarra", texto: "Sin compras todavía" }];
+  if (f.sinRonda) return [{ tono: "pizarra", texto: "Sin ronda" }];
+  if (f.compras === 0) return [{ tono: "pizarra", texto: "Sin compras" }];
   return [{ tono: "verde", texto: "Al día" }];
 }
 

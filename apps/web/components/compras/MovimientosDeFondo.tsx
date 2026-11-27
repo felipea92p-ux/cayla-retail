@@ -48,7 +48,7 @@ export function MovimientosDeFondo({
               return (
                 <li
                   key={m.id}
-                  className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-2 py-3 @min-[32rem]:grid-cols-[2.25rem_minmax(0,1fr)_auto_7rem]"
+                  className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 @min-[32rem]:grid-cols-[2.25rem_minmax(0,1fr)_auto_7rem]"
                 >
                   <span
                     aria-hidden
@@ -63,7 +63,7 @@ export function MovimientosDeFondo({
                       {dePersona ? TEXTO_MOVIMIENTO_FONDO[m.tipo] : m.persona}
                       {!dePersona && <span className="sr-only"> · {TEXTO_MOVIMIENTO_FONDO[m.tipo]}</span>}
                     </p>
-                    <p className="truncate text-sm text-taupe" title={linea}>
+                    <p className={dePersona ? "text-sm text-taupe" : "truncate text-sm text-taupe"} title={dePersona ? undefined : linea}>
                       {linea}
                     </p>
                   </div>

@@ -7,5 +7,7 @@
 - [ ] **Sin correr:** `guias:recorrer` de la guía de Compradores (se sumó el paso «Con plata, sin ronda abierta») y `/formidable`, `/chaos` de la pantalla.
 - [ ] **Sin decidir:** «Mis compras» sigue diciendo «Te dieron S/ 0» a quien recibió su plata por «Entregar plata» (la muestra como «lo que tenías»). ¿Se cuenta como «Te dieron»?
 - [x] **Rediseño (ADR-0704 act. c), aprobado por Felipe mirando las imágenes:** Compradores es una tabla de «quién tiene plata» con totales y cuatro cifras; el detalle va en dos columnas. Solo web. Visto en local con los datos reales a 1440 y 375 px (lista y detalle); el detalle también a 1024 y la lista a 1920, capturados sin revisar a fondo.
-- [ ] **Sin correr:** `/milimetro` (no aparece en la sesión que lo construyó), `/formidable`, `/chaos` y el modo oscuro (`tema:auditar`) de las dos pantallas.
+- [x] **`/milimetro auditar`** de las dos pantallas (`docs/milimetro/auditorias/2026-11-26-compradores-tabla.md`): 0 graves; 2 medias y 3 leves corregidas (el motivo de una entrega se cortaba, la barra de «Gastó» no decía su cifra, «100 %» corría la columna, insignias demasiado largas, un espacio fuera de escala). El oscuro, medido con el medidor de color (0 textos fallan) y mirando capturas.
+- [ ] **Abierto, de piezas del sistema (espera a Felipe):** `<Volver>` mide 42×42 con el dedo (pide 44) y `<Chip tono="pizarra">` en oscuro quedó sin concluir (4.39 a 5.41:1). Viven en `components/ui/`, que comparte Dynamic.
+- [ ] **Sin correr:** `tema:auditar` (necesita un banco con cuentas), `/formidable`, `/chaos`, y medir con el marco real del ERP (menú, cabecera y fondo).
 - [ ] **Sin probar con cuenta real:** «Entregar plata», «Anular» y la bandeja de revisión dentro del detalle nuevo (se vieron con piezas de muestra, sin base).

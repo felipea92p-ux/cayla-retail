@@ -119,7 +119,14 @@ export function DetalleComprador({
               <TarjetaCifra
                 etiqueta="Gastó"
                 valor={soles(gasto)}
-                pie={usado !== null ? <BarraAvance pct={usado} alto="normal" tono="tinta" etiqueta={`Usó el ${usado} % de su plata`} /> : undefined}
+                pie={
+                  usado !== null ? (
+                    <span className="flex items-center gap-3">
+                      <BarraAvance pct={usado} alto="normal" tono="tinta" decorativa className="min-w-0 flex-1" />
+                      <span className="shrink-0 text-xs text-secundario">Usó el {usado} %</span>
+                    </span>
+                  ) : undefined
+                }
               >
                 {ronda && ronda.cuenta.compras > 0
                   ? `${plural(ronda.cuenta.compras, "compra", "compras")}, ${plural(ronda.cuenta.prendas, "prenda", "prendas")}${ronda.cuenta.gastaste > 0 ? ` y ${soles(ronda.cuenta.gastaste)} de gastos` : ""}`

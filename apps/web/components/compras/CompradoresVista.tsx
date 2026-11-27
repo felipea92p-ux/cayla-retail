@@ -199,7 +199,7 @@ function FilaPersona({ f }: { f: FilaComprador }) {
         {f.usado !== null && (
           <span className="mt-1.5 flex items-center justify-end gap-2">
             <BarraAvance pct={f.usado} alto="fina" tono="tinta" decorativa className="w-16" />
-            <span className="w-9 text-right text-xs text-secundario">{f.usado} %</span>
+            <span className="w-10 text-right text-xs text-secundario">{f.usado} %</span>
           </span>
         )}
       </span>
