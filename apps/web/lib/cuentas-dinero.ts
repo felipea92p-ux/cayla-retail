@@ -88,6 +88,16 @@ export async function getPlataDelDueno(): Promise<Lectura<MovimientoDueno[]>> {
   return { datos: ((data ?? []) as Fila[]).map(leerMovimientoDueno), falla: null };
 }
 
+/** Solo el líder (ADR-0713): quién se llevó cada retiro y cada devolución que lo dice, por id de movimiento. Si la base todavía no tiene
+ *  la función (la web salió antes que la migración 20261127150000) o no responde, nada: el gráfico cuenta como antes, por quien anotó. */
+export async function getQuienSeLaLlevo(): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_quien_se_la_llevo" as never);
+  // relleno-a-proposito: sin esta lectura «Por quién» cuenta lo que salió para quien lo anotó, como antes del ADR-0713, y su ayuda lo dice
+  if (error) return {};
+  return Object.fromEntries(((data ?? []) as Fila[]).filter((f) => f.movimiento_id && f.nombre).map((f) => [String(f.movimiento_id), String(f.nombre)]));
+}
+
 /** Solo el líder: a qué cuenta entra hoy cada medio en cada tienda. */
 export async function getMediosDeCobro(): Promise<Lectura<FilaMedio[]>> {
   const supabase = await createClient();

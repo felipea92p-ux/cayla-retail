@@ -650,7 +650,44 @@ export type BorradorMovimiento = {
   /** Si sale de un cajón: de la caja abierta ahora, o un egreso que la tienda ya registró. */
   fuente: "caja" | "egreso";
   egresoId: string;
+  /** ADR-0713: en un retiro o una devolución, la persona (id) que se lleva la plata; "" mientras no se elige. */
+  seLaLleva: string;
 };
+
+// ---- Quién se lleva la plata del dueño (ADR-0713) -------------------------------------------------------------------------
+
+/** Lo que sale de CAYLA hacia una persona: la base no lo guarda sin decir quién se la llevó. */
+export const TIPOS_CON_QUIEN: readonly TipoMovimiento[] = ["retiro", "devolucion_prestamo"];
+export function pideQuienSeLaLleva(tipo: TipoMovimiento): boolean {
+  return TIPOS_CON_QUIEN.includes(tipo);
+}
+/** Quién se lleva la plata viaja en un encabezado, como la aliada de un pago (`x-aliada`, ADR-0683): la firma de la función no cambia. */
+export const ENCABEZADO_SE_LA_LLEVA = "x-se-la-lleva";
+export function conQuienSeLaLleva<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, personaId: string | null | undefined): C {
+  return personaId ? consulta.setHeader(ENCABEZADO_SE_LA_LLEVA, personaId) : consulta;
+}
+/** El título del campo de la nota: en un retiro es «Para qué» y es obligatorio; en lo demás, el voucher o la nota. */
+export function etiquetaNotaMovimiento(tipo: TipoMovimiento): string {
+  if (tipo === "retiro") return "Para qué";
+  if (tipo === "abono_tarjeta") return "Número de operación o nota";
+  return "Voucher o nota";
+}
+/** El ejemplo de la nota sigue a lo que pasó (ADR-0290): en un retiro, para qué; en el depósito de una máquina, el de esa máquina; en lo demás, un voucher. */
+export function ejemploNotaMovimiento(tipo: TipoMovimiento, origenNombre: string | null | undefined): string {
+  if (tipo === "retiro") return "Gastos personales del mes";
+  if (tipo === "devolucion_prestamo") return "Devolución del préstamo";
+  if (tipo === "abono_tarjeta") return ejemploReferenciaDeposito(origenNombre);
+  return "Voucher 120441";
+}
+/** Quienes pueden llevarse la plata, con los líderes primero y por nombre (lo que devuelve `fn_colaboradores`). */
+export function opcionesSeLaLleva(filas: readonly { persona_id?: unknown; nombre?: unknown; rol?: unknown }[]): { valor: string; texto: string }[] {
+  const vistas = new Set<string>();
+  return filas
+    .map((f) => ({ valor: String(f.persona_id ?? ""), texto: String(f.nombre ?? "").trim(), lider: f.rol === "lider" }))
+    .filter((f) => f.valor && f.texto && !vistas.has(f.valor) && vistas.add(f.valor))
+    .sort((a, b) => Number(b.lider) - Number(a.lider) || a.texto.localeCompare(b.texto, "es"))
+    .map(({ valor, texto }) => ({ valor, texto }));
+}
 
 export type PayloadMovimiento = {
   p_tipo: TipoMovimiento;
@@ -995,6 +1032,9 @@ export function validarMovimiento(
     if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
     fecha = b.fecha;
   }
+  // ADR-0713: lo que sale hacia una persona dice quién se la llevó, y un retiro dice para qué (la base vuelve a exigirlo).
+  if (pideQuienSeLaLleva(tipo) && !b.seLaLleva) return { ok: false, error: "Elige quién se lleva la plata." };
+  if (tipo === "retiro" && !b.referencia.trim()) return { ok: false, error: "Di para qué es el retiro." };
   return {
     ok: true,
     valor: {

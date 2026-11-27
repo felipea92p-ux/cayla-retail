@@ -14,21 +14,25 @@ import { graficoDelDueno, type VistaDueno } from "@/lib/dinero-dueno-cobros-regl
 
 // Cuentas y dinero ▸ Dónde está ▸ «Plata del dueño» (rediseño Felipe 2026-10-31, maqueta docs/maquetas/finanzas-dinero-rediseno-2026-10/): la tarjeta de
 // siempre (qué es un aporte y qué un préstamo, cuánto te debe CAYLA, cada préstamo con lo devuelto, «Poner plata» y «Sacar plata», que abren el mismo
-// «Registrar movimiento») y, a su lado, quién puso y sacó plata. «Quién» es quien REGISTRÓ el movimiento, no necesariamente quien lo pidió. Solo el
-// líder y solo con todas las sedes. El gráfico lee los movimientos que la pantalla ya trae (`fn_movimientos_dinero`, sin tope), no una lectura nueva.
+// «Registrar movimiento») y, a su lado, quién puso y sacó plata. Lo que salió cuenta para quien se lo llevó (ADR-0713, `seLaLleva`); lo que entró, y lo
+// que salió antes sin decir quién, para quien lo REGISTRÓ. Solo el líder y solo con todas las sedes. El gráfico lee los movimientos que la pantalla ya
+// trae (`fn_movimientos_dinero`, sin tope) y, para quién se lo llevó, `fn_quien_se_la_llevo`.
 
 export function PlataDelDueno({
   deuda,
   prestamos,
   movimientos,
+  seLaLleva = {},
 }: {
   deuda: number;
   prestamos: { id: string; fecha: string; monto: number; referencia: string | null; devuelto: number }[];
   movimientos: MovimientoDinero[];
+  /** ADR-0713: por id de retiro o devolución, quién se llevó la plata. */
+  seLaLleva?: Record<string, string>;
 }) {
   const abrir = useAbrirMovimiento();
   const [vista, setVista] = useState<VistaDueno>("quien");
-  const g = graficoDelDueno(movimientos, vista);
+  const g = graficoDelDueno(movimientos, vista, new Map(Object.entries(seLaLleva)));
   const neto = Math.round((g.puso - g.saco) * 100) / 100;
 
   return (
@@ -161,7 +165,7 @@ export function PlataDelDueno({
                   {neto < 0 ? "−" : "+"}
                   {solesDos(Math.abs(neto))}
                 </b>{" "}
-                para CAYLA. Cuenta a quien registró el movimiento; pasa el mouse por una fila para ver aportes, préstamos, devoluciones y retiros.
+                para CAYLA. Lo que salió cuenta para quien se lo llevó; pasa el mouse por una fila para ver el detalle.
               </p>
             </>
           )}

@@ -243,12 +243,14 @@ select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''depos
 // 6. La plata del dueño: aporte, préstamo, devolución (tope: lo que CAYLA debe) y retiro.
 {
   const r = correr(`${ESCENA}
+-- ADR-0713: un retiro o una devolución dice quién se lleva la plata.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, false) as _se_la_lleva \\gset
 select retail.registrar_movimiento_dinero('aporte', 1000, null, :'bcp') as _a \\gset
 select retail.registrar_movimiento_dinero('prestamo', 2000, null, :'bcp', null, 'Para la mercadería de invierno') as pr \\gset
 select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''devolucion_prestamo'', 2500, %L)', :'bcp'));
 select retail.registrar_movimiento_dinero('devolucion_prestamo', 500, :'bcp') as dv \\gset
 select pg_temp.intento(format('select retail.anular_movimiento_dinero(%L, ''error'')', :'pr'));
-select retail.registrar_movimiento_dinero('retiro', 100, :'bcp') as _r \\gset
+select retail.registrar_movimiento_dinero('retiro', 100, :'bcp', null, null, 'Retiro de prueba') as _r \\gset
 select pg_temp.saldo(:'bcp');
 select string_agg(tipo || ':' || monto, ',' order by tipo) from retail.fn_plata_del_dueno();
 select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''aporte'', 10, null, %L)', :'cajon_tru'));
@@ -475,7 +477,9 @@ select pg_temp.intento(format('select retail.fn_conciliacion(%L)', :'cajon_tru')
 select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, 'V-1', 0, null, :'egreso') as m \\gset
 select retail.registrar_movimiento_dinero('entre_cuentas', 100, :'bcp', :'ibk', retail.fn_hoy_lima() - 2) as e \\gset
 select retail.registrar_conciliacion(:'bcp', retail.fn_hoy_lima(), 1200, 'banca por internet') as c \\gset
-select retail.registrar_movimiento_dinero('retiro', 280.39, :'bcp') as r \\gset
+-- ADR-0713: un retiro o una devolución dice quién se lleva la plata.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, false) as _se_la_lleva \\gset
+select retail.registrar_movimiento_dinero('retiro', 280.39, :'bcp', null, null, 'Retiro de prueba') as r \\gset
 select x->>'saldo_sistema', x->'conciliacion'->>'saldo_sistema', x->'conciliacion'->>'diferencia', x->'conciliacion'->>'despues' from retail.fn_conciliacion(:'bcp') x;
 select ultima_diferencia from retail.fn_conciliacion_cuentas() where id = :'bcp';
 select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', retail.fn_hoy_lima() - 1) as olvido \\gset

@@ -127,6 +127,10 @@ export const PRUEBAS = [
   // una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
   "pruebas:cuentas-dinero",
 
+  // Un retiro dice quién se lleva la plata y para qué (ADR-0713): sin quién o sin para qué no se guarda nada, ni su egreso de caja;
+  // se guarda quién se la llevó, no quién la anotó. ROLLBACK.
+  "pruebas:retiro-quien-y-para-que",
+
   // Editar y eliminar cuentas (ADR-0195 F3, 2026-09-25): sin uso se corrige todo y se borra de verdad; usada, el tipo
   // queda y se archiva; el saldo inicial no se toca conciliado ni con su mes cerrado; solo el líder. ROLLBACK.
   "pruebas:editar-cuentas",

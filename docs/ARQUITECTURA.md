@@ -2077,7 +2077,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
   - `/finanzas/dinero` (Cuentas, `efectivo`, `por-pagar`, `conciliacion`; cabecera `CabeceraDinero`) → `lib/cuentas-dinero.ts`,
     `lib/por-pagar-consolidado.ts` → `fn_cuentas_dinero_saldos`, `registrar_movimiento_dinero`, `anular_movimiento_dinero`,
-    `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
+    `fn_por_pagar_consolidado`; «Plata del dueño» lee además `fn_quien_se_la_llevo` (`getQuienSeLaLlevo`, ADR-0713: quién se llevó cada retiro
+    o devolución, que la hoja manda en `x-se-la-lleva` y `registrar_movimiento_dinero` exige con `fn_quien_se_la_lleva`). Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
   - **Cuadrar con el banco sin las puentes (ADR-0629, Fase B, 2026-11-07):** `conciliacion` lista solo las cuentas con extracto

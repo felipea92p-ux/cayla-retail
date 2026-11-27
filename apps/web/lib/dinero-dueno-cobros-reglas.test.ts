@@ -63,6 +63,20 @@ describe("graficoDelDueno", () => {
   it("sin movimientos del dueño, un gráfico vacío y sin romper", () => {
     expect(graficoDelDueno([], "mes")).toEqual({ filas: [], puso: 0, saco: 0, maximo: 0 });
   });
+  it("ADR-0713: lo que salió cuenta para quien se lo llevó; lo de antes, sin quién, para quien lo anotó, y la ayuda lo dice", () => {
+    const anotadoPorRosa = mov({ id: "r-rosa", tipo: "retiro", monto: 1500, registradoPor: "Rosa Paredes" });
+    const sinDecir = mov({ id: "r-viejo", tipo: "retiro", monto: 1312.1, registradoPor: "Rosa Paredes" });
+    const aporte = mov({ id: "a", tipo: "aporte", monto: 5000 });
+    const g = graficoDelDueno([aporte, anotadoPorRosa, sinDecir], "quien", new Map([["r-rosa", "Felipe Alvarez"]]));
+    expect(g.filas.map((f) => [f.titulo, f.puso, f.saco])).toEqual([
+      ["Felipe Alvarez", 5000, 1500],
+      ["Rosa Paredes", 0, 1312.1],
+    ]);
+    expect(g.filas[0]!.detalle).toBe("aporte: S/\u00a05,000.00 · retiro: S/\u00a01,500.00");
+    expect(g.filas[1]!.detalle).toContain("sin decir quién se la llevó (cuenta para quien lo anotó): S/\u00a01,312.10");
+    // Por cuenta y por mes, quién no cambia nada.
+    expect(graficoDelDueno([anotadoPorRosa, sinDecir], "mes", new Map([["r-rosa", "Felipe Alvarez"]])).filas[0]!.detalle).not.toContain("sin decir");
+  });
   it("lo que puso menos lo que sacó es lo que queda en CAYLA (neto)", () => {
     const g = graficoDelDueno(MOVS, "quien");
     expect(g.puso - g.saco).toBe(10900);
