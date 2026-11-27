@@ -19,7 +19,6 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
-import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
 import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
@@ -52,7 +51,6 @@ import { AvisosExistencias } from "@/components/existencias/AvisosExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { pideSepararDanada } from "@/lib/danadas-lugar";
-import { contarDanadasViejas } from "@/lib/danadas-arreglo";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -163,7 +161,7 @@ export default async function InventarioPage({
   // base la repite y sin permiso devuelve cero filas. Dato secundario: si falla, sin el enlace. Arranca con las demás: hasta el 2026-11-13
   // empezaba recién cuando todas habían respondido y era el último tramo de la página, en fila (lo mostró `existencias_tramos`).
   const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? medir("valor", getValorInventario()) : Promise.resolve(null);
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, repartoDeStock, etapasOcultas, filtroEmpresa] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, empresasAqui, lugarDanadas, repartoDeStock, etapasOcultas, filtroEmpresa] = await Promise.all([
     existencias,
     medir("sububicaciones", getSububicaciones(ubicacionActivaId)),
     medir("traslados", getTrasladosEnCurso(ubicacionActivaId)),
@@ -192,8 +190,8 @@ export default async function InventarioPage({
     medir("catalogo", getCatalogoParaExistencias()),
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
     medir("colores", getColoresParaExistencias()),
-    // relleno-a-proposito: Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
-    vende ? medir("por_regularizar", contarPorRegularizar(ubicacionActivaId)).catch(() => null) : Promise.resolve(null),
+    // La cola por regularizar ya no se lee aquí (2026-11-26, «Existencias sin ruido»): solo la mostraba «Pendientes», que se fue. Las
+    // vencidas las avisa Inicio y la cola vive en /inventario/por-regularizar.
     empresasDeAqui,
     // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
     medir("lugar_danadas", getLugarDeDanadas(ubicacionActivaId)),
@@ -203,7 +201,6 @@ export default async function InventarioPage({
   ]);
   // Con una empresa elegida, cada talla dice SUS unidades (piso, almacén, apartado), y las que no tienen ninguna suya no salen.
   const stockDeLaVista = filtroEmpresa.cantidades ? soloUnidadesDe(stockBase, filtroEmpresa.cantidades) : stockBase;
-  const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
 
   // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
   // no sale de aquí: lo decide el motor del piso (`plan`).
@@ -334,8 +331,6 @@ export default async function InventarioPage({
     sububicacionAlmacen,
     danadosPendientes,
     lugarDanadas,
-    // Las que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida: «Para hoy» sube la fila a rojo (ADR-0564).
-    danadasViejas: contarDanadasViejas(danadosPendientes),
     abrirDanados: danados === "1",
     // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
     abrirSepararDanada: pideSepararDanada(danada),
@@ -357,8 +352,8 @@ export default async function InventarioPage({
     esTienda: vende,
     panelFiltros,
     coloresCatalogo: colores,
-    sinRegistrar,
     pisoSinCuadrarAntes,
+    barridoAbierto: barridoAbierto !== null,
     // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
     destinosParaEnviar: veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : [],
     // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).
@@ -413,13 +408,14 @@ export default async function InventarioPage({
         acciones={
           <>
             <BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />
-            {puedeBajarAlPiso && <BotonBarrido enCurso={barridoAbierto !== null} />}
+            {/* Con un barrido abierto, su banda (debajo) ya lleva a él: el botón repetía el destino (2026-11-26). */}
+            {puedeBajarAlPiso && !barridoAbierto && <BotonBarrido />}
             <ResumenExistencias key={`resumen-${ubicacionActivaId}`} cifras={propsCifras} valor={propsValor} />
             {/* Sin prendas no hay barra de filtros que abra la hoja: el botón no se dibuja. */}
             {stock.length > 0 && <FiltrosEnCabecera />}
             <AvisosExistencias
               key={`avisos-${ubicacionActivaId}`}
-              pisoSinCuadrarAntes={pisoSinCuadrarAntes}
+              pisoSinCuadrarAntes={pisoSinCuadrarAntes && barridoAbierto === null}
               puedeCuadrar={puedeBajarAlPiso}
             />
           </>
@@ -428,8 +424,20 @@ export default async function InventarioPage({
         {/* `w-full lg:w-auto`, el mismo ancho que `ResumenSede` pide para sí, ahora en su caja: bajo 640 px la caja se esconde. */}
         <div className="w-full max-sm:hidden lg:w-auto">
           <CifrasExistencias {...propsCifras} />
+          {/* «Ver el valor a costo» va bajo las cifras (2026-11-26, «Existencias sin ruido»): antes ocupaba su propia fila entre la banda
+              del barrido y la barra de filtros. Se lee junto a lo que cuenta; en el celular sigue en la hoja «Resumen». La llave lleva
+              un prefijo: `InventarioPanel`, su vecino, ya usa el id de la sede. Abierta, la sección se dibuja a lo ancho en la caja
+              de abajo (`abrirEn`): en esta columna la ensanchaba o alargaba la cabecera. */}
+          {propsValor && (
+            <div className="mt-2 flex justify-end">
+              <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} {...propsValor} abrirEn="existencias-valor-abierto" />
+            </div>
+          )}
         </div>
       </EncabezadoPagina>
+
+      {/* Donde se abre «Ver el valor a costo» (ver arriba). Vacía no ocupa lugar. */}
+      <div id="existencias-valor-abierto" className="empty:hidden" />
 
       {/* El barrido del piso (ADR-0690): hay uno en curso («Sumarme») o ya toca el del mes. Llega con la página: no aparece de golpe. */}
       {avisoBarrido && (
@@ -445,14 +453,6 @@ export default async function InventarioPage({
         >
           {avisoBarrido.detalle}
         </Aviso>
-      )}
-
-      {/* La llave lleva un prefijo: `InventarioPanel`, su hermano, ya usa el id de la sede, y dos hermanos no pueden repetirla. En el
-          celular, el valor a costo vive en la hoja «Resumen». */}
-      {propsValor && (
-        <div className="max-sm:hidden">
-          <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} {...propsValor} />
-        </div>
       )}
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una

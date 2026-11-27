@@ -8,6 +8,7 @@ import {
   leerCapacidadPiso,
   notaAccesorios,
   notaCapacidadPiso,
+  NOTA_SIN_CUADRE,
   separarColgadas,
   type CapacidadPiso,
 } from "./capacidad-piso";
@@ -95,18 +96,19 @@ describe("la nota de «Colgadas en el piso»", () => {
     expect(notaCapacidadPiso({ ...contada, m2Sala: 6, capacidad: 180, provisional: true })).toBe("de 180 (provisional)");
   });
 
-  it("mientras la sede no cuadró su piso, «por cuadrar» (ADR-0328: hoy TRU diría «138 de 600» sobre un piso lleno)", () => {
-    expect(notaCapacidadPiso(sinCuadrar(contada))).toBe("de 600 · por cuadrar");
-    expect(notaCapacidadPiso(sinCuadrar(provisional))).toBe("de 1800 (provisional) · por cuadrar");
+  it("mientras la sede no cuadró su piso, no compara con lo que cabe: «según el sistema» (2026-11-26: TRU leía «691 de 480» como «211 de más»)", () => {
+    expect(notaCapacidadPiso(sinCuadrar(contada))).toBe(NOTA_SIN_CUADRE);
+    expect(notaCapacidadPiso(sinCuadrar(provisional))).toBe(NOTA_SIN_CUADRE);
+    expect(NOTA_SIN_CUADRE).toBe("según el sistema");
   });
 
-  it("las cuatro combinaciones: «por cuadrar» sale si y solo si no hay fecha de cuadre; «(provisional)», si y solo si no se contó", () => {
+  it("las cuatro combinaciones: «de N» sale si y solo si hay fecha de cuadre; «(provisional)», si y solo si se contó y no es definitiva", () => {
     for (const prov of [false, true]) {
       for (const cuadradoEn of [null, CUADRE]) {
         const nota = notaCapacidadPiso({ ...contada, provisional: prov, cuadradoEn }) ?? "";
-        expect(nota.startsWith("de 600")).toBe(true);
-        expect(nota.includes("(provisional)")).toBe(prov);
-        expect(nota.endsWith(" · por cuadrar")).toBe(cuadradoEn === null);
+        expect(nota.startsWith("de 600")).toBe(cuadradoEn !== null);
+        expect(nota.includes("(provisional)")).toBe(prov && cuadradoEn !== null);
+        expect(nota === NOTA_SIN_CUADRE).toBe(cuadradoEn === null);
       }
     }
   });
@@ -242,9 +244,9 @@ describe("la tarjeta «Colgadas en el piso»", () => {
   ];
   const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, contadaEl: "2026-09-30", version: 1, cuadradoEn: null };
 
-  it("TRU: el número es la ropa («40 de 600 · por cuadrar») y los accesorios van aparte en la misma tarjeta («+ 17 accesorios»)", () => {
+  it("TRU: el número es la ropa («40 según el sistema», sin cuadre) y los accesorios van aparte en la misma tarjeta («+ 17 accesorios»)", () => {
     const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: tru });
-    expect(cifra).toMatchObject({ valor: 40, nota: "de 600 · por cuadrar", aparte: "+ 17 accesorios" });
+    expect(cifra).toMatchObject({ valor: 40, nota: NOTA_SIN_CUADRE, aparte: "+ 17 accesorios" });
     expect(cifra.titulo).toBe(
       "Ropa en el piso de venta, libre para vender: la que cuelga en el riel. Aparte, 17 accesorios en el piso (bisutería, bolsos, calzado…): no cuelgan en el riel y la caja también los cobra. Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan."
     );
@@ -273,10 +275,10 @@ describe("la tarjeta «Colgadas en el piso»", () => {
     expect(cifra.titulo).not.toContain("Caben");
   });
 
-  it("LIM sigue «(provisional)»: «de 180 (provisional) · por cuadrar»", () => {
+  it("LIM sin cuadre no compara («según el sistema») y su explicación sigue diciendo que es provisional", () => {
     const lim: CapacidadPiso = { m2Sala: 6, densidad: 30, capacidad: 180, provisional: true, contadaEl: null, version: 1, cuadradoEn: null };
     const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: lim });
-    expect(cifra.nota).toBe("de 180 (provisional) · por cuadrar");
+    expect(cifra.nota).toBe(NOTA_SIN_CUADRE);
     expect(cifra.titulo).toContain("Provisional: esta sede todavía no contó las prendas de su piso.");
   });
 

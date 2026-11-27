@@ -2,16 +2,14 @@
 
 import { useState, type ReactNode, type Ref } from "react";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
-import { ArrowUpDown, Building2, CircleAlert, LayoutGrid, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
+import { ArrowUpDown, Building2, LayoutGrid, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
-import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
 import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
 import { usePedidoDeFiltros } from "@/components/existencias/cabecera-existencias";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
-import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
 import type { ConteoDeLista } from "@/lib/existencias-tarjetas";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
@@ -19,10 +17,8 @@ import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { bordeDeMuestra, FAMILIAS_COLOR } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
-  CONDICIONES,
   contarFiltrosActivos,
   PREFIJO_FAMILIA,
-  ROTULO_CONDICION,
   type ClaveUrl,
   type ConteosFiltros,
   type FiltrosElegidos,
@@ -94,9 +90,8 @@ export function FiltrosExistencias({
   verComo = null,
   nota,
   onEscanear,
-  alLadoDeFiltros,
   enPausa = 0,
-  avisoPausa = null,
+  pausaPrevista = false,
   calculando = false,
 }: {
   busqueda: string;
@@ -141,11 +136,10 @@ export function FiltrosExistencias({
   nota?: ReactNode;
   /** Abre la cámara (`EscanerBusqueda`). Un solo icono junto al buscador, desde `sm`: en el celular ya está el botón fijo de abajo. */
   onEscanear?: () => void;
-  /** Lo que va al costado de «Filtros»: el anillo «Al día» de la sede (2026-10-06). */
-  alLadoDeFiltros?: ReactNode;
-  /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» va en pausa y lleva la explicación (`FiltrosRapidos`). */
+  /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» no se dibuja (`FiltrosRapidos`). */
   enPausa?: number;
-  avisoPausa?: string | null;
+  /** El piso nunca se cuadró, sabido antes del plan (`FiltrosRapidos`). */
+  pausaPrevista?: boolean;
   /** «Hoy» viene en camino (Existencias en dos tiempos, 2026-11-13): los atajos «Por colgar» y «Sin stock atrás» y, con un caso de «Hoy»
    *  puesto, la cifra de la lista dicen «calculando» en vez de un 0 que no se sabe. */
   calculando?: boolean;
@@ -191,10 +185,10 @@ export function FiltrosExistencias({
   const estadosColor = estadoDeColor(coloresMarcados, opcionesColor);
 
   // Filas con nombre, como Productos (reordenado el 2026-10-06 para despejar la barra): «Prenda», lo que se pregunta de ella
-  // (categoría, talla, color y marca: la marca es de la prenda, no de quien gestiona); «Gestión», qué pide hoy y en qué condición
-  // está (los mismos filtros que los atajos, con las combinaciones que un atajo no hace); y «Vista», cómo se ve (tarjetas, tabla o por
-  // talla), cómo se ordena y si suena al confirmar, que antes ocupaban la fila del buscador. El mismo panel va en la página (computadora)
-  // o en la hoja (celular).
+  // (categoría, talla, color y marca: la marca es de la prenda, no de quien gestiona), y «Vista», cómo se ve (tarjetas, tabla o por
+  // talla) y cómo se ordena. El mismo panel va en la página (computadora) o en la hoja (celular).
+  // «Gestión» (Hoy y Condición) salió el 2026-11-26 («Existencias sin ruido», Felipe): repetía los atajos de debajo del buscador y las
+  // cifras de la cabecera. El sonido al confirmar, que es un ajuste del equipo y no un filtro, pasó al pie de la lista.
   const ordenTexto = orden ? (orden.opciones.find((o) => o.valor === orden.valor)?.texto ?? orden.valor) : null;
   const ordenDistinto = orden !== null && orden.valor !== orden.porDefecto;
   // Como el orden: si la lista no se ve en tarjetas, un chip lo dice y vuelve a ellas de un toque (el control vive dentro de «Filtros»).
@@ -267,42 +261,6 @@ export function FiltrosExistencias({
           />
         )}
       </FilaPildoras>
-      {separa && (
-        <FilaPildoras titulo="Gestión">
-          {/* «Hoy» (qué pide la talla: las mismas palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
-              dos preguntas (Felipe, 2026-10-03). Cada talla cae en un solo «Hoy»: no hay combinación que se vacíe sola. */}
-          <DesplegablePildora
-            icono={ListChecks}
-            etiqueta="Hoy"
-            valor={elegidos.hoy ?? TODOS}
-            onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
-            rotuloCantidad="Productos con alguna talla así"
-            opciones={[
-              { valor: TODOS, texto: "Todo" },
-              ...contar(
-                TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
-                "hoy",
-                elegidos.hoy
-              ),
-            ]}
-          />
-          <DesplegablePildora
-            icono={CircleAlert}
-            etiqueta="Condición"
-            valor={elegidos.condicion ?? TODOS}
-            onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
-            rotuloCantidad="Productos con alguna talla así"
-            opciones={[
-              { valor: TODOS, texto: "Cualquiera" },
-              ...contar(
-                CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
-                "condicion",
-                elegidos.condicion
-              ),
-            ]}
-          />
-        </FilaPildoras>
-      )}
       <FilaPildoras titulo="Vista">
         {/* «Ver como» (2026-10-06, tarde): tarjetas, tabla o una fila por talla, a un toque y con su nombre. Antes era un icono suelto en
             la barra y, en la tabla, otro par «Por prenda | Por talla»: ahora la barra solo busca y filtra.
@@ -340,8 +298,6 @@ export function FiltrosExistencias({
             opciones={orden.opciones}
           />
         )}
-        {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
-        <BotonSonidoConfirmar conNombre />
       </FilaPildoras>
     </PanelPildoras>
   );
@@ -425,7 +381,6 @@ export function FiltrosExistencias({
               onClick={alTocarFiltros}
             />
           </span>
-          {alLadoDeFiltros}
         </div>
 
         {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
@@ -481,7 +436,7 @@ export function FiltrosExistencias({
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
         {separa && (
           <div className="order-2 min-w-0 basis-full xl:order-4">
-            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} calculando={calculando} />
+            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} pausaPrevista={pausaPrevista} calculando={calculando} />
           </div>
         )}
       </div>

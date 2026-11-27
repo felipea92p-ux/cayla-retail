@@ -52,14 +52,17 @@ export function leerCapacidadPiso(datos: unknown): CapacidadPiso | null {
 }
 
 /**
- * La nota de la cifra «Colgadas en el piso»: «de 600», «de 1800 (provisional)» si la sede no se ha contado, y « · por cuadrar»
- * mientras la sede no haya cuadrado su piso (ADR-0328: «583 de 600» con la marca «por cuadrar»). Sin separador de miles, como el
- * número grande de al lado (`CifraAnimada`), y como pide la RAE para cuatro cifras.
+ * La nota de la cifra «Colgadas en el piso»: «de 600», o «de 1800 (provisional)» si la sede no se ha contado. Sin separador de miles,
+ * como el número grande de al lado (`CifraAnimada`), y como pide la RAE para cuatro cifras.
+ * Mientras la sede no haya cuadrado su piso dice «según el sistema» y NO compara con lo que cabe (2026-11-26, «Existencias sin ruido»):
+ * sin cuadre ninguna de las dos cifras es confiable (ADR-0328 d.5), y TRU leía «691 de 480 · por cuadrar» como «211 de más». Hasta
+ * entonces la marca era «de 600 · por cuadrar». La explicación al pasar el mouse sigue diciendo cuántas caben y por qué falta el cuadre.
  */
+export const NOTA_SIN_CUADRE = "según el sistema";
 export function notaCapacidadPiso(capacidad: CapacidadPiso | null): string | undefined {
   if (!capacidad) return undefined;
-  const de = `de ${capacidad.capacidad}${capacidad.provisional ? " (provisional)" : ""}`;
-  return capacidad.cuadradoEn ? de : `${de} · por cuadrar`;
+  if (!capacidad.cuadradoEn) return NOTA_SIN_CUADRE;
+  return `de ${capacidad.capacidad}${capacidad.provisional ? " (provisional)" : ""}`;
 }
 
 /**

@@ -1,239 +1,219 @@
 # Pantalla — Existencias (`/inventario`)
 
-> Modo: completo · Fecha: 2026-10-04 · Rol/sede: líder, Tienda TRU (captura de Felipe, 13:42 Lima) · Dispositivo: escritorio a 2000 px (la captura); celular a 375 px **juzgado por el código**, no capturado `[código]` · Datos: **real**, producción (proyecto cayla-dynamic, schema `retail`), dos consultas de solo lectura hechas hoy a las 13:56 Lima, sin datos personales (ver Anexo).
-> SHA analizado: `e6fde14d` = `origin/main`. El análisis del 2026-10-03 (SHA `b4cb05c3`) **queda vencido**: desde ese SHA cambiaron 18 archivos de la pantalla (la barra de filtros nueva, `FiltrosExistencias.tsx` con +399 líneas, ADR-0326; `InventarioPanel.tsx` con +/−599; `lib/existencias-hoy.ts` nuevo). No se tomó como base: en el Historial se marca qué tareas suyas se cerraron.
-> Archivos: `app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `ExistenciasTarjetas.tsx` · `TarjetaReponerAPiso.tsx` · `FiltrosExistencias.tsx` · `CajonPrendaExistencias.tsx` · `ExistenciasPorPrenda.tsx` · `ui/EncabezadoPagina.tsx` · `lib/existencias-hoy.ts` · `lib/existencias-prendas.ts` · `lib/existencias-recomendaciones.ts` · `lib/politica-operativa-inventario.ts` · `lib/inventario-reglas.ts` · `lib/inventario-v2.ts` · `lib/por-regularizar.ts` · RPC `bajar_al_piso`, `retirar_del_piso`, `ajustar_inventario`, `fn_stock_por_sede_json`, `fn_ritmo_reciente_json`, `fn_resumen_variantes_json`, `listar_apartados` · tablas `stock`, `sububicaciones`, `prendas_danadas`, `apartados`, `prendas_por_regularizar`, `bajadas_piso`.
-> Otra sesión tocándola: **no** en código. Las filas de `docs/SESIONES-ACTIVAS.md` que nombran Existencias (líneas 18, 44, 49-53, 56) son de ramas ya fusionadas o viejas: el tablero está vencido. Esta misma sesión tiene un rediseño sin commit en el árbol de trabajo (cabecera y «Para hoy»); este análisis juzga `origin/main`.
-> Método: mapa del código por un subagente de solo lectura (cadena `page.tsx` → componentes → `lib/` → RPC → RLS, con `archivo:línea` de `origin/main`); consultas de producción propias; lentes de `/rigor` donde cambiaron la decisión. Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` consulta de hoy · `[inferido]` · `[no verificable]`.
-> Contexto de negocio de hoy: Felipe respondió tres rondas de preguntas sobre Inventario (2026-10-04). Las que tocan esta pantalla: la portada es **buscador + «Para hoy» (3 frases como máximo, con cifra y botón) + catálogo**; el número grande es **colgadas** (y, cuando exista la capacidad, «de las que caben»); se diseña para **encargado de sede, asesora y cuenta Almacén**; «formidable» = **cifras verdaderas + sin capacitación + que se vea espectacular**; el mínimo es **1 colgada por talla y color, solo tallas centrales**; Análisis y Frescura los ven todos.
+> Modo: completo, **sin SQL** (la consulta de solo lectura a producción no se pudo correr desde esta sesión: va en el Anexo para que la corra Felipe) · Fecha: 2026-11-26 · Rol/sede: líder, Tienda TRU (captura de Felipe, 17:09 Lima) · Dispositivo: escritorio (la captura, ~1600 × 680 px) · Datos: las cifras de la captura `[visto]`; ninguna verificada contra la base.
+> SHA analizado: `5192595cb` = `origin/main` (esta rama no va atrás). El análisis del 2026-10-04 (SHA `e6fde14d`) **queda vencido**: desde entonces `InventarioPanel.tsx` cambió +/−1.296 líneas y `FiltrosExistencias.tsx` +/−474; llegaron el barrido (ADR-0690), el anillo (ADR-0344 §16), los atajos (ADR-0344), las cifras que filtran (ADR-0391), el valor a costo (ADR-0557) y la capacidad (ADR-0329).
+> Archivos: `app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `FiltrosExistencias.tsx` · `existencias/{BotonAjustarStock,BotonBarrido,CifrasExistencias,ValorInventarioExistencias,AnilloMision,FiltrosRapidos,AvisosExistencias}.tsx` · `ui/EncabezadoPagina.tsx` · `lib/{barrido-piso-reglas,capacidad-piso,existencias-rapidos,existencias-filtros,existencias-tarjetas,existencias-hoy,existencias-mision,existencias-para-hoy,sonido-confirmar}.ts` · RPC `fn_capacidad_piso`, `fn_valor_inventario_existencias`, `fn_tallas_sin_costo`, `confirmar_barrido_piso`, `cuadrar_piso` · tablas `capacidad_piso`, `cuadres_piso`, `barridos_piso`, `barrido_piso_lecturas`, `stock`.
+> Otra sesión tocándola: **sí, en parte** — `claude/existencias-modal-liviano` (worktree `login-infinite-load-bug-552ccb`, hace 2 días, 43 archivos sin commit, casi todo maquetas del **modal** de la prenda). Ninguna de las 12 de abajo toca ese modal.
+> Pedido de Felipe: «revisar si todo lo que muestra sirve de algo o solo hay cosas que estorban». Por eso este análisis pesa más el **Inventario de elementos** (al final), elemento por elemento.
 
 ## 0 · Veredicto
-La base es sana y las escrituras son todo-o-nada, pero la cara **dice cosas que no son verdad y no dice por dónde empezar**: «Incidencias 0» con 78 ventas sin registrar en TRU, «reponer» en las 538 tallas, un rojo en cada tarjeta y cinco botones compitiendo arriba.
-**Cumple su finalidad:** 4,5/10 (promedio de las 6; el tope de 5 no hizo falta) · **Relevancia:** 8,2/10 — **Núcleo**.
+Casi todo lo que se ve sirve, pero **un mismo hecho se dice cinco veces y dos destinos tienen dos puertas cada uno**: en 680 px de alto no aparece ni una prenda. Lo que estorba no son las piezas sino sus repeticiones, más dos cifras que se contradicen a la vista («691 de 480», «918» contra «386 productos»).
+**Cumple su finalidad:** 6,2/10 (promedio de las 6; sin tope: nada de lo hallado mueve dinero ni stock) · **Relevancia:** 8,2/10 — **Núcleo**.
 
 ## 1 · Finalidad declarada
-«Existencias existe para que la sede sepa **cuántas prendas tiene, dónde están** (colgadas, guardadas, en camino, dañadas) **y qué toca hacer hoy con ellas**, y lo haga sin salir.» Fuente: `docs/datos/modulos/05-inventario-y-movimientos.md` §«Para qué existe» («nadie sabe cuántas hay, dónde están, ni por qué la cuenta cambió»), la frase de la cabecera `page.tsx:171` y ADR-0231/0237. No se usó la captura como fuente.
-**¿Docs y pantalla coinciden?** En lo que guarda, sí. En lo que dice, no: promete «qué deberías reponer hoy» y contesta «todo» (§4.2). Además `docs/ARQUITECTURA.md:196` todavía describe la `/inventario` de V1 (`lib/inteligencia.ts`, `InventarioAgrupado.tsx`, `/inventario/almacen`), que no existen: manda el código.
+«Existencias existe para que la sede sepa **cuántas prendas tiene y dónde están** (colgadas, guardadas, apartadas, dañadas, en camino) **y qué toca hacer hoy con ellas**, sin salir.» Fuente: `docs/datos/modulos/05-inventario-y-movimientos.md` («Para qué existe»), ADR-0231/0237 y ADR-0328 (el piso). No se usó la captura.
+**¿Docs y pantalla coinciden?** En qué guarda, sí. En el orden, no: la finalidad pone **las prendas** primero, y la captura no muestra ninguna sin desplazarse `[visto]`.
 
 ## 2 · Objeción
-1. **Lo peor no es feo, es falso.** La tarjeta «Incidencias» dice **0** `[visto]` mientras en TRU hay **78 ventas sin registrar, 14 vencidas** `[producción]`: prendas que ya se fueron y el stock todavía cuenta. Existencias no lee esa cola (`prendas_por_regularizar` no aparece en ningún archivo de la pantalla) `[código]`. Una pantalla que miente por omisión es peor que una vacía.
-2. **«Reponer» no distingue nada.** La regla es «reponer si hay 4 o menos colgadas» (`lib/politica-operativa-inventario.ts:39-42`, `lib/existencias-recomendaciones.ts:131-137`). En TRU **ninguna talla tiene 5 o más en el piso** `[producción]`: la regla marca el 100 % (538 de 538). Una regla que dice «sí» a todo no informa nada. Felipe ya decidió el reemplazo hoy: **1 colgada por talla y color**.
-3. **«Por colgar» es casi todo un error de registro, no trabajo.** 391 de 538 tallas figuran «por colgar» `[producción]`. Pero con el mínimo decidido, TRU necesita **539 lugares de 600** (546 combinaciones talla-color con stock, 539 en talla central) `[producción]`, y Felipe contó **600–750 prendas colgadas** el 30-sep: lo que el sistema llama «por colgar» ya está colgado y entró al sistema como «guardado». Si la pantalla manda a colgarlo, el equipo aprende el primer día a no creerle. (Lente de `/rigor`: el mínimo cabe, así que el hueco es de datos, no de piso.)
-4. **El rojo dejó de ser señal.** El sistema fija **2 rojos por pantalla como máximo** (`packages/shared/src/design-tokens.ts:73`) y **ningún archivo de código lo importa** `[código]`. En la captura hay más de 30 elementos rojos: la caja «Piso» de cada tarjeta va siempre en rojo (`ExistenciasTarjetas.tsx:233-235`), la pastilla «por colgar» es roja (`lib/existencias-hoy.ts:60-65` → `ExistenciasTarjetas.tsx:89`), la tarjeta «Reponer a piso hoy» es rosada casi siempre (`TarjetaReponerAPiso.tsx:62-72`).
-5. **Trade-off que asumo:** arreglar la cara sin cuadrar el piso de TRU deja una pantalla bonita con «por colgar» inflado. Por eso «Para hoy» dice la verdad sobre ese número (tarea #3) y el cuadre va como la cosa de mayor consecuencia fuera de esta pantalla (§10).
+1. **El piso sin cuadrar se dice cinco veces, en tres colores y con dos salidas distintas.** «· por cuadrar» en la cifra (`lib/capacidad-piso.ts:59-63`), el ícono de pausa en el chip «Por colgar» (`existencias/FiltrosRapidos.tsx:82,109-112`), la franja ámbar «nunca se ha cuadrado» (`InventarioPanel.tsx:128-144,1177`), la tarea «N tallas esperan el cuadre» dentro del anillo (`lib/existencias-para-hoy.ts:167-174`) y la banda azul «Barrido en curso» — porque **un barrido confirmado ES un cuadre** (ADR-0690 §5, `20261122193000_barrido_piso_confirmar.sql:60-61`). Y las salidas no coinciden: la banda dice «Sumarme» (→ `/inventario/barrido`, se escanea lo colgado) y la franja dice «Cuadrar el piso» (→ `/inventario/cuadrar`, se escanea lo guardado) `[código]`. Una asesora que ve las dos no sabe si son dos tareas o una. El comentario del propio código dice que la franja «lleva al barrido» (`lib/barrido-piso-reglas.ts:759`) y no es así: el documento y el código ya se separaron.
+2. **«691 de 480» se lee como un error.** 480 es la capacidad del riel (`retail.capacidad_piso`, `fn_capacidad_piso`); ninguna regla dice qué significa pasarse (no hay ADR que lo trate) `[código]`. Mientras el piso está «por cuadrar», **ninguna** de las dos cifras es confiable (ADR-0328 dec. 5), así que la comparación no informa: confunde. Además la migración trae 600 para TRU (20 m² × 30) y la pantalla dice 480: alguien lo cambió después con `fijar_capacidad_piso` `[código]` `[no verificable sin SQL]`.
+3. **Las cifras de los chips no se suman con la de la lista.** «386 productos» cuenta modelos; «Sin stock atrás 918» cuenta **modelo + color** (`lib/existencias-filtros.ts:287`, `lib/existencias-tarjetas.ts:25`) `[código]`. Un filtro que trae más de lo que dice tener la lista entera parece roto. Y, aunque fuera de la misma unidad, 918 cosas «por traer de otra sede» no son una tarea: es el mismo defecto de «reponer 538 de 538» del análisis anterior, con otro nombre.
+4. **Trade-off que asumo:** varias de estas repeticiones son **a propósito** (ADR-0344: los atajos duplican las píldoras para no abrir el panel; ADR-0391: la franja no se pierde de vista). Quitarlas obliga a que la que queda sea imposible de no ver. Por eso las tareas no borran el aviso: lo **funden en uno**.
 
 ## 3 · Lo que está bien y no se toca
-- **El libro manda.** El stock es foto del libro de movimientos (705 claves sin diferencia el 3-oct) y cada movimiento piso↔almacén es una RPC `security definer` con candado de módulo (`bajar_al_piso` 20261002120000:62-67, `retirar_del_piso` :76-81, `ajustar_inventario` `fn_puede_ajustar_stock` :87-92) `[código]`.
-- **Lo secundario no tumba la pantalla.** La comparación de 7 días, el ritmo, la marca y los colores fallan con aviso y la pantalla sigue en pie (`page.tsx:69-75`, `:82-84`; `InventarioPanel.tsx:864-866`) `[código]`.
-- **Filtros en la URL con conteos por opción** (ADR-0326): recargar, volver o copiar el enlace los trae puestos; las opciones que vaciarían la lista se esconden (`FiltrosExistencias.tsx`, `lib/existencias-filtros.ts`) `[código]`.
-- **«Hoy» como una sola palabra por talla** (`hoyDeTalla`, `lib/existencias-hoy.ts:45-50`): los cuatro casos no se pisan; el filtro y la pastilla dicen lo mismo `[código]`.
-- **La pistola y la cámara abren la talla exacta** (`InventarioPanel.tsx:547-557`, `:770-772`) y el botón fijo «Escanear prenda» del celular (`:1403-1416`) `[código]`.
-- **El estado vacío explica y propone** (`ExistenciasVacio`, 56 pruebas) `[código]`.
+- **El barrido no puede mover de más.** Lo que tuvo cualquier movimiento después de abrir el barrido se salta (`se_movio`) y todo se confirma todo-o-nada (`confirmar_barrido_piso`, `20261122193000_barrido_piso_confirmar.sql`, encabezado) `[código]`. Hacer «Cuadrar el piso» con un barrido abierto no descuadra el stock: solo desperdicia el trabajo.
+- **La pausa no miente.** Con el piso sin cuadrar, «Por colgar» no dice 0 («todo listo») sino pausa (`lib/existencias-hoy.ts:63-68`) `[código]`. El principio se queda aunque la tarea #5 cambie la forma.
+- **Las cifras filtran** (tocar 691 → solo colgadas; `CifrasExistencias.tsx:48-51`) y **los filtros viven en la URL** (ADR-0326/0391) `[código]`.
+- **El panel de filtros viene cerrado de fábrica** y solo se abre porque este equipo lo dejó abierto (cookie, `FiltrosExistencias.tsx:164-170`, `page.tsx:289`) `[código]`. No es un defecto de la pantalla.
+- **«Ver el valor a costo» solo lo ve quien puede ver dinero** (`page.tsx:165`) y se despliega en el lugar, sin pedirlo de entrada `[código]`.
+- **«Ajustar stock» exige su permiso y la sede propia** (`BotonAjustarStock.tsx:32-41`, ADR-0494) `[código]`.
+- **La línea de arriba dice sede y la hora de la foto** («vista de las 17:09», ADR-0220): necesaria, porque la pantalla no se actualiza sola `[código page.tsx:283,405]`.
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 4 | Cinco botones en dos renglones, cuatro tarjetas de las que dos dicen 0, rótulos en mayúsculas espaciadas por todas partes y más de 30 rojos contra un tope de 2 | `[visto]`, `[código ExistenciasTarjetas.tsx:233]`, `design-tokens.ts:73` |
-| Lógica de negocio | 3 | «Incidencias 0» con 78 ventas sin registrar; «reponer» en 538 de 538; dos clasificaciones por talla que se contradicen | `[producción]`, `[código existencias-prendas.ts:38-43 vs existencias-hoy.ts:45-50]` |
-| Arquitectura | 7 | Libro sano y escrituras con candado; lecturas que se piden y no se muestran; el tope de rojo no lo hace cumplir nada | `[código page.tsx:159-160, inventario-v2.ts:357]` |
-| Funciones | 5 | Bajar, subir, ajustar, buscar y escanear funcionan; la tarjeta «Reponer a piso hoy» no tiene cifra y su clic solo escribe en el buscador | `[código TarjetaReponerAPiso.tsx:49-108, InventarioPanel.tsx:722-728]` |
-| Utilidad | 3 | Una asesora nueva no sabe qué número creer ni por dónde empezar | `[visto]`, §4.5 |
-| Conexión con el ERP | 5 | No lee la cola de Recibir; no muestra la edad del piso (Frescura); ninguna capacidad por sede | `[código]` |
+| Estética | 6 | Vidrio Serena bien aplicado; pero tres bandas, un enlace suelto y el panel abierto empujan las prendas fuera de la vista | `[visto]` |
+| Lógica de negocio | 5 | «691 de 480» sin regla; chips en otra unidad que la lista; «Sin stock atrás 918» no se puede hacer en un día | `[código capacidad-piso.ts:59-63, existencias-filtros.ts:287]` |
+| Arquitectura | 8 | Barrido y cuadre todo-o-nada con `se_movio`; dos flujos distintos escriben el mismo `cuadres_piso` | `[código 20261122193000:60-61]` |
+| Funciones | 6 | Todo funciona; sobran puertas dobles: barrido ×2, piso sin cuadrar ×5, Hoy/Condición ×2, colgadas/guardadas ×2 | §2, Inventario |
+| Utilidad | 5 | La asesora nueva ve «Sumarme» y «Cuadrar el piso» y no sabe cuál; «0 de 74 hoy» no dice 74 qué | `[visto]`, §4.5 |
+| Conexión con el ERP | 7 | Barrido, cuadre, plan del piso y Frescura leen la misma tabla; la red de otras sedes alimenta el anillo | `[código]` |
 
-### 4.1 Estética (4)
-- **Cabecera:** cinco controles en dos renglones a la derecha; el oscuro es «+ Nuevo traslado» (`page.tsx:195-199`), que no es el trabajo diario de una tienda; «Bajar al piso», que sí lo es, va claro (`:190-194`) `[visto][código]`.
-- **«Prioridades de hoy»:** un título y una bajada (`InventarioPanel.tsx:688-689`) más cuatro tarjetas fijas; «En camino 0» e «Incidencias 0» ocupan media fila diciendo nada `[visto]`. «Resumen disponible: 795 uds» es la cifra más grande y la que menos sirve: la caja no cobra 795 `[visto]`.
-- **Barra de filtros abierta de fábrica:** «BUSCAR /», «PRENDA», «GESTIÓN», «CATEGORÍA», «TALLA», «COLOR», «HOY», «CONDICIÓN», «MARCA», «COPIAR ENLACE», «ORDENAR POR: MÁS RELEVANTES»: once rótulos en mayúsculas espaciadas antes de la primera prenda `[visto]`. La primera prenda empieza a ~920 px de 1.107 en la captura `[visto]`.
-- **Tarjeta de prenda:** la caja «Piso» va en fondo rojo al 9 % con la cifra en rojo profundo **siempre**, aunque no pase nada (`ExistenciasTarjetas.tsx:233-235`); cuatro botones por tarjeta y uno negro en cada una: 15 botones negros por página (`:315-358`) `[código]`. La curva de tallas repite «Piso / Almacén» con íconos en cada renglón (`:109-130`).
-- **Hermanas:** Ventas, Cambios y Devoluciones usan `ResumenSede` a la derecha de la cabecera (cifras centradas en un recuadro de papel); Existencias es la única de Inventario con la cabecera de Ventas (ADR-0220) que no lo usa `[código]`.
+### 4.1 Estética (6)
+(a) Tokens y vidrio en orden; ámbar para lo pendiente, sin rojo en la parte visible `[visto]`. (b) Tono de tienda. (c) Nielsen «estética minimalista»: cada elemento repetido compite con el que importa; en la captura hay **cinco** llamados a la acción visibles (Ajustar stock, Barrido, Sumarme, Cuadrar el piso, el anillo) y ninguna prenda. Los «·» como separador («TIENDA TRU · JUEVES…», «Barrido en curso · 1 prenda», «de 480 · por cuadrar») son lo que Felipe rechazó el 2026-11-24 para maquetas y la tienda; en el ERP es decisión aparte (tarea #12).
 
-### 4.2 Lógica de negocio (3)
-- **Viola el principio 4 de `CLAUDE.md` por omisión** («una sola fuente de verdad»): el stock cuenta como presentes 78 prendas de TRU y 170 de AQP que ya se vendieron (`prendas_por_regularizar` pendientes) `[producción]`, y la pantalla dice «Incidencias 0» `[visto]`. Ninguna decisión escrita dice que Existencias no deba mostrarlas; ADR-0179 fija el plazo de 2 días.
-- **La regla de reponer** (ADR-0231, umbral 4) quedó contradicha por la decisión de Felipe de hoy (1 por talla y color). Con el 4 no hay talla en «Mantener» en TRU `[producción]`.
-- **Dos nombres para el mismo hecho:** `estadoTalla` (`lib/existencias-prendas.ts:38-43`: sin_stock / por_colgar / reponer / normal) y `hoyDeTalla` (`lib/existencias-hoy.ts:45-50`: por_colgar / por_reponer / sin_stock_atras / mantener). Una talla con 2 en el piso y 0 en el almacén es «reponer» en la celda de la tarjeta y «sin stock atrás» en la pastilla de la misma tarjeta `[código]`. Integridad conceptual: una de las dos sobra.
-- **«Reponer a piso hoy» no cuenta lo mismo que el filtro «Hoy»:** toma la unión de tres casos (todo menos «mantener») y ninguna opción del filtro reproduce ese conjunto; su clic escribe el nombre en el buscador en vez de filtrar (`TarjetaReponerAPiso.tsx:57-62`, `InventarioPanel.tsx:722-728`) `[código]`. ADR-0326 §5 dejó esto pendiente.
+### 4.2 Lógica de negocio (5)
+- «Colgadas de lo que cabe» es la cifra que Felipe pidió el 2026-10-04 y está bien pensada. Lo que falla es mostrar la comparación **antes** del cuadre, cuando ADR-0328 dec. 5 dice que no se afirma nada del piso sin cuadrar.
+- Ninguna decisión escrita cubre qué hacer con **colgadas > capacidad** (¿riel sobrecargado? ¿capacidad mal medida?).
+- «Sin stock atrás» = falta en el piso y el almacén está vacío (`lib/existencias-rapidos.ts:35`). Con 918 combinaciones, incluye colores que la tienda no vende hace meses `[inferido: el motor del piso no filtra por venta reciente en ese caso; no verificado con SQL]`.
+- El rótulo «RECOMENDADOS» sobre «Se acaban / Sin ventas» se lee «te recomendamos estas prendas»; son condiciones del ritmo de venta, no recomendaciones.
 
-### 4.3 Arquitectura (7)
-- **Transacción y concurrencia:** cada movimiento piso↔almacén es UNA llamada a `bajar_al_piso` / `retirar_del_piso` con todas sus líneas (inserta `bajadas_piso`, ítems y movimientos juntos) `[código]`; dos personas bajando la misma talla a la vez: la segunda ve el stock nuevo o choca con el candado de la RPC, nunca deja negativo (`stock` no tiene cantidades negativas en producción, 0 filas) `[producción 3-oct]`.
-- **Caída externa:** la pantalla no llama a nada fuera de Supabase. Se degrada así: si una lectura secundaria falla, la sección lo dice y el resto sigue; no pierde datos porque solo lee.
-- **Volumen:** TRU tiene 538 tallas y 101 modelos hoy; con 3 sedes y la carga de AQP, del orden de 2.000–3.000 tallas en un año `[inferido]`. Todo se filtra en el navegador sobre ese tamaño: sin problema de rendimiento medible (la auditoría del 3-oct midió 62–90 ms en `fn_resumen_variantes`).
-- **Lo que sobra:** en una tienda, `getFilasSemanaDeSede` (`page.tsx:69-75`) solo alimenta una cifra que se pinta en el Taller (`InventarioPanel.tsx:712-718`); `resumen.requierenReposicion` se calcula (`page.tsx:129`) y no se pinta en ningún lado `[código]`.
-- **El tope de rojo no tiene candado:** `MAX_ROJO_POR_PANTALLA` solo vive en comentarios `[código]`.
+### 4.3 Arquitectura (8)
+Libro de movimientos intacto; ninguna pieza de la cabecera escribe. El barrido guarda su cuenta bajo candado y no corrige lo que se movió. El punto débil es de producto, no de base: **dos rutas (cuadrar y barrido) llegan al mismo estado** y la pantalla ofrece las dos a la vez. Un barrido abierto que nadie termina (hoy: 1 prenda) se vuelve cada día menos útil, porque cada venta lo deja con más prendas «se movió» `[inferido del código]`.
 
-### 4.4 Funciones (5)
-- **Funcionan:** buscar (con «/»), escanear, filtros con conteos en la URL, bajar al piso, subir al almacén, ajustar, ver detalle con tabla Por prenda / Por talla, cajón, exportar CSV, copiar enlace `[código]`.
-- **Fantasma:** la tarjeta «Reponer a piso hoy» no muestra ningún número y su fila no filtra: escribe el nombre en el buscador `[código TarjetaReponerAPiso.tsx; InventarioPanel.tsx:722-728]`. «N apartadas para clientes» aparece sin comprobar que el rol vea Apartados (`InventarioPanel.tsx:692`) `[código]`.
-- **Faltan para la finalidad:** las ventas sin registrar; cuándo se cuadró el piso por última vez; cuánto cabe en el piso (la capacidad no existe en la base) `[código]`.
-- **Sobran:** dos tarjetas que casi siempre dicen 0; el título «Prioridades de hoy» con su bajada; «Ver detalle» que significa «abrir la tabla» en la barra y «llevar esta prenda a la tabla» en la tarjeta `[código]`.
+### 4.4 Funciones (6)
+- **Funcionan:** todas las de la captura `[código]`.
+- **Fantasma:** ninguna.
+- **Sobran (puertas dobles):** botón «Barrido en curso» = banda «Sumarme»; fila GESTIÓN del panel = chips + cifras; «Cuadrar el piso» mientras hay barrido abierto; chip «Por colgar» en pausa = franja; «386 productos» se repite en el pie de la lista (`InventarioPanel.tsx:1210`).
+- **Fuera de lugar:** «Sonido al confirmar» es un ajuste del equipo, no un filtro (`FiltrosExistencias.tsx:344`); solo suena en las hojas de la talla y en Ajustar.
 
-### 4.5 Utilidad (3) — una asesora nueva, TRU, sábado 10:30
-1. Abre Existencias: lo más grande es «795 uds». Un cliente pide una blusa M; la asesora cree que hay 795 para vender. La caja no se la cobra porque el sistema la cree guardada (antes del botón de ADR-0321). **Duda: ¿cuál de los números es el que vende?**
-2. Busca «por dónde empezar»: la tarjeta rosada dice «Empieza por estas prendas: Body Bonita, Body Lavie, Body Leonor» `[visto]`, en orden alfabético-urgente y sin cifra. Toca una: la pantalla escribe «Body Bonita» en el buscador y baja. **Duda: ¿y cuántas son en total?**
-3. Recorre las tarjetas: todas tienen «Piso 0» en rojo y «3 tallas por colgar» en rojo `[visto]`. Las prendas están colgadas frente a ella. **Error: deja de creerle a la pantalla.**
-4. Ve un botón negro «Reponer prenda» en cada tarjeta y otros tres al lado. **Duda: ¿cuál toco?**
-No es falta de capacitación: la pantalla no dice qué número vende, cuánto trabajo hay ni cuál es el primer paso.
+### 4.5 Utilidad (5) — una asesora nueva, TRU, jueves 17:09
+1. Entra para ver si hay una blusa en M. Ve arriba «Barrido en curso» (botón), abajo «Barrido en curso · 1 prenda — Sumarme» (banda) y más abajo «Cuadrar el piso» (franja). **Duda:** ¿tiene que hacer algo antes de buscar? 
+2. Mira la cifra: «691 de 480 · por cuadrar». **Se equivoca:** entiende que hay 211 prendas de más en el piso y que tiene que guardarlas.
+3. Ve «0 de 74 hoy» con el anillo ámbar. **Duda:** ¿74 qué? (son 74 tallas agotadas que otra sede puede enviar, `lib/existencias-mision.ts:24-27`).
+4. Toca «Sin stock atrás 918» y la lista muestra más tarjetas de las que había en «386 productos». **Duda:** ¿se rompió?
+5. Recién usa el buscador, que estaba ahí desde el principio.
+Ninguna de esas dudas es de capacitación: son del diseño.
 
-### 4.6 Conexión con el ERP (5)
-Aguas arriba recibe el stock de `carga_inicial`, Recibir y Traslados; aguas abajo la usan Vender (lo colgado es lo que se cobra; ADR-0321 registra la bajada olvidada), Frescura (la edad del piso nace de las bajadas) y Análisis. **No lee** `prendas_por_regularizar` (la cola de Recibir) ni la edad de Frescura. Dueño: Halcón (05); la cola de regularizar es de Colibrí (07): la brecha entre los dos no tiene dueño `[código][AVIARIO]`.
+### 4.6 Conexión con el ERP (7)
+Ver §6. El anillo depende de la red de stock de otras sedes; si no responde, el anillo cuenta solo lo propio `[código]`.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 9 | Decide qué se cuelga hoy; cada bajada que registra alimenta Frescura y Análisis |
-| Dinero y stock que toca | ×1 | 8 | Mueve stock entre piso y almacén y ajusta; el stock de 808 prendas de TRU vive aquí |
-| Frecuencia y personas que la usan | ×1 | 9 | Todos los días: encargado, asesoras y la cuenta Almacén (12 bajadas en TRU hoy a las 13:56) |
-| Qué se detiene si falla | ×1 | 6 | La venta sigue (Vender), pero nadie cuelga ni corrige con orden |
+| Gestión (directo + indirecto) | ×2 | 8 | La sede decide qué colgar, pedir y liquidar aquí; el cuadre que dispara alimenta el plan del piso y Frescura |
+| Dinero y stock que toca | ×1 | 9 | Ajustar, bajar, subir, dañadas y el barrido mueven stock |
+| Frecuencia y personas que la usan | ×1 | 9 | Varias veces al día, encargado, asesora y Almacén |
+| Qué se detiene si falla | ×1 | 7 | Se puede vender sin ella; no se puede cuadrar ni reponer |
 
-Relevancia = (2·9 + 8 + 9 + 6) / 5 = **8,2 — Núcleo**.
+Relevancia = (2·8 + 9 + 9 + 7) / 5 = **8,2** — Núcleo.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `stock` (foto de `movimientos`), `fn_stock_por_sede_json` (lo que hay en otras sedes), traslados en camino, `prendas_danadas`, `apartados`, catálogo y colores.
-- **Aguas abajo:** Vender cobra lo colgado; Frescura mide la edad desde las bajadas; Análisis y el Inicio de la cuenta Almacén leen el mismo stock.
-- **Pájaro dueño y vecinos:** Halcón (05). Vecinos: Colibrí (07, ventas y la cola sin registrar), Águila (13, Frescura y Análisis), Lechuza (06, conteo).
-- **Externos, y qué pasa si caen:** ninguno. Si Supabase no responde, la pantalla no carga (`loading.tsx` → error); no hay escritura a medias porque cada RPC es una transacción.
+- **Aguas arriba:** `stock` (foto de `movimientos`), `capacidad_piso`, `cuadres_piso`, `barridos_piso`, el ritmo de venta (`fn_ritmo_reciente_json`), apartados, dañadas, red de stock de otras sedes.
+- **Aguas abajo:** bajar/subir al piso, Ajustar (`ajustar_inventario`), el barrido y el cuadre (`cuadres_piso` → plan del piso, Frescura, historial), pedidos a otra sede desde «Pendientes».
+- **Pájaro dueño y vecinos:** Inventario; vecinos Movimientos, Traslados, Análisis («Qué pedir»), Plan del piso.
+- **Externos, y qué pasa si caen:** ninguno. Si la base no responde, `/sin-base` (ADR-0450).
 
 ## 7 · Las 12 tareas, por importancia
-Orden por lo que afirma algo falso sobre el stock, después por cuánto le cambia el día a quien la usa. Las decisiones de Felipe de hoy ya desbloquean casi todas; la única abierta es la #10.
 
-### #1 · Eliminar/fusionar/conectar — La cola de ventas sin registrar entra a la pantalla
-- **Dónde:** `page.tsx:53-85` (nueva lectura: conteo `head` de `prendas_por_regularizar` por sede, pendientes y vencidas, solo si el rol ve Recibir); se muestra en «Para hoy» (#3) con botón a `/recibir?vista=por-regularizar`.
-- **Por qué en este puesto:** hoy la pantalla dice «0» con 78 pendientes en TRU y 170 en AQP; el stock cuenta prendas vendidas. Es lo único de la lista que hace que la pantalla deje de afirmar algo falso.
-- **Cómo lo verificas tú:** en TRU, «Para hoy» dice «78 ventas sin registrar · 14 llevan más de 2 días»; con la cola en 0, la fila no aparece; si la consulta falla, la fila dice que no se pudo leer (no un 0).
-- **Esfuerzo / dependencias:** S · se dibuja dentro de la #3.
+### #1 · Eliminar/fusionar/conectar — Un solo aviso del piso, con una sola salida
+- **Dónde:** `page.tsx:435-448` (banda del barrido) · `InventarioPanel.tsx:128-144,1177` (franja) · `existencias/AvisosExistencias.tsx:13-18` · `lib/barrido-piso-reglas.ts:762-773` (`avisoDeBarrido`).
+- **Por qué en este puesto:** es la mayor fuente de ruido y la única que puede mandar a dos personas a dos trabajos distintos para lo mismo. Con barrido abierto: **una** banda «Barrido en curso — al terminarlo queda cuadrado el piso · [Sumarme]» y la franja «nunca se ha cuadrado» no se dibuja. Sin barrido y sin cuadre: la franja sola, y su botón lleva al barrido (como ya dice el comentario de `barrido-piso-reglas.ts:760`).
+- **Cómo lo verificas tú:** en TRU, con el barrido abierto, ves una sola banda y ningún «Cuadrar el piso»; cancela el barrido en local y vuelve la franja, con un solo botón.
+- **Esfuerzo / dependencias:** S · depende de #11 (qué flujo es el de la tienda); si #11 no se decide, la banda manda al barrido y la franja se oculta mientras haya uno abierto.
 
-### #2 · Corregir — Aplicar el mínimo que decidiste hoy: 1 colgada por talla y color
-- **Dónde:** `lib/politica-operativa-inventario.ts:39-42` (`umbralStockPisoReposicion` 4 → la regla «reponer» pasa a «0 en el piso»); `lib/existencias-recomendaciones.ts:131-137`.
-- **Por qué en este puesto:** con el 4, las 538 tallas de TRU piden reponer y «Mantener» no existe. Con 1, las 147 tallas que ya tienen entre 1 y 4 colgadas pasan a «Mantener», y «Por reponer» deja de mezclarse con «Por colgar».
-- **Cómo lo verificas tú:** en TRU local, el filtro «Hoy» muestra «Mantener» con las tallas que tienen al menos 1 colgada; «Por reponer» queda en 0.
-- **Esfuerzo / dependencias:** S · ninguna. «Solo tallas centrales» se deja para cuando existan las tallas clave: en TRU son 7 tallas extremas de 546 (1,3 %) `[producción]`.
-- **DECIDÍ:** el umbral de piso pasa a «reponer cuando no queda ninguna colgada» para todas las tallas, que es tu mínimo de 1 por talla y color. **DESCARTÉ:** dejar el 4 hasta tener el motor del mix, porque mientras tanto la pantalla sigue diciendo «reponer» en el 100 % de las tallas y nadie le cree; y construir ya la excepción de tallas extremas, porque en TRU cambia 7 de 546 tallas. **SE ROMPE SI:** un color se vende tan rápido que su única colgada se va antes de que alguien mire: no vuelve a aparecer hasta la mañana siguiente. Lo cubre la #3, que pone primero lo que se vendió.
+### #2 · Eliminar/fusionar/conectar — El botón «Barrido en curso» se va cuando la banda está
+- **Dónde:** `existencias/BotonBarrido.tsx:12-19`, `page.tsx:416`.
+- **Por qué:** dos puertas al mismo lugar, una debajo de la otra. La banda explica (cuántas lleva, quiénes escanean); el botón no. Sin barrido abierto el botón «Barrido del piso» se queda: es la entrada de todos los días.
+- **Cómo lo verificas tú:** con barrido abierto la cabecera muestra solo «Ajustar stock».
+- **Esfuerzo / dependencias:** S · con #1.
 
-### #3 · Reconstruir — «Prioridades de hoy» pasa a «Para hoy»
-- **Dónde:** `InventarioPanel.tsx:685-750` (se quitan `TarjetaPrioridad` :153-210 y `TarjetaReponerAPiso`); función pura nueva `lib/existencias-para-hoy.ts` con su prueba; componente `components/existencias/ParaHoy.tsx`.
-- **Por qué en este puesto:** es tu decisión de la ronda 2 y la pieza que responde «por dónde empiezo». Cada pendiente es una frase con su cifra y UN botón, en el orden en que conviene hacerlo: colgar → ventas sin registrar → dañadas → apartados vencidos → traslados → lo que se pide afuera. Lo que está en 0 no aparece; se ven 3 y el resto a un toque.
-- **Cómo lo verificas tú:** en TRU, la primera fila dice cuántas tallas hay por colgar con el MISMO número que el filtro «Hoy ▸ Por colgar»; su botón «Bajar al piso» abre la pantalla de escaneo con la lista cargada; «Ver cuáles» filtra la lista. Con todo al día, «Todo al día».
-- **Esfuerzo / dependencias:** M · después de la #2 (para que «por colgar» cuente lo de verdad).
-- **Honestidad del número (lente de `/rigor`):** mientras el piso no esté cuadrado (§10), «por colgar» lleva la frase «si ya están colgadas, regístralas en Bajar al piso: el sistema las cree guardadas».
-- **DECIDÍ:** tareas como lista ordenada, con el mismo conjunto que el filtro «Hoy» (`hoyDeTalla`), como máximo 2 filas en rojo (solo plazos vencidos) y la cola de ventas sin registrar dentro. **DESCARTÉ:** conservar las 4 tarjetas y solo esconder las que dicen 0, porque siguen sin decir cuánto trabajo hay ni en qué orden, y la de «reponer» seguiría contando la unión de tres casos que ningún filtro reproduce; y un tablero con 6 tarjetas, porque es más ruido en la primera pantalla. **SE ROMPE SI:** un día de campaña TRU acumula 30 ventas sin registrar y 80 tallas por colgar: «Para hoy» pone primero colgar, y la cola se ve en segundo lugar en rojo. Si Felipe prefiere la cola primero, se cambia el orden en una línea de la función.
-
-### #4 · Reconstruir — La cabecera dice qué se vende y tiene un solo botón fuerte
-- **Dónde:** `page.tsx:168-228`; usa `components/ui/ResumenSede.tsx` (el de Ventas, Cambios y Devoluciones).
-- **Por qué en este puesto:** el número grande decide qué cree la asesora. Pasa de «795 uds» a **Colgadas · Guardadas (· En camino si hay)**, en el recuadro de cifras de las pantallas hermanas. Un solo botón oscuro, «Bajar al piso» (el trabajo de todos los días en tienda); Recibir, Contar, Trasladar y Apartados, claros. Era la D3 del 3-oct.
-- **Cómo lo verificas tú:** en TRU arriba a la derecha «155 Colgadas en el piso · 653 Guardadas en el almacén»; en el Taller, «Disponibles aquí»; un solo botón oscuro.
-- **Esfuerzo / dependencias:** S · ninguna. Cuando exista la capacidad por sede, la cifra pasa a «155 de 600».
-- **DECIDÍ:** `ResumenSede` con colgadas y guardadas libres, y «Bajar al piso» como único botón oscuro en tienda. **DESCARTÉ:** una cifra propia con un riel dibujado, porque sería un sexto estilo de cabecera cuando Ventas ya tiene uno, y mantener «+ Nuevo traslado» como oscuro, porque se usa unas veces al mes y colgar, todos los días. **SE ROMPE SI:** quien mira es el Taller (no cuelga): no hay «Bajar al piso» y el botón principal desaparece; ahí queda «Trasladar» claro, que es lo correcto porque el Taller casi no opera Existencias.
-
-### #5 · Corregir — El rojo vuelve a ser señal
-- **Dónde:** `lib/existencias-hoy.ts:60-65` (por_colgar → ámbar; sin_stock_atras → pizarra, informativo: se pide afuera), `ExistenciasTarjetas.tsx:86-90, 112, 233-235, 270`, la leyenda `InventarioPanel.tsx:965, 1003, 55/1234`.
-- **Por qué en este puesto:** con más de 30 rojos, el único rojo que importa (una venta vencida, una prenda dañada) no se ve. «Por colgar» es trabajo, no un error.
-- **Cómo lo verificas tú:** en TRU, una página de tarjetas sin un solo rojo si no hay dañadas ni vencidas.
-- **Esfuerzo / dependencias:** S · junto con la #6.
-
-### #6 · Reconstruir — La tarjeta de prenda: el riel de tallas y un solo botón
-- **Dónde:** `ExistenciasTarjetas.tsx:137-365`.
-- **Por qué en este puesto:** es lo que más se ve de la pantalla. Cada talla como una **etiqueta colgada de un riel**: el número grande son las colgadas y debajo «+N guardadas»; la etiqueta toma el tono de su estado (colgada, por colgar en ámbar, agotada punteada). Arriba, el nombre y los colores; abajo, la pastilla y **un solo botón** («Reponer» solo si hay algo que bajar); Subir, Ajustar y Ver detalle van al menú «⋯». Desaparecen las cajas «Piso/Almacén» con rojo fijo y los rótulos repetidos.
-- **Cómo lo verificas tú:** a 1440 px se leen 4 tarjetas por pantalla sin bajar; una prenda sin nada que bajar no tiene botón oscuro; el menú «⋯» abre Subir, Ajustar y Ver detalle.
-- **Esfuerzo / dependencias:** M · después de la #5.
-- **DECIDÍ:** el riel de etiquetas como pieza propia de Existencias (la que la hace reconocible) y un botón contextual por tarjeta. **DESCARTÉ:** la tabla «Por prenda» como entrada, porque ya existe en «Ver detalle» y en el celular no se lee; y mantener cuatro botones, porque dan 15 botones negros por página. **SE ROMPE SI:** una prenda tiene 8 o más tallas (calzado 35–40 + medias): el riel se desliza de lado dentro de la tarjeta y lo que no se ve se nota por el borde que se desvanece.
-
-### #7 · Corregir — Una sola clasificación por talla
-- **Dónde:** `lib/existencias-prendas.ts:38-43` (`estadoTalla`) la leen la celda de la tarjeta, `CurvaTallas` (`ExistenciasPorPrenda.tsx:39-75`) y el cajón (`CajonPrendaExistencias.tsx:252-271`); pasa a leer `hoyDeTalla` (+ «agotada» cuando no hay nada en ningún lado).
-- **Por qué en este puesto:** la misma talla no puede ser «reponer» en la celda y «sin stock atrás» en la pastilla de la misma tarjeta.
-- **Cómo lo verificas tú:** una talla con 2 colgadas y 0 guardadas dice lo mismo en la tarjeta, la tabla y el cajón.
-- **Esfuerzo / dependencias:** S–M · con la #6.
-
-### #8 · Mejorar — Los filtros esperan a que los pidas; el buscador va primero
-- **Dónde:** `lib/panel-filtros.ts:15-17` (de fábrica: cerrado en Existencias, abierto en Productos; lo que cada equipo guardó manda), `page.tsx:157`.
-- **Por qué en este puesto:** el panel abierto de seis píldoras con dos rótulos de fila empuja la primera prenda bajo el pliegue. La estructura de Productos (ADR-0326) no cambia: solo se abre cuando la piden.
-- **Cómo lo verificas tú:** en una laptop de 1366 × 768, la primera prenda se ve sin bajar; «Filtros» abre el panel y queda abierto en ese equipo.
-- **Esfuerzo / dependencias:** S · ninguna.
-
-### #9 · Mejorar — Celular a 375 px
-- **Dónde:** `page.tsx:188-226` (fila de accesos que se desliza sin aviso), `ParaHoy` (una frase y el resto plegado), `ExistenciasTarjetas` (el riel se desliza dentro de la tarjeta), el botón fijo «Escanear prenda» (`InventarioPanel.tsx:1403-1416`).
-- **Por qué en este puesto:** la asesora y la cuenta Almacén usan el celular frente al perchero (decisión de la ronda 1: celular en Bajar y Conteo).
-- **Cómo lo verificas tú:** a 375 px, sin desplazamiento horizontal de la página; «Para hoy» ocupa menos de media pantalla; la primera prenda se ve en la segunda pantalla como mucho.
-- **Esfuerzo / dependencias:** M · después de #3, #4 y #6.
-
-### #10 · Replantear — ¿La edad del piso entra en Existencias?
-- **Dónde:** sección 8.
-- **Por qué en este puesto:** tu pedido de esta semana es que el inventario ayude a renovar el piso. Hoy la edad de cada prenda colgada vive solo en Frescura; Existencias, que es donde se cuelga y se retira, no la muestra. Esta tarea solo pide que decidas.
-- **Cómo lo verificas tú:** tu respuesta en la sección 8.
-- **Esfuerzo / dependencias:** — · decide Felipe.
-- **DECIDÍ:** nada todavía; presento las dos opciones. **DESCARTÉ:** decidirlo yo, porque cambia cómo se gestiona el piso, no cómo se dibuja. **SE ROMPE SI:** —
-
-### #11 · Corregir — *bajo valor / opcional:* lo que se pide y no se muestra, y documentos vencidos
-- **Dónde:** `page.tsx:69-75` (la comparación de 7 días solo se pinta en el Taller: pedirla solo ahí), `page.tsx:129` y `inventario-v2.ts:357, 364` (`requierenReposicion` sin uso), comentarios desactualizados `page.tsx:126-128` y `InventarioPanel.tsx:680-684` (hablan del filtro «Acción», que ya no existe), `docs/ARQUITECTURA.md:196-206` (describe V1) y las filas viejas de `docs/SESIONES-ACTIVAS.md`.
-- **Por qué en este puesto:** no cambia lo que ve nadie; evita que la próxima sesión crea lo que dicen los comentarios.
-- **Cómo lo verificas tú:** en una tienda, la red no pide `fn_resumen_variantes_json` al cargar Existencias.
+### #3 · Corregir — «691 de 480» no se muestra mientras el piso está por cuadrar
+- **Dónde:** `lib/capacidad-piso.ts:59-63` (`notaCapacidadPiso`), `existencias/CifrasExistencias.tsx:54-72`.
+- **Por qué:** sin cuadre ninguna de las dos cifras es confiable (ADR-0328 dec. 5) y la comparación se lee como «211 de más». Sin cuadre: «691 colgadas, según el sistema». Con cuadre y colgadas > capacidad: decirlo en palabras («211 más de las que caben»), no con «de». Antes, confirmar con la consulta del Anexo por qué TRU tiene 480 y no los 600 de la migración.
+- **Cómo lo verificas tú:** TRU muestra «691» sin «de 480»; en una sede cuadrada aparece «de N».
 - **Esfuerzo / dependencias:** S.
 
-### #12 · Mejorar — *bajo valor / opcional:* pruebas y registro de la guía de foco
-- **Dónde:** pruebas para `resumirExistencias`, `ordenarModelos`/`agruparPorModelo` (viven en un componente: pasarlos a `lib/`), el cálculo de `enCamino`; `lib/guia-de-foco-pantallas.ts:91` («/inventario» pasa de pendiente a «no aplica»: su único campo es el buscador y «Para hoy» ya dice qué sigue) bajando `PENDIENTES_HOY`.
-- **Por qué en este puesto:** lo que no tiene prueba es lo que se rompe en silencio en el próximo cambio.
-- **Cómo lo verificas tú:** `vitest` en verde con las pruebas nuevas; `guia-de-foco.test.ts` en verde con la cuenta bajada.
+### #4 · Eliminar/fusionar/conectar — Fuera la fila GESTIÓN del panel de filtros
+- **Dónde:** `FiltrosExistencias.tsx:271-304` (Hoy y Condición).
+- **Por qué:** escribe los mismos parámetros que los chips (`lib/existencias-rapidos.ts:30-39`) y que las cifras (colgadas/guardadas). Lo único que agrega es «Mantener» y combinar «Hoy» + «Condición», que nadie pide en el piso `[inferido]`. Es una fila de 50 px que repite lo que está 60 px más arriba. ADR-0344 la dejó a propósito: esta tarea propone actualizarlo (en el celular la hoja de filtros puede conservarla, porque ahí los chips se desplazan).
+- **Cómo lo verificas tú:** el panel abierto tiene dos filas (PRENDA, VISTA); los siete chips y las dos cifras siguen filtrando igual; enlaces viejos con `?hoy=mantener` siguen funcionando.
+- **Esfuerzo / dependencias:** M (pruebas de `existencias-filtros`, guía de la pantalla).
+
+### #5 · Corregir — El chip «Por colgar» no se dibuja mientras el piso está en pausa
+- **Dónde:** `existencias/FiltrosRapidos.tsx:82,109-112`.
+- **Por qué:** un chip con un ícono de pausa no se puede usar (no filtra nada) y repite la franja. Cuando el piso se cuadre vuelve con su número. El principio «no poner un 0 que diga todo listo» se cumple igual: no se pone nada.
+- **Cómo lo verificas tú:** TRU muestra Todo · Sin stock atrás · Apartadas · Dañadas · Se acaban · Sin ventas.
 - **Esfuerzo / dependencias:** S.
 
-## 8 · Estrategia alternativa — Existencias como la pantalla del piso, con su edad
-Hoy Existencias dice **cuántas** hay y **dónde**; Frescura, en otra pantalla, dice **cuánto llevan colgadas** y qué renovar. Quien cuelga y retira (la asesora, la cuenta Almacén) está en Existencias y nunca ve la edad.
+### #6 · Corregir — Chips y lista en la misma unidad
+- **Dónde:** `lib/existencias-filtros.ts:287` (`conteosDeFiltros`), `lib/existencias-tarjetas.ts:25,107`.
+- **Por qué:** «918» al lado de «386 productos» parece un error. Dos salidas: (a) el chip cuenta productos (modelos) como la lista; (b) el conteo de la lista pasa a «prendas» cuando hay un chip «Hoy». Recomiendo (a): la persona compara el chip con el total que tiene delante.
+- **Cómo lo verificas tú:** ningún chip muestra un número mayor que «N productos» con «Todo».
+- **Esfuerzo / dependencias:** M.
 
-| | La pantalla actual, arreglada (las 12) | Existencias con la edad del piso |
-|---|---|---|
-| Qué agrega | — | En cada etiqueta del riel, un punto de edad (Nueva · Vigente · Envejecida · Crítica, la vara de Frescura) y en «Para hoy» la tarea «N prendas envejecidas: renuévalas» con «entra una, sale una» |
-| Ganas | Pantalla clara y verdadera, sin depender de otro módulo | Renovar el piso se decide donde se cuelga; Frescura queda para el análisis del líder |
-| Pagas | La renovación sigue en otra pantalla que la asesora no abre | Una lectura más (`fn_frescura_sede`) y el riesgo de mostrar edad falsa mientras el piso no esté cuadrado (hoy Frescura mide una quinta parte del piso de TRU) |
+### #7 · Corregir — «Sin stock atrás» solo cuenta lo que vale la pena traer
+- **Dónde:** el motor del piso (`lib/piso-plan.ts`, acción `sin_atras`) y `lib/existencias-hoy.ts:45-50`.
+- **Por qué:** 918 cosas que traer no son una lista de trabajo. Con la regla que Felipe ya fijó para colgar (tallas centrales, o vendida ayer/hoy: `AYUDA_HOY.por_colgar`), «sin stock atrás» debería usar el mismo corte; lo demás no falta, simplemente no está. Confirmar con la consulta B del Anexo cuántas de las 918 vendieron en 30 días.
+- **Cómo lo verificas tú:** el número baja a lo que una persona revisa en una mañana y coincide con lo que el anillo pide traer.
+- **Esfuerzo / dependencias:** M · después de #6.
 
-Decide Felipe. Mi recomendación: **sí, pero después de cuadrar el piso**. Antes, la edad sería tan falsa como el «por colgar» de hoy.
+### #8 · Eliminar/fusionar/conectar — Fuera el anillo «0 de 74 hoy» y su ventana «Pendientes de hoy» (Felipe, 2026-11-26)
+- **Dónde:** `existencias/AnilloMision.tsx`, `InventarioPanel.tsx:1015-1033` (el anillo y el botón «Pendientes» del Taller), `:1691` (la ventana), `existencias/ParaHoy.tsx`, `lib/existencias-para-hoy.ts`, `lib/existencias-mision.ts`.
+- **Por qué:** Felipe: «no sirve». Revisado: todo lo que lista ya está en otro lado. El piso en pausa, las dañadas, lo que viene en camino y «sin stock atrás» se ven en esta misma pantalla; las ventas sin registrar (vencidas), los apartados vencidos y los traslados atrasados los avisa Inicio (`lib/inicio-avisos.ts`). Lo único que se pierde: las ventas sin registrar que todavía no vencieron dejan de avisarse aquí (siguen en `/inventario/por-regularizar`).
+- **Cómo lo verificas tú:** la barra queda buscador · escáner · Filtros · «N productos»; Inicio sigue avisando las ventas sin registrar vencidas.
+- **Esfuerzo / dependencias:** M (la guía interactiva y Knip: la foto del día en `localStorage` y sus pruebas quedan sin uso y se borran).
+
+### #9 · Mejorar — «Sonido al confirmar» sale del panel de filtros
+- **Dónde:** `FiltrosExistencias.tsx:344`, `lib/sonido-confirmar.ts`.
+- **Por qué:** es un ajuste del equipo (se guarda en `localStorage`), no un filtro de prendas; se pone una vez. Va dentro de la hoja de la talla, junto a lo que suena, o en el menú «Más».
+- **Cómo lo verificas tú:** la fila VISTA solo tiene «Ver como» y «Ordenar por»; el sonido se cambia desde la hoja de la talla.
+- **Esfuerzo / dependencias:** S.
+
+### #10 · Mejorar — «Ver el valor a costo» entra a la tarjeta de cifras
+- **Dónde:** `page.tsx:452-456`, `existencias/ValorInventarioExistencias.tsx:61-65`.
+- **Por qué:** hoy es una línea sola entre dos bandas (~40 px); dentro de la tarjeta de cifras, como tercera cifra plegada, se lee junto a «colgadas» y «guardadas», que es donde se busca.
+- **Cómo lo verificas tú:** para el líder aparece en la tarjeta; para la asesora la tarjeta no cambia.
+- **Esfuerzo / dependencias:** S.
+
+### #11 · Replantear — ¿Cuál es «el» cuadre de la tienda: barrido o cuadrar?
+- **Dónde:** `/inventario/barrido` (ADR-0690) y `/inventario/cuadrar` (ADR-0328); ver §8.
+- **Por qué:** la pantalla ofrece las dos y las dos terminan en `cuadres_piso`. Decide Felipe.
+- **DECIDÍ:** recomiendo que en la tienda el barrido sea la única entrada visible (escanear lo colgado, que es lo que se ve, con varias personas a la vez y con la tienda abierta) y que «Cuadrar el piso» quede como camino de respaldo, sin botón en Existencias.
+- **DESCARTÉ:** dejar las dos visibles «para que cada uno elija»: dos personas pueden empezar las dos el mismo día y una de ellas tira su trabajo (la otra corrección deja todo como «se movió»).
+- **SE ROMPE SI:** una sede tiene tanta ropa colgada que barrer el piso entero no se termina en un día; ahí el cuadre por almacén (lo guardado suele ser menos) es más corto. Para TRU hoy son ~691 colgadas contra 1150 guardadas `[visto]`: el barrido es más corto.
+- **Esfuerzo / dependencias:** S (es una decisión) · antes de #1.
+
+### #12 · Eliminar/fusionar/conectar — Fuera «Se acaban» y «Sin ventas» (Felipe, 2026-11-26)
+- **Dónde:** `lib/existencias-rapidos.ts:37-42` (los dos atajos y `CLAVES_RECOMENDADAS`), `existencias/FiltrosRapidos.tsx:31-43,86-91` (íconos, tonos y el rótulo «Recomendados»); la opción de la píldora Condición que los repite (`lib/existencias-filtros.ts`).
+- **Por qué:** Felipe: cómo se vende cada prenda ya se mira en Gestión ▸ Análisis. En Existencias eran dos chips más y un rótulo que se leía como «te recomendamos».
+- **Cómo lo verificas tú:** la fila de chips queda Todo · Sin stock atrás · Apartadas · Dañadas (más «Por colgar» cuando el piso esté cuadrado); un enlace viejo con `?condicion=se_acaban` abre la lista sin filtro, sin error.
+- **Esfuerzo / dependencias:** S. El total repetido en el pie y los «·» quedan fuera (bajo valor).
+
+## 8 · Estrategia alternativa — Existencias en dos tiempos: «qué hacer» se pliega en una sola fila
+Hoy la cabecera junta tres cosas: avisos (barrido, piso), trabajo del día (anillo, chips «Hoy») e inventario (cifras, buscador, lista). La alternativa: **una sola fila de trabajo** arriba («Hoy: termina el barrido · 74 por pedir · 6 apartadas por vencer», cada una un toque) y debajo, sin más, cifras + buscador + prendas.
+- **Ganas:** la primera prenda aparece en la primera pantalla; un solo lugar para lo que hay que hacer; desaparecen la banda, la franja y el anillo como piezas separadas.
+- **Pagas:** se reescribe la cabecera que acaba de unificarse (ADR-0344/0391), la guía interactiva y la versión de celular (donde los avisos ya subieron a un ícono, 2026-11-17). Las tareas #1–#10 consiguen ~70 % del efecto sin eso `[inferido]`.
+Decide Felipe; mi recomendación es hacer #1–#6 primero y mirar de nuevo.
 
 ## 9 · Referentes de ERP y futuro
-- **Shopify POS:** cada cantidad tiene nombre y la suma se explica («disponible, comprometido, no disponible»): es la idea de la #4 `[artefacto «Inventario contra los mejores», 3-oct, verificado allí con su fuente]`.
-- **Lightspeed «Things to do»:** al abrir, lo que hay por recibir y por contar: es la idea de «Para hoy» `[mismo artefacto]`.
-- **Sortly:** carpetas como lugares con cantidad (piso, almacén): CAYLA ya lo tiene mejor `[mismo artefacto]`.
-- **Futuro (no entra en las 12):** la capacidad por sede y el mix por categoría (la franja del piso: «Blusas 138 de 150») cuando exista la tabla del mix; la ubicación exacta en el almacén (estante, caja) si los almacenes crecen.
+- Shopify POS y Lightspeed muestran inventario como **lista primero** con filtros arriba y alertas en una campana aparte `[de memoria, no verificado]`. Pasa el filtro: es la estrategia del §8.
+- Conteo cíclico (Odoo/NetSuite: contar una parte del piso cada día en vez de todo una vez al mes) `[de memoria, no verificado]`: **futuro**; hoy con 3 tiendas un barrido mensual alcanza.
 
 ## 10 · Fuera de esta pantalla
-**Cuadrar el piso de TRU antes del 15-oct.** El sistema ve 155 colgadas y tú contaste 600–750; 391 tallas figuran «por colgar» y casi todas ya están colgadas. Mientras no se cuadre, ningún diseño hace verdad el «por colgar», la edad de Frescura ni el «qué falta que se vendió rápido». El 15-oct se cierra la carga inicial barata (ADR-0270 D20); después, cada corrección es un ajuste que se lee como pérdida. Decidiste el método el 4-oct: escanear lo guardado (más de 200 prendas) y pasar el resto al piso en un solo movimiento, con tu «dale» antes de tocar producción.
+**TRU nunca cuadró su piso y el barrido que lo haría está abierto con 1 prenda.** Mientras no se termine, el plan del piso, «Por colgar», la capacidad y la mitad de «Pendientes» están en pausa para TRU (son cuatro de las cinco señales de §2). Y un barrido abierto envejece: cada venta deja una prenda más como «se movió» que no se corregirá `[código]`. Terminar ese barrido (o cancelarlo y empezar uno nuevo en una hora tranquila) vale más que cualquiera de las 12 tareas.
 
 ## 11 · Líneas propuestas para el backlog
-- [ ] `[pantalla:inventario]` #1 La cola de ventas sin registrar entra a «Para hoy» (conteo por sede, con aviso si no se lee) — S
-- [ ] `[pantalla:inventario]` #2 Mínimo 1 colgada por talla y color: umbral de piso 4 → 0 en `politica-operativa-inventario.ts` — S
-- [ ] `[pantalla:inventario]` #3 «Para hoy» reemplaza «Prioridades de hoy» (función pura + componente, mismo conjunto que «Hoy», ≤ 2 rojos) — M
-- [ ] `[pantalla:inventario]` #4 Cabecera con `ResumenSede` (colgadas · guardadas) y un solo botón oscuro «Bajar al piso» — S
-- [ ] `[pantalla:inventario]` #5 Rojo como señal: por colgar en ámbar, sin stock atrás en pizarra, caja «Piso» sin rojo — S
-- [ ] `[pantalla:inventario]` #6 Tarjeta con el riel de tallas y un solo botón contextual + menú «⋯» — M
-- [ ] `[pantalla:inventario]` #7 Una sola clasificación por talla (`estadoTalla` → `hoyDeTalla`) — S–M
-- [ ] `[pantalla:inventario]` #8 Panel de filtros cerrado de fábrica en Existencias — S
-- [ ] `[pantalla:inventario]` #9 Celular a 375 px: accesos, «Para hoy» plegado, riel deslizable — M
-- [ ] `[pantalla:inventario]` #10 Decidir si la edad del piso (Frescura) entra a Existencias — decisión
-- [ ] `[pantalla:inventario]` #11 *(bajo valor)* Lecturas sin uso, comentarios y `ARQUITECTURA.md` vencidos — S
-- [ ] `[pantalla:inventario]` #12 *(bajo valor)* Pruebas de lo que no tiene y registro de guía de foco — S
+- [ ] `[pantalla:inventario]` #1 Un solo aviso del piso con una sola salida — S
+- [ ] `[pantalla:inventario]` #2 Botón de barrido oculto cuando la banda está — S
+- [ ] `[pantalla:inventario]` #3 «de 480» solo con el piso cuadrado — S
+- [ ] `[pantalla:inventario]` #4 Fuera la fila GESTIÓN del panel de filtros (escritorio) — M
+- [ ] `[pantalla:inventario]` #5 Chip «Por colgar» oculto en pausa — S
+- [ ] `[pantalla:inventario]` #6 Chips y lista en la misma unidad — M
+- [ ] `[pantalla:inventario]` #7 «Sin stock atrás» con el corte de tallas centrales/vendidas — M
+- [ ] `[pantalla:inventario]` #8 Fuera el anillo y «Pendientes de hoy» — M
+- [ ] `[pantalla:inventario]` #9 Sonido al confirmar fuera del panel de filtros — S
+- [ ] `[pantalla:inventario]` #10 Valor a costo dentro de la tarjeta de cifras — S
+- [ ] `[pantalla:inventario]` #11 Decidir barrido vs cuadrar como entrada de la tienda — S
+- [ ] `[pantalla:inventario]` #12 Fuera «Se acaban» y «Sin ventas» — S
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Sede · fecha · «vista de las HH:MM» | dice de cuándo es la foto | bien | `page.tsx:174-175` |
-| Cabecera | Título y frase | «Qué hay en piso y almacén…» | ajustar (frase más corta, con «colgado/guardado») | `page.tsx:170-171` |
-| Cabecera | «Bajar al piso» | abre la pantalla de escaneo | ajustar (pasa a ser el único oscuro) | `page.tsx:190-194` |
-| Cabecera | «+ Nuevo traslado» oscuro | abre un traslado | ajustar (claro, «Trasladar») | `page.tsx:195-199` |
-| Cabecera | Recibir · Contar · Apartados | accesos | bien (claros) | `page.tsx:201-224` |
-| Cabecera | (falta) cifras colgadas / guardadas | — | falta | §4.1 |
-| Prioridades | Título y bajada «Prioridades de hoy» | rótulo | sobra | `InventarioPanel.tsx:688-689` |
-| Prioridades | «Resumen disponible 795 uds» | total libre | ajustar (pasa a la cabecera partido; el desglose por categoría queda como enlace) | `:708-720` |
-| Prioridades | «Reponer a piso hoy» | 3 prendas sin cifra | sobra (lo reemplaza «Para hoy») | `TarjetaReponerAPiso.tsx` |
-| Prioridades | «En camino hacia acá» | traslados en camino | ajustar (solo cuando hay) | `:730-736` |
-| Prioridades | «Incidencias» | dañadas en cuarentena | ajustar (solo cuando hay, y suma la cola sin registrar aparte) | `:737-748` |
-| Prioridades | (falta) ventas sin registrar | — | falta | §2.1 |
-| Filtros | Buscador «/» | busca y lee la pistola | bien | `FiltrosExistencias.tsx:303-323` |
-| Filtros | Panel Prenda / Gestión abierto | seis píldoras en dos filas | ajustar (cerrado de fábrica) | `:167-267`, `panel-filtros.ts:15-17` |
-| Filtros | Chips de lo elegido | quitar de a uno | bien | `:271-289` |
-| Filtros | Copiar enlace · Ver detalle · Ordenar por | herramientas de la lista | bien | `:356-395` |
-| Tarjeta | Foto / colibrí | identifica | bien (la foto por color es futuro) | `ExistenciasTarjetas.tsx:193-195` |
-| Tarjeta | Puntos de color | cambia el color que se ve | bien | `:209-227` |
-| Tarjeta | Cajas «Piso» (rojo fijo) y «Almacén» | totales del color | sobra (el riel ya los dice) | `:230-251` |
-| Tarjeta | Curva con rótulos «Piso/Almacén» por renglón | cifras por talla | ajustar (riel de etiquetas) | `:255-285` |
-| Tarjeta | Pastilla «N tallas por colgar» roja | qué pide | ajustar (ámbar) | `:95-105` |
-| Tarjeta | Reponer prenda (negro) · Subir · Ajustar · Ver detalle | acciones | ajustar (un botón contextual + «⋯») | `:314-358` |
-| Pie | Paginación · Exportar CSV · leyenda con rojo | herramientas | ajustar (leyenda del riel, sin rojo) | `InventarioPanel.tsx:947-970` |
-| Celular | Botón fijo «Escanear prenda» | escanea | bien | `:1403-1416` |
+| Cabecera | «TIENDA TRU · JUEVES… · VISTA DE LAS 17:09» | Sede y hora de la foto | **bien** (los «·», #12) | `EncabezadoPagina.tsx:79-80` |
+| Cabecera | «?» junto al título | Explica la pantalla en un globo | **bien** | `EncabezadoPagina.tsx:87` |
+| Cabecera | «Ajustar stock» | Abre el buscador «¿qué prenda vas a ajustar?» | **bien** | `BotonAjustarStock.tsx:32-41` |
+| Cabecera | «Barrido en curso» | Va a `/inventario/barrido` | **sobra** con la banda (#2) | `BotonBarrido.tsx:12-19` |
+| Cabecera | Cifra «691 de 480 · por cuadrar / + 61 accesorios» | Colgadas libres; toca → filtra colgadas | **ajustar** (#3) | `CifrasExistencias.tsx:54-72` |
+| Cabecera | Cifra «1150 guardadas» | Almacén libre; toca → filtra guardadas | **bien** | `page.tsx:299` |
+| Banda | «Barrido en curso · 1 prenda — Sumarme» | Va al barrido abierto | **bien**, absorbe la franja (#1) | `page.tsx:435-448` |
+| Suelto | «Ver el valor a costo» | Despliega el valor de la sede (solo dinero) | **ajustar lugar** (#10) | `ValorInventarioExistencias.tsx` |
+| Barra | Buscador con «/» | Busca prenda, marca o código; código exacto abre la talla | **bien**, es lo principal | `FiltrosExistencias.tsx:387-404` |
+| Barra | Escáner | Abre la cámara | **bien** (la pistola usa el buscador) | `FiltrosExistencias.tsx:406-417` |
+| Barra | «Filtros» | Abre/cierra el panel; recuerda por cookie | **bien** | `FiltrosExistencias.tsx:421-428` |
+| Barra | Anillo «0 de 74 hoy» | Abre «Pendientes de hoy» | **sobra** (#8, Felipe) | `AnilloMision.tsx` |
+| Barra | «386 productos» | Total de la lista | **bien** (unidad, #6) | `FiltrosExistencias.tsx:437-441` |
+| Chips | Todo | Quita atajos | **bien** | `existencias-rapidos.ts:31` |
+| Chips | Por colgar (pausa) | No filtra mientras el piso está en pausa | **sobra en pausa** (#5) | `FiltrosRapidos.tsx:82,109` |
+| Chips | Sin stock atrás 918 | Falta en piso y almacén vacío | **ajustar** (#6, #7) | `existencias-rapidos.ts:35` |
+| Chips | Apartadas 6 | Separadas para un cliente | **bien** | `existencias-rapidos.ts:36` |
+| Chips | Dañadas 20 | En cuarentena | **bien** (ojo: «Pendientes» usa otra fuente) | `existencias-rapidos.ts:37` |
+| Chips | RECOMENDADOS: Se acaban 27 · Sin ventas 203 | Ritmo de venta | **sobra** (#12, Felipe: está en Análisis) | `existencias-rapidos.ts:39-40` |
+| Panel | PRENDA: Categoría, Talla, Color, Marca | Filtros de la prenda | **bien** | `FiltrosExistencias.tsx:204-268` |
+| Panel | GESTIÓN: Hoy, Condición | Lo mismo que chips y cifras | **sobra** (#4) | `FiltrosExistencias.tsx:271-304` |
+| Panel | VISTA: Ver como, Ordenar por | Tarjetas/Tabla/Por talla; orden | **bien** | `FiltrosExistencias.tsx:306-343` |
+| Panel | «Sonido al confirmar: Sí» | Ajuste del equipo | **fuera de lugar** (#9) | `FiltrosExistencias.tsx:344` |
+| Franja | «El piso nunca se ha cuadrado — Cuadrar el piso» | Va a `/inventario/cuadrar` | **sobra con barrido abierto** (#1, #11) | `InventarioPanel.tsx:128-144` |
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
@@ -243,29 +223,38 @@ Decide Felipe. Mi recomendación: **sí, pero después de cuadrar el piso**. Ant
 | 2026-10-03 (17:38 Lima) | **rápido**, sin SQL (PR #770, sesión `vista-informativa-ux`; no comparable con filas completas) | 6.7/10 (sin tope: escrituras sin revisar) | 7.2 — Soporte | Mismo día, mismo diagnóstico de fondo («Reponer» no dice cuántas son ni desempata por venta). **Este análisis completo lo reemplaza:** suma SQL de producción, las escrituras, «Incidencias» y la cola por regularizar. Sus tareas #1 (ponerle número a Reponer), #4 (desempatar), #9 (tarjetas en cero) y #5 (capa comercial) están absorbidas en #3, #7 y la sección 8. |
 | 2026-10-03 | completo, con SQL de solo lectura | 4,5/10 (promedio de 6; el tope 5 no hizo falta) | 8,0 — Núcleo | **Análisis anterior vencido** (la pantalla se rehízo: −1.284 líneas en `InventarioPanel.tsx`). Once de las 12 del 26-sep figuraban ✅ hechas (la #12 era de bajo valor); de ellas **siguen vivas en otra forma** `[inferido: comparé sus títulos con lo que hoy muestra el código]`: #5 (el umbral quedó abierto: hoy 533/533 → nueva #2/#3), #10 (un solo vocabulario: hoy tres verbos → nueva #9) y #11 (pruebas: `resumirExistencias` y `ordenarModelos` siguen sin prueba → #12). Nuevas: #1 (cola por regularizar), #4 (Eliminar en el cajón) y #5–#7 (tarjeta). |
 | 2026-10-04 | completo, con SQL de solo lectura (13:56 Lima) | 4,5/10 (promedio de 6; sin tope) | 8,2 — Núcleo | **Análisis anterior vencido** (18 archivos cambiaron desde `b4cb05c3`). De sus 12: **cerrada** #10 (filtros con conteos y en la URL: ADR-0326, #774). **Cerrada en parte** #5 (la tarjeta avisa «Solo M · L (de 4 tallas)», `c5fa30bb`; el total del modelo sigue abierto). **Siguen vivas en otra forma:** #1 → nueva #1; #2 (una regla por talla: `hoyDeTalla` existe, pero `estadoTalla` sigue en paralelo) → nueva #7; #3 → nuevas #2 y #3; #6 → nueva #6; #7 → nueva #5; #8 → nueva #4; #9 (un solo verbo para bajar) sigue abierta, sin tarea propia aquí; #12 → nuevas #11 y #12. **Sigue abierta y fuera de las 12:** #4 (D4, «Eliminar el producto» en el cajón: `CajonPrendaExistencias.tsx:291`) y #11 (foto por color). Nuevo: el tope de rojo no lo hace cumplir ningún código; el mínimo de 1 por talla y color cabe en TRU (539 de 600), así que «por colgar» es casi todo error de registro. |
+| 2026-11-26 | completo, **sin SQL** (la consulta no se pudo correr desde la sesión; queda en el Anexo) | 6,2/10 (promedio de 6; sin tope) | 8,2 — Núcleo | **Análisis anterior vencido** (`InventarioPanel.tsx` ±1.296 líneas desde `e6fde14d`). De sus 12, verificadas en el código: **cerrada** #2 (mínimo de 1 colgada por talla y color: `AYUDA_HOY.por_colgar`); **cerrada en otra forma** #3 («Para hoy» es el anillo + «Pendientes de hoy», ADR-0344 §16) y #8 (el panel de filtros viene cerrado y se recuerda por equipo). **No verificadas en esta pasada:** #1 (cola por regularizar), #4–#7, #9–#12. Nuevo, a pedido de Felipe («¿sirve o estorba?»): el piso sin cuadrar se dice cinco veces con dos salidas distintas (barrido y cuadrar), dos puertas al barrido, la fila GESTIÓN repite los chips, «691 de 480» sin regla, chips en otra unidad que la lista. |
 
-## Anexo · consultas de solo lectura usadas (producción, proyecto `cayla-dynamic`, schema `retail`, 2026-10-04 13:56 Lima)
-Todas son `SELECT`, sin datos personales.
+## Anexo · consulta de solo lectura para Felipe (producción, proyecto `cayla-dynamic`, schema `retail`)
+No se corrió: el permiso de esta sesión la frenó. Sin datos personales; pegar en el SQL Editor y devolver el resultado de cada bloque.
+
 ```sql
--- Q1 · Existencias por sede como las pinta la pantalla (libres = cantidad − apartada)
-with s as (
-  select u.nombre as sede, st.variante_id, ss.tipo, greatest(st.cantidad - coalesce(st.cantidad_apartada,0),0) as libre
-  from retail.stock st join retail.ubicaciones u on u.id = st.ubicacion_id
-  left join retail.sububicaciones ss on ss.id = st.sububicacion_id where st.cantidad > 0),
-t as (select sede, variante_id, sum(libre) filter (where tipo='piso_venta') as piso, sum(libre) filter (where tipo='almacen_tienda') as almacen from s group by 1,2)
-select t.sede, sum(coalesce(t.piso,0)) colgadas, sum(coalesce(t.almacen,0)) guardadas, count(*) tallas,
-  count(*) filter (where coalesce(t.piso,0)=0 and coalesce(t.almacen,0)>0) tallas_por_colgar,
-  count(*) filter (where coalesce(t.piso,0) between 1 and 4) tallas_piso_1a4,
-  count(*) filter (where coalesce(t.piso,0)>=5) tallas_piso_5omas,
-  count(distinct v.producto_id) modelos, count(distinct (v.producto_id, v.color_codigo)) modelo_color
-  -- + subconsultas por sede: prendas_danadas pendientes, apartados abiertos, prendas_por_regularizar pendientes y vencidas (> 2 días), bajadas_piso de hoy
-from t join retail.variantes v on v.id = t.variante_id group by t.sede;
--- Resultado TRU: 155 colgadas · 653 guardadas · 538 tallas · 391 por colgar · 147 con 1–4 en el piso · 0 con 5 o más · 101 modelos · 418 modelo-color
---                0 dañadas · 0 apartados · 78 sin registrar (14 vencidas) · 12 bajadas hoy
--- AQP: 13 colgadas · 0 guardadas · 170 sin registrar (64 vencidas). LIM: 1 guardada.
+-- A. TRU: capacidad, cuadres y barridos (¿por qué 480 y no 600? ¿desde cuándo está abierto el barrido?)
+with tru as (select id from retail.ubicaciones where nombre ilike '%TRU%' limit 1)
+select
+  (select row_to_json(c) from (select m2_sala, densidad, provisional, updated_at from retail.capacidad_piso
+                               where ubicacion_id = (select id from tru)) c)                       as capacidad,
+  (select count(*) from retail.cuadres_piso where ubicacion_id = (select id from tru))             as cuadres_tru,
+  (select json_agg(json_build_object('estado', b.estado, 'abierto_el', b.created_at))
+     from retail.barridos_piso b where b.ubicacion_id = (select id from tru))                      as barridos_tru;
 
--- Q2 · ¿Cabe «1 colgada por talla y color, solo tallas centrales» en los 600 lugares de TRU?
--- (variantes con stock libre en TRU, por su talla)
--- Resultado: 546 talla-color con stock · 539 en talla central (Estándar 224, S 86, M 83, L 69, Única 32, 30 16, 28 13, 32 10, S/M 6)
---            · 7 extremas (XL 2, 26 2, 34 2, XS 1) · 426 modelo-color.
+-- B. Las 918 de «Sin stock atrás»: ¿cuántas combinaciones modelo+color sin nada en TRU vendieron algo en 30 días?
+--    (aproximación por stock = 0 en la sede; el motor exacto vive en lib/piso-plan.ts)
+with tru as (select id from retail.ubicaciones where nombre ilike '%TRU%' limit 1)
+select count(*) as sin_nada_en_tru,
+       count(*) filter (where vendio_30d) as de_ellas_vendieron_30d
+from (
+  select v.producto_id, v.color,
+         coalesce(sum(s.cantidad), 0) as en_tru,
+         exists (select 1 from retail.movimientos m
+                 join retail.variantes v2 on v2.id = m.variante_id
+                 where v2.producto_id = v.producto_id and v2.color is not distinct from v.color
+                   and m.tipo = 'venta' and m.created_at > now() - interval '30 days') as vendio_30d
+  from retail.variantes v
+  left join retail.stock s on s.variante_id = v.id
+       and s.ubicacion_id in (select id from tru union select id from retail.sububicaciones where ubicacion_id = (select id from tru))
+  group by v.producto_id, v.color
+) x
+where en_tru = 0;
 ```
+(Los nombres de columnas de B — `color`, `tipo`, la relación sede↔sububicación — son de memoria del esquema: si alguno falla, revisar `docs/datos/generado/retail_columnas.json`.)

@@ -22,14 +22,14 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "resumen-sede.cifras",
       opcional: true,
       titulo: "La tienda en tres números",
-      texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
+      texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «según el sistema», el piso todavía no se cuadró.",
     },
     {
       id: "valor",
       ancla: "existencias.valor",
       opcional: true,
       titulo: "Cuánto vale lo que hay",
-      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
+      texto: "«Ver el valor a costo», bajo los números, muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
     },
     {
       id: "ajustar-stock",
@@ -43,7 +43,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.barrido",
       opcional: true,
       titulo: "Barrido del piso",
-      texto: "Una vez al mes se escanea todo lo colgado, entre varias personas, para que el sistema sepa qué está en el piso y qué en el almacén. Si ya hay uno en curso, desde aquí te sumas. En la demo no lo abrimos.",
+      texto: "Una vez al mes se escanea todo lo colgado, entre varias personas, para que el sistema sepa qué está en el piso y qué en el almacén. Si ya hay uno en curso, este botón no está: te sumas desde su aviso, debajo. En la demo no lo abrimos.",
     },
     {
       // Solo en el celular (bajo 640 px): en la computadora las cifras ya están a la vista, a la derecha de la cabecera.
@@ -59,7 +59,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.avisos",
       opcional: true,
       titulo: "Avisos de la tienda",
-      texto: "En el celular, este ícono aparece cuando hay algo que saber antes de fiarte de los números: hoy, que el piso nunca se cuadró. Tócalo y se abre el aviso con su explicación y «Cuadrar el piso». Sin avisos, el ícono no está.",
+      texto: "En el celular, este ícono aparece cuando hay algo que saber antes de fiarte de los números: hoy, que el piso nunca se cuadró. Tócalo y se abre el aviso con su explicación y «Hacer el barrido». Sin avisos (o con un barrido en curso), el ícono no está.",
     },
     {
       id: "buscador",
@@ -111,15 +111,15 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.panel-filtros",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.filtros", para: "abrir" }],
-      titulo: "Tres filas de filtros",
-      texto: "«Prenda»: categoría, talla, color o marca (talla y color aceptan varios); donde venden dos empresas, «Empresa» deja solo las unidades de una. «Gestión»: qué pide hoy cada talla y si está dañada o apartada. «Vista»: cómo ves la lista.",
+      titulo: "Dos filas de filtros",
+      texto: "«Prenda»: categoría, talla, color o marca (talla y color aceptan varios); donde venden dos empresas, «Empresa» deja solo las unidades de una. «Vista»: cómo ves la lista y en qué orden. Lo que pide hoy cada talla y si está dañada o apartada va en los atajos de debajo del buscador.",
     },
     {
       id: "ver-como",
       ancla: "existencias.ver-como",
       opcional: true,
       titulo: "Tarjetas, tabla o por talla",
-      texto: "Las tarjetas muestran cada prenda con su foto. La tabla pone todo en filas para comparar rápido, y «Por talla» da una fila a cada talla. Al lado eliges el orden y si suena al confirmar (te mostramos la tabla).",
+      texto: "Las tarjetas muestran cada prenda con su foto. La tabla pone todo en filas para comparar rápido, y «Por talla» da una fila a cada talla. Al lado eliges el orden (te mostramos la tabla).",
     },
     {
       id: "tabla",
@@ -141,7 +141,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.tabla-pie",
       opcional: true,
       titulo: "Páginas y Excel",
-      texto: "Al pie de la tabla: cuántas prendas y tallas ves, las flechas para pasar de página y «Descargar CSV» para bajarla a Excel. Abajo a la derecha, qué quiere decir cada casilla.",
+      texto: "Al pie de la tabla: cuántas prendas y tallas ves, las flechas para pasar de página y «Descargar CSV» para bajarla a Excel, el resumen por categoría y si suena al confirmar. Abajo a la derecha, qué quiere decir cada casilla.",
     },
     {
       id: "tabla-talla",
@@ -174,34 +174,19 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Mientras ves la tabla, una etiqueta «Vista: Tabla» lo recuerda bajo el buscador: con su × vuelves a las tarjetas, como acabamos de hacer.",
     },
     {
-      id: "pendientes",
-      ancla: "existencias.pendientes",
-      opcional: true,
-      titulo: "Lo de hoy",
-      texto: "El anillo se llena a medida que resuelves las tallas del día. Tócalo para ver los pendientes de la sede, en el orden en que conviene hacerlos (te los abrimos).",
-    },
-    {
-      id: "pendientes-lista",
-      ancla: "existencias.pendientes-lista",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "existencias.pendientes" }],
-      titulo: "Pendientes de hoy",
-      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (salen a arreglar y vuelven al piso o al almacén, o se liquidan, botan, donan o devuelven al proveedor; cada tienda marca dónde las deja; un arreglo con costo queda como gasto), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
-    },
-    {
       id: "atajos",
       ancla: "existencias.atajos",
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Atajos de un toque",
-      texto: "Las preguntas de siempre: qué falta colgar, qué se acabó atrás, qué está apartado o dañado, qué se está acabando y qué no se vende. El número dice cuántas prendas caen ahí.",
+      texto: "Las preguntas de siempre: qué falta colgar, qué se acabó atrás y qué está apartado o dañado. El número dice cuántas prendas caen ahí. «Falta colgar» aparece cuando el piso ya está cuadrado.",
     },
     {
       id: "aviso-cuadre",
       ancla: "existencias.aviso-cuadre",
       opcional: true,
       titulo: "Mientras el piso no se cuadre",
-      texto: "Este aviso sale hasta que la tienda cuadre su piso por primera vez: lo que las tarjetas dicen «guardado» puede estar colgado, porque nadie lo ha verificado todavía. «Cuadrar el piso» abre la pantalla donde se hace con la pistola.",
+      texto: "Este aviso sale hasta que la tienda cuadre su piso por primera vez: lo que las tarjetas dicen «guardado» puede estar colgado, porque nadie lo ha verificado todavía. «Hacer el barrido» abre la pantalla donde se escanea lo colgado; mientras hay un barrido en curso, este aviso no sale (lo dice el del barrido, arriba).",
     },
     {
       id: "prenda",
@@ -346,7 +331,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Descargar y leer los colores",
-      texto: "Al final, cuántas prendas y tallas estás viendo, el botón para bajar la lista en Excel (CSV) y qué significa cada color de las tarjetas.",
+      texto: "Al final, cuántas prendas y tallas estás viendo, el botón para bajar la lista en Excel (CSV), el resumen por categoría, si suena al confirmar y qué significa cada color de las tarjetas.",
     },
     {
       id: "fin",
