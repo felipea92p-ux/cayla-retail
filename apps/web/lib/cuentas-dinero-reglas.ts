@@ -621,9 +621,11 @@ export function deudaConDueno(movs: readonly MovimientoDueno[]): { deuda: number
 // ---- El modal «Registrar movimiento» ----------------------------------------------------------------------------------
 
 /** «Qué pasó» en palabras del negocio. Poner y sacar plata del dueño se abren en dos (aporte o préstamo; devolución o retiro). */
-export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
+export type QuePaso = "deposito" | "lider_se_lleva" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
 export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLider: boolean; origen: readonly TipoCuenta[] | null; destino: readonly TipoCuenta[] | null }[] = [
   { valor: "deposito", texto: "Depósito al banco", soloLider: false, origen: ["cajon", "caja_fuerte", "por_rendir"], destino: ["banco"] },
+  // ADR-0710: el líder se lleva efectivo de la caja fuerte sin depositarlo todavía. En la base es un «entre cuentas» de la caja fuerte a lo que tiene el líder.
+  { valor: "lider_se_lleva", texto: "El líder se lleva efectivo", soloLider: true, origen: ["caja_fuerte"], destino: ["por_rendir"] },
   { valor: "abono_tarjeta", texto: "Depósito de la máquina (tarjeta y QR)", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
   { valor: "pago_tarjeta", texto: "Pagar la tarjeta de crédito", soloLider: true, origen: ["banco"], destino: ["tarjeta_credito"] },
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
@@ -667,7 +669,31 @@ export type PayloadMovimiento = {
 export function tipoDeMovimiento(b: Pick<BorradorMovimiento, "que" | "clase">): TipoMovimiento {
   if (b.que === "dueno_pone") return b.clase === "prestamo" ? "prestamo" : "aporte";
   if (b.que === "dueno_saca") return b.clase === "devolucion_prestamo" ? "devolucion_prestamo" : "retiro";
+  if (b.que === "lider_se_lleva") return "entre_cuentas";
   return b.que;
+}
+
+/** Cómo se llama y qué ejemplo trae la nota de un movimiento, según lo que la persona eligió en «Qué pasó» (ADR-0290). Lo que el líder se lleva no tiene voucher. */
+export function notaDelMovimiento(que: QuePaso, esDepositoMaquina: boolean): { etiqueta: string; ejemplo: string | null } {
+  if (esDepositoMaquina) return { etiqueta: "Número de operación o nota", ejemplo: null };
+  if (que === "lider_se_lleva") return { etiqueta: "Nota", ejemplo: "Para depositar el lunes" };
+  return { etiqueta: "Voucher o nota", ejemplo: "Voucher 120441" };
+}
+
+/** El título de la hoja: lo que el líder se lleva se llama por su nombre mientras esté elegido; si no, el título con que abrió (que no puede decir «depósito» de algo que no lo es). */
+export function tituloDeLaHoja(que: QuePaso, inicial: QuePaso, deArranque: string): string {
+  if (que === "lider_se_lleva") return "Se lo llevó el líder";
+  return inicial === "lider_se_lleva" ? tituloDelMovimiento(null) : deArranque;
+}
+
+/** Lo que dice el aviso al guardar un movimiento que no se explica con el nombre de su tipo; `null`: el aviso de siempre. */
+export function avisoDeLoRegistrado(que: QuePaso): { titulo: string; detalle: string } | null {
+  return que === "lider_se_lleva" ? { titulo: "Anotado: lo tiene el líder", detalle: "Cuando lo deposite, registra el depósito al banco." } : null;
+}
+
+/** ¿El saldo de la caja fuerte alcanza para lo que el líder dice que se llevó? La base lo vuelve a preguntar; aquí se dice antes de guardar. */
+export function alcanzaEnLaCajaFuerte(monto: number, saldo: number | null): boolean {
+  return saldo === null || Math.round(monto * 100) <= Math.round(saldo * 100);
 }
 
 // ---- El depósito de la máquina (ADR-0429): se cruza contra los días pendientes y la comisión sale sola ------------------
@@ -978,6 +1004,10 @@ export function validarMovimiento(
       if (!origen!.cajaId) return { ok: false, error: "La caja de esa tienda está cerrada: elige un egreso ya registrado." };
       cajaId = origen!.cajaId;
     }
+  }
+
+  if (b.que === "lider_se_lleva" && origen && !alcanzaEnLaCajaFuerte(monto, origen.saldo)) {
+    return { ok: false, error: `En «${origen.nombre}» hay ${soles2(origen.saldo ?? 0)}: no se puede llevar más.` };
   }
 
   let comision = 0;

@@ -34,6 +34,9 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
+  notaDelMovimiento,
+  tituloDeLaHoja,
+  avisoDeLoRegistrado,
   netoEsperado,
   revisarComision,
   resumenConciliacion,
@@ -709,6 +712,8 @@ function RegistrarMovimientoModal({
   const origen = cuentas.find((c) => c.id === b.origen) ?? null;
   const esCajon = origen?.tipo === "cajon";
   const tipo = tipoDeMovimiento(b);
+  // La nota sigue lo elegido en «Qué pasó»: lo que el líder se lleva no tiene voucher (ADR-0290).
+  const nota = notaDelMovimiento(b.que, tipo === "abono_tarjeta");
   const cambiar = (c: Partial<BorradorMovimiento>) => setB((x) => ({ ...x, ...c }));
   // Lo que la persona eligió a mano no se pisa con la propuesta del banco de la máquina.
   const [bancoElegido, setBancoElegido] = useState(false);
@@ -853,8 +858,9 @@ function RegistrarMovimientoModal({
     setGuardando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar el movimiento"));
-    avisar.exito(`${TEXTO_MOVIMIENTO[v.valor.p_tipo]} registrado`, {
-      detalle: v.valor.p_caja_id ? "Su salida quedó en la caja, con el mismo monto." : v.valor.p_comision > 0 ? "La comisión quedó como gasto bancario de la empresa." : undefined,
+    const propio = avisoDeLoRegistrado(b.que);
+    avisar.exito(propio?.titulo ?? `${TEXTO_MOVIMIENTO[v.valor.p_tipo]} registrado`, {
+      detalle: propio ? propio.detalle : v.valor.p_caja_id ? "Su salida quedó en la caja, con el mismo monto." : v.valor.p_comision > 0 ? "La comisión quedó como gasto bancario de la empresa." : undefined,
     });
     onCerrar();
     router.refresh();
@@ -865,7 +871,7 @@ function RegistrarMovimientoModal({
   const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${soles(c.saldo)}`);
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
+    <Modal variante="hoja" titulo={tituloDeLaHoja(b.que, inicial, titulo)} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
@@ -1137,8 +1143,8 @@ function RegistrarMovimientoModal({
             <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />
           )}
         </CampoFin>
-        <CampoFin etiqueta={esDepositoMaquina ? "Número de operación o nota" : "Voucher o nota"} htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? ejemploReferenciaDeposito(origen?.nombre) : "Voucher 120441" /* sugerir-fijo: el formato de un voucher, no depende de nada elegido */} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
+        <CampoFin etiqueta={nota.etiqueta} htmlFor="mov-ref">
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={nota.ejemplo ?? ejemploReferenciaDeposito(origen?.nombre)} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 
