@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "actualizado": "2026-11-05",
+  "version": 5,
+  "actualizado": "2026-11-27",
   "nota": "El contrato de la familia CAYLA. Este archivo es IDÉNTICO en CAYLA Retail (ERP) y en CAYLA Dynamic (asistencia y planilla): cada repositorio lo guarda en docs/familia/contrato.json y prueba su propio código contra él. Desde la versión 4 Retail manda en diseño: un valor de la capa «marca» cambia primero en Retail, y el vigilante de Dynamic (docs/familia/README.md de Dynamic) lo ve dentro de la hora.",
   "quien_manda": {
     "diseno": "retail",
@@ -112,7 +112,8 @@
     { "id": "S6", "regla": "Íconos de lucide y ningún emoji en la pantalla; la indicación al usuario va en tuteo." },
     { "id": "S7", "regla": "Una sola forma por pieza: si una pantalla necesita una tarjeta, una cifra o un filtro, usa el componente; si «casi sirve», se corrige el componente, no se copia la receta." },
     { "id": "S8", "regla": "Los campos de texto miden 16 px en el celular para que Safari de iOS no agrande la página al enfocar." },
-    { "id": "S9", "regla": "Un keyframe de entrada de algo que puede contener un position: fixed (una hoja, un cajón, una tarjeta con un menú) termina en transform: none: un transform residual convierte al elemento en el contenedor de ese fixed. Los keyframes decorativos de una pieza hoja (un sello, un hilo) pueden terminar en otro valor." }
+    { "id": "S9", "regla": "Un keyframe de entrada de algo que puede contener un position: fixed (una hoja, un cajón, una tarjeta con un menú) termina en transform: none: un transform residual convierte al elemento en el contenedor de ese fixed. Los keyframes decorativos de una pieza hoja (un sello, un hilo) pueden terminar en otro valor." },
+    { "id": "S10", "regla": "Ningún dato que se ve se separa con «·» ni con otro signo: se separa con estructura. Once casos (Felipe, 2026-11-27; Retail ADR-0716, Dynamic ADR 0007): quién, dónde y cuándo en una frase con la palabra que une; los datos sueltos de una fila en la línea de datos (piezas con espacio e ícono mudo, rótulo solo para el lector); el nombre y su cuenta en zonas distintas, la cuenta dicha como frase; rótulo y valor («Sede: todas»); una nota entre paréntesis; un estado con su tiempo en frase corta; una lista como «a, b y c» (Intl.ListFormat); el número de un paso como pieza aparte; «—» en una celda vacía; un papel impreso con cada dato en su pieza; y «|» solo en el título de la pestaña." }
   ],
   "producto": [
     { "id": "D1", "tema": "Dispositivo y diseño", "retail": "Escritorio primero con mouse y teclado (el celular a 375 px es obligatorio solo en Vender, Cambios y Devoluciones).", "dynamic": "Celular primero: el marcaje y «Lo mío» se usan con el pulgar.", "motivo": "Lo usa gente distinta en aparatos distintos.", "estado": "propuesto" },
@@ -125,7 +126,8 @@
     { "miembro": "dynamic", "tema": "borde-control", "tokens": ["borde-control"], "que": "Cambiar su alias borde-control de taupe a los valores propios de marca.colores_claro y marca.colores_oscuro (P2 = C): claro #96786a, oscuro #8d7a6e. Lo usan Campo, CampoSelect, AreaTexto y Boton secundario; la casilla y el interruptor apagado también lo llevan en Retail.", "desde": "2026-10-26" },
     { "miembro": "dynamic", "tema": "oscuro", "que": "Pasar su tema oscuro a marca.colores_oscuro (P1 = C): crema, papel, hueso y sand nuevos, y el texto, el rojo, el verde, el ámbar y la pizarra de la tabla.", "desde": "2026-10-26" },
     { "miembro": "dynamic", "tema": "vidrio", "tokens": ["vidrio", "sombra"], "que": "Sumar los dos colores de marca que las recetas consumen. Sin ellos, las 204 variables de vidrio/recetas.css quedan en nada, sin ningún error. Lo que falta, valor por valor, está en docs/familia/deuda.json de Dynamic.", "desde": "2026-11-05" },
-    { "miembro": "dynamic", "tema": "radios", "tokens": ["radius-boton", "radius-campo", "radius-tarjeta", "radius-cajon", "radius-hoja"], "que": "Pasar de sus tres radios (control 8, superficie 16, flotante 20) a los de Retail. Va con el vidrio, en su Etapa 1; hoy los pinta radius-control, radius-superficie y radius-flotante.", "desde": "2026-11-05" }
+    { "miembro": "dynamic", "tema": "radios", "tokens": ["radius-boton", "radius-campo", "radius-tarjeta", "radius-cajon", "radius-hoja"], "que": "Pasar de sus tres radios (control 8, superficie 16, flotante 20) a los de Retail. Va con el vidrio, en su Etapa 1; hoy los pinta radius-control, radius-superficie y radius-flotante.", "desde": "2026-11-05" },
+    { "miembro": "dynamic", "tema": "sin-punto", "que": "Traer las tres piezas de S10 desde Retail con la misma forma: <LineaDeDatos> (apps/web/components/ui/LineaDeDatos.tsx), <CabeceraConCuenta> con cuentaEnFrase (apps/web/components/ui/CabeceraConCuenta.tsx y apps/web/lib/cuenta-en-frase.ts) y listaDicha (apps/web/lib/lista-dicha.ts). Reemplazan a linea-de-datos.tsx y cuentaDeCasos de la muestra de Asistencia. Después, módulo por módulo con su prueba (tests/sin-punto-medio.test.ts).", "desde": "2026-11-27" }
   ],
   "pendientes": [
     {"id": "P1", "tema": "Tema oscuro", "retail": "Gris neutro (crema #1a1a18); los campos (hueso) son MÁS CLAROS que la página: elevado = más claro.", "dynamic": "Café cálido (crema #1c1a16); los campos (hueso #15110d) son MÁS NEGROS que la página: hundido = más oscuro.", "por_que_importa": "Quien usa las dos aplicaciones en la misma jornada ve el mismo negro y la misma forma de leer un campo.", "como_decidir": "Una lámina con los dos oscuros lado a lado, elegida mirando.", "estado": "decidido", "decision": "C · gris cálido (Felipe, 2026-10-26): las claridades del oscuro de Retail con el matiz del café de Dynamic. Ver marca.colores_oscuro."},
