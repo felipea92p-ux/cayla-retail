@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maqueta · Apartados más claro</title>
+<link rel="stylesheet" href="erp.css">
+<style>
+  /* Portada de la maqueta. Los colores salen de los tokens del ERP (erp.css es su hoja ya compilada). */
+  body{margin:0;background:var(--color-crema);color:var(--color-tinta);font:16px/1.5 var(--font-sans,system-ui,sans-serif)}
+  main{max-width:1040px;margin:0 auto;padding:56px 24px 96px}
+  h1{font:500 46px/1.1 var(--font-display,Georgia,serif);margin:0 0 8px}
+  h2{font:500 27px/1.2 var(--font-display,Georgia,serif);margin:48px 0 14px}
+  .bajada{font-size:18px;color:var(--color-secundario,#4a4640);max-width:62ch;margin:0 0 28px}
+  .aviso{display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid var(--color-sand);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px}
+  .empezar{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:12px;background:var(--color-tinta);color:var(--color-crema);text-decoration:none;font-weight:600}
+  .grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .tarjeta{display:block;padding:18px 20px;border-radius:18px;border:1px solid var(--color-sand);background:var(--color-papel);text-decoration:none;color:inherit}
+  .tarjeta b{display:block;font:500 21px/1.2 var(--font-display,Georgia,serif);margin-bottom:4px}
+  .tarjeta span{font-size:14px;color:var(--color-secundario,#4a4640)}
+  .tarjeta em{font-style:normal;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-verde-profundo,#44583a)}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--color-sand);vertical-align:top}
+  th{font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--color-secundario,#4a4640)}
+  td:first-child{white-space:nowrap;font-weight:600}
+  .n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  p.pie{font-size:14px;color:var(--color-secundario,#4a4640);max-width:70ch}
+</style>
+</head>
+<body>
+<main>
+  <span class="aviso">Maqueta · no es producción · datos inventados</span>
+  <h1>Apartados, más claro</h1>
+  <p class="bajada">Cada pantalla de esta maqueta es la pantalla real del ERP, congelada. Abajo, al centro, hay un interruptor <b>Hoy / Propuesta</b>: con «Hoy» ves lo que existe; con «Propuesta», el mismo lugar con el cambio aplicado. El botón «Qué cambia aquí» dice cada cambio y la evidencia que lo pide.</p>
+  <a class="empezar" href="apartar-vacio.html">Empezar el recorrido →</a>
+
+  <h2>Las pantallas</h2>
+  <div class="grilla">
+    <a class="tarjeta" href="apartar-ticket.html"><em>Apartar · 1</em><b>Las prendas</b><span>El botón dice lo que hace: «Seguir: datos del cliente».</span></a>
+    <a class="tarjeta" href="apartar-cobro.html"><em>Apartar · 2</em><b>Cliente y adelanto</b><span>El botón de confirmar ya no queda bajo la pantalla.</span></a>
+    <a class="tarjeta" href="apartar-registrado.html"><em>Apartar · 3</em><b>Apartado registrado</b><span>Primero lo que hay que hacer con la prenda en la mano.</span></a>
+    <a class="tarjeta" href="entregar-lista.html"><em>Entregar · 1</em><b>Quién viene a recoger</b><span>Sin el aviso rojo de otro cliente.</span></a>
+    <a class="tarjeta" href="entregar-listo.html"><em>Entregar · 2</em><b>Cobrar lo que falta</b><span>Una sola cuenta y el botón siempre a la vista.</span></a>
+    <a class="tarjeta" href="pendientes.html"><em>Nueva pestaña</em><b>Pendientes</b><span>Lo que pide algo hoy, agrupado por lo que hay que hacer.</span></a>
+    <a class="tarjeta" href="historial.html"><em>Historial</em><b>Todos los apartados</b><span>La lista arriba, en una tabla que alinea.</span></a>
+    <a class="tarjeta" href="modal-devolver.html?de=pendientes"><em>Hoja</em><b>Devolver el adelanto</b><span>Botones pegados al pie, sin «correlativo».</span></a>
+    <a class="tarjeta" href="modal-abonar.html"><em>Hoja</em><b>Abonar a cuenta</b><span>De 104 palabras a lo que se necesita para cobrar.</span></a>
+    <a class="tarjeta" href="modal-liberar.html?de=pendientes"><em>Hoja</em><b>Cancelar el apartado</b><span>La palabra de la tienda, no «liberar».</span></a>
+    <a class="tarjeta" href="modal-detalle.html"><em>Hoja</em><b>El detalle de un apartado</b><span>Su pie por fin se queda pegado.</span></a>
+  </div>
+
+  <h2>Lo que se midió y lo que cambia</h2>
+  <table>
+    <tr><th>Qué</th><th>Hoy</th><th>Propuesta</th></tr>
+    <tr><td>«Confirmar apartado»</td><td class="n">y = 1031 px (pantalla de 900): no se ve</td><td class="n">y = 811 px: a la vista</td></tr>
+    <tr><td>«Entregar y cobrar»</td><td class="n">y = 918 px: no se ve</td><td class="n">y = 771 px: a la vista</td></tr>
+    <tr><td>Primera fila del Historial</td><td class="n">y ≈ 860 px</td><td class="n">y = 457 px</td></tr>
+    <tr><td>Lo urgente de hoy</td><td>Dentro de «Historial», bajo cifras y filtros</td><td>Pestaña «Pendientes»: primera fila en y = 204 px</td></tr>
+    <tr><td>«A cuántos escribir»</td><td>Tres números a la vista: 2, 3 y 4</td><td>Uno por grupo, en un solo lugar</td></tr>
+    <tr><td>Columnas del Historial</td><td>Cada fila arma las suyas (x = 565 / 594 / 681)</td><td>Las mismas en todas, con títulos</td></tr>
+    <tr><td>Lo que falta pagar</td><td>Seis nombres: Resta, saldo, Falta pagar, Falta, Queda, Saldo al recoger</td><td>Uno: «Le falta»</td></tr>
+    <tr><td>Hoja «Abonar»</td><td>El botón queda bajo el borde de la hoja</td><td>Cabe entera, con el pie pegado</td></tr>
+  </table>
+  <p class="pie">Medido en el navegador a 1440 × 900, con el menú abierto y la cuenta de un líder. La prueba con tres personas «ciegas» (agentes sin contexto) y la revisión contra el código están en <code>docs/formidable/vender-apartados.md</code>. El celular (375 px) no está en esta maqueta: se dibuja después de que elijas qué entra.</p>
+</main>
+</body>
+</html>
