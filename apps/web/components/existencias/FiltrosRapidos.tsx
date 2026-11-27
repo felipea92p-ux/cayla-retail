@@ -45,6 +45,7 @@ export function FiltrosRapidos({
   conteos,
   onCambiar,
   enPausa = 0,
+  pausaPrevista = false,
   calculando = false,
 }: {
   elegidos: Pick<FiltrosElegidos, "hoy" | "condicion">;
@@ -52,6 +53,9 @@ export function FiltrosRapidos({
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
   /** Tallas que esperan el cuadre del piso: «Por colgar» no se dibuja. */
   enPausa?: number;
+  /** El piso nunca se cuadró, según la capacidad que llega con la lista: mientras el plan se calcula, «Por colgar» tampoco se dibuja
+   *  (sin esto aparecía un instante y se iba, y los demás atajos saltaban a la izquierda; medido el 2026-11-26). */
+  pausaPrevista?: boolean;
   /** «Hoy» viene en camino (Existencias en dos tiempos): «Por colgar» y «Sin stock atrás» guardan el lugar de su cifra, sin un 0 que no se sabe. */
   calculando?: boolean;
 }) {
@@ -72,7 +76,7 @@ export function FiltrosRapidos({
         const delPlan = a.clave === "por_colgar" || a.clave === "sin_stock_atras";
         const esperando = calculando && delPlan;
         // Piso en pausa: el botón no filtraría nada (ver arriba). Si ya está puesto, se queda para poder quitarlo.
-        if (!esperando && a.clave === "por_colgar" && enPausa > 0 && !puesto) return null;
+        if (a.clave === "por_colgar" && !puesto && (esperando ? pausaPrevista : enPausa > 0)) return null;
         const rotulo = esperando ? `${a.texto}: calculando` : rotuloDeAtajo(a, cuenta);
         return (
           <span key={a.clave} className="contents">

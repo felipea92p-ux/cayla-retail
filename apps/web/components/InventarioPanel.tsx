@@ -883,7 +883,8 @@ export function InventarioPanel({
 
   // Lo que va al pie de la lista, en las tres vistas (2026-11-26, «Existencias sin ruido»): bajar lo filtrado, el resumen por categoría
   // (antes solo se abría desde «Pendientes», que se fue) y el sonido al confirmar (antes en «Filtros ▸ Vista»: es un ajuste del equipo,
-  // no un filtro; suena al colgar, subir, ajustar o reportar una dañada).
+  // no un filtro; suena al colgar, subir, ajustar o reportar una dañada). Con las tres, el pie se parte en dos renglones: por eso los pies
+  // llevan 16 px entre renglones (`gap-y-4`), más que los 12 px entre las piezas de un grupo (al milímetro, proximidad, 2026-11-26).
   const herramientasDelPie = (
     <>
       <BotonDescargar onClick={exportarCsv} chico>
@@ -955,8 +956,9 @@ export function InventarioPanel({
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
             conteo={conteo}
-            // El piso sin cuadrar ya no es una franja de texto sobre las tarjetas: va en el atajo «Por colgar» (pausa + su explicación).
+            // El piso sin cuadrar: «Por colgar» no se dibuja (no filtraría nada); lo dice el aviso del piso. `pausaPrevista` lo sabe antes del plan.
             enPausa={separa && !planFallo ? tallasEnPausa : 0}
+            pausaPrevista={separa && pisoSinCuadrarAntes}
             calculando={separa && planCalculando}
             panelInicial={panelFiltros}
             onEscanear={() => setCamara(true)}
@@ -1140,7 +1142,7 @@ export function InventarioPanel({
             onColgarTalla={(prenda, fila, origen) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" }, origen })}
           />
           {tarjetasOrdenadas.length > 0 && (
-          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-sm text-taupe">
+          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-x-2 gap-y-4 px-1 pb-1 pt-4 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
@@ -1191,7 +1193,7 @@ export function InventarioPanel({
             onAbrir={abrirPrenda}
             calculando={planDelPiso.calculando}
           />
-          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
+          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-x-2 gap-y-4 px-5 py-3 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaPrendas.totalPaginas > 1 ? `Mostrando ${paginaPrendas.desde}–${paginaPrendas.hasta} de ` : "Mostrando "}
@@ -1432,7 +1434,7 @@ export function InventarioPanel({
               </div>
             );
           })}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-4 px-5 py-3 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
               <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />

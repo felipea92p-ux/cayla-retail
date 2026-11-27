@@ -12,3 +12,7 @@ Las cifras son las de la captura. La de «Sin stock atrás» en el después **no
 análisis. Las prendas son bloques sin datos. Solo tokens (los de `vidrio-base-2026-10/marco.css`).
 
 Láminas: `lamina-hoy.png` (barrido abierto), `lamina-sin-barrido.png`, `lamina-oscuro.png`. Nada de esto toca el código: es para decidir.
+
+`capturas/` (2026-11-26, noche): **lo construido**, no la maqueta. El ERP local contra una pila Supabase propia con todas las migraciones, dos
+sedes inventadas (Trujillo con un barrido abierto de 7 prendas; Lima sin barrido ni cuadre), a 1440, 1920 y 375 px, en claro y en oscuro. Las
+enlaza el PR #2041.

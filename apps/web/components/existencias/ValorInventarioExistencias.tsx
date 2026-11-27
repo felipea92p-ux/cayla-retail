@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Aviso } from "@/components/ui/Aviso";
 import { createClient } from "@/lib/supabase/client";
@@ -41,7 +42,7 @@ import {
 
 type EstadoLista = { tipo: "cerrada" } | { tipo: "cargando" } | { tipo: "error" } | { tipo: "lista"; lista: ListaSinCosto };
 
-export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veComprobacion, aliadas = "CLAURE" }: { vista: VistaValor; puedeEditarCatalogo: boolean; /** Cómo se nombra a las aliadas de la sede (ADR-0683): la única, o «las empresas aliadas». */ aliadas?: string; /** Tiene el módulo de reportes financieros: a los roles de Compras el enlace los llevaría a «Sin acceso». */ veComprobacion: boolean }) {
+export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veComprobacion, aliadas = "CLAURE", abrirEn }: { vista: VistaValor; puedeEditarCatalogo: boolean; /** El id de la caja donde se dibuja ABIERTO (a lo ancho, bajo la cabecera); sin él, en su lugar. Ver el pie del archivo. */ abrirEn?: string; /** Cómo se nombra a las aliadas de la sede (ADR-0683): la única, o «las empresas aliadas». */ aliadas?: string; /** Tiene el módulo de reportes financieros: a los roles de Compras el enlace los llevaría a «Sin acceso». */ veComprobacion: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const [porQue, setPorQue] = useState(false);
   const [cuales, setCuales] = useState<EstadoLista>({ tipo: "cerrada" });
@@ -74,7 +75,7 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veCompr
     (l): l is string => l !== null,
   );
 
-  return (
+  const seccion = (
     <section data-guia="existencias.valor" aria-label="Valor del inventario a costo" className="card-cayla anim-entra space-y-3 p-4 text-sm text-tinta/80">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p>
@@ -160,6 +161,12 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veCompr
       </div>
     </section>
   );
+
+  // Abierto, a lo ancho y bajo la cabecera (2026-11-26, «Existencias sin ruido»): cerrado, el enlace vive bajo las cifras, en la columna
+  // derecha de la cabecera; abierta ahí, la sección ensanchaba esa columna (bajaba entera a la izquierda) o, si se la topaba al ancho de
+  // las cifras, alargaba la cabecera y el título bajaba 156 px (medido a 1440). Solo pasa después de un toque, así que la caja ya existe.
+  const destino = abrirEn ? document.getElementById(abrirEn) : null;
+  return destino ? createPortal(seccion, destino) : seccion;
 }
 
 /** Las tallas sin costo de esta sede, de más a menos prendas. A quien edita el catálogo, cada modelo lo lleva a ponerle el costo. */

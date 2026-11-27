@@ -1226,10 +1226,18 @@ const verDetalle = (nombre) => async (pagina) => {
   await pagina.getByRole("button", { name: nombre }).first().evaluate((el) => el.click());
   await esperar(pagina, 1500);
 };
-// «Para hoy» ya no va en la pantalla (ADR-0344, 2026-10-06): sus tareas —«Decidir» sobre las dañadas— y «Resumen por categoría» viven en la
-// ventana «Pendientes de hoy». En una tienda se abre con el anillo del día, al costado de «Filtros», cuyo nombre accesible empieza por «Hoy…»
-// («Hoy: 3 de 8 tallas…», «Hoy está todo al día», «Hoy no hay tallas…»); en el Taller, con el botón «Pendientes».
-const abrirPendientes = clicRol("button", /^Hoy(:| está| no hay)|^Pendientes/);
+// La ventana «Pendientes de hoy» y su anillo se fueron (ADR-0709, «Existencias sin ruido», 2026-11-26): «Resumen por categoría» está al pie
+// de la lista y la cola de las dañadas («Prendas dañadas», lo que abría «Decidir») se abre con `?danados=1`, como el aviso de Devoluciones.
+// «Filtros ▸ Vista» se dibuja dos veces (la barra y la hoja del celular, oculta en escritorio): `.first()` tomaba la oculta y el clic
+// esperaba hasta vencerse. Este busca solo lo que se ve.
+const clicVisible = (rol, nombre) => async (pagina) => {
+  await pagina.getByRole(rol, { name: nombre }).filter({ visible: true }).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+const abrirDanadas = async (pagina) => {
+  await pagina.goto(new URL("/inventario?danados=1", pagina.url()).href);
+  await esperar(pagina, 3500);
+};
 // Los tipos de Movimientos son ENLACES dentro de su `<nav>` (ADR-0353), no botones: filtrar cambia la URL. Un tipo en cero no es enlace.
 const tipoDeMovimiento = (nombre) => async (pagina) => {
   await pagina.getByRole("navigation", { name: "Tipo de movimiento" }).getByRole("link", { name: nombre }).first().click({ timeout: 8000 });
@@ -1237,9 +1245,9 @@ const tipoDeMovimiento = (nombre) => async (pagina) => {
 };
 ESCENARIOS.push(
   { id: "existencias.filtros", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
-  { id: "existencias.detalle", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Ver detalle» (cada talla con su piso y su almacén)", abre: "[data-guia='existencias.tabla'] [role=button]", preparar: secuencia(clicRol("button", /^Filtros/i), clicRol("button", /^Tabla$/)) },
+  { id: "existencias.detalle", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Ver detalle» (cada talla con su piso y su almacén)", abre: "[data-guia='existencias.tabla'] [role=button]", preparar: secuencia(clicVisible("button", /^Filtros/i), clicVisible("button", /^Tabla$/)) },
   { id: "existencias.danadas", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el filtro «Dañadas»", preparar: clicRol("button", /^Dañadas/i) },
-  { id: "existencias.ordenar", ruta: "/inventario", cuentas: ["admin"], abre: "text=Nombre (A–Z)", nombre: "Existencias · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/i) },
+  { id: "existencias.ordenar", ruta: "/inventario", cuentas: ["admin"], abre: "text=Nombre (A–Z)", nombre: "Existencias · «Ordenar por»", preparar: secuencia(clicVisible("button", /^Filtros/i), clicVisible("button", /^Ordenar por/i)) },
   // La tarjeta compacta (2026-10-07): «Colgar en el piso» del pie abre la tabla de Colgar varias; «Más ⌄» es un menú; la tarjeta abre el
   // cajón y «Todas» es la tabla de celdas piso/almacén.
   { id: "existencias.acciones", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · «Colgar en el piso» (la tabla de Colgar varias)", preparar: clicRol("button", /^Colgar en el piso/i) },
@@ -1250,19 +1258,18 @@ ESCENARIOS.push(
   { id: "existencias.modal", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] [data-guia='existencias.cajon-donde']", nombre: "Existencias · el modal de la prenda («Esta talla»)", preparar: abrirPrenda },
   { id: "existencias.todas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · el modal en «Todas» (colgadas y guardadas por talla, con totales)", preparar: secuencia(abrirPrenda, clicRol("tab", /^Todas$/)) },
   { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(abrirPrenda, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
-  { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
-  { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
+  { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría» (al pie de la lista)", preparar: clicRol("button", /^Resumen por categoría/i) },
   // Solo en el celular (bajo 640 px): el aviso del piso sin cuadrar es un ícono de la cabecera que abre su hoja (2026-11-17). Necesita una
   // tienda que nunca cuadró su piso (en la base local, todas).
   { id: "existencias.avisos", ruta: "/inventario", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]:has-text('Avisos')", nombre: "Existencias · la hoja «Avisos» del celular (el piso sin cuadrar)", preparar: clicRol("button", /^Avisos/i) },
-  // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
-  { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i)) },
+  // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, la cola de dañadas está vacía.
+  { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Prendas dañadas» (decidir sobre una dañada)", preparar: abrirDanadas },
   // ADR-0564 (prendas dañadas en tienda): lo nuevo de la ventana «Prendas dañadas» (se llega como «Decidir») y los paneles de cada paso, y el
   // buscador de «Separé una dañada» (`?danada=1`, el botón de las cuentas de caja y almacén: la pantalla quita el parámetro al abrirlo, así que
   // se navega desde `preparar`). Necesitan la dañada de Tienda Lima de la base local.
-  { id: "existencias.danadas-lugar", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Dónde dejan las prendas dañadas?')", nombre: "Existencias · Dañadas · «Marcar el lugar» (dónde las dejan)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Marcar el lugar|^Cambiar/i)) },
-  { id: "existencias.danadas-salida", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Quién la arregla?')", nombre: "Existencias · Dañadas · «Salió a arreglar» (cerca o Taller)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Salió a arreglar/i)) },
-  { id: "existencias.danadas-arreglo", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿A dónde vuelve?')", nombre: "Existencias · Dañadas · «Se arregló» (piso o almacén, y el costo)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Se arregló/i)) },
+  { id: "existencias.danadas-lugar", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Dónde dejan las prendas dañadas?')", nombre: "Existencias · Dañadas · «Marcar el lugar» (dónde las dejan)", preparar: secuencia(abrirDanadas, clicRol("button", /^Marcar el lugar|^Cambiar/i)) },
+  { id: "existencias.danadas-salida", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Quién la arregla?')", nombre: "Existencias · Dañadas · «Salió a arreglar» (cerca o Taller)", preparar: secuencia(abrirDanadas, clicRol("button", /^Salió a arreglar/i)) },
+  { id: "existencias.danadas-arreglo", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿A dónde vuelve?')", nombre: "Existencias · Dañadas · «Se arregló» (piso o almacén, y el costo)", preparar: secuencia(abrirDanadas, clicRol("button", /^Se arregló/i)) },
   { id: "existencias.danada-buscar", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('¿Qué prenda está dañada?')", nombre: "Existencias · «Separé una dañada» (el buscador de la prenda)", preparar: async (pagina) => { await pagina.goto(new URL("/inventario?danada=1", pagina.url()).href); await esperar(pagina, 3500); } },
   { id: "movimientos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento", preparar: verDetalle(/^Ver el detalle: Salida/) },
   { id: "movimientos.grupo", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento con varias prendas", preparar: verDetalle(/^Ver el detalle: las 3 prendas/) },

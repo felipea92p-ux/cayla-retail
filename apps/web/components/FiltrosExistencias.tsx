@@ -91,6 +91,7 @@ export function FiltrosExistencias({
   nota,
   onEscanear,
   enPausa = 0,
+  pausaPrevista = false,
   calculando = false,
 }: {
   busqueda: string;
@@ -137,6 +138,8 @@ export function FiltrosExistencias({
   onEscanear?: () => void;
   /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» no se dibuja (`FiltrosRapidos`). */
   enPausa?: number;
+  /** El piso nunca se cuadró, sabido antes del plan (`FiltrosRapidos`). */
+  pausaPrevista?: boolean;
   /** «Hoy» viene en camino (Existencias en dos tiempos, 2026-11-13): los atajos «Por colgar» y «Sin stock atrás» y, con un caso de «Hoy»
    *  puesto, la cifra de la lista dicen «calculando» en vez de un 0 que no se sabe. */
   calculando?: boolean;
@@ -433,7 +436,7 @@ export function FiltrosExistencias({
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
         {separa && (
           <div className="order-2 min-w-0 basis-full xl:order-4">
-            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} calculando={calculando} />
+            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} pausaPrevista={pausaPrevista} calculando={calculando} />
           </div>
         )}
       </div>

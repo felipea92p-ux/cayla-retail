@@ -426,14 +426,18 @@ export default async function InventarioPage({
           <CifrasExistencias {...propsCifras} />
           {/* «Ver el valor a costo» va bajo las cifras (2026-11-26, «Existencias sin ruido»): antes ocupaba su propia fila entre la banda
               del barrido y la barra de filtros. Se lee junto a lo que cuenta; en el celular sigue en la hoja «Resumen». La llave lleva
-              un prefijo: `InventarioPanel`, su vecino, ya usa el id de la sede. */}
+              un prefijo: `InventarioPanel`, su vecino, ya usa el id de la sede. Abierta, la sección se dibuja a lo ancho en la caja
+              de abajo (`abrirEn`): en esta columna la ensanchaba o alargaba la cabecera. */}
           {propsValor && (
             <div className="mt-2 flex justify-end">
-              <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} {...propsValor} />
+              <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} {...propsValor} abrirEn="existencias-valor-abierto" />
             </div>
           )}
         </div>
       </EncabezadoPagina>
+
+      {/* Donde se abre «Ver el valor a costo» (ver arriba). Vacía no ocupa lugar. */}
+      <div id="existencias-valor-abierto" className="empty:hidden" />
 
       {/* El barrido del piso (ADR-0690): hay uno en curso («Sumarme») o ya toca el del mes. Llega con la página: no aparece de golpe. */}
       {avisoBarrido && (

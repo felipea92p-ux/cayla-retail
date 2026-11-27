@@ -67,6 +67,16 @@ sabría que «en almacén» puede estar colgado. O si Inicio dejara de avisar la
 
 - `lib/existencias-rapidos.test.ts`, `lib/existencias-filtros.test.ts`, `lib/capacidad-piso.test.ts`, `lib/barrido-piso-reglas.test.ts`,
   `lib/inicio-almacen-reglas.test.ts`, `lib/existencias-para-hoy.test.ts`; `pnpm knip` y `pnpm knip:produccion` sin nada nuevo.
-- En el navegador, con prendas inventadas (sin base): la cabecera con un barrido abierto (una banda, sin botón, sin franja), sin barrido (el
-  botón «Barrido del piso» y la franja con «Hacer el barrido»), los atajos sin «Por colgar», «Se acaban» ni «Sin ventas», el panel con dos
-  filas y el pie con el sonido. Capturas en el PR.
+- En el navegador, con base (2026-11-26, noche: una pila Supabase propia con todas las migraciones y dos sedes inventadas, Trujillo con un
+  barrido abierto y Lima sin barrido ni cuadre): una banda sin botón ni franja ni ícono «Avisos» a 375 px; sin barrido, «Barrido del piso» y la
+  franja con «Hacer el barrido»; «según el sistema»; los atajos sin «Por colgar», «Se acaban» ni «Sin ventas»; el panel con dos filas y el pie
+  con el sonido en las tres vistas. A 1440, 1920 y 375 px, claro y oscuro: capturas en `docs/maquetas/existencias-sin-ruido-2026-11/capturas/`.
+  `/milimetro` (`docs/milimetro/auditorias/2026-11-26-existencias-sin-ruido.md`), `/formidable` (`docs/formidable/existencias-sin-ruido.md`),
+  `tema:auditar` (0 hallazgos solo en oscuro) y `guias:recorrer` (35/35 en escritorio, 33/33 a 375).
+
+**Ajustes al verlo con base (2026-11-26, noche):** tres cosas que solo se vieron con datos. (a) **«Ver el valor a costo», abierto, se dibuja a lo
+ancho bajo la cabecera** (`abrirEn`, un portal a una caja vacía que no ocupa lugar): en la columna de las cifras la ensanchaba, la columna bajaba
+entera a la izquierda, y topada a su ancho alargaba la cabecera y el título bajaba 156 px. Cerrado, el enlace sigue bajo las cifras (punto 9).
+(b) **«Por colgar» no aparece ni mientras se calcula el plan** (`pausaPrevista`: el piso nunca cuadrado, que la capacidad ya sabe antes): se
+dibujaba un instante y al irse los demás atajos saltaban (ADR-0185). (c) **El pie, con sus tres herramientas, se parte en dos renglones**: 16 px
+entre ellos y «Sonido al confirmar» con su área de 44 px con el dedo (`area-dedo`).
