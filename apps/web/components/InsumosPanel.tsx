@@ -90,8 +90,8 @@ const POR_ACABARSE_A_LA_VISTA = 4;
 
 /** Las columnas de un color cuando la tarjeta es ancha: Color, Cuánto queda (la barra), Quedan, Alcanza para, Estado y la flecha. Angosta, la fila se apila. */
 const COLUMNAS_COLOR = "@min-[48rem]:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_7rem_9.5rem_9.5rem_1.25rem]";
-/** El ancla de cada pestaña para la guía interactiva (ADR-0389). */
-const GUIA_DE_PESTANA: Record<TipoInsumo, string> = { tela: "prod-insumos.pestana-telas", avio: "prod-insumos.pestana-avios" };
+/** El ancla de cada pestaña para la guía interactiva (ADR-0389). Con la forma `{ guia: "…" }` para que el escáner de las guías (`guias/escaner.mjs`) la lea, como en `LoDemasEnOrden`. */
+const GUIA_DE_PESTANA: Record<TipoInsumo, { guia: string }> = { tela: { guia: "prod-insumos.pestana-telas" }, avio: { guia: "prod-insumos.pestana-avios" } };
 /** Las columnas de «Movimientos». */
 const COLUMNAS_LIBRO = "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_9rem_8rem_8rem_7rem]";
 
@@ -213,7 +213,7 @@ export function InsumosPanel({
                 texto="Más"
                 etiqueta="Más acciones de Insumos"
                 guia="prod-insumos.mas"
-                items={[{ clave: "saldo", etiqueta: "Lo que ya tenías", onSelect: () => setIngresando({ insumoId: null }), motivo: insumos.length === 0 ? "Primero crea una tela o un avío." : undefined }]}
+                items={[{ clave: "saldo", etiqueta: "Lo que ya tenías", guia: "prod-insumos.ya-tenias", onSelect: () => setIngresando({ insumoId: null }), motivo: insumos.length === 0 ? "Primero crea una tela o un avío." : undefined }]}
               />
             )}
             {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3) y avíos (ADR-0580, decisión 3 de Felipe). Sin las telas en la base (`hayTelas`) solo se ofrece el avío, como antes. */}
@@ -223,8 +223,8 @@ export function InsumosPanel({
                 etiqueta="Crear una tela o un avío"
                 guia="prod-insumos.nuevo"
                 items={[
-                  { clave: "tela", etiqueta: "Nueva tela", onSelect: () => setNuevaTela({ agregarA: null }) },
-                  { clave: "avio", etiqueta: "Nuevo avío", onSelect: () => setNuevoAvio({ agregarA: null }) },
+                  { clave: "tela", etiqueta: "Nueva tela", guia: "prod-insumos.nueva-tela", onSelect: () => setNuevaTela({ agregarA: null }) },
+                  { clave: "avio", etiqueta: "Nuevo avío", guia: "prod-insumos.nuevo-avio", onSelect: () => setNuevoAvio({ agregarA: null }) },
                 ]}
               />
             ) : (
@@ -292,7 +292,7 @@ export function InsumosPanel({
               activa={vista}
               onCambio={(clave) => setVista(clave as Vista)}
               items={[
-                ...TIPOS_INSUMO.map((t) => ({ clave: t.valor, etiqueta: t.plural, conteo: encontrados.filter((i) => i.tipo === t.valor).length, ayuda: t.ayuda, guia: GUIA_DE_PESTANA[t.valor] })),
+                ...TIPOS_INSUMO.map((t) => ({ clave: t.valor, etiqueta: t.plural, conteo: encontrados.filter((i) => i.tipo === t.valor).length, ayuda: t.ayuda, guia: GUIA_DE_PESTANA[t.valor].guia })),
                 { clave: "movimientos", etiqueta: "Movimientos", ayuda: "Lo que entró y lo que salió, del más reciente al más viejo.", guia: "prod-insumos.pestana-movimientos" },
               ]}
             />

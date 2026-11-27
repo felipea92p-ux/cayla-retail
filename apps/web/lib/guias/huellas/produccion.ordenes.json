@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 122,
   "controles": {
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
@@ -14,6 +14,7 @@
     "components/NuevaOrdenProduccionForm.tsx": [
       "SegmentoDeslizante «Tipo de orden»",
       "button «{anclaGuia ? \"prod-orden-nueva.talla-nueva-boton\" : undefined}»",
+      "button «prod-orden-nueva.cambiar-modelo»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
       "CampoSelect «¿Reposición o novedad?»",
@@ -95,14 +96,14 @@
       "Boton «(sin nombre)»"
     ],
     "components/orden-produccion/ConsejoDeLaRed.tsx": [
-      "Boton «{`Usarla: pone las ${curva.total}»",
       "button «prod-orden-nueva.red-abrir»",
-      "Desplegable «{String(diasObjetivo)}»"
+      "Boton «{`Usar lo sugerido: pone las ${curva.total}»",
+      "Desplegable «{String(diasObjetivo)}»",
+      "BotonVerMas «prod-orden-nueva.por-que-abrir»"
     ],
     "components/orden-produccion/ElegirModelo.tsx": [
       "button «prod-orden-nueva.modelo-fila»",
-      "button «→() => onCrear(escrito)»",
-      "button «Cambiar»"
+      "button «→() => onCrear(escrito)»"
     ],
     "components/orden-produccion/FasesDeLaOrden.tsx": [
       "Casilla «Recordar en la ficha del modelo»",
@@ -138,6 +139,9 @@
       "Boton «Sí,»",
       "Boton «Mejor no»"
     ],
+    "components/orden-produccion/FichaOrden.tsx": [
+      "BotonVerMas «prod-orden-nueva.costo-abrir»"
+    ],
     "components/orden-produccion/NivelDos.tsx": [
       "BotonVerMas «prod-orden-nueva.nivel2-abrir»"
     ],
@@ -156,13 +160,14 @@
       "Casilla «Dejar estos avíos como los del modelo»"
     ],
     "components/ordenes-lista/FilaDeOrden.tsx": [
-      "Link «{`Abrir ${f.numeroTexto}»",
-      "button «{guiaPorque ? \"prod-ordenes.porque\" : undefined}»"
+      "Link «{`Abrir ${f.numeroTexto}»"
     ],
     "components/ordenes-lista/OrdenesLista.tsx": [
       "Boton «prod-ordenes.nueva»",
+      "button «Todas»",
+      "button «(sin nombre)»",
       "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
-      "button «{f.texto}»",
+      "button «prod-ordenes.filtros»",
       "Boton «Retomar»",
       "Boton «Descartar»",
       "Boton «+ Crear el primer modelo»"
