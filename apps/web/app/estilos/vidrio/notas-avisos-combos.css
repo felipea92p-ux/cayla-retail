@@ -15,7 +15,7 @@
   background: var(--placa-fondo);
   border: 1px solid var(--placa-borde);
   box-shadow: var(--placa-luz);
-  border-radius: 18px;
+  border-radius: var(--radius-campo);
 }
 .nota-cayla:not(.sin-i) { padding-left: 3.25rem; }
 /* La «i» (su máscara, vacio-aviso-buscador.css) se mira a través de una lente de vidrio de 30 px. */
@@ -36,7 +36,7 @@
 /* ---------- el aviso: la lente de su color ---------- */
 .aviso-linea {
   align-items: center;
-  border-radius: 18px;
+  border-radius: var(--radius-campo);
   border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--c) 7%, transparent), color-mix(in srgb, var(--c) 3%, transparent)),
@@ -59,7 +59,7 @@
     0 4px 10px -6px color-mix(in srgb, var(--c) 45%, transparent);
 }
 .aviso-linea-ic svg { width: 16px; height: 16px; }
-.aviso-linea.chico { border-radius: 14px; padding: 8px 12px 8px 8px; }
+.aviso-linea.chico { border-radius: var(--radius-campo); padding: 8px 12px 8px 8px; }
 .aviso-linea.chico .aviso-linea-ic { width: 28px; height: 28px; }
 .aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
 @media screen {
@@ -73,10 +73,10 @@
   backdrop-filter: var(--vidrio-flota-filtro);
   border: 1px solid var(--placa-borde);
   box-shadow: var(--vidrio-flota-sombra);
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
 }
 .lista-flotante [role="option"] {
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), padding var(--t-cambio) var(--ease-cayla);
 }
 /* La gota: opaca sobre papel, para que la fila fija de «Registrar…» siga sin dejar leer lo que pasa por debajo (por eso era opaca). */
@@ -96,7 +96,7 @@
 .globo-filtro {
   position: relative;
   isolation: isolate;
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--vidrio-hoja-borde);
   box-shadow: var(--globo-tabla-sombra);
   /* Una animación que se queda aplicada (`both`) le quita el desenfoque a todo lo de adentro: el navegador la toma como el fondo del `backdrop-filter`. */
@@ -142,7 +142,7 @@
    propio: sobre lo peligroso («Anular», `data-peligro`), la gota se tiñe apenas de rojo, para que lo irreversible no se vea como lo
    demás; y lo que no se puede (`aria-disabled`, con su motivo) no recibe la gota. */
 .lista-menu [role="menuitem"] {
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
 }
 .lista-menu .opcion-activa[data-peligro] {

@@ -49,7 +49,7 @@ export function FichasCuenta({
             aria-pressed={elegida}
             disabled={deshabilitado}
             onClick={() => onValor(c.id)}
-            className={`card-cayla mov-boton relative flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-[14px] px-2 py-3 text-center ${
+            className={`card-cayla mov-boton relative flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-campo px-2 py-3 text-center ${
               elegida ? "border-tinta" : ""
             }`}
           >

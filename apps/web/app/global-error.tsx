@@ -98,7 +98,7 @@ export default function ErrorGlobal({
               background: "var(--ge-texto)",
               color: "var(--ge-fondo)",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px", // esquina-fija: la barrera global no carga las hojas de estilo; la esquina va en línea, ya en la escala
               padding: "12px 22px",
               fontSize: "13px", // letra-fija: la barrera global no carga las hojas de estilo; el tamaño va en línea, ya en la escala
               letterSpacing: "0.13em",

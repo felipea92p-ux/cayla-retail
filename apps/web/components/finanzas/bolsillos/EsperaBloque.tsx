@@ -20,7 +20,7 @@ export function EsperaBloque({ titulo, alto, bandas = 3, className = "" }: { tit
       <TituloSeccion>{titulo}</TituloSeccion>
       <div aria-hidden className="resumen-espera-bandas">
         {Array.from({ length: bandas }, (_, i) => (
-          <div key={i} className="h-4 animate-pulse rounded bg-tinta/10" style={{ width: `${ANCHOS[i % ANCHOS.length]}%` }} />
+          <div key={i} className="h-4 animate-pulse rounded-sm bg-tinta/10" style={{ width: `${ANCHOS[i % ANCHOS.length]}%` }} />
         ))}
       </div>
     </section>

@@ -38,7 +38,7 @@ que vuelve a mirarlos antes de citarlos en un ADR.
 
 ## Lo que dice el repo (fuente interna, manda sobre todo lo de arriba)
 
-- `apps/web/app/globals.css` — radios `--radius-sm…2xl` (4/8/12/16/20) y los del vidrio `--radius-campo` 14, `--radius-tarjeta` 22,
+- `apps/web/app/globals.css` — radios: la escala cerrada (ADR-0698) `--radius-sm` 6, `--radius-md` 10, `--radius-campo` 14, `--radius-tarjeta` 22,
   `--radius-cajon` 28, `--radius-hoja` 32, `--radius-boton` 999; `--spacing-lateral` 17 rem (272 px) y 5,25 rem plegado (84 px); `--shadow-*`
   solo para lo que flota (ADR-0012); `btn-cayla`, `btn-chico`, `pildora-cayla`, `caja-cayla`, `nota-cayla`, `fila-cayla` con su cebra.
 - `apps/web/app/estilos/vidrio/recetas.css` y `pantalla.css` — pozo, gota, placa, vidrio claro (`--vidrio-claro-sombra`); la tabla de vidrio

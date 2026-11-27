@@ -146,13 +146,13 @@ function FilaVenta({
   const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
   const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
   return (
-    <li data-guia="historial.venta" className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
+    <li data-guia="historial.venta" className="group relative rounded-campo transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
       <button
         type="button"
         onClick={onAbrir}
         data-guia="historial.venta-abrir"
         aria-label={`Ver el detalle de la venta de las ${v.hora} en ${v.ubicacion}, ${soles(v.total)}${v.anulada ? ", anulada" : ""}`}
-        className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
+        className="absolute inset-0 rounded-campo focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 @[30rem]:grid @[30rem]:grid-cols-[auto_minmax(0,1fr)_auto] @[30rem]:items-start @[30rem]:gap-y-2 @[30rem]:px-5 @[54rem]:grid-cols-[auto_minmax(0,1fr)_11.5rem_8.5rem] @[54rem]:items-center">

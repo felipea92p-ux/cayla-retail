@@ -176,7 +176,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
       <ComboResponsable control={responsable} deshabilitado={guardando} />
 
       {confirmarEliminar ? (
-        <div /* unificar-fijo: la confirmación de eliminar con sus dos botones (Finanzas), no un aviso */ className="mt-4 rounded-[10px] border border-rojo/30 bg-rojo/5 px-4 py-3" role="alertdialog" aria-label="Confirmar eliminación">
+        <div /* unificar-fijo: la confirmación de eliminar con sus dos botones (Finanzas), no un aviso */ className="mt-4 rounded-md border border-rojo/30 bg-rojo/5 px-4 py-3" role="alertdialog" aria-label="Confirmar eliminación">
           <p className="text-sm">
             <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas; queda anotada en la historia de Configuración.
           </p>

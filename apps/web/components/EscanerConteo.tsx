@@ -220,15 +220,15 @@ export function EscanerConteo({
               </div>
             ) : (
               <>
-                <div className="relative aspect-square w-[min(72vw,19rem,36dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]">
+                <div className="relative aspect-square w-[min(72vw,19rem,36dvh)] rounded-cajon shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]">
                   <div key={destello?.id ?? 0} className={`absolute inset-0 ${destello ? "anim-captura" : ""}`}>
-                    {destello && <span aria-hidden className={`anim-destello absolute inset-0 rounded-[28px] ${destello.tono === "verde" ? "bg-verde" : "bg-ambar"}`} />}
+                    {destello && <span aria-hidden className={`anim-destello absolute inset-0 rounded-cajon ${destello.tono === "verde" ? "bg-verde" : "bg-ambar"}`} />}
                     {(
                       [
-                        "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[30px]",
-                        "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[30px]",
-                        "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[30px]",
-                        "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[30px]",
+                        "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[calc(var(--radius-cajon)+3px)]",
+                        "-right-[3px] -top-[3px] border-r-[3px] border-t-[3px] rounded-tr-[calc(var(--radius-cajon)+3px)]",
+                        "-bottom-[3px] -left-[3px] border-b-[3px] border-l-[3px] rounded-bl-[calc(var(--radius-cajon)+3px)]",
+                        "-bottom-[3px] -right-[3px] border-b-[3px] border-r-[3px] rounded-br-[calc(var(--radius-cajon)+3px)]",
                       ] as const
                     ).map((pos) => (
                       <span key={pos} aria-hidden className={`absolute h-11 w-11 border-crema ${pos}`} />
@@ -245,7 +245,7 @@ export function EscanerConteo({
 
           {/* La bandeja: la prenda que se está contando, con − / + grandes para corregir sin cerrar la cámara. Alto fijo
               (ADR-0185): no salta al llegar la primera lectura. */}
-          <div className="relative z-10 rounded-t-[28px] bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <div className="relative z-10 rounded-t-cajon bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             <div aria-live="polite" className="min-h-[4.75rem]">
               {pregunta ? (
                 // Con la pregunta abierta la bandeja no se toca: su − / + sumaría o restaría sin responder (en Cuadrar, a otra prenda).

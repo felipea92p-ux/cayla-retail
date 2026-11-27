@@ -18,7 +18,7 @@
 
 /* ---------- 1 · El aviso de la esquina: la lente de su tono ---------- */
 .aviso-tarjeta {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border-color: color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
   /* La lente va en una variable para que `vidrio/dobla.css` le pueda sumar el grano sin repetir el degradado (ADR-0681). */
   --aviso-lente: linear-gradient(

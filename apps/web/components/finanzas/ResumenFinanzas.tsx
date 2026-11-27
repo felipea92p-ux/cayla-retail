@@ -321,9 +321,9 @@ function HuecoDecidir({ c }: { c: Contexto }) {
       <Superficie pad className="resumen-espera">
         <CabeceraBloque titulo="Hoy te toca" bajada={bajadaDecidir(c.mes, c.periodo)} />
         <div aria-hidden className="resumen-espera-bandas">
-          <div className="h-4 w-[78%] animate-pulse rounded bg-tinta/10" />
-          <div className="h-4 w-[64%] animate-pulse rounded bg-tinta/10" />
-          <div className="h-4 w-[71%] animate-pulse rounded bg-tinta/10" />
+          <div className="h-4 w-[78%] animate-pulse rounded-sm bg-tinta/10" />
+          <div className="h-4 w-[64%] animate-pulse rounded-sm bg-tinta/10" />
+          <div className="h-4 w-[71%] animate-pulse rounded-sm bg-tinta/10" />
         </div>
       </Superficie>
     </div>
@@ -345,8 +345,8 @@ function PreguntasEsperando() {
 function FraseEsperando() {
   return (
     <p className="resumen-frase resumen-frase-espera" aria-busy="true" aria-label="La respuesta del Resumen, cargando">
-      <span aria-hidden className="block h-4 w-[62ch] max-w-full animate-pulse rounded bg-tinta/10" />
-      <span aria-hidden className="block h-4 w-[34ch] max-w-[60%] animate-pulse rounded bg-tinta/10" />
+      <span aria-hidden className="block h-4 w-[62ch] max-w-full animate-pulse rounded-sm bg-tinta/10" />
+      <span aria-hidden className="block h-4 w-[34ch] max-w-[60%] animate-pulse rounded-sm bg-tinta/10" />
     </p>
   );
 }

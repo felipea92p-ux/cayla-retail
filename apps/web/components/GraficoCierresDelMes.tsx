@@ -47,7 +47,7 @@ export function GraficoCierresDelMes({
   const esHoy = (dia: number) => mes.anio === hoy.anio && mes.mes === hoy.mes && dia === hoy.dia;
 
   return (
-    <div className="mt-3 rounded-[14px] border border-sand bg-papel px-3.5 pb-2 pt-3">
+    <div className="mt-3 rounded-campo border border-sand bg-papel px-3.5 pb-2 pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <p className="text-xs font-semibold text-tinta">Cómo cerró cada día</p>
         <p className="flex gap-3 text-xs text-tinta/65" aria-hidden>
@@ -104,7 +104,7 @@ export function GraficoCierresDelMes({
 
         {encima && (
           <div
-            className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-[10px] bg-tinta px-3 py-2 text-xs leading-snug text-crema shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]"
+            className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-tinta px-3 py-2 text-xs leading-snug text-crema shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]"
             style={{ left: `clamp(110px, ${((encima.col + 0.5) / n) * 100}%, calc(100% - 110px))` }}
             aria-hidden
           >

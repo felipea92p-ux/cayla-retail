@@ -63,7 +63,7 @@ export function CamposDelGasto({
                   title={CONCEPTOS_GASTO[k].ejemplo}
                   disabled={guardando}
                   onClick={() => alConcepto(k)}
-                  className={`card-cayla mov-boton flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-[14px] p-2 text-center text-sm text-tinta ${concepto === k ? "border-tinta vd-marca" : ""}`}
+                  className={`card-cayla mov-boton flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-campo p-2 text-center text-sm text-tinta ${concepto === k ? "border-tinta vd-marca" : ""}`}
                 >
                   <Icono className="h-5 w-5" aria-hidden />
                   {CONCEPTOS_GASTO[k].nombre}

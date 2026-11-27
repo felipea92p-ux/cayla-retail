@@ -5,7 +5,7 @@
    ================================================================== */
 .cc-boton {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  border-radius: 11px; padding: 15px 28px;
+  border-radius: var(--radius-campo); padding: 15px 28px;
   background: var(--color-tinta); color: var(--color-crema);
   font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
   box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
@@ -35,7 +35,7 @@
 .cc-barra {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   background: var(--color-papel); color: var(--color-tinta);
-  border: 1px solid var(--color-sand); border-radius: 16px; padding: 12px 14px 12px 20px;
+  border: 1px solid var(--color-sand); border-radius: var(--radius-campo); padding: 12px 14px 12px 20px;
   transition: background-color 400ms var(--ease-cayla), border-color 400ms var(--ease-cayla), color 400ms var(--ease-cayla);
 }
 .cc-barra b { display: block; font-size: var(--text-detalle); font-weight: 700; }

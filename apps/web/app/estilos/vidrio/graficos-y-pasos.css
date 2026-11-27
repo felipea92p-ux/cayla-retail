@@ -110,7 +110,7 @@
 .linea-area-bajo { stop-color: var(--color-vidrio); stop-opacity: 0.05; }
 .linea-globo,
 .barra-t-globo {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--color-crema);
   border: 1px solid color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: no aplica — es el filo del globito */
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 82%, transparent), color-mix(in srgb, var(--color-tinta) 95%, transparent));

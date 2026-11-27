@@ -96,7 +96,7 @@ function CaraMiembro({ m }: { m: MiembroEquipo }) {
   return m.tipo === "persona" ? (
     <CaraPersona p={m} />
   ) : (
-    <span className="colab-cara-terminal grid h-9 w-9 place-items-center rounded-[10px] text-tinta">
+    <span className="colab-cara-terminal grid h-9 w-9 place-items-center rounded-md text-tinta">
       <IconoAparato className="h-5 w-5" />
     </span>
   );

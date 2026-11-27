@@ -139,7 +139,7 @@ export function HojaCorregirGasto({ gastoId, onClose, volverA }: { gastoId: stri
             // Mientras llega la lectura: tres cajas quietas (sin movimiento en bucle, ADR-0136).
             <div aria-hidden className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div /* beige-fijo: esqueleto de carga, no es superficie */ key={i} className="h-16 rounded-[14px] bg-hueso" />
+                <div /* beige-fijo: esqueleto de carga, no es superficie */ key={i} className="h-16 rounded-campo bg-hueso" />
               ))}
             </div>
           ) : gasto === null ? (
@@ -176,7 +176,7 @@ export function HojaCorregirGasto({ gastoId, onClose, volverA }: { gastoId: stri
                 }}
               />
               {sePuede && cambios.length > 0 && (
-                <div className="rounded-[14px] vd-placa px-3.5 py-3 text-sm">
+                <div className="rounded-campo vd-placa px-3.5 py-3 text-sm">
                   <ul className="space-y-1">
                     {cambios.map((c) => (
                       <li key={c.campo} className="flex flex-wrap justify-between gap-x-4 tabular-nums">

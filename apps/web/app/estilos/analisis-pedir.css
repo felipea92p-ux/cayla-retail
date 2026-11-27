@@ -126,7 +126,7 @@
        y, aparte, el 0 rojo con lo que dice. Si no cabe, el segundo par baja a su renglón. */
     .pisos-clave{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:0 0 6px;font-size:var(--text-xs);color:var(--color-secundario)}
     .pisos-clave-par{display:inline-flex;align-items:center;gap:6px}
-    :is(.pisos-clave,.m-tabla td) .pisos-casilla{display:grid;grid-template-rows:1fr 1fr;min-height:56px;border-radius:12px;overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla{display:grid;grid-template-rows:1fr 1fr;min-height:56px;border-radius:var(--radius-md);overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;
       background:var(--placa-fondo);box-shadow:var(--placa-luz), inset 0 0 0 1px var(--placa-borde)}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla > span{display:grid;place-items:center}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-q{background:color-mix(in srgb,var(--color-rojo-profundo) 9%,transparent);color:var(--color-rojo-profundo);font-weight:600;font-size:var(--text-sm)}
@@ -136,10 +136,10 @@
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v{font-size:var(--text-detalle);color:var(--color-tinta)}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla .pisos-v.nada{color:var(--color-tenue)}
     /* La muestra de la clave: chica (22 px de ancho, 13 px de letra); la del 0 rojo, de un solo piso. */
-    :is(.pisos-clave,.m-tabla td) .pisos-casilla.pisos-muestra{width:22px;min-height:30px;border-radius:6px;flex:none}
+    :is(.pisos-clave,.m-tabla td) .pisos-casilla.pisos-muestra{width:22px;min-height:30px;border-radius:var(--radius-sm);flex:none}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla.pisos-muestra > span{font-size:var(--text-xs)}
     :is(.pisos-clave,.m-tabla td) .pisos-casilla.pisos-muestra.pisos-mini{grid-template-rows:1fr;min-height:18px}
-    .m-tabla.pisos td.pisos-td{padding:0;min-width:52px;border-radius:12px}
+    .m-tabla.pisos td.pisos-td{padding:0;min-width:52px;border-radius:var(--radius-md)}
     .m-tabla.pisos td.pisos-total .pisos-v{font-weight:600}
     @container analisis (max-width:460px){ .m-tabla.pisos td.pisos-td{min-width:48px;padding:0} }
     /* Lo que tiene la otra tienda, color por talla: en su bloque, con el chip de siempre; el punto es el color de la prenda (dato). */

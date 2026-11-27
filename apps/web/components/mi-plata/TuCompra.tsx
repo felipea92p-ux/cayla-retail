@@ -53,7 +53,7 @@ export function TuCompra({
     <aside
       aria-label="Tu compra"
       data-guia="compra.tu-compra"
-      className={`card-cayla sticky top-40 hidden flex-col gap-3 rounded-[22px] px-5 pb-4 pt-[18px] lg:flex ${llegaron.size > 0 ? "compra-pulso" : ""}`}
+      className={`card-cayla sticky top-40 hidden flex-col gap-3 rounded-tarjeta px-5 pb-4 pt-[18px] lg:flex ${llegaron.size > 0 ? "compra-pulso" : ""}`}
     >
       <span className="flex items-baseline justify-between gap-3">
         <span className="label-cayla text-xs text-taupe">Tu compra</span>
@@ -115,7 +115,7 @@ export function TuCompra({
           )}
         </>
       )}
-      <p className="flex items-center gap-2 rounded-[10px] vd-placa px-2.5 py-2 text-sm text-tinta">
+      <p className="flex items-center gap-2 rounded-md vd-placa px-2.5 py-2 text-sm text-tinta">
         <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
         {siguiente}
       </p>

@@ -690,7 +690,7 @@ export function MatrizStockFicha({
         onClick={() => onEtiqueta(etiquetaElegida, !lleva, [f.clave])}
         data-cambiada={cambiada || undefined}
         style={lleva ? { backgroundColor: acentoElegida, borderColor: acentoElegida } : undefined}
-        className={`grid h-8 w-8 place-items-center rounded-[7px] border text-xs font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
+        className={`grid h-8 w-8 place-items-center rounded-sm border text-xs font-semibold transition-[background-color,border-color,transform] duration-200 ease-cayla active:scale-95 disabled:opacity-40 motion-reduce:transition-none ${
           lleva ? "text-crema hover:opacity-90" : "border-borde-control vd-gota text-transparent hover:border-taupe"
         } ${cambiada ? "ring-2 ring-ambar ring-offset-1 ring-offset-papel" : ""} ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-offset-2 outline-ambar"}`}
       >
@@ -742,7 +742,7 @@ export function MatrizStockFicha({
           }
           onChange={(e) => precioAqui.onCambio(limpiarPrecio(e.target.value))}
           onFocus={(e) => e.currentTarget.select()}
-          className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+          className={`w-[58px] rounded-sm border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
             precioAqui.cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
           }`}
         />
@@ -782,7 +782,7 @@ export function MatrizStockFicha({
         title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
-        className={`w-[58px] rounded-[7px] border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+        className={`w-[58px] rounded-sm border border-borde-control vd-hundido px-0.5 py-1.5 text-center text-xs tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
           cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
         } ${f.guardada ? "" : "outline-[1.5px] outline-dashed outline-ambar"}`}
       />

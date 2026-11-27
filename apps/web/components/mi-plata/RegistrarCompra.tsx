@@ -799,7 +799,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
           {habituales === "cargando" ? (
             // El lugar del botón, por dibujar (sin movimiento: no hay bucle en ADR-0136), para que la pantalla no salte al llegar.
             <div role="status" aria-label="Preparando la hoja de la prenda">
-              <span aria-hidden /* beige-fijo: esqueleto de carga, no es superficie */ className="block h-[72px] w-full rounded-[18px] bg-hueso" />
+              <span aria-hidden /* beige-fijo: esqueleto de carga, no es superficie */ className="block h-[72px] w-full rounded-tarjeta bg-hueso" />
               <span className="sr-only">Preparando la hoja de la prenda…</span>
             </div>
           ) : habituales === null ? (
@@ -814,7 +814,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                 type="button"
                 onClick={() => algoNuevo()}
                 data-guia="compra.algo-nuevo"
-                className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} bg-papel px-4 py-3.5 text-left`}
+                className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-tarjeta ${FILA_PUNTEADA} bg-papel px-4 py-3.5 text-left`}
               >
                 <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
                   <Plus className="h-5 w-5" />
@@ -871,7 +871,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
                     <button
                       type="button"
                       onClick={() => corregir(pr.indice)}
-                      className="card-cayla mov-boton grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 rounded-[18px] p-3 text-left"
+                      className="card-cayla mov-boton grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 rounded-tarjeta p-3 text-left"
                     >
                       <MiniaturaPrenda fotoUrl={(pr.productoId && fotos.get(pr.productoId)) || null} tamano="lg" prefijo={c?.prefijo} familia={c?.familia} categoria={pr.categoria} />
                       <span className="min-w-0">
@@ -903,7 +903,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
               setPaso("habituales");
               if (Array.isArray(habituales)) algoNuevo();
             }}
-            className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
+            className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-campo ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
           >
             <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
               <Plus className="h-4 w-4" />
@@ -913,7 +913,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
           </div>
           {lineas.length > 0 && (
             // La cuenta de la compra: lo que cuesta, lo que se vende y lo que se gana, y qué le toca a cada tienda.
-            <div className="card-cayla flex flex-col gap-3 rounded-[18px] p-4 lg:sticky lg:top-40" data-guia="compra.resumen">
+            <div className="card-cayla flex flex-col gap-3 rounded-tarjeta p-4 lg:sticky lg:top-40" data-guia="compra.resumen">
               {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Paga Compras»). */}
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
@@ -933,7 +933,7 @@ export function RegistrarCompra({ datos, guardadas = [] }: { datos: Datos; guard
               )}
               {ganancia && (
                 <p
-                  /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3 py-2.5 text-sm"
+                  /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-campo bg-verde/10 px-3 py-2.5 text-sm"
                 >
                   <span className="text-tinta">
                     {fraseGanancia(ganancia)}
@@ -1443,7 +1443,7 @@ function PasoMarca({
         type="button"
         onClick={alMarcaNueva}
         data-guia="compra.es-marca-nueva"
-        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
+        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-tarjeta ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
       >
         <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
           <Plus className="h-5 w-5" />
@@ -1623,7 +1623,7 @@ function PasoProveedor({
         type="button"
         onClick={alNuevo}
         data-guia="compra.proveedor-nuevo"
-        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
+        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-tarjeta ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
       >
         <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
           <Plus className="h-5 w-5" />
@@ -1715,7 +1715,7 @@ function ListaDeLaCompra({
   const prendas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => lineas.findIndex((x) => x.clave === l.clave) === i);
   if (prendas.length === 0) return null;
   return (
-    <ul className="card-cayla overflow-hidden rounded-[18px]" data-guia="compra.habituales">
+    <ul className="card-cayla overflow-hidden rounded-tarjeta" data-guia="compra.habituales">
       {prendas.map(({ l, i }) => {
         const c = deCategoria.get(l.categoriaId ?? "");
         const suyas = lineas.filter((x) => x.clave === l.clave);

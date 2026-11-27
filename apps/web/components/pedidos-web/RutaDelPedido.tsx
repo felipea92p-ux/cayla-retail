@@ -46,7 +46,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
               <span className={!ahoraEs ? "max-sm:hidden" : undefined}>{nombre}</span>
               {hecho && <span className="sr-only">(hecho)</span>}
             </span>
-            {i < PASOS.length - 1 && <span aria-hidden /* beige-fijo: tramo sin recorrer del hilo de avance */ className={`mx-3 h-0.5 w-8 rounded sm:w-14 ${i < paso ? "bg-verde" : "bg-sand"}`} />}
+            {i < PASOS.length - 1 && <span aria-hidden /* beige-fijo: tramo sin recorrer del hilo de avance */ className={`mx-3 h-0.5 w-8 rounded-sm sm:w-14 ${i < paso ? "bg-verde" : "bg-sand"}`} />}
           </li>
         );
       })}

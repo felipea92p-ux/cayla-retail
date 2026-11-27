@@ -34,7 +34,7 @@ export function QueTieneLaPrenda({
       ) : (
         <div className="grid gap-1.5 @[34rem]:grid-cols-2">
           {aMano.map((c) => (
-            <div key={c.codigo} className={`vd-placa flex min-h-11 items-center gap-2 rounded-[14px] px-3 py-1.5 ${disabled ? "opacity-60" : ""}`}>
+            <div key={c.codigo} className={`vd-placa flex min-h-11 items-center gap-2 rounded-campo px-3 py-1.5 ${disabled ? "opacity-60" : ""}`}>
               <label className={`flex min-w-0 flex-1 items-center gap-3 self-stretch ${disabled ? "" : "cursor-pointer"}`}>
                 <Casilla marcada={rasgos.includes(c.codigo)} onCambio={() => alCambiar(c.codigo, !rasgos.includes(c.codigo))} etiqueta={c.nombre} disabled={disabled} />
                 <span className="min-w-0 flex-1 text-sm text-tinta">{c.nombre}</span>

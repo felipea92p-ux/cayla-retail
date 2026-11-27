@@ -19,7 +19,7 @@
   display: inline-block;
   flex: none;
   border: 2px solid var(--ht-tono);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 3px 8px;
   color: var(--ht-tono);
   font-size: var(--text-xs);
@@ -40,7 +40,7 @@
   justify-content: center;
   gap: 10px;
   border: 1px solid var(--color-sand);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-papel);
   padding: 9px 10px;
   /* Con el monto en 14 px, «S/ 1,234.56» ya no entra junto al sello en la hoja mediana: baja a su línea en vez de salirse. */
@@ -59,7 +59,7 @@
   display: block;
   width: 100%;
   padding: 12px 14px 20px;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   text-align: left;
   color: var(--color-tinta);
 }

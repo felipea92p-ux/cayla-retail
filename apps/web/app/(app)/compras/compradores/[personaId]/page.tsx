@@ -4,26 +4,27 @@ import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import { CerrarRonda } from "@/components/compras/CerrarRonda";
 import { DetalleComprador } from "@/components/compras/DetalleComprador";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCompradores } from "@/lib/compradores";
+import { getCompradores, getCompradoresSinRonda } from "@/lib/compradores";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
 import { getRevisarCompras } from "@/lib/revisar-compras";
-import { puedeCerrarseDesdeCompras, rondaElegida } from "@/lib/compradores-reglas";
+import { entregasDe, puedeCerrarseDesdeCompras, rondaElegida } from "@/lib/compradores-reglas";
 import { primerNombre, topeDevolucion } from "@/lib/fondos-reglas";
 import { estadoPorFondo } from "@/lib/rendicion-reglas";
 import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 
-// Compras ▸ Compradores ▸ una persona (ADR-0704): su cuenta de la ronda, lo que espera revisión y todas sus compras. Lo que se revisa es la
+// Compras ▸ Compradores ▸ una persona (ADR-0704): su cuenta de la ronda, lo que espera revisión y todas sus compras; al costado, su plata. Lo que se revisa es la
 // bandeja de siempre (`BandejaRevisar`: confirmar su plata, completar el papel, revisar un gasto, recibir su cierre), filtrada a esta persona:
 // reemplaza a la pestaña «Revisar compras», donde se mezclaba lo de todas. El layout de Compradores ya pidió el módulo «fondos».
 
 export default async function CompradorPage({ params, searchParams }: { params: Promise<{ personaId: string }>; searchParams: Promise<{ ronda?: string }> }) {
   const [{ personaId }, { ronda: pedida }] = await Promise.all([params, searchParams]);
   const hoy = hoyLima();
-  const [yo, rondas, datos, plata, revisar] = await Promise.all([
+  const [yo, rondas, sinRonda, datos, plata, revisar] = await Promise.all([
     requirePersonaActualV2(),
     getCompradores(),
+    getCompradoresSinRonda(),
     getDatosFondos(),
     getPlataPorConfirmar(),
     getRevisarCompras(),
@@ -63,10 +64,12 @@ export default async function CompradorPage({ params, searchParams }: { params: 
       nombre={nombre}
       personaId={personaId}
       ronda={ronda}
+      tieneSinRonda={sinRonda?.find((p) => p.personaId === personaId)?.tiene}
       otras={suyas.filter((r) => r.id !== ronda?.id)}
       hoy={hoy}
       acciones={acciones}
-      plata={susMovimientos.length > 0 ? <MovimientosDeFondo movimientos={susMovimientos} /> : undefined}
+      entregas={entregasDe(susMovimientos)}
+      plata={susMovimientos.length > 0 ? <MovimientosDeFondo movimientos={susMovimientos} dePersona /> : undefined}
       cerrarRonda={ronda && nombre && puedeCerrarseDesdeCompras(ronda) ? <CerrarRonda rondaId={ronda.id} nombre={nombre} /> : undefined}
       bandeja={
         hayQueRevisar ? (

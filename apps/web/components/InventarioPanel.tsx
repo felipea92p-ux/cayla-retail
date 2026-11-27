@@ -1119,8 +1119,8 @@ export function InventarioPanel({
                   <div key={i} className={`card-cayla flex gap-3 p-2.5 ${ALTO_TARJETA}`}>
                     <div className="h-[151px] w-[104px] shrink-0 animate-pulse rounded-xl bg-tinta/10" />
                     <div className="flex min-w-0 flex-1 flex-col gap-3 pt-2">
-                      <div className="h-4 w-3/4 animate-pulse rounded bg-tinta/10" />
-                      <div className="h-4 w-1/3 animate-pulse rounded bg-tinta/10" />
+                      <div className="h-4 w-3/4 animate-pulse rounded-sm bg-tinta/10" />
+                      <div className="h-4 w-1/3 animate-pulse rounded-sm bg-tinta/10" />
                       <div className="mt-1 h-20 animate-pulse rounded-xl bg-tinta/10" />
                     </div>
                   </div>

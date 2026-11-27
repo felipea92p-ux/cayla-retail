@@ -157,7 +157,7 @@ export function AvisoAyudanteMac({
           </p>
           {instalar && (
             <div className="flex flex-wrap items-center gap-2">
-              <code className="select-all break-all rounded bg-papel px-2 py-1 font-mono text-xs text-tinta">{COMANDO_INSTALAR}</code>
+              <code className="select-all break-all rounded-sm bg-papel px-2 py-1 font-mono text-xs text-tinta">{COMANDO_INSTALAR}</code>
               {/* Copiar es la pieza del sistema (ronda 13): junto a la línea, el ícono que la copia. */}
               <BotonCopiar forma="icono" texto={COMANDO_INSTALAR} que="la línea" alCopiar={() => avisar.exito("Línea copiada", { detalle: "Pégala en Terminal y presiona Enter." })} />
             </div>

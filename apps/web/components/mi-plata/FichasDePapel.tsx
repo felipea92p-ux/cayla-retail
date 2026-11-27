@@ -42,7 +42,7 @@ export function FichasDePapel({
             disabled={deshabilitadas}
             title={PAPELES_GASTO[k].ayuda}
             onClick={() => alElegir(k)}
-            className={`card-cayla mov-boton relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-[14px] px-2 py-3 text-center ${
+            className={`card-cayla mov-boton relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-campo px-2 py-3 text-center ${
               elegido ? "border-tinta" : ""
             }`}
           >

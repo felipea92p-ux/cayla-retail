@@ -76,7 +76,7 @@
   .vacio-chico .vacio-txt { min-width: 0; text-align: left; }
   .vacio-chico .vacio-txt b, .vacio-chico .vacio-txt strong { color: var(--color-tinta); font-weight: 600; }
   .vacio-chico-accion {
-    flex-shrink: 0; font: 500 var(--text-detalle)/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: 8px; cursor: pointer;
+    flex-shrink: 0; font: 500 var(--text-detalle)/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: var(--radius-md); cursor: pointer;
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 3px;
     transition: background-color var(--t-cambio), text-decoration-color var(--t-cambio);
   }
@@ -88,7 +88,7 @@
   .aviso-linea {
     --c: var(--color-ambar); --cp: var(--color-ambar-profundo);
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 12px; align-items: start;
-    padding: 12px 14px 12px 12px; border-radius: 6px 14px 14px 6px;
+    padding: 12px 14px 12px 12px; border-radius: var(--radius-sm) var(--radius-campo) var(--radius-campo) var(--radius-sm);
     border: 1px solid color-mix(in srgb, var(--c) 32%, transparent); border-left: 3px solid var(--c);
     background: color-mix(in srgb, var(--c) 6%, var(--color-papel)); color: var(--color-tinta);
     animation: cayla-aviso-linea-entra 280ms var(--ease-cayla) both, cayla-aviso-linea-franja 520ms var(--ease-cayla) both;
@@ -107,14 +107,14 @@
   .aviso-linea-det.solo { grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc :is(a, button) {
-    font: 500 var(--text-xs)/1 var(--font-sans); color: var(--cp); padding: 7px 10px; border-radius: 8px; white-space: nowrap; cursor: pointer;
+    font: 500 var(--text-xs)/1 var(--font-sans); color: var(--cp); padding: 7px 10px; border-radius: var(--radius-md); white-space: nowrap; cursor: pointer;
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--cp) 35%, transparent); text-underline-offset: 3px;
     transition: background-color var(--t-cambio);
   }
   @media (hover: hover) {
     .aviso-linea-acc :is(a, button):hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
   }
-  .aviso-linea.chico { align-items: center; padding: 8px 10px 8px 10px; border-radius: 4px 12px 12px 4px; }
+  .aviso-linea.chico { align-items: center; padding: 8px 10px 8px 10px; border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm); }
   .aviso-linea.chico .aviso-linea-ic { grid-row: 1; height: 18px; }
   .aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
   .aviso-linea.chico .aviso-linea-tit { margin: 0; font-size: var(--text-detalle); }
@@ -140,7 +140,7 @@
 
   /* ---------- <Buscador> de una lista ---------- */
   .buscador {
-    position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px;
+    position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: var(--radius-md);
     background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
     transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
   }
@@ -172,7 +172,7 @@
   .buscador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
   .buscador input::-webkit-search-cancel-button { display: none; }
   .buscador-atajo {
-    pointer-events: none; margin-right: 6px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+    pointer-events: none; margin-right: 6px; border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
     padding: 0 6px; font-size: var(--text-xs); line-height: 18px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre hueso, papel */
     transition: opacity var(--t-cambio);
   }
@@ -201,7 +201,7 @@
   /* ---------- <Buscador tamano="mostrador">: la píldora que se despega (Vender, Cambios, Devoluciones, Apartados) ---------- */
   .buscador.mostrador {
     /* Su borde es el de todo lo que se escribe (`borde-control`, 3:1; Felipe 2026-11-16, decisión 3A): el aro de tinta al 10 % que lo reemplazaba no se veía. */
-    height: 60px; gap: 12px; padding: 0 8px 0 18px; border-radius: 14px; border: 1px solid var(--color-borde-control); background: var(--color-papel);
+    height: 60px; gap: 12px; padding: 0 8px 0 18px; border-radius: var(--radius-campo); border: 1px solid var(--color-borde-control); background: var(--color-papel);
     box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent);
     transition: box-shadow var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
   }
@@ -219,7 +219,7 @@
   .buscador.mostrador .buscador-senal { display: none; }
   .buscador-giro { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); animation: cayla-giro-buscador 1s linear infinite; } /* contraste: gráfico sobre hueso, papel */
   .buscador.mostrador .buscador-atajo {
-    display: flex; align-items: center; justify-content: center; height: 24px; min-width: 24px; padding: 0 8px; margin: 0; border: 0; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; height: 24px; min-width: 24px; padding: 0 8px; margin: 0; border: 0; border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--color-tinta) 6%, transparent); font: var(--text-xs)/1 ui-monospace, monospace;
   }
   @media (max-width: 639px) {

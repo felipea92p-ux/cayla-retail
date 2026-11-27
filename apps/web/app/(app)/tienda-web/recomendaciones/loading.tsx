@@ -8,9 +8,9 @@ export default function LoadingRecomendaciones() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando las recomendaciones">
         <div>
-          <div className="h-3 w-64 max-w-full rounded bg-sand" />
-          <div className="mt-3 h-9 w-64 max-w-full rounded bg-sand sm:h-[46px]" />
-          <div className="mt-2.5 h-3 w-[28rem] max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-64 max-w-full rounded-sm bg-sand" />
+          <div className="mt-3 h-9 w-64 max-w-full rounded-sm bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[28rem] max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
@@ -25,10 +25,10 @@ export default function LoadingRecomendaciones() {
           </div>
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="h-3 w-16 rounded bg-sand" />
+              <div className="h-3 w-16 rounded-sm bg-sand" />
               <div className="h-6 w-6 rounded-full bg-sand/70" />
-              <div className="h-3 w-32 rounded bg-sand" />
-              <div className="ml-auto h-3 w-1/3 rounded bg-sand/70" />
+              <div className="h-3 w-32 rounded-sm bg-sand" />
+              <div className="ml-auto h-3 w-1/3 rounded-sm bg-sand/70" />
             </div>
           ))}
         </div>

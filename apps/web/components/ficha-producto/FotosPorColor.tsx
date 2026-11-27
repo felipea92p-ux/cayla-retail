@@ -266,7 +266,7 @@ function Miniatura({ foto, ancho }: { foto: FotoLocal; ancho: string }) {
   );
 }
 
-const INSIGNIA_PRINCIPAL = "label-cayla absolute left-2 top-2 rounded bg-rojo px-1.5 py-0.5 text-xs text-crema";
+const INSIGNIA_PRINCIPAL = "label-cayla absolute left-2 top-2 rounded-sm bg-rojo px-1.5 py-0.5 text-xs text-crema";
 const INSIGNIA_NUEVA = "absolute right-2 top-2 rounded-full bg-ambar px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-papel";
 
 /** El rectángulo de un color (o de «Todos los colores»): su portada con cuántas fotos tiene, o el vacío punteado para agregar la primera. */

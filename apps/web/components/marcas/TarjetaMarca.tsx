@@ -88,7 +88,7 @@ export function TarjetaMarca({
       data-guia="marcas.tarjeta"
     >
       <div className="flex items-start gap-3">
-        <span aria-hidden data-estado={estado} className={`marca-monograma font-display grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-lg font-semibold ${CLASE_MONOGRAMA[estado]}`}>
+        <span aria-hidden data-estado={estado} className={`marca-monograma font-display grid h-11 w-11 shrink-0 place-items-center rounded-campo text-lg font-semibold ${CLASE_MONOGRAMA[estado]}`}>
           {monogramaDeMarca(m.nombre)}
         </span>
         <div className="min-w-0 flex-1">

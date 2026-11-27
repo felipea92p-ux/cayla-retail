@@ -82,3 +82,9 @@ cifras (`text-2xl`, `3xl`, `font-display`) quedan intactos.
 - Riesgo asumido: 61 archivos tocados por sustitución mecánica. Mitigado con `tsc`,
   `eslint`, 51 tests, `next build` y medición de contraste sobre el DOM renderizado —
   no sobre las clases del código.
+
+## Actualización 2026-11-23: la escala de esquinas se cerró (ADR-0698)
+
+Los cinco tokens de este ADR (4 · 8 · 12 · 16 · 20) convivían con los radios por pieza del vidrio (14 · 22 · 28 · 32). Desde ADR-0698 hay
+una sola escala: en una pantalla, 6 · 10 · 14 · 22; lo que flota, 28 y 32. Lo que sigue en pie de aquí es el criterio: la escala es
+progresiva y toda la app se redondea desde los tokens.

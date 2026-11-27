@@ -9,12 +9,12 @@ export default function LoadingResumenTiendaWeb() {
       <EsperaPantalla />
       <div className="animate-pulse space-y-8" aria-busy="true" aria-label="Cargando el resumen de la tienda web">
         <div>
-          <div className="h-3 w-64 max-w-full rounded bg-sand" />
-          <div className="mt-3 h-9 w-48 max-w-full rounded bg-sand sm:h-[46px]" />
-          <div className="mt-2.5 h-3 w-[30rem] max-w-full rounded bg-sand/70" />
+          <div className="h-3 w-64 max-w-full rounded-sm bg-sand" />
+          <div className="mt-3 h-9 w-48 max-w-full rounded-sm bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[30rem] max-w-full rounded-sm bg-sand/70" />
         </div>
         <div className="space-y-3">
-          <div className="h-5 w-44 rounded bg-sand" />
+          <div className="h-5 w-44 rounded-sm bg-sand" />
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-[68px] rounded-2xl bg-sand/50" />
           ))}

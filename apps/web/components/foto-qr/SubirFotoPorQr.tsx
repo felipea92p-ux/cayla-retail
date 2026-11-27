@@ -35,7 +35,7 @@ export function SubirFotoPorQr({ permiso, nombre, quedan: quedanAlEntrar, error 
 
   return (
     <main className="grid min-h-dvh place-items-center bg-crema px-4 py-8">
-      <div className="vd-placa grid w-full max-w-sm gap-5 rounded-3xl p-6 text-center">
+      <div className="vd-placa grid w-full max-w-sm gap-5 rounded-tarjeta p-6 text-center">
         <div className="grid gap-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-secundario">CAYLA · Recibir mercadería</p>
           <h1 className="font-serif text-xl text-tinta">{nombre ?? "Foto de la prenda"}</h1>

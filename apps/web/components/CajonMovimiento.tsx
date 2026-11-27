@@ -107,7 +107,7 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
   return (
     <div className="mt-6 flex items-center gap-4">
       {prenda.fotoUrl ? (
-        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 vd-lente object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
+        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-md border border-tinta/10 vd-lente object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
       ) : (
         <SinFoto tamano="h-[74px] w-16" />
       )}

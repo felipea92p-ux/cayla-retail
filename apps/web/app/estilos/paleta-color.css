@@ -16,7 +16,7 @@
 .paleta-cuadro {
   position: relative;
   height: 170px;
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   border: 1px solid var(--color-borde-control);
   cursor: crosshair;
   touch-action: none;
