@@ -121,15 +121,6 @@ export function estadoVisible(a: Pick<Apartado, "estado" | "venceEl" | "adelanto
 /** Orden de la lista «Todos»: primero lo que exige una acción hoy. */
 export const ORDEN_ESTADO: Record<ClaveEstado, number> = { devolver: 0, vencida: 1, porvencer: 2, vigente: 3, cerrada: 4 };
 
-/** La línea de tiempo de Entregar (Apartó → Hoy → Vence): cuántos días tiene el plazo y cuántos ya pasaron, contados desde el día
- *  de Lima en que se apartó (`diaLima(a.creadaEn)`). Sin ese día —un instante que no se lee—, la línea no
- *  avanza: no se inventa cuándo se apartó. */
-export function avanceDelPlazo(creadaEl: string | null, hoy: string, venceEl: string): { total: number; pasados: number } {
-  if (!creadaEl) return { total: 1, pasados: 0 };
-  const total = Math.max(1, diasEntre(creadaEl, venceEl));
-  return { total, pasados: Math.min(total, Math.max(0, diasEntre(creadaEl, hoy))) };
-}
-
 export const soloDigitos = (s: string) => s.replace(/\D/g, "");
 
 /** ¿El apartado se hizo CON constancia (sin boleta de anticipo)? Es todo apartado nuevo (ADR-0399, Felipe 2026-10-14): el adelanto es un pacto

@@ -10,13 +10,14 @@
   «Lo que falta hacer… está en Pendientes»; «Todo el historial» lee lo de antes de los 30 días; la columna «Canal» en las dos listas.
   Se fueron las cifras, la franja del lote, los cuatro filtros, «Qué ver» y las píldoras de período del Historial viejo (y con ellas la
   lectura de `resumen_separaciones` en esta pantalla).
+- [x] (4) Cobrar y entregar: la tarjeta de la Mínima, «Reimprimir constancia» y «Más acciones» (Escribirle, Aplazar, Marcar enviado,
+  Ver el detalle, Editar prendas, Cancelar apartado); el panel «Cobrar» quieto con el botón a la vista; la barra del celular dice qué
+  sigue; «Volver» conserva lo buscado y el lugar de la lista. Fuera, con su prueba, la línea de tiempo del cobro (`avanceDelPlazo`).
 
 ### Sin hacer (dicho sin adornos)
 
-- [ ] (4) Cobrar y entregar: «Más acciones» (Escribirle, Aplazar, Editar prendas, Cancelar apartado). Hasta entonces, **aplazar no tiene
-  botón** (vivía en la fila del Historial viejo): las actividades 0 a 4 van juntas en el primer PR por eso.
-- [ ] (4) Al volver del cobro con «Volver», la lista de Pendientes pierde lo buscado y su lugar: guardarlos.
-- [ ] (5–11) Apartar, las hojas, sin «·» (también el chip del canal, «TikTok · Envío»), y el cierre (`/guia`, `/focus`, `/sugerir`,
+- [ ] (8–9) Las hojas: «Cancelar apartado» todavía abre «¿Liberar el apartado?»; «Mejor no» para salir; el pie a la vista.
+- [ ] (5–11) Apartar, las hojas, sin «·» (también el chip del canal, «TikTok · Envío», y el estado «Vencido · decide en 2 días» del cobro), y el cierre (`/guia`, `/focus`, `/sugerir`,
   `/milimetro`, `/formidable`, `/chaos`, 375 px, prueba a ciegas).
 - [ ] `TablaViva` en el celular (`components/ui/TablaViva.tsx:432-470`): cuando la tabla se ordena por una columna que también filtra, salen
   dos píldoras casi iguales, «Estado ↑» y «Estado ⌄» (pasa en Pendientes). Es de la pieza compartida, no de Apartados: que la de ordenar se

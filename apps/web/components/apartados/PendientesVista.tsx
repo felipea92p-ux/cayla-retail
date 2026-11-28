@@ -60,6 +60,7 @@ export function PendientesVista({
   apagadas = [],
   pedidos = [],
   buscarInicial = "",
+  onTexto,
   onAbrir,
   onBuscarEnHistorial,
   onApartarPedido,
@@ -76,8 +77,10 @@ export function PendientesVista({
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
   pedidos?: PedidoApartado[];
-  /** Lo que se buscaba en el Historial y no estaba ahí: llega escrito. */
+  /** Con qué búsqueda arranca: la que había al abrir un cobro, o lo que se buscaba en el Historial y no estaba ahí. */
   buscarInicial?: string;
+  /** Cada cambio de lo escrito: el panel lo guarda para que siga al volver de un cobro. */
+  onTexto?: (texto: string) => void;
   /** Abrir un apartado abierto: su cobro y entrega. */
   onAbrir: (id: string) => void;
   /** El buscador no encontró a nadie aquí: buscarlo en el Historial, con lo escrito. */
@@ -93,7 +96,11 @@ export function PendientesVista({
   // ADR-0607: con más de un canal a la vista, cada fila dice por cuál se vendió y la lista se puede acotar a uno.
   const canales = useCanalesDeApartados();
   const conCanal = canales.length >= 2;
-  const [texto, setTexto] = useState(buscarInicial);
+  const [texto, setTextoPropio] = useState(buscarInicial);
+  const setTexto = (t: string) => {
+    setTextoPropio(t);
+    onTexto?.(t);
+  };
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [avisarCancelado, setAvisarCancelado] = useState<Apartado | null>(null);
   const [verDetalle, setVerDetalle] = useState<Apartado | null>(null);

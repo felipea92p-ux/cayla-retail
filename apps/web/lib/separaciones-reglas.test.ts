@@ -5,7 +5,6 @@ import {
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
   descuentoDePrenda,
-  avanceDelPlazo,
   cobroDelSaldo,
   coincide,
   enlaceWhatsapp,
@@ -83,15 +82,6 @@ describe("el plazo cuenta desde el día de LIMA en que se apartó", () => {
 
   it("lo apartado a las 20:00 del 13 es del 13, aunque en UTC ya sea el 14", () => {
     expect(apartoEl).toBe("2026-10-13");
-  });
-
-  it("la línea de tiempo de Entregar tiene los 7 días del plazo y ya pasó uno", () => {
-    expect(avanceDelPlazo(apartoEl, "2026-10-14", "2026-10-20")).toEqual({ total: 7, pasados: 1 }); // con el corte de UTC, 6 y 0
-    expect(avanceDelPlazo(apartoEl, "2026-10-25", "2026-10-20")).toEqual({ total: 7, pasados: 7 }); // vencido: la línea llega al final
-  });
-
-  it("sin un día de apartado que se lea, la línea no avanza", () => {
-    expect(avanceDelPlazo(diaLima("ayer"), "2026-10-14", "2026-10-20")).toEqual({ total: 1, pasados: 0 });
   });
 
   it("un aviso de las 20:00 de Lima es de ese día para la tienda", () => {

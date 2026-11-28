@@ -375,6 +375,30 @@
   }
 }
 
+/* El panel de cobro (ADR-0720, la Mínima): en escritorio queda quieto donde empieza mientras la tarjeta corre, y su alto llega hasta el
+   borde de la pantalla: el responsable y «Entregar y cobrar» siempre a la vista, lo de en medio corre por dentro. Antes, a 900 px de alto,
+   el botón quedaba bajo el borde. `--cobro-tope` lo mide EntregarVista.tsx; sin él, bajo la cabecera del ERP. */
+@media (min-width: 64rem) {
+  .ap-mesa .ap-dos .ap-ticket[data-cobro] {
+    position: sticky;
+    top: var(--cobro-tope, calc(var(--alto-cabecera) + 12px));
+    align-self: start;
+    max-height: calc(100svh - var(--cobro-tope, calc(var(--alto-cabecera) + 12px)) - 16px);
+  }
+}
+
+/* En una pantalla baja (el panel de 1024 × 768 de Felipe) el panel de cobro aprieta su cabecera y su pie (la cifra, en EntregarVista.tsx):
+   «Solo abona una parte» y el botón entran sin correr por dentro. */
+@media (min-width: 64rem) and (max-height: 820px) {
+  .ap-mesa .ap-ticket[data-cobro] > .ap-ticket-hilo:first-child {
+    min-height: 0;
+    padding-block: 8px;
+  }
+  .ap-mesa .ap-ticket[data-cobro] > .ap-ticket-hilo:last-child {
+    padding-block: 12px;
+  }
+}
+
 /* Las listas de Apartados en tarjeta (la tabla viva pasa a tarjeta bajo 660 px de ancho): «pagado» o «devuelto» va al lado del monto,
    no debajo, donde quedaba suelto junto al nombre de la columna. */
 @container tv (max-width: 659.98px) {

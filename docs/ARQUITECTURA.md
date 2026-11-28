@@ -1940,7 +1940,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Apartados** (2026-09-23, ADR-0166; módulo propio `apartados` desde ADR-0196): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`;
   desde ADR-0720 ya no `resumen_separaciones`: sus cifras se fueron con el Historial viejo) + `lib/separaciones-reglas.ts` → `components/apartados/*` (tres pestañas desde ADR-0720: «Apartar» `ApartarVista`, «Pendientes»
   `PendientesVista` —lo vivo, lo urgente primero, con `lib/apartados-pendientes.ts` y `lib/apartados-pestanas.ts`; tocar una fila abierta abre su cobro,
-  `EntregarVista`— e «Historial» `HistorialVista` —lo terminado, con `lib/apartados-historial.ts`; «Todo el historial» relee
+  `EntregarVista`, con «Reimprimir» a la vista y «Más acciones» (`MenuAcciones`: Escribirle, Aplazar, Marcar enviado, Ver el detalle,
+  Editar prendas y Cancelar apartado; aplazar, marcar y ver abren `DetalleApartadoModal` en su modo)— e «Historial» `HistorialVista` —lo terminado, con `lib/apartados-historial.ts`; «Todo el historial» relee
   `buscar_separaciones` sin fechas—; las piezas de las dos listas, en `components/apartados/filas.tsx`) → RPC `separar_prendas`,
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`

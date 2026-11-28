@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 import { Globito } from "@/components/ui/Globito";
 import { Bookmark, ClipboardList, Clock, SlidersHorizontal } from "lucide-react";
@@ -14,6 +14,7 @@ import { PendientesVista } from "@/components/apartados/PendientesVista";
 import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 import type { CanalVenta } from "@/lib/canales-venta-reglas";
 import { CanalesDeApartados } from "@/components/apartados/CanalChip";
@@ -69,9 +70,28 @@ export function ApartadosPanel(props: Props) {
   const [vista, setVista] = useState<Vista>(paraAbrir ? (enPendientes(paraAbrir) ? "pendientes" : "historial") : "apartar");
   const [elegido, setElegido] = useState<string | null>(paraAbrir?.estado === "abierta" ? paraAbrir.id : null);
   const [opciones, setOpciones] = useState(false);
-  // Con qué búsqueda arranca la lista que se abre: el código del apartado que llegó por `?abrir=` (si no se abre su cobro) o lo que se
-  // buscó en la otra lista y no estaba (ADR-0720). Tocar una pestaña la borra.
-  const [buscarAlEntrar, setBuscarAlEntrar] = useState(paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : "");
+  // Lo escrito en el buscador de cada lista. Vive aquí, no en la lista, para seguir ahí al volver de un cobro con «Volver»; llega con el
+  // código del apartado que vino por `?abrir=` (si no se abre su cobro) o con lo que se buscó en la otra lista y no estaba (ADR-0720).
+  // Tocar una pestaña lo borra.
+  const [buscar, setBuscar] = useState({
+    pendientes: paraAbrir?.estado === "liberada" ? paraAbrir.codigo : "",
+    historial: paraAbrir && !enPendientes(paraAbrir) ? paraAbrir.codigo : "",
+  });
+  // Abrir un apartado cambia de vista sin cambiar de URL (ADR-0185): el cobro empieza arriba y «Volver» regresa al lugar de la lista.
+  const lugarDeLaLista = useRef<number | null>(null);
+  const abrirCobro = (id: string) => {
+    lugarDeLaLista.current = window.scrollY;
+    setElegido(id);
+  };
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    if (elegido) {
+      document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
+    } else if (lugarDeLaLista.current !== null) {
+      window.scrollTo({ top: lugarDeLaLista.current });
+      lugarDeLaLista.current = null;
+    }
+  }, [elegido]);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
   // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
@@ -90,8 +110,9 @@ export function ApartadosPanel(props: Props) {
     setVista(v);
     // Tocar una pestaña lleva a su lista: el cobro de un apartado se abre desde «Pendientes» y se deja con «Volver»; y la lista empieza sin
     // la búsqueda que llegó de la otra.
+    lugarDeLaLista.current = null;
     setElegido(null);
-    setBuscarAlEntrar("");
+    setBuscar({ pendientes: "", historial: "" });
     // En el celular la pestaña se toca abajo: la vista nueva empieza arriba, no a media página.
     document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   };
@@ -192,11 +213,12 @@ export function ApartadosPanel(props: Props) {
           avisos={props.avisos ?? {}}
           apagadas={apagadas}
           pedidos={props.pedidos ?? []}
-          buscarInicial={buscarAlEntrar}
-          onAbrir={setElegido}
+          buscarInicial={buscar.pendientes}
+          onTexto={(texto) => setBuscar((b) => ({ ...b, pendientes: texto }))}
+          onAbrir={abrirCobro}
           onBuscarEnHistorial={(texto) => {
             irA("historial");
-            setBuscarAlEntrar(texto);
+            setBuscar({ pendientes: "", historial: texto });
           }}
           onApartarPedido={(p) => {
             setPedidoParaApartar(p);
@@ -205,7 +227,7 @@ export function ApartadosPanel(props: Props) {
         />
       )}
       {vista === "pendientes" && elegido && (
-        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} puedeGestionar={props.puedeGestionar} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
       )}
       {vista === "historial" && (
         <HistorialVista
@@ -217,12 +239,12 @@ export function ApartadosPanel(props: Props) {
           apartados={props.apartados}
           prendas={props.prendas}
           apagadas={apagadas}
-          buscarInicial={buscarAlEntrar}
+          buscarInicial={buscar.historial}
           onEntregar={irAEntregar}
           onIrAPendientes={() => irA("pendientes")}
           onBuscarEnPendientes={(texto) => {
             irA("pendientes");
-            setBuscarAlEntrar(texto);
+            setBuscar({ pendientes: texto, historial: "" });
           }}
         />
       )}

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Receipt, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, ArrowDown, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money } from "@/lib/money";
-import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/punto-de-venta/iconoMetodo";
 import { BilleteRapido } from "@/components/BilleteRapido";
 import { EntradaMonto } from "@/components/ui/CampoMonto";
@@ -17,35 +16,29 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
-import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
+import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, encendida, esConstancia, estadoVisible, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda } from "@/components/apartados/piezas";
 import { CanalChip } from "@/components/apartados/CanalChip";
-import { codigoPrenda } from "@/lib/prenda-reglas";
-import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal, LiberarModal } from "@/components/apartados/ModalesApartado";
+import { prendaDicha } from "@/lib/lista-dicha";
+import { opcionesAplazar } from "@/lib/apartado-detalle-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
+import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { diaLima } from "@/lib/fechas-lima";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { BotonEditar } from "@/components/ui/BotonEditar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Volver } from "@/components/ui/Volver";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
   "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
-
-/** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las
- *  variantes (ADR-0058: el código vive en `codigo`), y se leía «· 1 u.». Color, talla y código salen del catálogo; si la
- *  prenda ya no está en él, queda el `sku` guardado. */
-function detallePrenda(v: VarianteBusqueda | undefined, sku: string): string {
-  if (!v) return sku;
-  return [v.color, v.talla, codigoPrenda(v)].filter(Boolean).join(" · ");
-}
 
 // La cara del cliente (<AvatarPersona>, ADR-0358 ronda 8) con las mismas iniciales de siempre: el primer nombre y el primer apellido.
 const nombreParaIniciales = (a: Apartado) => `${a.nombres.split(/\s+/)[0] ?? ""} ${a.apellidos.split(/\s+/)[0] ?? ""}`;
@@ -55,6 +48,7 @@ export function EntregarVista({
   ubicacionEtiqueta,
   hoy,
   cajaAbierta,
+  puedeGestionar,
   apartados,
   prendas,
   elegido,
@@ -67,6 +61,8 @@ export function EntregarVista({
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
+  /** Aplazar es de quien gestiona la caja: líder o cuenta de ventas (D5). */
+  puedeGestionar: boolean;
   apartados: Apartado[];
   prendas: PrendaApartable[];
   elegido: string | null;
@@ -91,6 +87,10 @@ export function EntregarVista({
   const [editar, setEditar] = useState(false);
   // El apartado se guarda al abrir: al liberarse deja de estar abierto y la hoja tiene que seguir para ofrecer el WhatsApp.
   const [liberar, setLiberar] = useState<Apartado | null>(null);
+  const [reimprimir, setReimprimir] = useState(false);
+  const [recordar, setRecordar] = useState(false);
+  // El detalle del apartado, abierto desde «Más acciones» en el modo que se pidió (ver, aplazar o marcar enviado).
+  const [detalle, setDetalle] = useState<ModoDetalle | null>(null);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
@@ -175,6 +175,49 @@ export function EntregarVista({
     router.refresh();
   }
 
+  // Lo que se le puede hacer al apartado además de cobrarlo (la Mínima, ADR-0720): en «Más acciones», y «Cancelar apartado» al final, en
+  // rojo. Aplazar es de quien gestiona la caja (D5): a quien no, se le ve con su porqué.
+  const plazo = a ? opcionesAplazar(a, hoy) : null;
+  const acciones: ItemMenu[] = a
+    ? [
+        ...(a.celular !== "" ? [{ clave: "escribir", etiqueta: "Escribirle", onSelect: () => setRecordar(true) }] : []),
+        {
+          clave: "aplazar",
+          etiqueta: "Aplazar",
+          onSelect: () => setDetalle("aplazar"),
+          motivo: !puedeGestionar ? "Lo aplaza la líder o la cuenta de ventas de la tienda." : (plazo?.bloqueo ?? undefined),
+        },
+        ...(a.modoEntrega === "envio" && !a.enviadoEn ? [{ clave: "enviar", etiqueta: "Marcar enviado", onSelect: () => setDetalle("enviar") }] : []),
+        { clave: "detalle", etiqueta: "Ver el detalle", onSelect: () => setDetalle("ver") },
+        ...(conEditar ? [{ clave: "editar", etiqueta: "Editar prendas", onSelect: () => setEditar(true) }] : []),
+        { clave: "cancelar", etiqueta: "Cancelar apartado", onSelect: () => setLiberar(a), peligro: true },
+      ]
+    : [];
+
+  // El panel de cobro queda quieto donde empieza (en escritorio, vidrio/vender.css): se mide una vez su lugar en la página y su alto llega
+  // hasta el borde de la pantalla, con lo de en medio corriendo por dentro. Así el responsable y «Entregar y cobrar» siempre están a la vista.
+  const panel = useRef<HTMLElement>(null);
+  const idDelCobro = a?.id;
+  useLayoutEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const medir = () => {
+      el.style.removeProperty("--cobro-tope");
+      el.style.setProperty("--cobro-tope", `${Math.round(el.getBoundingClientRect().top + window.scrollY)}px`);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [idDelCobro]);
+
+  // En el celular, mientras falta algo, el botón de la barra dice qué sigue y lleva hasta ahí; con todo listo, entrega.
+  const quePide: "pago" | "responsable" | null = !cajaAbierta || enviando ? null : saldo > 0 && !cobro.listo ? "pago" : !responsable.listo ? "responsable" : null;
+  function llevarA(que: "pago" | "responsable") {
+    const destino = document.getElementById(que === "pago" ? "cobro-como-paga" : "cobro-responsable");
+    destino?.scrollIntoView({ block: "center", behavior: prefiereQuieto() ? "auto" : "smooth" });
+    destino?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+  }
+
   if (!a)
     return (
       <>
@@ -183,6 +226,7 @@ export function EntregarVista({
       </>
     );
 
+  const papel = esConstancia(a) ? "constancia" : "boleta";
   return (
     <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
@@ -199,99 +243,107 @@ export function EntregarVista({
         {/* Lo de arriba es la vuelta a la lista de Pendientes (ADR-0720): aquí ya no se busca. */}
         <Volver onClick={() => elegir(null)} a="Volver a la lista de pendientes" className="self-start" />
 
-        <article className="ap-placa anim-revelar space-y-4 rounded-2xl border border-sand p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-center gap-3.5">
-                <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
-                <div>
-                  <p className="font-display text-2xl leading-tight text-tinta">{a.nombres} {a.apellidos}</p>
-                  <p className="text-sm text-tinta/60 tabular-nums">
-                    {[a.celular && formatoCelular(a.celular), a.dni && `DNI ${a.dni}`, a.asesora && `atendió ${a.asesora}`].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
+        {/* La tarjeta dice quién, cuál y dónde (la Mínima): el nombre con el código del apartado al lado, como en la lista; debajo, cómo
+            va, por dónde se vendió y en qué estante está. Lo que se le puede hacer además de cobrarlo, en «Más acciones». */}
+        <article className="ap-placa anim-revelar space-y-4 rounded-tarjeta border border-sand p-5">
+          <div className="flex items-start gap-3.5">
+            <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+                <span className="font-display text-2xl leading-tight text-tinta">{a.nombres} {a.apellidos}</span>
+                <span className="whitespace-nowrap font-mono text-sm text-tenue">{a.codigo}</span>
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 <EstadoChip {...estadoVisible(a, hoy)} />
-                <div className="mt-1"><CanalChip a={a} className="max-w-full" /></div>
-                <p className="mt-1 font-mono text-sm text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
+                <CanalChip a={a} className="max-w-full" />
                 {conEstante && a.estante && (
-                  <p className="mt-1 inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                  <span className="inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-sm">
+                    <Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}
+                  </span>
                 )}
               </div>
             </div>
-            <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
-            <ul className="divide-y divide-sand border-t border-sand">
-              {a.prendas.map((pr) => (
+          </div>
+          <ul className="divide-y divide-sand border-t border-sand">
+            {a.prendas.map((pr) => {
+              const v = porVariante.get(pr.varianteId);
+              return (
                 <li key={pr.itemId || pr.varianteId} className="flex flex-wrap items-center gap-x-3 py-2.5">
-                  <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={44} className="w-11" />
+                  <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
-                    <p className="text-sm text-tinta/60">{detallePrenda(porVariante.get(pr.varianteId), pr.sku)} · {pr.cantidad} u.</p>
+                    <p className="text-sm text-secundario">
+                      {prendaDicha({ color: v?.color, talla: v?.talla }) || pr.sku}
+                      {pr.cantidad > 1 && `, ${pr.cantidad} unidades`}
+                    </p>
                   </div>
                   <ImporteDePrenda prenda={pr} className="font-semibold" />
                   <DescuentoDePrenda prenda={pr} className="mt-1.5 basis-full pl-14" />
                 </li>
-              ))}
-            </ul>
-            {conEditar && (
-              <div className="flex flex-wrap items-center gap-2">
-                <BotonEditar chico onClick={() => setEditar(true)}>
-                  Editar prendas
-                </BotonEditar>
-                <span className="text-sm text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
-              </div>
-            )}
-            {/* ADR-0599: liberar no espera al vencimiento ni a una líder: quien ve Apartados lo hace (un apartado hecho por error, o que el
-                cliente desistió). Las prendas vuelven a venderse y el adelanto queda por devolver. */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(a)}>
-                Liberar apartado
-              </Boton>
-              <span className="text-sm text-tinta/55">Si se apartó por error o el cliente desistió: las prendas vuelven a estar disponibles.</span>
-            </div>
-            <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-sm text-tinta/80">
-              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>
-                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la {esConstancia(a) ? "constancia" : "boleta"} del cliente coinciden.
-              </span>
-            </p>
-          </article>
+              );
+            })}
+          </ul>
+          <p className="flex items-start gap-2 rounded-campo border border-sand bg-crema px-3 py-2.5 text-sm text-secundario">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>Mira su DNI o su {papel}; no se anota.</span>
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* Lo que más se pide además de cobrar (el papelito perdido): a la vista, con el nombre del papel. */}
+            <BotonImprimir chico onClick={() => setReimprimir(true)}>
+              Reimprimir {papel}
+            </BotonImprimir>
+            <MenuAcciones texto="Más acciones" etiqueta={`Más acciones del apartado ${a.codigo}`} items={acciones} deshabilitado={envio.incierto} guia="apartados.mas-acciones" />
+          </div>
+        </article>
       </div>
       </div>
 
-      <aside data-guia="apartados.entregar-detalle" className="ap-ticket flex min-h-0 flex-col">
-        <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-          <TituloSeccion>
+      {/* El panel de cobro (la Mínima): cuánto cobrar, cómo paga y el botón, que lleva el monto. La cuenta se dice una sola vez; el detalle
+          de cada pago está en «Ver el detalle». En escritorio queda quieto bajo la cabecera, con el responsable y el botón a la vista. */}
+      <aside ref={panel} data-guia="apartados.entregar-detalle" data-cobro className="ap-ticket flex min-h-0 flex-col">
+        <div className="ap-ticket-hilo flex min-h-[65px] items-center gap-3 border-b border-sand px-5 py-2.5">
+          <TituloSeccion
+            ayuda={
+              esConstancia(a)
+                ? `Sale la boleta o factura por el total (${money(a.total)}), sin nombrar el adelanto. No se piden datos otra vez.`
+                : a.pagos.some((p) => p.abono)
+                  ? "Sale la boleta final por lo que falta, que descuenta todos los anticipos (el del apartado y los abonos). No se piden datos otra vez."
+                  : `Sale la boleta final por lo que falta, que descuenta el anticipo ${a.comprobanteAnticipo ?? ""}. No se piden datos otra vez.`
+            }
+          >
             <span className="inline-flex items-center gap-2.5">
-              <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
+              <Wallet className="h-5 w-5 text-secundario" aria-hidden /> Cobrar
             </span>
           </TituloSeccion>
-          <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>
         </div>
         <>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               <div className="anim-revelar space-y-5 px-5 py-4">
-                <div className="space-y-1.5 rounded-xl border border-sand bg-crema p-4 text-sm text-tinta/75 tabular-nums">
-                  <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
-                  {a.pagos.map((p, i) => (
-                    <p key={i} className="flex justify-between">
-                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(diaLima(p.fecha ?? a.creadaEn))}</span>
-                      <span>−{money(p.monto)}</span>
-                    </p>
-                  ))}
-                  <p className="flex justify-between border-t border-sand pt-2 text-sm text-tinta"><span>Falta pagar</span><b>{money(saldo)}</b></p>
+                <div className="space-y-1 rounded-campo border border-sand bg-crema p-4 tabular-nums">
+                  <p className="flex items-baseline justify-between gap-3 text-tinta">
+                    <span className="text-sm">Le falta</span>
+                    <b className="font-display text-3xl font-normal lg:[@media(max-height:820px)]:text-2xl">{money(saldo)}</b>
+                  </p>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <p className="text-sm text-secundario">{saldo > 0 ? `Ya pagó ${money(Math.round((a.total - saldo) * 100) / 100)} de ${money(a.total)}` : "Ya pagó todo: no se cobra nada más."}</p>
+                    {/* Pagar solo una parte: junto a lo que falta, siempre a la vista (abajo, en una pantalla baja quedaba bajo el pie). */}
+                    {conAbonos && saldo > 0 && (
+                      <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} title={cajaAbierta ? "Paga una parte; la prenda se queda guardada." : "Abre la caja para registrar un abono."} className="btn-enlace ml-auto text-sm">
+                        Solo abona una parte
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {saldo > 0 && (
-                  <fieldset className="space-y-2">
-                    <legend className="mb-2 text-sm text-tinta/50">Cómo paga el saldo</legend>
+                  <fieldset id="cobro-como-paga" className="space-y-2">
+                    <legend className="mb-2 text-sm text-secundario">Cómo paga</legend>
                     <div className="grid grid-cols-5 gap-1 rounded-xl vd-hundido p-1">
-                      {METODOS_PAGO.map((m, i) => {
+                      {METODOS_PAGO.map((m) => {
                         const puesto = pagos.some((p) => p.metodo === m);
                         return (
-                          <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
-                            <span aria-hidden className="absolute top-0.5 right-1 text-xs font-semibold opacity-45">F{i + 1}</span>
+                          <button key={m} type="button" aria-pressed={puesto} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-0 text-sm capitalize transition-colors ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
                             {ICONO_METODO[m]}
-                            <span className="max-w-full truncate">{NOMBRE_CORTO[m] ?? m}</span>
+                            <span className="max-w-full truncate text-detalle">{NOMBRE_CORTO[m] ?? m}</span>
                           </button>
                         );
                       })}
@@ -356,42 +408,15 @@ export function EntregarVista({
                     <span className="font-display text-2xl tabular-nums">{money(cobro.vuelto)}</span>
                   </div>
                 )}
-                {conAbonos && saldo > 0 && (
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
-                      <p className="text-sm text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
-                    </div>
-                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="btn-cayla btn-secundario inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs leading-tight">
-                      <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
-                    </button>
-                  </div>
-                )}
-                <p className="flex items-start gap-1.5 text-sm text-tinta/60">
-                  <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {esConstancia(a)
-                    ? `Sale la boleta o factura por el total (${money(a.total)}), sin nombrar el adelanto.${saldo > 0 ? "" : " Ya pagó todo: no se cobra nada más."}`
-                    : saldo > 0
-                      ? a.pagos.some((p) => p.abono)
-                        ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
-                        : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
-                      : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
-                </p>
               </div>
             </div>
             <div className="ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5">
-              <div className="flex items-end justify-between gap-3 max-lg:hidden">
-                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
-                  <dt>Total</dt><dd className="text-tinta">{money(a.total)}</dd>
-                  <dt>Ya pagó</dt><dd className="text-tinta">−{money(a.adelanto)}</dd>
-                </dl>
-                <div className="text-right">
-                  <p className="label-cayla text-xs text-tinta/60">Saldo</p>
-                  <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(saldo)}</p>
-                </div>
-              </div>
               {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar; se abre hacia arriba. */}
-              {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
+              {cajaAbierta && (
+                <div id="cobro-responsable">
+                  <ComboResponsable control={responsable} deshabilitado={enviando} compacto />
+                </div>
+              )}
               <button
                 type="button"
                 disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
@@ -399,52 +424,50 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-xs"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
+                <span className="label-cayla flex items-center gap-2.5 whitespace-nowrap text-xs"><ShoppingBag className="h-4 w-4 max-xl:hidden" aria-hidden /> {enviando ? "Guardando…" : saldo > 0 ? "Entregar y cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
-              <p className="text-center text-sm text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
+              <p className="text-center text-sm text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
             </div>
         </>
       </aside>
 
       {a && (
         <BarraMovil
-          etiqueta={`Saldo · ${a.nombres}`}
+          etiqueta="Le falta"
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
-          icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
-          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
-          onClick={entregar}
+          accion={enviando ? "Guardando…" : quePide === "pago" ? "Elige cómo paga" : quePide === "responsable" ? "Elige quién atiende" : saldo > 0 ? "Entregar y cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
+          icono={quePide ? <ArrowDown className="h-4 w-4" aria-hidden /> : <ShoppingBag className="h-4 w-4" aria-hidden />}
+          deshabilitado={quePide ? false : enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
+          onClick={quePide ? () => llevarA(quePide) : entregar}
         />
       )}
 
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
+      {reimprimir && <ReimprimirApartadoModal apartado={a} sede={ubicacionEtiqueta} onClose={() => setReimprimir(false)} />}
+      {/* Escribirle: la misma hoja del lote, con este cliente; al cerrar, la lista se relee para que diga «Avisado hoy». */}
+      {recordar && <RecordarModal cola={[a]} ubicacion={ubicacion} hoy={hoy} onAvisada={() => router.refresh()} onClose={() => setRecordar(false)} />}
+      {detalle && (
+        <DetalleApartadoModal
+          key={detalle}
+          apartado={a}
+          ubicacion={ubicacion}
+          hoy={hoy}
+          cajaAbierta={cajaAbierta}
+          puedeGestionar={puedeGestionar}
+          conAbonos={conAbonos}
+          conEstante={conEstante}
+          prendas={prendas}
+          modoInicial={detalle}
+          onEntregar={() => setDetalle(null)}
+          onClose={() => setDetalle(null)}
+        />
+      )}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
       </fieldset>
-    </div>
-  );
-}
-
-function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string | null; hoy: string; venceEl: string }) {
-  const { total, pasados } = avanceDelPlazo(creadaEl, hoy, venceEl);
-  return (
-    <div className="relative grid grid-cols-3 pt-5 text-sm text-tinta/60">
-      <span /* beige-fijo: línea del recorrido, no es superficie */ aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />
-      <span aria-hidden className="absolute top-[7px] left-2 h-0.5 bg-tinta transition-[width] duration-500" style={{ width: `calc(${(pasados / total) * 100}% - 1rem)` }} />
-      {[
-        { t: "Apartó", f: creadaEl, cls: "", punto: "left-0 bg-papel border-tinta" },
-        { t: "Hoy", f: hoy, cls: "text-center", punto: "left-1/2 -translate-x-1/2 bg-tinta border-tinta" },
-        { t: "Vence", f: venceEl, cls: "text-right", punto: "right-0 bg-papel border-rojo" },
-      ].map((h) => (
-        <div key={h.t} className={`relative ${h.cls}`}>
-          <span aria-hidden className={`absolute -top-[21px] h-2.5 w-2.5 rounded-full border-2 ${h.punto}`} />
-          <b className="block font-semibold text-tinta">{h.t}</b>
-          {fechaCorta(h.f)}
-        </div>
-      ))}
     </div>
   );
 }

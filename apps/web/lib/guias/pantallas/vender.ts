@@ -468,8 +468,15 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.entregar-detalle",
       opcional: true,
       solo: "escritorio",
-      titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible, el adelanto queda por devolver y te ofrece avisarle por WhatsApp. En la demo no se toca.",
+      titulo: "Cobrar lo que falta y entregar",
+      texto: "Arriba, cuánto le falta. Eliges cómo paga (efectivo, tarjeta, Yape…) y quién atiende, y «Entregar y cobrar» entrega la prenda con su boleta o factura por el total. Si solo viene a pagar una parte, «Solo abona una parte» y la prenda se queda guardada. En la demo no se toca.",
+    },
+    {
+      id: "mas-acciones",
+      ancla: "apartados.mas-acciones",
+      opcional: true,
+      titulo: "Más acciones",
+      texto: "Escribirle, aplazar, ver cada pago, editar las prendas y, al final y en rojo, cancelar el apartado: la prenda vuelve a venderse y el adelanto queda por devolver. «Reimprimir» va afuera, a la vista. En la demo no se toca.",
     },
     {
       id: "marcar-enviado",
