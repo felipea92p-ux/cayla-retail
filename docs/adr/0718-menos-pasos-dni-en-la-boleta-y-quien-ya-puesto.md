@@ -1,4 +1,4 @@
-# ADR-0718 — Menos pasos: el DNI de la boleta une la ficha, y «Quién» ya puesto no es un paso aparte
+# ADR-0718 — Menos pasos: DNI de la boleta, «Quién» ya puesto y devolución en un solo viaje
 
 **Fecha:** 2026-11-28. **Estado:** aceptado (Felipe, sobre la maqueta `docs/maquetas/flujos-mas-cortos-2026-11/`). Solo web: sin
 migración, sin cambios de RPC, permisos ni datos. Sale del análisis `docs/investigacion/2026-11-28-flujos-para-acortar.md`.
@@ -34,7 +34,24 @@ de ADR-0161 no cambia. «Enviar a otra sede» no firma aquí.
 DESCARTÉ: firmar sin mostrar el combo (nadie vería a nombre de quién queda). SE ROMPE SI: la lista de quién está de turno llega después
 de que la persona ya pasó a «Quién»: en ese caso los pasos se quedan como antes, que es el lado seguro.
 
+## 3 · Registrar y aprobar una devolución en el mismo paso
+
+**Problema.** Registrar y aprobar eran dos viajes: pantalla de éxito, pestaña «Por aprobar», buscar la tarjeta, y firmar otra vez. Desde
+ADR-0534 la misma persona puede hacer las dos cosas.
+
+**Decisión** (Felipe, sobre la maqueta: «Registrar y aprobar» es el botón principal). El último paso muestra el reembolso y ofrece
+«Registrar y aprobar», con una sola firma, y «Dejar pendiente». Son las mismas dos funciones de siempre, una tras otra
+(`crear_devolucion` y `aprobar_devolucion`): ningún candado cambia.
+
+- Con la boleta o factura sin aceptar por SUNAT solo se ofrece «Registrar y dejar pendiente», con el motivo.
+- Si la venta no se puede leer, no se ofrece aprobar.
+- Si se registra y la aprobación falla, queda pendiente y la pantalla lo dice; si no se sabe si aprobó, manda a mirar antes de repetir.
+- Los campos del reembolso son una sola pieza (`components/devoluciones/Reembolso.tsx`) para esta puerta y para «Por aprobar».
+- De paso, los textos que decían «transmítela desde Facturación» ahora dicen cuándo sale la nota de crédito a SUNAT.
+
+DESCARTÉ: una función nueva en la base que hiciera las dos cosas en una transacción (migración y un segundo camino que mantener para el
+mismo efecto). SE ROMPE SI: la conexión se corta entre registrar y aprobar: queda pendiente, que es un estado válido y visible.
+
 ## Lo que quedó fuera
 
 - El botón «Guardar como cliente» para un DNI sin ficha.
-- La mejora 4 (devolución en un viaje): Felipe pidió primero entender cómo funciona hoy.

@@ -5,13 +5,15 @@
 - [x] Análisis `docs/investigacion/2026-11-28-flujos-para-acortar.md` y maqueta `docs/maquetas/flujos-mas-cortos-2026-11/`.
 - [x] Mejora 3: el DNI de la boleta une la ficha (ADR-0718), con guía de Vender al día.
 - [x] Mejora 5: sin paso «Quién» cuando el responsable ya viene puesto.
+- [x] Mejora 4: «Registrar y aprobar» en el último paso de la devolución, con guía al día.
 
 ### Sin hacer (dicho sin adornos)
 
-- [ ] Antes del PR: `/milimetro auditar` de `/vender` y `/inventario`, `/formidable`, `/chaos` y `guias:recorrer`; no se corrieron.
+- [ ] Antes del PR: `/milimetro auditar` de `/vender`, `/inventario` y `/devoluciones`, `/formidable`, `/chaos` y `guias:recorrer`; no se corrieron.
 - [ ] La terminal compartida (sin responsable puesto) no se probó en el navegador: se sostiene en el código y en las pruebas de reglas.
-- [ ] No se registró una venta ni un movimiento de verdad: se leyó lo que viajaba a la base y se bloqueó.
-- [ ] **Decide Felipe:** mejora 4 (devolución en un viaje), después de revisar cómo funciona hoy; mejoras 1 (traslados) y 2 (anular).
+- [ ] En las mejoras 3 y 5 no se grabó nada: se leyó lo que viajaba a la base y se bloqueó.
+- [ ] De la 4 no se probó en el navegador: el reembolso sin caja abierta, un medio distinto de efectivo y el fallo al aprobar.
+- [ ] **Decide Felipe:** mejoras 1 (traslados) y 2 (anular).
 - [ ] **Decide Felipe:** botón «Guardar como cliente» para un DNI sin ficha.
 - [ ] Aviso en Nuevo producto de mercadería que ya viene en camino (puede entrar dos veces).
-- [ ] La base local no tiene `20261027164000` (ADR-0534): hace falta antes de probar la mejora 4.
+- [ ] A la base local solo se le aplicó la parte de devoluciones de `20261027164000` (ADR-0534); el resto sigue sin aplicar.
