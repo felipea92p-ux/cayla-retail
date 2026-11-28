@@ -1,0 +1,4 @@
+## 2026-11-28 (Movimientos más claro tras /formidable)
+Qué hice: corrí `/formidable` en Movimientos (leyes 6,8, oficio 5; ciego sobre capturas y escéptico sobre el código) y, con el OK de Felipe, hice sus tres cambios y lo que sobraba: la fila ya no dice «Dónde» salvo en un traslado, el saldo dice «quedan 16 en la sede», «Todo» es una píldora del período y los ajustes no dicen el lado en cero.
+Por qué así: el ciego leyó «📍 Piso» como dónde está la prenda (en una guardada era de dónde salió) y no supo de qué era «quedan 16»; «Todo el historial» dejaba marcado «Personalizado» con las fechas vacías.
+Felipe se lleva: una fila que no contradice su ruta, un saldo que dice qué es y un período que se ve elegido. Queda por decidir el tamaño de las franjas de cada día (22 × 12 px, nadie supo qué eran).

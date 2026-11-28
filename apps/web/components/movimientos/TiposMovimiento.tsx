@@ -45,7 +45,9 @@ function cifraDeGrupo(g: InfoGrupo, resumen: ResumenTienda): Cifra {
       const { faltaron, aparecieron } = desgloseAjustes(c);
       // Dos frases, no una lista: cada cara ya trae su «y» («faltaron 26 a mano y 9 en un conteo; aparecieron 4 a mano»).
       const desglose = [faltaron && `faltaron ${faltaron}`, aparecieron && `aparecieron ${aparecieron}`].filter(Boolean).join("; ") || null;
-      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle: c.operaciones > 0 ? `−${n(c.salen)} faltaron y +${n(c.entran)} aparecieron` : null, extra: null, desglose };
+      // El lado en cero no se dice: «−1 faltaron», no «−1 faltaron y +0 aparecieron» (/formidable 2026-11-28).
+      const detalle = c.operaciones > 0 ? listaDicha([c.salen > 0 && `−${n(c.salen)} faltaron`, c.entran > 0 && `+${n(c.entran)} aparecieron`]) || null : null;
+      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle, extra: null, desglose };
     }
   }
 }
