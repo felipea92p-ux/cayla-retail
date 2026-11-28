@@ -1,63 +1,7 @@
-// Lo que dicen las cuatro cifras de arriba del Resumen de Producción, y desde cuándo hay ventas que las respalden (Formidable, 2026-10-27). Puro: sin Supabase ni React.
+// Desde cuándo hay ventas que respalden las cantidades del Resumen de Producción (Formidable, 2026-10-27). Puro: sin Supabase ni React.
 //
-// Una persona nueva vio tres «0» seguidos (S/ 0.00 de capital, S/ 0.00 en proceso, 0 entregas) y no supo distinguir «no hay nada» de «todavía no se cargó». Un cero es un dato
-// solo cuando de verdad se sabe: aquí, si el dato falta, la cifra lo dice y dice qué hacer (`TarjetaCifra valor={null}` con su motivo, ADR-0358). Los números que sí se
-// saben no cambian: esto solo decide la frase y si la cifra va «sin dato».
-
-import { soles } from "./compras-reglas";
-import type { CifrasResumen } from "./produccion-decisiones";
-
-export type TextoDeCifra = {
-  /** El dato no se conoce (no se cargó): la tarjeta no pone un número sino «—» y este motivo. */
-  sinDato: boolean;
-  /** La línea de contexto, o el motivo si `sinDato`. */
-  contexto: string;
-};
-
-export type TextosDeCifras = { capital: TextoDeCifra; valorEnProceso: TextoDeCifra; porPagar: TextoDeCifra; entregas: TextoDeCifra };
-
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
-export function textosDeCifras(c: CifrasResumen): TextosDeCifras {
-  const capital: TextoDeCifra =
-    c.insumosCargados === 0
-      ? { sinDato: true, contexto: "Aún no hay insumos cargados. Cárgalos en Insumos y verás aquí cuánto tienes." }
-      : c.capitalInsumos === null
-        ? { sinDato: true, contexto: "Los insumos todavía no tienen costo cargado." }
-        : { sinDato: false, contexto: c.insumosBajoMinimo > 0 ? plural(c.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo") : "a costo de cada lote" };
-
-  const valorEnProceso: TextoDeCifra =
-    c.ordenesEnProceso === 0
-      ? { sinDato: false, contexto: "no hay órdenes abiertas" }
-      : c.valorEnProceso === 0 && c.ordenesSinCosto > 0
-        ? { sinDato: true, contexto: `${plural(c.ordenesSinCosto, "orden abierta", "órdenes abiertas")} todavía sin costo de tela ni avíos.` }
-        : { sinDato: false, contexto: `tela y avíos de ${plural(c.ordenesEnProceso, "orden abierta", "órdenes abiertas")}${c.ordenesSinCosto > 0 ? ` · ${c.ordenesSinCosto} sin costo cargado` : ""}` };
-
-  const porPagar: TextoDeCifra =
-    c.facturasCargadas === 0
-      ? { sinDato: true, contexto: "Aún no hay facturas de proveedores cargadas." }
-      : { sinDato: false, contexto: c.vencido > 0 ? `${soles(c.vencido)} ya vencidos` : c.porPagar > 0 ? "nada vencido" : "no se debe nada" };
-
-  // Un 0 solo es un dato si las órdenes tienen fecha: sin ninguna, «0 entregas por atender» no dice «todo a tiempo» sino «no sé» (segunda prueba ciega: «0 · 4 sin fecha» confundía).
-  const todasSinFecha = c.entregasEnRiesgo === 0 && c.ordenesSinFecha > 0 && c.ordenesSinFecha === c.ordenesEnProceso;
-  const entregas: TextoDeCifra = todasSinFecha
-    ? { sinDato: true, contexto: `${plural(c.ordenesSinFecha, "orden abierta no tiene", "órdenes abiertas no tienen")} fecha de entrega. Ponles fecha y te avisamos si se atrasan.` }
-    : {
-        sinDato: false,
-        contexto:
-          c.entregasEnRiesgo > 0
-            ? "vencidas o por vencer en 2 días"
-            : c.ordenesSinFecha > 0
-              ? `ninguna vencida · ${plural(c.ordenesSinFecha, "orden sin fecha de entrega", "órdenes sin fecha de entrega")}`
-              : "ninguna vencida ni por vencer",
-      };
-
-  return { capital, valorEnProceso, porPagar, entregas };
-}
-
-// ---------------------------------------------------------------------------
-// La edad de los datos
-// ---------------------------------------------------------------------------
+// Mientras el sistema lleve pocas semanas de ventas, lo que el Resumen sugiere fabricar es una guía y lo dice (`notaDeHistoria`, en el «?» de «Qué fabricar primero»); la nota se apaga
+// sola. Las cuatro cifras de dinero que este archivo también explicaba («Capital en insumos», «Valor en proceso», «Por pagar», «Entregas por atender») salieron del Resumen el 2026-11-26.
 
 /** El día del primer movimiento del ERP en las tiendas (el censo de TRU, consultado en producción el 2026-10-27). Desde ahí se cuentan las ventas que respaldan un ritmo. */
 export const VENTAS_DESDE = "2026-09-29";

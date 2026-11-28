@@ -2,7 +2,7 @@
 // sigue siendo dueño de los números (total, costo, precio, margen) y de cuándo se puede abrir la orden; aquí solo se arman los textos que se leen a la derecha.
 //
 // CONTRATO
-//   PROMETE: contar lo que SE FABRICA (un color o una talla sin una sola prenda no cuenta, como no cuenta en el total); escribir el precio y los montos igual que el resto del ERP
+//   PROMETE: que cada dato se pueda dibujar como una pieza con su nombre (nunca una frase con puntos medios); contar lo que SE FABRICA (un color o una talla sin una sola prenda no cuenta, como no cuenta en el total); escribir el precio y los montos igual que el resto del ERP
 //            («S/ 89.90»); y no inventar un dato: lo que no se sabe (sin precio, sin fecha, sin nombre) se dice como «falta», nunca como 0.
 //   ASUME:   las claves de celda y los ejes son los de `lib/orden-tabla-reglas.ts`; la fecha llega como «AAAA-MM-DD» (el `<input type="date">`).
 //   NO HACE: no calcula el margen ni el costo (eso es `produccion-reglas.ts`), no mira permisos ni guarda nada.
@@ -32,15 +32,6 @@ export function contarQueSeFabrica(celdas: readonly CeldaAlta[], excluidas: Read
   const t = totalesCantidades(celdas, excluidas, cantidades);
   const conPrendas = (porEje: Record<string, number>) => Object.entries(porEje).filter(([clave, n]) => clave !== "" && n > 0).length;
   return { colores: conPrendas(t.porFila), tallas: conPrendas(t.porColumna) };
-}
-
-/** «3 colores · 2 tallas» (o «1 color», «2 tallas»); `null` si no se fabrica nada todavía. */
-export function textoColoresYTallas({ colores, tallas }: { colores: number; tallas: number }): string | null {
-  const partes = [
-    colores > 0 ? `${colores} ${colores === 1 ? "color" : "colores"}` : null,
-    tallas > 0 ? `${tallas} ${tallas === 1 ? "talla" : "tallas"}` : null,
-  ].filter((p): p is string => p !== null);
-  return partes.length > 0 ? partes.join(" · ") : null;
 }
 
 /** El nombre de arriba de la ficha. Sin modelo todavía y un modelo nuevo sin nombre se dicen distinto; ambos salen tenues (`vacio`). */
@@ -87,9 +78,40 @@ export function partesDelCostoPorPrenda(o: {
   return conCosto.map((p, i) => ({ clave: p.clave, nombre: p.nombre, detalle: p.detalle, porPrenda: centimos[i] / 100 }));
 }
 
-/** «Se vende a»: el precio si lo hay; una muestra nueva sin precio dice «al aprobarla»; un lote nuevo sin precio, «—»; un modelo que existe sin precio no muestra la fila (la nota de abajo explica). */
+/** «Se vende a»: el precio si lo hay; una muestra nueva sin precio dice «Al aprobarla»; una orden para vender de un modelo nuevo sin precio, «Sin precio todavía»; un modelo que existe sin precio no muestra la fila (la nota de abajo explica). */
 export function textoSeVendeA(o: { precio: number; esNuevo: boolean; esMuestra: boolean }): string | null {
   if (o.precio > 0) return soles(o.precio);
   if (!o.esNuevo) return null;
-  return o.esMuestra ? "al aprobarla" : "—";
+  return o.esMuestra ? "Al aprobarla" : "Sin precio todavía";
+}
+
+/**
+ * «Ganancia por prenda», en soles (Felipe 2026-11-26: reemplaza al margen en %, que había que saber leer): el precio con que se mide menos lo que cuesta hacerla.
+ * El precio es el MISMO con que se pinta el semáforo (`precioParaMargen`: el más bajo de cualquier tienda, ADR-0370), así el número y su color nunca se contradicen.
+ * `null` si falta el precio o el costo: igual que el semáforo, no se inventa una ganancia.
+ */
+export function gananciaPorPrenda(precioDeMedir: number, costoPorPrenda: number): number | null {
+  if (!(precioDeMedir > 0) || !(costoPorPrenda > 0)) return null;
+  return Math.round((precioDeMedir - costoPorPrenda) * 100) / 100;
+}
+
+/** La ganancia escrita: «S/ 50.60»; si hacerla cuesta más de lo que se cobra, con su signo delante («−S/ 4.20»), nunca un monto que se lea como ganancia. */
+export function textoDeGanancia(ganancia: number): string {
+  return ganancia < 0 ? `−${soles(Math.abs(ganancia))}` : soles(ganancia);
+}
+
+/** Una fase que sale a un servicio y todavía no tiene un costo que listar: cuál es y quién la hace (o qué falta para saberlo). Cada una es un par de la ficha. */
+export function faseDeAfuera(s: { nombre: string; proveedor: string | null; pendiente: boolean }): { fase: string; quien: string } {
+  return { fase: s.nombre, quien: s.proveedor ?? (s.pendiente ? "Pendiente de registrar" : "Falta elegir a quién") };
+}
+
+/** El detalle del aviso «Orden de … abierta»: cuántas prendas y de qué tipo, en una frase (antes «Modelo nuevo · 24 prendas · producción»). */
+export function detalleDeOrdenAbierta(o: { total: number; esMuestra: boolean; esNuevo: boolean }): string {
+  const prendas = `${o.total} ${o.total === 1 ? "prenda" : "prendas"}`;
+  return `${prendas} ${o.esMuestra ? "de muestra" : "para vender"}${o.esNuevo ? ", con un modelo nuevo" : ""}`;
+}
+
+/** Lo que dice el aviso de una orden a medias: cuándo quedó guardada y, si tenía prendas escritas, cuántas. */
+export function fraseDelBorradorGuardado(haceCuanto: string, prendas: number): string {
+  return `Quedó guardada ${haceCuanto}${prendas > 0 ? `, con ${prendas} ${prendas === 1 ? "prenda" : "prendas"}` : ""}.`;
 }

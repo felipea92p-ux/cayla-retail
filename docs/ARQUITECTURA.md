@@ -233,23 +233,23 @@ flowchart TB
 - `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`
   (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/valor-inventario.ts` (`getValorInventario`, RPC `fn_valor_inventario_existencias`: «Ver el
   valor a costo» de `components/existencias/ValorInventarioExistencias.tsx`, solo si la cuenta ve el dinero de Compras; su «Ver cuáles» pide
-  `fn_tallas_sin_costo` desde el navegador; reglas en `lib/valor-inventario-reglas.ts`, ADR-0557), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
-  `prendas_por_regularizar`; su fila de «Para hoy» lleva a `/inventario/por-regularizar?ubicacion=`), `lib/capacidad-piso-servidor.ts`
-  (`getCapacidadPiso`, RPC `fn_capacidad_piso`, tabla `capacidad_piso`, ADR-0329: la nota «de 600» de «Colgadas en el piso», con
-  «por cuadrar» mientras la sede no tenga cuadre —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
+  `fn_tallas_sin_costo` desde el navegador; reglas en `lib/valor-inventario-reglas.ts`, ADR-0557; desde el 2026-11-26 va bajo las cifras, ADR-0709), `lib/capacidad-piso-servidor.ts`
+  (`getCapacidadPiso`, RPC `fn_capacidad_piso`, tabla `capacidad_piso`, ADR-0329: la nota «de 600» de «Colgadas en el piso»; mientras la
+  sede no tenga cuadre dice «según el sistema» y no compara (ADR-0709) —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` vive desde el 2026-11-14 en la hoja «Configurar piso» del Plan del piso, solo del líder:
   `components/plan-piso/ConfigurarPiso.tsx`, reglas puras en `lib/capacidad-piso-config.ts`; ADR-0329, «Actualización 2026-11-14») y la cabecera con `existencias/CifrasExistencias.tsx` (ADR-0391: las cifras «Colgadas en el piso» y «Guardadas en el
   almacén» FILTRAN la lista por la URL —`condicion=colgadas|guardadas`, `lib/existencias-filtros.ts`— sobre `ui/ResumenSede`; reemplazó
   al selector «Piso · Almacén · Ambos» de las tarjetas, que se guardaba por computadora) → `InventarioPanel.tsx` (con el aviso «El piso de
-  esta tienda nunca se ha cuadrado» cuando `plan.enPausa`) →
-  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx` (con los atajos
-  `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`; en «Filtros ▸ Vista», «Ver como» —tarjetas, tabla o por talla—, el orden y
-  el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`; «Colgar primero» se quitó el 2026-10-06, ADR-0344),
+  esta tienda nunca se ha cuadrado» cuando `plan.enPausa` y no hay un barrido abierto; su botón lleva al barrido, ADR-0709; al pie de la lista,
+  «Descargar CSV», «Resumen por categoría» y el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`) →
+  `FiltrosExistencias.tsx` (con los atajos `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`; en «Filtros ▸ Vista», «Ver como»
+  —tarjetas, tabla o por talla— y el orden; «Colgar primero» se quitó el 2026-10-06, ADR-0344; «Gestión», el anillo «N de M hoy» con
+  «Pendientes de hoy», «Se acaban» y «Sin ventas», el 2026-11-26, ADR-0709),
   `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; desde el
   2026-10-12, ADR-0391, una columna por talla con el número grande = colgadas y «+N guardadas» debajo —`lineaGuardadas`,
   `lib/existencias-tarjeta-compacta.ts`—, sin selector de lugar; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo:
-  `lib/existencias-tarjetas.ts`), el anillo «N de M hoy» (`existencias/AnilloMision.tsx`, `lib/existencias-mision.ts`), la pistola sin buscador
+  `lib/existencias-tarjetas.ts`), la pistola sin buscador
   (`lib/existencias-pistola.ts`), la tabla «Ver detalle» y el **modal de la prenda** `existencias/PanelTalla.tsx` (ADR-0391, «Foto y lista»: un
   `<Modal variante="hoja">` al centro con la foto grande, la fila Etiquetas · Rótulo · Historial · Catálogo, «Dónde está», «Qué hago» con lo
   posible y la línea «No ahora», el código copiable y la pestaña «Todas» —colgadas y guardadas por talla con totales y las casillas que filtran
@@ -1573,9 +1573,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`lib/compra-rapida.ts`, `marcasConProveedores`).
 - **Compras reestructurado (ADR-0704, 2026-11-26):** el menú queda en Compradores, Todas las compras, Mis compras, Plan de campaña y Proveedores,
   sin pestañas. `/compras/compradores` (módulo `fondos`) → `lib/compradores.ts:getCompradores` → RPC `fn_compradores()` (y `getCompradoresSinRonda` → `fn_compradores_sin_ronda()`, quien tiene plata sin ronda abierta) + `lib/compradores-reglas.ts`
-  (puro: lectura, aviso de la ronda, la ronda elegida) → `components/compras/CompradoresVista.tsx` + `TarjetaComprador.tsx`; las rendiciones
+  (puro: lectura, quién va en la lista, su frase y sus etiquetas, y las líneas del estado de cuenta por fechas) → `components/compras/CompradoresVista.tsx` + `ListaCompradores.tsx`; las rendiciones
   por aprobar, `RendicionesPorAprobar.tsx`. `/compras/compradores/[personaId]` → la misma lectura + `getRevisarCompras`, `getPlataPorConfirmar`
-  y `getDatosFondos` filtrados a la persona → `DetalleComprador.tsx` con `BandejaRevisar`, `MovimientosDeFondo.tsx` y `CerrarRonda.tsx`
+  y `getDatosFondos` filtrados a la persona, más el período de la URL (`tramoDeUrl`) → `DetalleComprador.tsx` con `EstadoDeCuenta.tsx` (el control de fechas de Rendimiento), `BandejaRevisar` y `CerrarRonda.tsx`
   (`lib/compradores-acciones.ts` → `cerrar_ronda_sin_movimiento`). `/compras` («Todas las compras», módulo `facturas_compra`) →
   `getTodasLasCompras` → RPC `fn_todas_las_compras(desde, hasta, persona, busqueda, limite)` → `TodasLasComprasVista.tsx` + `BuscadorCompras.tsx`.
   `/compras/fondos` redirige a Compradores; `/compras/por-pagar` sigue, fuera del menú, con su vuelta a Todas las compras.

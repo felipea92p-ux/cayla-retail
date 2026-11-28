@@ -9,6 +9,7 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 import { CELULAR, ESCRITORIO, useEnCelular } from "@/components/ui/useEnCelular";
+import { VeloDeHoja } from "@/components/ui/VeloDeHoja";
 import { useVidrioQueDobla } from "@/components/ui/useVidrioQueDobla";
 import { decidirLado, goma, pasoDeLado, velocidad, type Muestra } from "@/lib/hoja-gesto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
@@ -290,8 +291,9 @@ export function Cajon({
   return (
     <Dialog.Root open modal={conVelo} onOpenChange={(abierto) => !abierto && cerrar()}>
       <Dialog.Portal>
+        {/* El velo es nuestro, no el `Dialog.Overlay` de Radix (ADR-0715, `VeloDeHoja`): el de Radix congelaba Safari al cerrar. */}
         {conVelo && (
-          <Dialog.Overlay
+          <VeloDeHoja
             ref={veloRef}
             className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? (salidaPropia ? "" : "anim-velo-salida") : "anim-velo"}`}
           />

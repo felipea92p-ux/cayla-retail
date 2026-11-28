@@ -14,6 +14,8 @@ export type ItemMenu = {
   /** La opción se ve pero no se elige, y dice por qué debajo («ya se vendió: solo un líder la corrige», ADR-0263). Sigue
    *  alcanzable con las flechas (`aria-disabled`, no `disabled`): un lector de pantalla también tiene que oír el porqué. */
   motivo?: string;
+  /** El `data-guia` de la opción, si la guía interactiva de la pantalla la toca para abrir lo que abre (ADR-0389): como `items[].guia` de `<Pestanas>`. */
+  guia?: string;
 };
 
 const ANCHO = 208; // w-52
@@ -222,6 +224,7 @@ export function MenuAcciones({
                 role="menuitem"
                 aria-disabled={it.motivo ? true : undefined}
                 data-peligro={it.peligro || undefined}
+                data-guia={it.guia}
                 onMouseEnter={(e) => e.currentTarget.focus({ preventScroll: true })}
                 onFocus={() => setActivo(i)}
                 onClick={() => {

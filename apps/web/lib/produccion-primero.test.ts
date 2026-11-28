@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filasPorModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
-import { AYUDA_PREPARAR_ORDEN, TEXTO_PARA_VIGILAR, fraseDeModelo, porqueDeModelo, queFabricarPrimero } from "./produccion-primero";
+import { AYUDA_PREPARAR_ORDEN, AYUDA_QUE_FABRICAR, TEXTO_PARA_VIGILAR, ayudaDeQueFabricar, porqueDeModelo, queFabricarPrimero } from "./produccion-primero";
 
 // Un modelo de una sola variante: `ventas` en 30 días y `stock` en tiendas. Se mide con filasPorModelo (la regla real), no con filas inventadas.
 const demanda = (id: string, ventas: number, stock: number, extra: Partial<DemandaVariante> = {}): DemandaVariante => ({
@@ -41,12 +41,14 @@ describe("«¿Qué fabrico primero?» (Formidable, Producción ▸ Resumen)", ()
     expect(r.vigilar[0].cantidad).toBeNull();
   });
 
-  it("la frase dice qué pasó, sin ritmo ni barras", () => {
-    const [agotado] = filas([demanda("a", 12, 0)]);
-    const [queda] = filas([demanda("b", 18, 4)]);
-    expect(fraseDeModelo(agotado)).toBe("Se agotó en las tiendas · vendió 12 en el último mes");
-    expect(fraseDeModelo(queda)).toBe("Quedan 4 en tiendas · vendió 18 en el último mes");
-    expect(fraseDeModelo(agotado)).not.toMatch(/semana|cobertura|ritmo/i);
+  it("cada fila trae sus datos en piezas, no en una frase: lo que queda en tiendas, la venta por semana y las ventas del mes", () => {
+    const r = queFabricarPrimero(filas([demanda("a", 12, 0), demanda("b", 18, 4), demanda("c", 2, 0)]));
+    const de = (ref: string) => [...r.firmes, ...r.vigilar].find((f) => f.referencia === ref)!;
+    // 12 ventas en 10 días = 1,2 por día = 8,4 por semana (el ritmo de esta prueba se mide en 10 días).
+    expect(de("Modelo a")).toMatchObject({ enTiendas: 0, ventaPorSemana: (8.4).toLocaleString("es-PE"), ventasDelMes: 12 });
+    expect(de("Modelo b")).toMatchObject({ enTiendas: 4, ventaPorSemana: (12.6).toLocaleString("es-PE"), ventasDelMes: 18 });
+    expect(de("Modelo c")).toMatchObject({ enTiendas: 0, ventasDelMes: 2 });
+    expect(JSON.stringify(r)).not.toContain("·");
   });
 
   it("el «¿Por qué?» trae la cuenta y dice por qué no hay cantidad con poca base", () => {
@@ -56,6 +58,13 @@ describe("«¿Qué fabrico primero?» (Formidable, Producción ▸ Resumen)", ()
     expect(porqueDeModelo(firme)).toContain("hacen falta unas 36 prendas");
     expect(porqueDeModelo(poca)).toContain("no sugerimos una cantidad");
     expect(porqueDeModelo(poca)).not.toContain("hacen falta");
+  });
+
+  it("con varias tallas el «¿Por qué?» las enumera con comas, sin punto medio", () => {
+    const d = [demanda("a", 12, 0), { ...demanda("a", 6, 0), varianteId: "v-a2" }];
+    const [m] = filasPorModelo(d, [{ productoId: "p-a", referencia: "Modelo a", variantesIds: ["v-a", "v-a2"], variantes: [{ varianteId: "v-a", talla: "S", color: null, colorHex: null }, { varianteId: "v-a2", talla: "M", color: null, colorHex: null }] }], {});
+    expect(porqueDeModelo(m)).toContain("(S 36, M 18)");
+    expect(porqueDeModelo(m)).not.toContain("·");
   });
 
   it("lo que ya está en camino, en el Taller o en una orden se dice, para no pedir de más", () => {
@@ -91,5 +100,14 @@ describe("«¿Qué fabrico primero?» (Formidable, Producción ▸ Resumen)", ()
     expect(AYUDA_PREPARAR_ORDEN).toContain("no se guarda nada hasta que la confirmes");
     expect(TEXTO_PARA_VIGILAR).toContain("Revísalos cada semana");
     expect(TEXTO_PARA_VIGILAR).toContain("No cortes tela");
+  });
+
+  it("lo que explica la lista va en el «?» de su título: cómo están los modelos, qué hace «Preparar orden» y, con poca historia, que las cantidades son una guía", () => {
+    const datos = queFabricarPrimero(filas([demanda("a", 12, 0)]));
+    const nota = "El sistema lleva 4 semanas de ventas (desde el 29 de setiembre): las cantidades son una guía, no una orden.";
+    expect(ayudaDeQueFabricar(datos, nota)).toEqual([datos.presentacion, AYUDA_PREPARAR_ORDEN, nota]);
+    expect(ayudaDeQueFabricar(datos, null)).toEqual([datos.presentacion, AYUDA_PREPARAR_ORDEN]);
+    // Sin ningún modelo no se habla de «estos modelos» ni de un botón que no está: se dice qué es la lista.
+    expect(ayudaDeQueFabricar(queFabricarPrimero([]), nota)).toEqual([AYUDA_QUE_FABRICAR]);
   });
 });

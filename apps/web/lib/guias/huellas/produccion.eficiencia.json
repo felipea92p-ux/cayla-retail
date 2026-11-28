@@ -5,9 +5,9 @@
   "total": 5,
   "controles": {
     "components/EficienciaTallerPanel.tsx": [
+      "Link «el Resumen»",
       "Pestanas «(sin nombre)»",
-      "button «{p.ventana.etiqueta}»",
-      "Link «el Resumen»"
+      "button «{nombres.get(p.ventana.clave)?.pildora ?? p.ventana.etiqueta}»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"

@@ -27,6 +27,12 @@ en `<html>`). Quieto, `app/estilos/movimiento.css` deja cada animación y transi
 (`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el interruptor. Lo vigila
 `lib/movimiento-reglas.test.ts`. Si el aparato pide menos movimiento, eso gana siempre. Una pantalla nueva se diseña y se revisa también quieta.
 
+**El velo es nuestro, nunca `Dialog.Overlay` (ADR-0715, Felipe 2026-11-27):** `<Modal>` y `<Cajon>` dibujan su velo con `<VeloDeHoja>`
+(`components/ui/VeloDeHoja.tsx`), que bloquea el desplazamiento de atrás con una sola propiedad de `<html>` (`lib/candado-de-scroll.ts`). El
+`Dialog.Overlay` de Radix lo hacía agregando y quitando una hoja de estilos, y en Safari cada hoja quedaba ~0,1 s congelada al cerrarse (el
+ERP tiene 6.316 reglas de estilo que Safari rehace). Lo vigila `lib/hojas-velo.test.ts`. Algo que toque `<html>` o `<body>` en cada apertura, o
+que agregue y quite una hoja de estilos, se mide también en WebKit (el motor de Safari), no solo en Chrome.
+
 **Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
 control de adentro usó (`components/ui/useEscapeLibre.ts`): con la lista de un combo abierta, el primer Escape cierra la
 lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, borra su búsqueda) llama a

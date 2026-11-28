@@ -87,7 +87,12 @@ function AvisoFalta({ titulo, children }: { titulo?: string; children: React.Rea
       const t = e.target as Node;
       if (ref.current && !ref.current.contains(t) && !globoRef.current?.contains(t)) setAbierto(false);
     };
-    const alEscape = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
+    const alEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // Este Escape es del globo: dentro de una hoja no llega a cerrarla (ADR-0136, «Escape dentro de una hoja»).
+      e.stopPropagation();
+      setAbierto(false);
+    };
     document.addEventListener("mousedown", alTocarAfuera);
     document.addEventListener("keydown", alEscape);
     return () => {

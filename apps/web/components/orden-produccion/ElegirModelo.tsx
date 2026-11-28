@@ -6,12 +6,14 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
-import { listaDeModelos, textoUrgencia, type Urgencia } from "@/lib/orden-modelo-reglas";
+import { ParDato, Pares } from "@/components/ui/ParDato";
+import { soles } from "@/lib/orden-ficha-reglas";
+import { coloresYTallasDelModelo, listaDeModelos, textoUrgencia, type Urgencia } from "@/lib/orden-modelo-reglas";
 import type { ModeloProducible } from "@/lib/produccion";
 
 // «El modelo primero» (ADR-0396, A1): la primera pregunta de «Nueva orden» es QUÉ se va a fabricar, y se contesta buscando. Una caja de búsqueda (la pieza única `Buscador`,
 // ADR-0358: filtra mientras se escribe), la lista con la prenda de cada modelo (su categoría sobre su color, ADR-0333) y, al pie, «Crear un modelo nuevo». El líder ve arriba
-// los que se están acabando (los mismos que le sugiere el Resumen); el resto, los de las últimas órdenes y el catálogo. Elegir uno lo deja como una tarjeta con «Cambiar».
+// los que se están acabando (los mismos que le sugiere el Resumen); el resto, los de las últimas órdenes y el catálogo. Elegir uno lo deja como una tarjeta con «Cambiar modelo».
 //
 // No tiene estado de negocio: quien lo usa es dueño del modelo elegido y de si se está creando uno nuevo. Teclado: ↓ baja de la caja a la lista y entre filas, ↑ sube, Enter en la
 // caja elige el primero que coincide. Cada fila es un botón `type="button"` (dentro del <form> de la orden un botón sin type la enviaría).
@@ -21,13 +23,6 @@ const cuantos = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? un
 
 function Prenda({ modelo, tamano }: { modelo: ModeloProducible; tamano: "md" | "lg" }) {
   return <MiniaturaPrenda fotoUrl={null} colorHex={colorDe(modelo)} tamano={tamano} prefijo={modelo.categoriaPrefijo} familia={modelo.categoriaFamilia} categoria={modelo.categoria} />;
-}
-
-/** Cuántos colores y tallas distintos tiene el modelo, en palabras de tienda («3 colores · 3 tallas»). */
-export function resumenDeModelo(m: ModeloProducible): string {
-  const colores = new Set(m.variantes.map((v) => v.color).filter(Boolean)).size;
-  const tallas = new Set(m.variantes.map((v) => v.talla ?? "Única")).size;
-  return [colores > 0 ? cuantos(colores, "color", "colores") : "sin color", cuantos(tallas, "talla", "tallas")].join(" · ");
 }
 
 export function ElegirModelo({
@@ -86,7 +81,7 @@ export function ElegirModelo({
         ref={caja}
         valor={consulta}
         onCambio={setConsulta}
-        placeholder={`Busca entre los ${total} modelos por nombre o categoría`}
+        placeholder={`Busca entre los ${total} modelos`}
         etiqueta="Buscar un modelo"
         onKeyDown={alTeclearEnLaCaja}
         autoComplete="off"
@@ -94,7 +89,7 @@ export function ElegirModelo({
       <div ref={lista} onKeyDown={alTeclearEnUnaFila} className="overflow-hidden rounded-xl border border-sand bg-papel">
         <div data-resultados className="max-h-[17.5rem] overflow-y-auto">
         {coinciden === 0 && (
-          <p className="px-3.5 pb-1 pt-3 text-sm text-tinta/70" role="status">
+          <p className="px-3.5 pb-1 pt-3 text-sm text-secundario" role="status">
             Ningún modelo se llama «{escrito}».
           </p>
         )}
@@ -107,6 +102,7 @@ export function ElegirModelo({
               {g.modelos.map((m) => {
                 const urgencia = urgentes.get(m.productoId);
                 const nAbiertas = abiertas.get(m.productoId) ?? 0;
+                const { colores: enColores, tallas: enTallas } = coloresYTallasDelModelo(m.variantes);
                 return (
                   <li key={m.productoId}>
                     <button
@@ -114,16 +110,18 @@ export function ElegirModelo({
                       data-fila-modelo
                       data-guia="prod-orden-nueva.modelo-fila"
                       onClick={() => onElegir(m.productoId)}
-                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left outline-none transition-colors vd-pasa"
+                      className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition-colors vd-pasa focus-visible:-outline-offset-2"
                     >
                       <Prenda modelo={m} tamano="md" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-display text-lg leading-tight text-tinta">{m.referencia}</span>
-                        <span className="block truncate text-sm text-tinta/65">
-                          {m.categoria ? `${m.categoria} · ` : ""}
-                          {resumenDeModelo(m)}
-                        </span>
+                        {m.categoria && <span className="block truncate text-detalle text-secundario">{m.categoria}</span>}
                       </span>
+                      {/* Cada dato en su pieza (antes «Blusas · 3 colores · 3 tallas»). En una lista angosta se quedan el nombre y sus avisos: los colores y las tallas se ven en la tabla al elegirlo. */}
+                      <Pares className="shrink-0 @max-[559px]:hidden">
+                        {enColores > 0 && <ParDato rotulo="Colores">{enColores}</ParDato>}
+                        <ParDato rotulo="Tallas">{enTallas}</ParDato>
+                      </Pares>
                       {urgencia && (
                         <Chip tono="ambar" versalitas={false}>
                           {textoUrgencia(urgencia)}
@@ -147,14 +145,14 @@ export function ElegirModelo({
           type="button"
           data-fila-modelo
           onClick={() => onCrear(escrito)}
-          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left outline-none transition-colors vd-pasa"
+          className="flex w-full items-center gap-3 border-t border-sand px-3.5 py-2.5 text-left transition-colors vd-pasa focus-visible:-outline-offset-2"
         >
           <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-dashed border-taupe text-taupe">
             <Plus className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-tinta">{escrito ? `Crear «${escrito}» como modelo nuevo` : "Crear un modelo nuevo"}</span>
-            <span className="block text-sm text-tinta/65">Se arma aquí mismo, junto con su orden.</span>
+            <span className="block text-detalle text-secundario">Se arma aquí mismo, junto con su orden.</span>
           </span>
         </button>
       </div>
@@ -162,22 +160,16 @@ export function ElegirModelo({
   );
 }
 
-/** El modelo ya elegido: su prenda, su nombre, lo que tiene y «Cambiar» para volver a buscar. */
-export function TarjetaModelo({ modelo, precio, onCambiar }: { modelo: ModeloProducible; precio: number; onCambiar: () => void }) {
+/** El modelo ya elegido: su prenda, su nombre y a cuánto se vende (Producción más clara, 2026-11-26: sin caja propia, vive en la placa del paso 1, y sin la frase «Blusas · 3 colores · 3 tallas»:
+ *  los colores y las tallas están en la tabla de abajo y en la ficha). «Cambiar modelo» lo pone el formulario, al final de la fila. */
+export function TarjetaModelo({ modelo, precio }: { modelo: ModeloProducible; precio: number }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-xl border border-sand vd-placa px-3.5 py-2.5">
+    <div className="flex min-w-0 items-center gap-3.5">
       <Prenda modelo={modelo} tamano="lg" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-[22px] leading-tight text-tinta">{modelo.referencia}</p>
-        <p className="truncate text-sm text-tinta/65">
-          {modelo.categoria ? `${modelo.categoria} · ` : ""}
-          {resumenDeModelo(modelo)}
-          {precio > 0 ? ` · se vende a S/\u00a0${precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
-        </p>
+      <div className="min-w-0">
+        <p className="truncate text-lg font-semibold leading-tight text-tinta">{modelo.referencia}</p>
+        {precio > 0 && <p className="truncate text-detalle text-secundario">Se vende a {soles(precio)}</p>}
       </div>
-      <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace shrink-0">
-        Cambiar
-      </button>
     </div>
   );
 }

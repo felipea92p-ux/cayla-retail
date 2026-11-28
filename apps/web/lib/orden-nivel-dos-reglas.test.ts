@@ -1,33 +1,53 @@
 import { describe, expect, it } from "vitest";
 import { camposDeGuiaOrden, BORRADOR_VACIO } from "./modelo-nuevo-reglas";
 import { fasesIniciales } from "./orden-fases-reglas";
-import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "./orden-nivel-dos-reglas";
+import { MAX_NOTA_EN_RESUMEN, esDeNivelDos, nivelDosPideAbrirse, paresNivelDos } from "./orden-nivel-dos-reglas";
 
-const base = { hayModelo: true, fases: fasesIniciales(), telasElegidas: 0, entrega: null, hayNota: false };
+const base = { hayModelo: true, fases: fasesIniciales(), fasesDeSiempre: true, telas: [] as string[], avios: 0, entrega: null, nota: "" };
+const leer = (pares: { rotulo: string; valor: string }[]) => pares.map((p) => `${p.rotulo}: ${p.valor}`);
 
-describe("resumenNivelDos — la línea que habla por lo plegado", () => {
-  it("lo de siempre: cinco fases en el Taller, sin tela y sin fecha", () => {
-    expect(resumenNivelDos(base)).toBe("5 fases · todo en el Taller · sin tela elegida · sin fecha de entrega");
+describe("paresNivelDos — lo que habla por lo plegado, dato por dato", () => {
+  it("lo de siempre: las fases como nacen, sin tela y sin fecha", () => {
+    expect(leer(paresNivelDos(base))).toEqual(["Fases: Las de siempre", "Tela: Sin elegir", "Entrega: Sin fecha"]);
   });
-  it("nombra las fases que salen a un servicio, en el orden de la ruta", () => {
+  it("nombra las fases que salen a un servicio, en el orden de la ruta, también cuando nacen así", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" || f.clave === "corte" ? { ...f, quien: "servicio" as const } : f));
-    expect(resumenNivelDos({ ...base, fases })).toBe("5 fases · 2 afuera (Corte, Costura) · sin tela elegida · sin fecha de entrega");
+    expect(leer(paresNivelDos({ ...base, fases }))).toEqual(["Fases: Las de siempre", "Salen afuera: Corte y Costura", "Tela: Sin elegir", "Entrega: Sin fecha"]);
   });
-  it("una sola fase afuera, una tela, la fecha y la nota", () => {
+  it("una sola fase afuera, una tela con su nombre, la fecha y la nota", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" ? { ...f, quien: "servicio" as const } : f));
-    expect(resumenNivelDos({ ...base, fases, telasElegidas: 1, entrega: "23 oct", hayNota: true })).toBe("5 fases · 1 afuera (Costura) · 1 tela · entrega 23 oct · con nota");
+    expect(leer(paresNivelDos({ ...base, fases, fasesDeSiempre: false, telas: ["Lino crudo"], entrega: "23 oct", nota: "Para la campaña" }))).toEqual([
+      "Fases: 5 en total",
+      "Sale afuera: Costura",
+      "Tela: Lino crudo",
+      "Entrega: 23 oct",
+      "Nota: Para la campaña",
+    ]);
   });
   it("cuenta solo las fases encendidas (Ojales y botones se enciende si el modelo los lleva)", () => {
     const conOjales = fasesIniciales().map((f) => (f.clave === "ojales_botones" ? { ...f, encendida: true } : f));
-    expect(resumenNivelDos({ ...base, fases: conOjales })).toContain("6 fases");
-    expect(resumenNivelDos({ ...base, fases: fasesIniciales().map((f) => ({ ...f, encendida: false })) })).toContain("0 fases");
+    expect(leer(paresNivelDos({ ...base, fases: conOjales, fasesDeSiempre: false }))).toContain("Fases: 6 en total");
+    expect(leer(paresNivelDos({ ...base, fases: fasesIniciales().map((f) => ({ ...f, encendida: false })), fasesDeSiempre: false }))).toContain("Fases: 0 en total");
   });
-  it("dos telas, en plural", () => {
-    expect(resumenNivelDos({ ...base, telasElegidas: 2 })).toContain("2 telas");
+  it("varias telas distintas se cuentan (la misma tela en dos colores es una); los avíos van aparte", () => {
+    expect(leer(paresNivelDos({ ...base, telas: ["Lino crudo", "Lino negro"] }))).toContain("Tela: 2 telas");
+    expect(leer(paresNivelDos({ ...base, telas: ["Lino crudo", "Lino crudo"] }))).toContain("Tela: Lino crudo");
+    expect(leer(paresNivelDos({ ...base, avios: 1 }))).toContain("Avíos: 1 elegido");
+    expect(leer(paresNivelDos({ ...base, avios: 3 }))).toContain("Avíos: 3 elegidos");
+  });
+  it("una nota larga se corta: el resto se lee al abrir", () => {
+    const nota = paresNivelDos({ ...base, nota: "Entregar primero las tallas chicas porque la campaña empieza el lunes" }).find((p) => p.clave === "nota");
+    expect(nota?.valor.length).toBe(MAX_NOTA_EN_RESUMEN);
+    expect(nota?.valor.endsWith("…")).toBe(true);
+    expect(paresNivelDos({ ...base, nota: "   " }).some((p) => p.clave === "nota")).toBe(false);
   });
   it("sin modelo no inventa fases ni tela: solo habla de la entrega", () => {
-    expect(resumenNivelDos({ ...base, hayModelo: false })).toBe("sin fecha de entrega");
-    expect(resumenNivelDos({ ...base, hayModelo: false, entrega: "5 nov", hayNota: true })).toBe("entrega 5 nov · con nota");
+    expect(leer(paresNivelDos({ ...base, hayModelo: false }))).toEqual(["Entrega: Sin fecha"]);
+    expect(leer(paresNivelDos({ ...base, hayModelo: false, entrega: "5 nov", nota: "Urge" }))).toEqual(["Entrega: 5 nov", "Nota: Urge"]);
+  });
+  it("ningún valor ni rótulo lleva un punto medio", () => {
+    const fases = fasesIniciales().map((f) => ({ ...f, quien: "servicio" as const }));
+    for (const p of paresNivelDos({ ...base, fases, telas: ["A", "B"], avios: 2, entrega: "1 dic", nota: "x" })) expect(`${p.rotulo}${p.valor}`).not.toContain("·");
   });
 });
 

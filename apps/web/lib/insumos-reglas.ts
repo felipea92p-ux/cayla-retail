@@ -12,8 +12,8 @@ export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docen
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
 
 export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string; ayuda: string }[] = [
-  { valor: "tela", etiqueta: "Tela", plural: "Telas", ayuda: "se compran por metro o por kilo y se cortan por lote" },
-  { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "botones, cierres, etiquetas e hilo" },
+  { valor: "tela", etiqueta: "Tela", plural: "Telas", ayuda: "Se compran por metro, por kilo o por rollo." },
+  { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "Botones, cierres, etiquetas e hilo." },
 ];
 
 /** `corta` acompaña a la cifra («12.50 m»); `larga` es lo que se lee en un selector.
@@ -126,15 +126,23 @@ export function metrosPorKilo(anchoCm: number | null, gramaje: number | null): n
   return 1000 / (gramaje * (anchoCm / 100));
 }
 
-/** Lo que se dice de cómo se compra una tela: «Se compra por kilo · rinde ≈ 3,47 m/kg». */
-export function textoDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string {
-  if (m.tipo === "avio") return `Se cuenta en ${m.compra === "unidad" ? "unidades" : UNIDADES_INSUMO[m.compra as UnidadInsumo].larga.toLowerCase()}`;
+/** Cómo se compra una tela (o en qué se cuenta un avío), dato por dato: cada uno es su propia insignia en la tarjeta de la tela («Se compra por kilo» y «Rinde 3,47 metros por kilo»), nunca una
+ *  sola línea separada con un punto (Felipe 2026-11-26, «Producción más clara»). */
+export function piezasDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string[] {
+  if (m.tipo === "avio") return [`Se cuenta en ${m.compra === "unidad" ? "unidades" : UNIDADES_INSUMO[m.compra as UnidadInsumo].larga.toLowerCase()}`];
   if (m.compra === "kilo") {
     const r = metrosPorKilo(m.ancho, m.gramaje);
-    return r === null ? "Se compra por kilo" : `Se compra por kilo · rinde ≈ ${r.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m/kg`;
+    return r === null ? ["Se compra por kilo"] : ["Se compra por kilo", `Rinde ${r.toLocaleString("es-PE", { maximumFractionDigits: 2 })} metros por kilo`];
   }
-  if (m.compra === "rollo") return m.metrosPorRollo ? `Se compra por rollo · ≈ ${m.metrosPorRollo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m cada uno` : "Se compra por rollo";
-  return "Se compra por metro";
+  if (m.compra === "rollo") return m.metrosPorRollo ? ["Se compra por rollo", `Trae ${m.metrosPorRollo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} metros por rollo`] : ["Se compra por rollo"];
+  return ["Se compra por metro"];
+}
+
+/** Lo mismo en una sola frase, para el subtítulo de una hoja o un aviso: «Se compra por kilo, rinde 3,47 metros por kilo». */
+export function textoDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string {
+  return piezasDeCompra(m)
+    .map((p, k) => (k === 0 ? p : p.charAt(0).toLowerCase() + p.slice(1)))
+    .join(", ");
 }
 
 /** Los insumos de una lista juntados por tela, en el orden en que aparece cada una. Un insumo sin tela (o con una tela que no se leyó) queda solo, sin encabezado. */
@@ -200,13 +208,6 @@ export type LoteInsumo = {
   /** Por qué este ingreso no se corrige ni se elimina desde la pantalla (de él ya salió material); `null` o ausente si se puede (ADR-0570, `motivoParaNoTocarIngreso`). */
   noSeToca?: string | null;
 };
-
-/** De dónde vino un lote, en una frase de tienda: «saldo inicial», «compra a Textiles Gamarra» o, sin saber a quién, «compra» (P11 del análisis del Taller: «s/c» y «compra» solos no decían nada). */
-export function origenDeLote(l: Pick<LoteInsumo, "origen" | "proveedor">): string {
-  if (l.origen === "saldo_inicial") return "saldo inicial";
-  const quien = l.proveedor?.trim();
-  return quien ? `compra a ${quien}` : "compra";
-}
 
 /** Lo que queda de un lote, como lo recalcula `registrar_consumo_insumo`: lo ingresado, menos consumo y merma,
  *  más devoluciones. (El movimiento `compra` que abre el lote no se vuelve a sumar: ya es `cantidadIngresada`.) */
@@ -282,6 +283,6 @@ export function textoDeMovimiento(m: Pick<MovimientoInsumo, "tipo" | "motivo">):
     case "merma":
       return "Merma";
     case "ajuste":
-      return m.motivo ? `Ajuste · ${m.motivo}` : "Ajuste";
+      return m.motivo ? `Ajuste: ${m.motivo}` : "Ajuste";
   }
 }

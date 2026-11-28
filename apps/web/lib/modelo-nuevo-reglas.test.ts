@@ -181,7 +181,7 @@ describe("problemasDelModelo — lo que falta, en el orden de la pantalla", () =
   it("sin tipo elegido no se abre: es lo primero que falta, aunque todo lo demás esté listo (ADR-0396, act. 2026-10-30)", () => {
     const b = conCantidades(borrador({ esMuestra: null }), "5");
     expect(campos(b)).toEqual(["tipo"]);
-    expect(problemasDelModelo(b, celdas(b))[0].texto).toMatch(/lote de producción o una muestra/);
+    expect(problemasDelModelo(b, celdas(b))[0].texto).toMatch(/para vender o una muestra/);
     expect(campos({ ...BORRADOR_VACIO, esMuestra: null })).toEqual(["tipo", "nombre", "categoria", "precio", "cantidades"]);
   });
   it("sin tipo, el precio cuenta como el de un lote: lo que libra de él es elegir Muestra", () => {
@@ -555,7 +555,7 @@ describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado 
   });
   it("sin tipo no se arman los parámetros de la base: mandar «lote» en su lugar sería volver al valor de fábrica", () => {
     const b = conCantidades(borrador({ esMuestra: null }), "5");
-    expect(() => paramsRpcModeloNuevo({ ubicacionId: "u", borrador: b, celdas: celdas(b), costos: { tela: "", avios: "", maquila: "" }, fechaEntrega: "", nota: "", confirmoDistinto: false, token: "t" })).toThrow(/lote de producción o una muestra/);
+    expect(() => paramsRpcModeloNuevo({ ubicacionId: "u", borrador: b, celdas: celdas(b), costos: { tela: "", avios: "", maquila: "" }, fechaEntrega: "", nota: "", confirmoDistinto: false, token: "t" })).toThrow(/para vender o una muestra/);
   });
 });
 

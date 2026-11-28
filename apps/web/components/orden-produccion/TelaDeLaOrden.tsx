@@ -1,6 +1,7 @@
 "use client";
 
 import { Punto } from "@/components/alta-producto/Punto";
+import { nombreDeInsumoParaLeer } from "@/lib/insumos-vista";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
@@ -114,6 +115,8 @@ function cantidad(n: number, unidad: string): string {
   return unidad in UNIDADES_INSUMO ? cantidadTexto(n, unidad as UnidadInsumo) : `${n.toLocaleString("es-PE", { maximumFractionDigits: 3 })} ${unidad}`;
 }
 
+/** La unidad con su palabra completa («Metros»): al lado de las tallas S, M y L, una «m» suelta se leía como talla. */
+const unidadLarga = (unidad: string) => (unidad in UNIDADES_INSUMO ? UNIDADES_INSUMO[unidad as UnidadInsumo].larga : unidad);
 const unidadCorta = (unidad: string) => (unidad in UNIDADES_INSUMO ? UNIDADES_INSUMO[unidad as UnidadInsumo].corta : unidad);
 
 /** El consumo por prenda con sus tres decimales («1.35 m»): `cantidad` redondea los metros a uno y 1.35 saldría «1.4 m». */
@@ -189,7 +192,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 
   /** Las opciones del combo de tela: las del tejido del modelo primero (y entre ellas, la del color de la fila), las demás bajo «Otras telas». */
   function opcionesTela(fila: (typeof porColor)[number]): Opcion<string>[] {
-    const texto = (i: InsumoDelTaller) => `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}`;
+    const texto = (i: InsumoDelTaller) => `${nombreDeInsumoParaLeer(i)} (hay ${cantidad(i.saldo, i.unidad)})`;
     const delColor = (lista: InsumoDelTaller[]) => [...lista].sort((a, b) => Number(b.colorCodigo === fila.color.codigo) - Number(a.colorCodigo === fila.color.codigo));
     const primero = tejidoId ? delColor(delTejido) : delColor(telasDelEstante);
     const resto = tejidoId ? telasDelEstante.filter((i) => i.tejidoId !== tejidoId) : [];
@@ -201,24 +204,24 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
     ];
     // La elegida que ya no está en el estante (se archivó) se sigue viendo con su nombre, pero no se vuelve a elegir.
     const elegida = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
-    if (elegida && !opciones.some((o) => o.valor === elegida.id)) opciones.unshift({ valor: elegida.id, texto: `${elegida.nombre} · archivada`, deshabilitada: true });
+    if (elegida && !opciones.some((o) => o.valor === elegida.id)) opciones.unshift({ valor: elegida.id, texto: `${elegida.nombre} (archivada)`, deshabilitada: true });
     return opciones;
   }
   /** A quién va un avío: a toda la orden, o a las prendas de UN color (el hilo del beige). Solo se ofrece si la orden fabrica más de un color. */
   const opcionesPara: Opcion<string>[] = [
-    { valor: "todas", texto: `Toda la orden · ${totalPrendas} prendas` },
-    ...colores.filter((c) => c.codigo !== null).map((c) => ({ valor: c.codigo as string, texto: `${c.nombre} · ${c.prendas} prendas` })),
+    { valor: "todas", texto: `Toda la orden (${totalPrendas} prendas)` },
+    ...colores.filter((c) => c.codigo !== null).map((c) => ({ valor: c.codigo as string, texto: `${c.nombre} (${c.prendas} prendas)` })),
   ];
   /** Todo lo que el Taller tiene para una prenda además de la tela de su color: las telas (el forro) y los avíos; con las dos clases, en dos grupos. */
   function opcionesMaterial(tela: TelaBorrador): Opcion<string>[] {
-    const texto = (i: InsumoDelTaller) => `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}`;
+    const texto = (i: InsumoDelTaller) => `${nombreDeInsumoParaLeer(i)} (hay ${cantidad(i.saldo, i.unidad)})`;
     const conGrupos = telasDelEstante.length > 0 && aviosDelEstante.length > 0;
     const opciones: Opcion<string>[] = [
       ...telasDelEstante.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Telas" : undefined })),
       ...aviosDelEstante.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Avíos" : undefined })),
     ];
     const elegido = tela.insumoId ? porId.get(tela.insumoId) : undefined;
-    if (elegido && !opciones.some((o) => o.valor === elegido.id)) opciones.unshift({ valor: elegido.id, texto: `${elegido.nombre} · archivado`, deshabilitada: true });
+    if (elegido && !opciones.some((o) => o.valor === elegido.id)) opciones.unshift({ valor: elegido.id, texto: `${elegido.nombre} (archivado)`, deshabilitada: true });
     return opciones;
   }
   const esTela = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "tela" : false);
@@ -310,7 +313,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   {!porTallaActiva && (
                     <CampoTexto
                       id={`tela-${fila.color.codigo ?? "sin-color"}-consumo`}
-                      etiqueta={`${unidadDeLaFila} por prenda`}
+                      etiqueta={`${insumo ? unidadLarga(insumo.unidad) : "Metros"} por prenda`}
                       mono
                       inputMode="decimal"
                       placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
@@ -496,7 +499,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 function YaUsado({ plan, usado, unidad }: { plan: number; usado: number; unidad: string }) {
   return (
     <p className="text-sm tabular-nums text-taupe">
-      Plan {porPrenda(plan, unidad)} · ya {usado === 1 ? "se usó" : "se usaron"} {porPrenda(usado, unidad)}
+      Plan {porPrenda(plan, unidad)}, ya {usado === 1 ? "se usó" : "se usaron"} {porPrenda(usado, unidad)}
     </p>
   );
 }

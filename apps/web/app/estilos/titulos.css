@@ -75,6 +75,13 @@
     line-height: 1.3;
     color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
   }
+  /* El título de un PASO de una hoja (`<TituloGrupo paso>`, ADR-0708): letra de título de fila, en tinta y sin versalitas, para que no se confunda con el rótulo de un campo. */
+  .titulo-grupo-paso {
+    font-size: var(--text-lg);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-tinta);
+  }
   .titulo-grupo-texto { display: flex; align-items: center; gap: 0.75rem; }
   .titulo-grupo-texto::after {
     content: "";

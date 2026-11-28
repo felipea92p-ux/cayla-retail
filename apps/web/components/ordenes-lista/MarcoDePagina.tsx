@@ -24,7 +24,7 @@ export function MarcoDePagina({ children }: { children: ReactNode }) {
   }, []);
   return (
     <section ref={raiz} aria-labelledby="nueva-orden-titulo" data-compositor-orden className="card-cayla anim-revelar @container scroll-mt-8 p-6">
-      <TituloSeccion id="nueva-orden-titulo">Nueva orden de producción</TituloSeccion>
+      <TituloSeccion id="nueva-orden-titulo">Nueva orden</TituloSeccion>
       {children}
     </section>
   );

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FILAS_SIN_BUSCAR,
+  coloresYTallasDelModelo,
   frasesDelMolde,
   moldeDelModelo,
   listaDeModelos,
@@ -250,7 +251,7 @@ describe("frasesDelMolde", () => {
   it("un modelo nuevo sin tipo pregunta lo que decide (¿se va a vender?) y qué hace cada uno al cerrar, sin dar ninguno por hecho", () => {
     const r = frasesDelMolde({ tipo: null, esNuevo: true, molde: { estado: "sin_historia" } });
     expect(r.pregunta).toBe(true);
-    expect(r.texto).toMatch(/^¿Se va a vender\? Lote de producción/);
+    expect(r.texto).toMatch(/^¿Se va a vender\? Para vender/);
     expect(r.texto).toMatch(/¿Es una prueba del modelo\? Muestra/);
     expect(r.texto).toMatch(/entra al stock/);
     expect(r.texto).toMatch(/no entra al stock/);
@@ -265,7 +266,7 @@ describe("frasesDelMolde", () => {
     const r = frasesDelMolde({ tipo: "muestra", esNuevo: true, molde: { estado: "sin_historia" } });
     expect(r.pregunta).toBe(false);
     expect(r.texto).toMatch(/no entra al stock/);
-    expect(r.texto).toMatch(/Si se va a vender, elige Lote de producción/);
+    expect(r.texto).toMatch(/Si se va a vender, elige Para vender/);
     expect(r.texto).not.toMatch(/arranca como/);
   });
   it("un modelo nuevo con Lote elegido dice que se fabrica para vender y entra al stock", () => {
@@ -296,5 +297,43 @@ describe("frasesDelMolde", () => {
       expect(r.pregunta).toBe(true);
       expect(r.texto).toMatch(/¿Ya tienen el molde\?/);
     }
+  });
+  it("el tipo se llama «Para vender», nunca «Lote de producción» (Felipe 2026-11-26)", () => {
+    for (const esNuevo of [true, false]) {
+      for (const tipo of ["produccion", "muestra", null] as const) {
+        for (const molde of [{ estado: "sin_historia" }, { estado: "en_desarrollo" }, { estado: "sin_lectura" }, { estado: "listo", por: "muestra" }, { estado: "listo", por: "lote" }] as const) {
+          const r = frasesDelMolde({ tipo, esNuevo, molde });
+          expect(`${r.texto} ${r.corta ?? ""}`).not.toMatch(/Lote de producción/);
+        }
+      }
+    }
+  });
+  it("a la vista queda una línea de ocho palabras o menos; la explicación completa va al «?»", () => {
+    const palabras = (t: string) => t.split(/\s+/).filter(Boolean).length;
+    for (const esNuevo of [true, false]) {
+      for (const tipo of ["produccion", "muestra", null] as const) {
+        for (const molde of [{ estado: "sin_historia" }, { estado: "en_desarrollo" }, { estado: "sin_lectura" }, { estado: "listo", por: "muestra" }, { estado: "listo", por: "lote" }] as const) {
+          const r = frasesDelMolde({ tipo, esNuevo, molde });
+          if (r.corta !== null) expect(palabras(r.corta), r.corta).toBeLessThanOrEqual(8);
+          // Lo que es una pregunta nunca se esconde: la línea corta la hace a la vista.
+          if (r.pregunta) expect(r.corta, r.texto).toMatch(/^¿.*\?$/);
+          expect(r.texto.length).toBeGreaterThan((r.corta ?? "").length);
+        }
+      }
+    }
+  });
+  it("una muestra dice a la vista que no entra al stock; «Para vender» con el molde listo no necesita decir nada", () => {
+    expect(frasesDelMolde({ tipo: "muestra", esNuevo: true, molde: { estado: "sin_historia" } }).corta).toMatch(/no entra al stock/);
+    expect(frasesDelMolde({ tipo: "muestra", esNuevo: false, molde: { estado: "listo", por: "lote" } }).corta).toMatch(/no entra al stock/);
+    expect(frasesDelMolde({ tipo: "produccion", esNuevo: false, molde: { estado: "listo", por: "muestra" } }).corta).toBeNull();
+    expect(frasesDelMolde({ tipo: "produccion", esNuevo: true, molde: { estado: "sin_historia" } }).corta).toBeNull();
+  });
+});
+
+describe("coloresYTallasDelModelo", () => {
+  it("cuenta los colores y las tallas distintas; sin color cuenta cero y sin talla, una", () => {
+    expect(coloresYTallasDelModelo([{ color: "Vino", talla: "S" }, { color: "Vino", talla: "M" }, { color: "Negro", talla: "S" }])).toEqual({ colores: 2, tallas: 2 });
+    expect(coloresYTallasDelModelo([{ color: null, talla: null }])).toEqual({ colores: 0, tallas: 1 });
+    expect(coloresYTallasDelModelo([])).toEqual({ colores: 0, tallas: 0 });
   });
 });

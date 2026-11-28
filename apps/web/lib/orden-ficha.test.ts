@@ -51,17 +51,45 @@ describe("el formulario: dos paneles dentro del <form>", () => {
     }
   });
 
-  it("el margen sigue siendo del líder y con el mismo precio: la ficha recibe el margen ya resuelto, nunca lo calcula", () => {
-    expect(form).toMatch(/margen=\{verMargen && semaforo \?/);
+  it("la ganancia por prenda sigue siendo del líder y con el mismo precio que el semáforo: la ficha la recibe ya resuelta, nunca la calcula", () => {
+    expect(form).toMatch(/ganancia=\{verMargen && semaforo && ganancia !== null \?/);
     expect(form).toContain("semaforoMargen(precioParaMargen(");
+    expect(form).toContain("gananciaPorPrenda(precioParaMargen(");
     expect(ficha).not.toContain("semaforoMargen");
     expect(ficha).not.toContain("precioParaMargen");
+    expect(ficha).not.toContain("gananciaPorPrenda");
+  });
+
+  it("los tres pasos van a la vista, en orden, y cada uno toma su estado de la guía de foco (Producción más clara, 2026-11-26)", () => {
+    const pasos = ["PASOS_DE_LA_ORDEN.modelo.titulo", "PASOS_DE_LA_ORDEN.cantidades.titulo", "<NivelDos"].map((marca) => form.indexOf(marca));
+    for (const lugar of pasos) expect(lugar).toBeGreaterThan(-1);
+    expect([...pasos].sort((a, b) => a - b)).toEqual(pasos);
+    expect(form).toContain('estado={estadoDe("modelo")}');
+    expect(form).toContain('estado={estadoDe("cantidades")}');
+    expect(form).toContain('estado={estadoDe("resto", nivelDosVisto)}');
+    expect(form).toMatch(/const estadoDe = \(paso: ClaveDePaso, visto = true\) => estadoDelPaso\(camposDelPaso\(paso, esNuevo\)\.map\(\(id\) => guia\.estado\(id\)\), visto\);/);
+    // La sugerencia de las ventas vive en el paso 2, sobre la tabla que llena.
+    expect(form.indexOf("<ConsejoDeLaRed")).toBeGreaterThan(pasos[1]);
+    expect(form.indexOf("<ConsejoDeLaRed")).toBeLessThan(form.indexOf("<MatrizCantidades"));
+  });
+
+  it("el tipo de orden se llama «Para vender» y «Muestra»: nadie escribe «Lote de producción» ni separa datos con un punto medio en lo que se ve", () => {
+    const sinComentarios = (t: string) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+    for (const [nombre, fuente] of [["formulario", form], ["ficha", ficha], ["paso 3", leer("components/orden-produccion/NivelDos.tsx")], ["modelos", leer("components/orden-produccion/ElegirModelo.tsx")], ["paso", leer("components/orden-produccion/PasoDeLaOrden.tsx")]] as const) {
+      const codigo = sinComentarios(fuente);
+      expect(codigo, nombre).not.toMatch(/Lote de producción/);
+      expect(codigo, nombre).not.toContain("·");
+    }
+    expect(form).toContain('{ clave: "produccion", etiqueta: "Para vender" }');
   });
 });
 
 describe("la ficha: presentacional y accesible", () => {
-  it("no tiene controles propios (los de cierre los pone el formulario), ni modal, ni colores sueltos", () => {
-    for (const fuera of ["<button", "<input", "<select", "<textarea", "<Boton", "<Modal", "fixed inset-0"]) expect(ficha, fuera).not.toContain(fuera);
+  it("no tiene controles del formulario (los de cierre los pone el formulario), ni modal, ni colores sueltos: lo único que se toca es «Ver de qué se forma»", () => {
+    // «Ver de qué se forma» (la pieza `BotonVerMas`) solo pliega el desglose del costo: no escribe ni envía nada.
+    expect(ficha.match(/<BotonVerMas\b/g)).toHaveLength(1);
+    const sinVerMas = ficha.replaceAll("<BotonVerMas", "");
+    for (const fuera of ["<button", "<input", "<select", "<textarea", "<Boton", "<Modal", "fixed inset-0"]) expect(sinVerMas, fuera).not.toContain(fuera);
     expect(ficha).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(ficha).not.toMatch(/\brgba?\(/);
   });
@@ -84,18 +112,35 @@ describe("la ficha: presentacional y accesible", () => {
 });
 
 describe("el costo se lee por prenda y se parte en lo que lo forma", () => {
-  it("la ficha dice «Costo por prenda» arriba, lista la tela y cada servicio cuando hay dos partes o más, y deja «Toda la orden» debajo", () => {
-    expect(ficha).toContain("Costo por prenda");
+  it("la ficha dice «Cuesta hacerla» a la vista; de qué se forma (la tela y cada servicio, con dos partes o más) y «Toda la orden» se abren debajo", () => {
+    expect(ficha).toContain("Cuesta hacerla");
     expect(ficha).toContain("Toda la orden");
     expect(ficha).toContain('aria-label="De qué se forma el costo de cada prenda"');
-    expect(ficha.indexOf("Costo por prenda")).toBeLessThan(ficha.indexOf("Toda la orden"));
-    expect(ficha).toMatch(/costo\.partes && costo\.partes\.length > 1/);
+    expect(ficha.indexOf("Cuesta hacerla")).toBeLessThan(ficha.indexOf("Toda la orden"));
+    expect(ficha).toMatch(/costo\.partes\.length > 1/);
+    // El desglose vive dentro de lo que se pliega, no a la vista.
+    const plegado = ficha.slice(ficha.indexOf("<FilasDeMas"), ficha.indexOf("</FilasDeMas>"));
+    expect(plegado).toContain("costo.partes.map(");
+    expect(plegado).toContain("Toda la orden");
+  });
+
+  it("la plata va con palabras de tienda: «Se vende a» y «Ganancia por prenda» en soles; la insignia «Margen N %» ya no existe", () => {
+    expect(ficha).toContain("Se vende a");
+    expect(ficha).toContain("Ganancia por prenda");
+    expect(ficha).not.toMatch(/FilaMargen|margen\.porcentaje|>Margen</);
+    // El color lo pone el semáforo de siempre, y su palabra queda para quien no ve el color.
+    expect(ficha).toContain("TONO_GANANCIA[ganancia.tono]");
+    expect(ficha).toContain("title={ganancia.dice}");
+  });
+
+  it("los colores, las tallas, la entrega y cada fase de afuera van como pares, no en una frase", () => {
+    for (const par of ['<ParDato rotulo="Colores">', '<ParDato rotulo="Tallas">', '<ParDato rotulo="Entrega"', "rotulo={`${a.fase}, afuera`}"]) expect(ficha, par).toContain(par);
   });
 
   it("el formulario no calcula el reparto en el JSX: lo pide a `partesDelCostoPorPrenda` con el MISMO costo por prenda que mide el margen, y las fases de afuera sin listar siguen en «Afuera»", () => {
     expect(form).toContain("partesDelCostoPorPrenda({");
     expect(form).toMatch(/porPrenda: unitario,/);
     expect(form).toMatch(/partes: partesDelCosto\.map\(/);
-    expect(form).toMatch(/afuera=\{serviciosSinListar\.map\(/);
+    expect(form).toMatch(/afuera=\{serviciosSinListar\.map\(\(s\) => faseDeAfuera\(s\)\)\}/);
   });
 });

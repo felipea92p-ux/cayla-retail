@@ -115,7 +115,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
             <div>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
                 <Dato etiqueta="En tiendas" valor={hoja.stockRed} nota={hoja.diasRed === null ? "sin ventas medidas" : textoDiasDeStock(hoja.stockRed, hoja.diasRed)} />
-                <Dato etiqueta="En el Taller" valor={hoja.stockTaller} nota={hoja.stockTaller > 0 ? "por trasladar" : undefined} />
+                <Dato etiqueta="En el Taller" valor={hoja.stockTaller} nota={hoja.stockTaller > 0 ? "por llevar a tienda" : undefined} />
                 <Dato etiqueta="En camino" valor={hoja.enCamino} nota={hoja.enCamino > 0 ? "a las tiendas" : undefined} />
                 <Dato etiqueta="En producción" valor={hoja.enProduccion} nota={hoja.enProduccion > 0 ? "en órdenes abiertas" : undefined} />
               </dl>
@@ -164,11 +164,12 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
             <span className="contents sm:ml-auto sm:flex sm:flex-wrap sm:items-center sm:gap-2">
               {hoja.hrefTrasladar && (
                 <BotonEnlace href={hoja.hrefTrasladar} peso={traslado ? "primario" : "fantasma"}>
-                  Trasladar al piso
+                  Llevar a tienda
                 </BotonEnlace>
               )}
+              {/* Un solo nombre para el botón en todo el Resumen (Felipe 2026-11-26): con una cantidad sugerida la orden se abre con ella escrita; si no, vacía. */}
               <BotonEnlace href={hrefOrden} peso={traslado ? "fantasma" : "primario"}>
-                {hoja.sugerida ? "Abrir orden sugerida" : "Abrir orden"}
+                Preparar orden
               </BotonEnlace>
             </span>
           </div>

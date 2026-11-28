@@ -1,25 +1,146 @@
-/* LA LISTA DE ÓRDENES DEL TALLER (ADR-0400, actividad 5; lámina `docs/maquetas/produccion-rediseno-2026-10/index.html`, vista A, elegida por Felipe el 2026-10-14).
-   Las medidas son las de la lámina; los colores, solo tokens de globals.css (ADR-0169 / ADR-0336). Las piezas del sistema (EncabezadoPagina, TarjetaCifra, Pestanas, Buscador,
-   Tabla, Chip, Vacio, Aviso) se usan tal cual: aquí solo vive lo que ninguna dibuja — la fila que es un enlace con un «¿Por qué?» adentro, y la explicación que se abre bajo ella.
-   Movimiento (ADR-0136): la fila entra en cascada y su hilo rojo de canto crece al pasar el mouse (los dos, de `.fila-cayla`); la explicación se abre por `grid-template-rows`,
-   sin medir alturas. Sin rebote ni bucle; todo se apaga con `prefers-reduced-motion`. */
+/* LA LISTA DE ÓRDENES DEL TALLER (ADR-0400, actividad 5; rehecha el 2026-11-26 con la maqueta `docs/maquetas/produccion-resumen-2026-11/`, «Producción más clara»).
+   Los colores, solo tokens de globals.css (ADR-0169 / ADR-0336). Las piezas del sistema (EncabezadoPagina, Pestanas, Buscador, Tabla, Chip, Vacio, Aviso) se usan tal cual:
+   aquí solo vive lo que ninguna dibuja — la franja «dónde está cada orden» y la fila que es un enlace entero.
+   Movimiento (ADR-0136): la fila entra en cascada y su hilo rojo de canto crece al pasar el mouse (los dos, de `.fila-cayla`); el tramo de la franja responde al mouse y al
+   elegirse. Sin rebote ni bucle; todo se apaga con `prefers-reduced-motion`. */
 
 @layer components {
-  /* La fila es un contenedor con un enlace que la cubre entera: dentro hay un botón («¿Por qué?») y un botón no puede ir dentro de un enlace. El enlace recibe los clics y el foco;
-     las celdas no (`pointer-events-none`), salvo el botón. */
+  /* ---------- La franja «dónde está cada orden» ----------
+     UNA placa partida en tramos: «Todas» y después cada fase, en el orden de la ruta. Cada tramo es un botón que filtra la lista. Mira su propio ancho (`@container`), no el de
+     la pantalla: angosta, va a dos columnas con «Todas» a lo ancho; con lugar, en una sola fila con «Todas» a su medida y una flecha entre fase y fase (si son pocas: con
+     muchas fases, se acomodan en varias filas). Las rayas entre tramos son el borde de arriba y de la izquierda de cada uno; la rejilla se corre 1 px para esconder las de afuera. */
+  .ol-camino {
+    container-type: inline-size;
+    overflow: hidden;
+  }
+  .ol-camino-rejilla {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: -1px 0 0 -1px;
+  }
+  .ol-tramo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+    padding: 0.875rem 1rem;
+    border: 0 solid var(--color-sand);
+    border-width: 1px 0 0 1px;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--t-cambio, 200ms) var(--ease-cayla), box-shadow var(--t-cambio, 200ms) var(--ease-cayla);
+  }
+  .ol-tramo[data-todas] {
+    grid-column: 1 / -1;
+  }
+  @media (hover: hover) {
+    .ol-tramo:hover {
+      background: var(--gota-fondo);
+    }
+  }
+  /* El tramo elegido: la marca de lo elegido (la misma receta de `vd-marca`) y una raya de tinta abajo. */
+  .ol-tramo[aria-pressed="true"] {
+    background: var(--gota-marca);
+    box-shadow: inset 0 -3px 0 var(--color-tinta);
+  }
+  .ol-tramo:focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: calc(var(--foco-ancho) * -1);
+  }
+  .ol-tramo-n {
+    flex: none;
+    min-width: 1.75rem;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+    color: var(--color-tinta);
+  }
+  .ol-tramo[data-cero] .ol-tramo-n {
+    color: var(--color-tenue);
+  }
+  .ol-tramo-nombre {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-tinta);
+  }
+  .ol-tramo-prendas {
+    display: block;
+    font-size: var(--text-detalle);
+    line-height: 1.4;
+    color: var(--color-tenue);
+  }
+  /* El punto ámbar: alguna orden de este tramo pide atención. */
+  .ol-tramo-punto {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.875rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-ambar);
+  }
+  /* La flecha entre fase y fase, montada sobre la raya: solo cuando todo va en una fila. Opaca, para tapar la raya que cruza. */
+  .ol-tramo-flecha {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: -11px;
+    z-index: 1;
+    width: 22px;
+    height: 22px;
+    margin-top: -11px;
+    place-items: center;
+    border: 1px solid var(--color-sand);
+    border-radius: 50%;
+    background: var(--color-papel);
+    color: var(--color-tenue);
+    pointer-events: none;
+  }
+  .ol-tramo-flecha svg {
+    width: 12px;
+    height: 12px;
+  }
+  @container (min-width: 40rem) {
+    .ol-camino-rejilla {
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    }
+    .ol-tramo {
+      padding: 1.125rem 1.375rem;
+    }
+    .ol-tramo[data-todas] {
+      grid-column: auto;
+    }
+    .ol-tramo-n {
+      font-size: 2.5rem;
+    }
+  }
+  @container (min-width: 64rem) {
+    .ol-camino-rejilla[data-una-fila] {
+      grid-template-columns: auto;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+    }
+    .ol-camino-rejilla[data-una-fila] .ol-tramo[data-todas] {
+      padding-right: 1.875rem;
+    }
+    .ol-camino-rejilla[data-una-fila] .ol-tramo-flecha {
+      display: grid;
+    }
+  }
+
+  /* ---------- La fila ----------
+     Un contenedor con un enlace que la cubre entera: el enlace recibe los clics y el foco; las celdas no (`pointer-events: none`), así tocar cualquier dato abre la orden. */
   .ol-enlace {
     position: absolute;
     inset: 0;
     z-index: 0;
     border-radius: inherit;
-  }
-  /* Una orden de antes de las fases no tiene página: su «enlace» es un botón que abre el cajón; sin la cara de botón. */
-  button.ol-enlace {
-    width: 100%;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    cursor: pointer;
   }
   .ol-enlace:focus-visible {
     outline: var(--foco-ancho) solid var(--foco-color);
@@ -40,46 +161,8 @@
     z-index: 1;
     pointer-events: none;
   }
-  .ol-porque {
-    pointer-events: auto;
-    position: relative;
-  }
-
-  /* «Pide algo»: el texto en rojo profundo con su «¿Por qué?» al lado. Es lo único rojo de la fila. */
-  .ol-causa {
-    color: var(--color-rojo-profundo);
-    font-size: var(--text-detalle);
-    line-height: 1.35;
-  }
-
-  /* La explicación se abre bajo la fila, ocupando todo su ancho. */
-  .ol-explica {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 240ms var(--ease-cayla);
-    position: relative;
-    z-index: 1;
-    pointer-events: none;
-  }
-  .ol-explica[data-abierta="true"] {
-    grid-template-rows: 1fr;
-  }
-  .ol-explica > div {
-    min-height: 0;
-    overflow: hidden;
-  }
-  .ol-explica p {
-    margin: 0;
-    padding: 8px 0 2px;
-    font-size: var(--text-detalle);
-    line-height: 1.55;
-    color: var(--color-tinta);
-  }
-  .ol-explica p + p {
-    padding-top: 2px;
-  }
 
   @media (prefers-reduced-motion: reduce) {
-    .ol-explica { transition-duration: 1ms; }
+    .ol-tramo { transition: none; }
   }
 }

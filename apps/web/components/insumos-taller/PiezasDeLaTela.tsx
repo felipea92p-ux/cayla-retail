@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ExisteTambien, type EstadoExisteTambien } from "@/components/ui/ExisteTambien";
+import { ConUnidad } from "@/components/insumos-taller/PiezasDeHoja";
 import { proponerValorVocabulario } from "@/lib/alta-producto-ejes";
 import { existentesParecidos, preguntaPendiente } from "@/lib/atributo-parecido";
 import { CANTIDAD_ILEGIBLE, type CompraDeTela } from "@/lib/insumos-reglas";
@@ -99,18 +100,7 @@ export function useTejidosDeLaTela(iniciales: { id: string; nombre: string }[], 
   return { tejidos, crearTejido, pregunta };
 }
 
-/** El tejido (si no está en la lista, se crea ahí mismo) y la composición, lado a lado. */
-export function TejidoYComposicion({
-  guia,
-  tejidos,
-  leyoVocabulario,
-  tejidoId,
-  onTejido,
-  onCrearTejido,
-  pregunta,
-  composicion,
-  onComposicion,
-}: {
+type PropsDeTejido = {
   guia: GuiaCampos;
   tejidos: { id: string; nombre: string }[];
   /** `false`: los tejidos no se pudieron leer; la hoja lo dice. */
@@ -120,47 +110,68 @@ export function TejidoYComposicion({
   onCrearTejido: (texto: string) => void;
   /** «¿No será un tejido que ya existe?»: lo que `useTejidosDeLaTela` deja pendiente cuando lo escrito se parece a uno de la lista. */
   pregunta: PreguntaDeTejido | null;
-  composicion: string;
-  onComposicion: (texto: string) => void;
-}) {
+};
+
+/** El tejido de la tela: si no está en la lista, se crea ahí mismo. */
+export function CampoTejido({ guia, tejidos, leyoVocabulario, tejidoId, onTejido, onCrearTejido, pregunta }: PropsDeTejido) {
+  return (
+    <CampoGuiado id="tejido" guia={guia}>
+      <Campo etiqueta={guia.etiqueta("tejido", "Tejido")} sinPie>
+        {leyoVocabulario ? (
+          <ComboBuscable
+            valor={tejidoId}
+            onValor={(id) => {
+              pregunta?.descartar();
+              onTejido(id);
+            }}
+            opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
+            marcador="Busca o escribe el tejido"
+            etiquetaAccesible="Tejido de la tela"
+            crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: onCrearTejido, pista: "¿Es nuevo? Escribe su nombre arriba" }}
+          />
+        ) : (
+          <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
+        )}
+      </Campo>
+    </CampoGuiado>
+  );
+}
+
+/** «¿No será un tejido que ya existe?» (ADR-0576): va pegada al tejido y a todo lo ancho. Sin pregunta pendiente no dibuja nada. */
+export function PreguntaDelTejido({ pregunta }: { pregunta: PreguntaDeTejido | null }) {
+  if (!pregunta) return null;
+  return <ExisteTambien que="tejido" nombre={pregunta.nombre} estado={pregunta.estado} si={(existente) => ({ texto: `Usar ${existente.nombre}`, onClick: () => pregunta.usar(existente.id) })} />;
+}
+
+/** De qué está hecha la tela. `titulo`: con palabras de Taller («De qué está hecha»), igual en «Nueva tela» y en «Editar tela». */
+export function CampoComposicion({ guia, composicion, onComposicion, titulo = "De qué está hecha" }: { guia: GuiaCampos; composicion: string; onComposicion: (texto: string) => void; titulo?: string }) {
+  return (
+    <CampoGuiado id="composicion" guia={guia}>
+      <CampoTexto
+        etiqueta={guia.etiqueta("composicion", titulo)}
+        pie="Sale en la etiqueta de la prenda."
+        value={composicion}
+        onChange={(ev) => onComposicion(ev.target.value)}
+        maxLength={160}
+        // sugerir-fijo: la composición no depende de nada elegido antes; el ejemplo dice que basta lo que se sepa
+        placeholder="Lo que sepas, por ejemplo: Algodón"
+      />
+    </CampoGuiado>
+  );
+}
+
+/** El tejido y la composición, lado a lado: como los pide «Editar tela». «Nueva tela» los acomoda por su cuenta en su primer paso. */
+export function TejidoYComposicion({ composicion, onComposicion, ...tejido }: PropsDeTejido & { composicion: string; onComposicion: (texto: string) => void }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <CampoGuiado id="tejido" guia={guia}>
-        <Campo etiqueta={guia.etiqueta("tejido", "Tejido")} sinPie>
-          {leyoVocabulario ? (
-            <ComboBuscable
-              valor={tejidoId}
-              onValor={(id) => {
-                pregunta?.descartar();
-                onTejido(id);
-              }}
-              opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
-              marcador="Busca o escribe el tejido"
-              etiquetaAccesible="Tejido de la tela"
-              crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: onCrearTejido, pista: "¿Es nuevo? Escribe su nombre arriba" }}
-            />
-          ) : (
-            <p className="rounded-md vd-placa px-3 py-2 text-sm text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
-          )}
-        </Campo>
-      </CampoGuiado>
+      <CampoTejido {...tejido} />
       {/* En el celular (una columna) la pregunta va pegada al tejido; en escritorio, a todo lo ancho bajo los dos campos. */}
       <div className="order-3 sm:order-2">
-        <CampoGuiado id="composicion" guia={guia}>
-          <CampoTexto
-            etiqueta={guia.etiqueta("composicion", "Composición")}
-            pie="Sale en la etiqueta de la prenda."
-            value={composicion}
-            onChange={(ev) => onComposicion(ev.target.value)}
-            maxLength={160}
-            // sugerir-fijo: la composición no depende de nada elegido antes; el ejemplo dice que basta lo que se sepa
-            placeholder="Lo que sepas, por ejemplo: Algodón"
-          />
-        </CampoGuiado>
+        <CampoComposicion guia={tejido.guia} composicion={composicion} onComposicion={onComposicion} />
       </div>
-      {pregunta && (
+      {tejido.pregunta && (
         <div className="order-2 sm:order-3 sm:col-span-2">
-          <ExisteTambien que="tejido" nombre={pregunta.nombre} estado={pregunta.estado} si={(existente) => ({ texto: `Usar ${existente.nombre}`, onClick: () => pregunta.usar(existente.id) })} />
+          <PreguntaDelTejido pregunta={tejido.pregunta} />
         </div>
       )}
     </div>
@@ -177,6 +188,7 @@ export function CompraDeLaTela({
   onMetrosPorRollo,
   onMerma,
   avisoDeCompra = false,
+  enPasos = false,
 }: {
   guia: GuiaCampos;
   datos: DatosDeLaTela;
@@ -188,6 +200,9 @@ export function CompraDeLaTela({
   onMerma: (texto: string) => void;
   /** «Cambiaste cómo la compras…»: las cantidades que estaban escritas se vaciaron. */
   avisoDeCompra?: boolean;
+  /** «Nueva tela» (Felipe 2026-11-26, «Producción más clara»): lo que se pierde al cortar va al lado de «Se compra», con sus palabras («Se pierde al cortar», opcional) y lo que explica
+   *  cada campo va detrás del «?» del paso. «Editar tela» no lo pasa y queda como estaba. */
+  enPasos?: boolean;
 }) {
   const { compra, ancho, gramaje, metrosPorRollo, merma } = datos;
   // El rango (20–400 cm, 30–1500 g/m²) se reclama al SALIR del campo, no mientras se teclea: al escribir «160» el «1» y el «16» ya están «fuera de rango» y la caja se pondría roja a media palabra.
@@ -196,57 +211,59 @@ export function CompraDeLaTela({
   const gramajeMal = numeroMalEscrito(gramaje) || (salio.gramaje && gramajeFueraDeRango(gramaje));
   const rinde = rindeEscrito(datos);
   const avisosBlandos = avisosDeTelaNueva(datos);
-  return (
+  // Lo que se pide de más cuando la tela se compra por kilo (ancho y gramaje, con su rinde) o por rollo (cuántos metros trae).
+  const medidas = (
     <>
-      <CampoGuiado id="compra" guia={guia}>
-        <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={onCompra} opciones={COMPRAS} pie="El stock de la tela va siempre en metros; el kilo y el rollo se convierten." />
-        {compra === "kilo" && (
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <CampoTexto
-              etiqueta="Ancho abierto (cm)"
-              inputMode="decimal"
-              value={ancho}
-              onChange={(ev) => onAncho(ev.target.value)}
-              onBlur={() => setSalio((s) => ({ ...s, ancho: true }))}
-              placeholder="160"
-              tono={anchoMal ? "error" : undefined}
-              pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoMal ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
-            />
-            <CampoTexto
-              etiqueta="Gramaje (g/m²)"
-              inputMode="decimal"
-              value={gramaje}
-              onChange={(ev) => onGramaje(ev.target.value)}
-              onBlur={() => setSalio((s) => ({ ...s, gramaje: true }))}
-              placeholder="180"
-              tono={gramajeMal ? "error" : undefined}
-              pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeMal ? MENSAJE_GRAMAJE : undefined}
-            />
-            <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
-              <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">
-                {rinde === null ? "Falta el ancho y el gramaje" : `≈ ${rinde.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m por kilo`}
-              </p>
-            </div>
+      {compra === "kilo" && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <CampoTexto
+            etiqueta="Ancho abierto (cm)"
+            inputMode="decimal"
+            value={ancho}
+            onChange={(ev) => onAncho(ev.target.value)}
+            onBlur={() => setSalio((s) => ({ ...s, ancho: true }))}
+            placeholder="160"
+            tono={anchoMal ? "error" : undefined}
+            pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoMal ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
+          />
+          <CampoTexto
+            etiqueta="Gramaje (g/m²)"
+            inputMode="decimal"
+            value={gramaje}
+            onChange={(ev) => onGramaje(ev.target.value)}
+            onBlur={() => setSalio((s) => ({ ...s, gramaje: true }))}
+            placeholder="180"
+            tono={gramajeMal ? "error" : undefined}
+            pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeMal ? MENSAJE_GRAMAJE : undefined}
+          />
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
+            <p className="flex h-12 items-center rounded-lg vd-hundido px-3 text-detalle text-tinta">
+              {rinde === null ? "Falta el ancho y el gramaje" : `≈ ${rinde.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m por kilo`}
+            </p>
           </div>
-        )}
-        {compra === "rollo" && (
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <CampoTexto
-              etiqueta="¿Cuántos metros trae un rollo?"
-              inputMode="decimal"
-              value={metrosPorRollo}
-              onChange={(ev) => onMetrosPorRollo(ev.target.value)}
-              placeholder="80"
-              tono={numeroMalEscrito(metrosPorRollo) ? "error" : undefined}
-              pie={numeroMalEscrito(metrosPorRollo) ? CANTIDAD_ILEGIBLE : "Lo habitual; al recibir lo corriges si un rollo trae otra medida."}
-            />
-          </div>
-        )}
-      </CampoGuiado>
+        </div>
+      )}
+      {compra === "rollo" && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <CampoTexto
+            etiqueta="¿Cuántos metros trae un rollo?"
+            inputMode="decimal"
+            value={metrosPorRollo}
+            onChange={(ev) => onMetrosPorRollo(ev.target.value)}
+            placeholder="80"
+            tono={numeroMalEscrito(metrosPorRollo) ? "error" : undefined}
+            pie={numeroMalEscrito(metrosPorRollo) ? CANTIDAD_ILEGIBLE : "Lo habitual; al recibir lo corriges si un rollo trae otra medida."}
+          />
+        </div>
+      )}
+    </>
+  );
+  const avisos = (
+    <>
       {avisoDeCompra && (
         <Aviso tono="atencion" chico>
-          Cambiaste la unidad: vuelve a escribir «¿Ya tienes?» y el costo.
+          {enPasos ? "Cambiaste la unidad: vuelve a escribir «Ya tengo» y lo que te costó." : "Cambiaste la unidad: vuelve a escribir «¿Ya tienes?» y el costo."}
         </Aviso>
       )}
       {avisosBlandos.map((t) => (
@@ -254,9 +271,45 @@ export function CompraDeLaTela({
           {t}
         </Aviso>
       ))}
+    </>
+  );
+
+  if (enPasos) {
+    return (
+      <>
+        {/* Por metro, «Se compra» y lo que se pierde al cortar caben en una fila; por kilo o por rollo, las medidas piden todo el ancho y lo que se pierde baja. */}
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <CampoGuiado id="compra" guia={guia} className={compra === "metro" ? "" : "sm:col-span-2"}>
+            <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={onCompra} opciones={COMPRAS} />
+            {medidas}
+          </CampoGuiado>
+          <CampoGuiado id="merma" guia={guia}>
+            <ConUnidad unidad="%">
+              <CampoTexto
+                inputMode="decimal"
+                etiqueta={guia.etiqueta("merma", "Se pierde al cortar")}
+                placeholder="0"
+                value={merma}
+                onChange={(ev) => onMerma(ev.target.value)}
+              />
+            </ConUnidad>
+          </CampoGuiado>
+        </div>
+        {avisos}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <CampoGuiado id="compra" guia={guia}>
+        <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={onCompra} opciones={COMPRAS} pie="El stock de la tela va siempre en metros; el kilo y el rollo se convierten." />
+        {medidas}
+      </CampoGuiado>
+      {avisos}
       <div className="grid gap-3 sm:grid-cols-3">
         <CampoGuiado id="merma" guia={guia}>
-          <CampoTexto etiqueta={guia.etiqueta("merma", "Merma al cortar (%)")} pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(ev) => onMerma(ev.target.value)} />
+          <CampoTexto etiqueta={guia.etiqueta("merma", "Se pierde al cortar (%)")} pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(ev) => onMerma(ev.target.value)} />
         </CampoGuiado>
       </div>
     </>

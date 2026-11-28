@@ -4,16 +4,22 @@
 // lado de «6 en 30 d», una barra con dos rayitas). Esto lo junta en UNA lista con UNA pregunta: a cada modelo le pone una frase en palabras de tienda y UNA cantidad. No hay
 // ninguna regla nueva: los modelos son los de `producir_ya` de `filasPorModelo`, y la cantidad es la de `sugerenciaDeOrden` —la misma que precarga «Nueva orden»—, que con poca base
 // (ADR-0346: 2 ventas o menos) no dice cantidad. El ritmo y la cobertura no desaparecen: viven bajo «¿Por qué?» (ley 6) y en la hoja «Ver el modelo».
+//
+// Desde el 2026-11-26 («Producción más clara») cada fila lleva sus datos en piezas —«En tiendas» y «Venta por semana»—, no en una frase con punto medio; lo que explicaba la lista
+// (la frase de arriba, qué hace «Preparar orden», la edad de los datos) va detrás del «?» de su título.
 
 import { DIAS_RITMO_RECIENTE } from "./inventario-reglas";
 import { DIAS_OBJETIVO_PRODUCCION } from "./produccion-decision-reglas";
-import { baseDelRitmo, sugerenciaDeOrden, textoDiasDeStock, type FilaModelo } from "./produccion-decisiones";
+import { baseDelRitmo, porSemana, sugerenciaDeOrden, textoDiasDeStock, type FilaModelo } from "./produccion-decisiones";
 
 /** Lo que hace «Preparar orden», dicho antes de tocarlo: una persona nueva no sabía si la orden se crea al instante (segunda prueba ciega). Abre «Nueva orden» con la cantidad escrita; guardar es otro paso. */
 export const AYUDA_PREPARAR_ORDEN = "«Preparar orden» abre la orden con la cantidad ya escrita para que la revises: no se guarda nada hasta que la confirmes.";
 
-/** Lo que se hace con los modelos de «Para vigilar»: tiene verbo, no solo un nombre (segunda prueba ciega: «vigilar» no decía qué hago yo). */
-export const TEXTO_PARA_VIGILAR = "Vendieron 1 o 2 prendas en el mes: todavía no sabemos si se venden de verdad. Revísalos cada semana: si siguen vendiéndose, pasan a la lista de arriba. No cortes tela por ellos todavía.";
+/** Lo que se hace con los modelos de «Para vigilar»: tiene verbo, no solo un nombre (segunda prueba ciega: «vigilar» no decía qué hago yo). Va en el «?» de su lista. */
+export const TEXTO_PARA_VIGILAR = "Vendieron 1 o 2 prendas en el mes: todavía no sabemos si se venden de verdad. Revísalos cada semana: si siguen vendiéndose, pasan a «Qué fabricar primero». No cortes tela por ellos todavía.";
+
+/** Qué es la lista cuando está vacía: lo que diría su «?» si no hay ningún modelo que nombrar. */
+export const AYUDA_QUE_FABRICAR = "Aquí aparecen los modelos que se están agotando en las tiendas y sí se venden, del más urgente al menos, con cuántas prendas conviene fabricar de cada uno.";
 
 /** Cuántos modelos con ventas firmes se ven de entrada; el resto baja en su lugar con «Ver N más». */
 export const PRIMEROS_QUE_SE_VEN = 6;
@@ -21,8 +27,12 @@ export const PRIMEROS_QUE_SE_VEN = 6;
 export type FilaPrimero = {
   productoId: string;
   referencia: string;
-  /** «Se agotó en las tiendas · vendió 12 en el último mes». Sin ritmo ni barras: solo lo que pasó. */
-  frase: string;
+  /** Lo que queda en las tiendas de toda la red. Con 0 la fila dice «Agotado», nunca «0». */
+  enTiendas: number;
+  /** «5,1»: lo que se vende por semana. `null` sin ritmo medido (no pasa en «Producir ya», pero no se inventa). */
+  ventaPorSemana: string | null;
+  /** Las ventas del último mes que respaldan ese ritmo: lo que se dice de un modelo «para vigilar», donde una venta por semana sería ruido. */
+  ventasDelMes: number;
   /** Prendas que conviene fabricar. `null` con poca base: una cantidad con tan pocas ventas es ruido (ADR-0346). */
   cantidad: number | null;
   /** La cuenta, para quien la quiera ver (bajo «¿Por qué?»). */
@@ -42,19 +52,13 @@ export type QueFabricarPrimero = {
 
 const prendasTexto = (n: number) => (n === 1 ? "1 prenda" : `${n} prendas`);
 
-/** «Se agotó en las tiendas · vendió 12 en el último mes» / «Quedan 4 en tiendas · vendió 18 en el último mes». */
-export function fraseDeModelo(m: Pick<FilaModelo, "stockRed" | "ventasBase">): string {
-  const donde = m.stockRed <= 0 ? "Se agotó en las tiendas" : `Quedan ${m.stockRed} en tiendas`;
-  return `${donde} · vendió ${m.ventasBase} en el último mes`;
-}
-
 /** La cuenta de un modelo en palabras de tienda. Habla de las mismas cifras que la tabla, pero sin «ritmo» ni «cobertura». */
 export function porqueDeModelo(m: FilaModelo): string {
   const sugerida = sugerenciaDeOrden(m);
   const hay = m.stockRed <= 0 ? "hoy no queda ninguna en las tiendas" : `hoy quedan ${m.stockRed} en las tiendas, que alcanzan para ${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)}`;
   const partes = [`Vendió ${m.ventasBase} en los últimos ${DIAS_RITMO_RECIENTE} días y ${hay}.`];
   if (sugerida) {
-    const porTalla = sugerida.porTalla.length > 1 ? ` (${sugerida.porTalla.map((t) => `${t.talla} ${t.cantidad}`).join(" · ")})` : "";
+    const porTalla = sugerida.porTalla.length > 1 ? ` (${sugerida.porTalla.map((t) => `${t.talla} ${t.cantidad}`).join(", ")})` : "";
     partes.push(`Para tener ${DIAS_OBJETIVO_PRODUCCION} días de venta hacen falta unas ${prendasTexto(sugerida.total)}${porTalla}.`);
   } else partes.push(`Con tan pocas ventas todavía no sabemos cuánto se vende de verdad: no sugerimos una cantidad.`);
   if (m.stockTaller > 0) partes.push(`En el Taller ya hay ${m.stockTaller} terminadas.`);
@@ -67,7 +71,7 @@ export function porqueDeModelo(m: FilaModelo): string {
 export function queFabricarPrimero(modelos: readonly FilaModelo[]): QueFabricarPrimero {
   const filas = modelos
     .filter((m) => m.estado === "producir_ya")
-    .map((m) => ({ firme: !baseDelRitmo(m.ventasBase).pocaBase, fila: { productoId: m.productoId, referencia: m.referencia, frase: fraseDeModelo(m), cantidad: sugerenciaDeOrden(m)?.total ?? null, porque: porqueDeModelo(m), conOrden: m.enProduccion > 0 } satisfies FilaPrimero }));
+    .map((m) => ({ firme: !baseDelRitmo(m.ventasBase).pocaBase, fila: { productoId: m.productoId, referencia: m.referencia, enTiendas: m.stockRed, ventaPorSemana: m.ritmoDia ? porSemana(m.ritmoDia) : null, ventasDelMes: m.ventasBase, cantidad: sugerenciaDeOrden(m)?.total ?? null, porque: porqueDeModelo(m), conOrden: m.enProduccion > 0 } satisfies FilaPrimero }));
   const firmes = filas.filter((f) => f.firme).map((f) => f.fila);
   const vigilar = filas.filter((f) => !f.firme).map((f) => f.fila);
   const conOrden = [...firmes, ...vigilar].filter((f) => f.conOrden).length;
@@ -79,4 +83,13 @@ export function queFabricarPrimero(modelos: readonly FilaModelo[]): QueFabricarP
         ? "Estos modelos se están agotando y sí se venden. Ya tienen una orden abierta, pero no alcanza."
         : `Estos modelos se están agotando y sí se venden. ${conOrden === 1 ? "Uno ya tiene una orden abierta" : `${conOrden} ya tienen una orden abierta`}, pero no alcanza.`;
   return { firmes, vigilar, presentacion };
+}
+
+/**
+ * Lo que explica «Qué fabricar primero», en párrafos, para el «?» de su título (antes iba a la vista, bajo el título): cómo están esos modelos, qué hace «Preparar orden» y, mientras
+ * el sistema lleve pocas semanas de ventas, que las cantidades son una guía (`nota`, de `notaDeHistoria`). Sin ningún modelo, dice qué es la lista.
+ */
+export function ayudaDeQueFabricar(datos: Pick<QueFabricarPrimero, "firmes" | "vigilar" | "presentacion">, nota: string | null): string[] {
+  if (datos.firmes.length + datos.vigilar.length === 0) return [AYUDA_QUE_FABRICAR];
+  return [datos.presentacion, AYUDA_PREPARAR_ORDEN, ...(nota ? [nota] : [])];
 }
