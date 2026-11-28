@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { faltanDe, sePuedeConfirmar } from "./guia-campos";
+import { soles } from "./compras-reglas";
 import {
   accionTuFondo,
   camposDevolver,
@@ -118,16 +119,29 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     paraQue: "Compras Gamarra",
     ultimaEntrega: "2026-10-13",
     rendicion: null,
+    porRevisar: 0,
   };
   const cara = (r: Partial<ResumenMiFondo>) => caraTuFondo({ ...BASE, ...r }, fecha);
+
+  it("resta lo anotado en Mis compras que Compras aún no revisa: dice lo mismo que «Tienes para comprar» (Bhekam, 27-nov)", () => {
+    // El libro tenía S/ 11,413 porque 19 compras (S/ 10,974) y un gasto (S/ 108) esperaban revisión: en la mano le quedaban S/ 331.
+    const c = cara({ saldo: 11413, entregado: 13800, pagado: 2387, porRevisar: 11082, desde: "2026-11-21", paraQue: "Compras" });
+    expect(c.valor).toBe(soles(331));
+    expect(c.unidad).toBe("te queda");
+    expect(c.contexto).toBe(`Gastaste ${soles(13469)} de ${soles(13800)}`);
+    // Lo anotado pasa de lo que tenía: CAYLA le debe, en ámbar, nunca un número negativo.
+    const d = cara({ saldo: 100, entregado: 500, porRevisar: 150 });
+    expect(d.debe).toBe(true);
+    expect(d.valor).toBe(soles(50));
+  });
 
   it("lee la fila de fn_mi_fondo_resumen (los números llegan como texto); sin fila o sin cuenta, nada", () => {
     expect(
       leerResumenMiFondo([
         { cuenta_id: "f1", saldo: "-194.40", entregado: "300.00", devuelto: "0", pagado: "414.40", gastos: "80.00", otros: "0", desde: "2026-10-13", para_que: "Gamarra", ultima_entrega: "2026-10-13" },
       ]),
-    ).toEqual({ cuentaId: "f1", saldo: -194.4, entregado: 300, devuelto: 0, pagado: 414.4, gastos: 80, otros: 0, desde: "2026-10-13", paraQue: "Gamarra", ultimaEntrega: "2026-10-13", rendicion: null });
-    expect(leerResumenMiFondo([{ cuenta_id: "f1" }])).toEqual({ cuentaId: "f1", saldo: 0, entregado: 0, devuelto: 0, pagado: 0, gastos: 0, otros: 0, desde: null, paraQue: null, ultimaEntrega: null, rendicion: null });
+    ).toEqual({ cuentaId: "f1", saldo: -194.4, entregado: 300, devuelto: 0, pagado: 414.4, gastos: 80, otros: 0, desde: "2026-10-13", paraQue: "Gamarra", ultimaEntrega: "2026-10-13", rendicion: null, porRevisar: 0 });
+    expect(leerResumenMiFondo([{ cuenta_id: "f1" }])).toEqual({ cuentaId: "f1", saldo: 0, entregado: 0, devuelto: 0, pagado: 0, gastos: 0, otros: 0, desde: null, paraQue: null, ultimaEntrega: null, rendicion: null, porRevisar: 0 });
     expect(leerResumenMiFondo([])).toBeNull();
     expect(leerResumenMiFondo([{ saldo: 10 }])).toBeNull();
     expect(leerResumenMiFondo("basura")).toBeNull();

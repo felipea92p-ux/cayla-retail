@@ -90,7 +90,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
     getDestinosOrden(),
     getResumenOrdenes(),
     getOrdenesPorEnviar(),
-    getResumenMiFondo(),
+    getResumenMiFondo(true),
     // Los pedidos que el Plan de campaña mandó a Compras (ADR-0530): se confirman aquí. Una ayuda: sin la función, la sección no sale.
     getPedidosDeCampana(),
   ]);

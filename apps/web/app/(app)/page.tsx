@@ -146,7 +146,7 @@ export default async function InicioPage() {
     // entera: no hace falta la lista de sedes.
     esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
     // Una terminal no tiene fondo (es un aparato, ADR-0162): ni se pregunta.
-    persona.terminal ? Promise.resolve(null) : getResumenMiFondo(),
+    persona.terminal ? Promise.resolve(null) : getResumenMiFondo(ve("ordenes_compra")),
     fuentesP,
     ve("recibir") || esLider ? getEnviosAMedias(persona.ubicacionId) : Promise.resolve(undefined),
   ]);
