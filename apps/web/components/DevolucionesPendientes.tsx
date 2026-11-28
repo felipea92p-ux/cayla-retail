@@ -7,25 +7,20 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
-import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonSecundario } from "@/components/FlujoGuiado";
 import type { DevolucionPendiente } from "@/lib/devoluciones";
-import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
-import { etiquetaCondicion, medioSugeridoReembolso, revisarAprobacion } from "@/lib/devoluciones-reglas";
+import { DIAS_PLAZO_CAMBIO, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
+import { etiquetaCondicion, textoNotaReservada } from "@/lib/devoluciones-reglas";
+import { CamposReembolso, useReembolso } from "@/components/devoluciones/Reembolso";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
-import { TituloGrupo } from "@/components/ui/TituloSeccion";
-import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
-import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones registradas que todavía nadie resolvió. Desde
@@ -193,34 +188,19 @@ function PanelResolver({
   onCancelar: () => void;
 }) {
   const router = useRouter();
-  const [monto, setMonto] = useState("");
-  // Propone el medio con que se pagó la venta (Felipe 2026-10-12: «libre, con aviso»); se puede cambiar.
-  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>(
-    () => medioSugeridoReembolso(d.pagos, METODOS_DIFERENCIA.map((m) => m.valor)) as (typeof METODOS_DIFERENCIA)[number]["valor"],
-  );
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const responsable = useResponsable(ubicacion);
-  // «Sale de» (ADR-0195 F3b, situación 9): en efectivo sale del cajón, como siempre; con otro medio, se propone la cuenta
-  // de esa tienda para ese medio (la del Yape, la de las transferencias, el POS).
-  const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
-  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
-
-  const montoNumero = monto.trim() === "" ? null : numeroDeMonto(monto);
-  const hayReembolso = montoNumero !== null && montoNumero > 0;
-  const conCuenta = hayReembolso && metodo !== "efectivo";
-  const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
-  const cuentaSale = conCuenta && hayCuentas ? cuentaEfectiva(cuentas.cuentas, "cobro", metodo, cuentaElegida) : null;
-  const revision = revisarAprobacion({
-    monto: montoNumero,
-    metodo,
-    cajaAbierta,
+  const reembolso = useReembolso({
+    ubicacionId: ubicacion.ubicacionId,
     valorPagado: d.valorPagado,
-    sinAceptar: d.sinAceptar,
     pagos: d.pagos,
-    etiquetaMedio: (m) => METODOS_DIFERENCIA.find((x) => x.valor === m)?.etiqueta ?? m,
+    cajaAbierta,
+    sinAceptar: d.sinAceptar,
+    activo: modo === "aprobar",
   });
+  const { revision } = reembolso;
 
   async function aprobar() {
     if (revision.bloqueo) return;
@@ -231,12 +211,7 @@ function PanelResolver({
     setCargando(true);
     setError(null);
     const { data, error: fallo } = await firmar(
-      createClient().rpc("aprobar_devolucion", {
-        p_devolucion_id: d.id,
-        p_reembolso_monto: montoNumero && montoNumero > 0 ? montoNumero : undefined,
-        p_reembolso_metodo: montoNumero && montoNumero > 0 ? metodo : undefined,
-        p_reembolso_cuenta_id: cuentaSale ?? undefined,
-      } as never),
+      createClient().rpc("aprobar_devolucion", { p_devolucion_id: d.id, ...reembolso.params } as never),
       responsable.firma(),
     );
     setCargando(false);
@@ -250,9 +225,7 @@ function PanelResolver({
     // `data` es una tabla vacía cuando no aplicaba.
     const nota = data?.[0];
     if (nota?.nota_credito_id) {
-      avisar.exito("Devolución aprobada", {
-        detalle: `Nota de crédito ${nota.nota_credito_serie}-${String(nota.nota_credito_numero).padStart(6, "0")} reservada — transmítela desde Facturación.`,
-      });
+      avisar.exito("Devolución aprobada", { detalle: textoNotaReservada(nota.nota_credito_serie, nota.nota_credito_numero) });
     } else {
       avisar.exito("Devolución aprobada");
     }
@@ -292,81 +265,7 @@ function PanelResolver({
     <>
       {modo === "aprobar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
-          <div>
-            <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
-            <p className="mt-0.5 text-sm text-tinta/70">
-              Opcional y última opción: antes, un cambio o una nota de crédito.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="campo">
-              <label htmlFor={`monto-${d.id}`} className="campo-etiqueta">
-                Monto
-              </label>
-              <div className="mt-1 flex items-center gap-2">
-                <input
-                  id={`monto-${d.id}`}
-                  {...atributosMontoTexto(monto)}
-                  autoFocus
-                  value={monto}
-                  onChange={(e) => setMonto(e.target.value)}
-                  placeholder="S/ 0.00"
-                  className={`caja-campo-input w-36 text-sm tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setMonto(d.valorPagado.toFixed(2))}
-                  className="h-10 rounded-lg px-3 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-crema/70"
-                >
-                  Todo ({soles(d.valorPagado)})
-                </button>
-              </div>
-            </div>
-            {montoNumero !== null && montoNumero > 0 && (
-              <div className="anim-revelar">
-                <CampoSelect
-                  etiqueta="¿Cómo se le devuelve?"
-                  valor={metodo}
-                  onValor={setMetodo}
-                  opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
-                />
-              </div>
-            )}
-            {hayReembolso && (
-              <div className="anim-revelar min-w-0 max-w-full flex-1 basis-[14rem]">
-                {/* El combo del sistema, como su vecino «¿Cómo se le devuelve?»: bloqueado, su marcador dice de dónde sale. */}
-                <CampoSelect
-                  etiqueta="Sale de"
-                  id={`cuenta-${d.id}`}
-                  valor={cuentaSale ?? ""}
-                  onValor={setCuentaElegida}
-                  opciones={conCuenta && hayCuentas ? opcionesDeCuenta(cuentas.cuentas, "cobro", metodo) : []}
-                  marcador={!conCuenta ? "El cajón de la tienda" : !cuentas.listo ? "…" : hayCuentas ? undefined : "Sin cuenta configurada para este medio"}
-                  deshabilitado={!conCuenta || !hayCuentas}
-                />
-              </div>
-            )}
-          </div>
-          {hayReembolso && (
-            <p className="-mt-2 text-sm text-tinta/70">
-              {!conCuenta
-                ? "En efectivo sale del cajón y resta del cierre, como siempre."
-                : hayCuentas
-                ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro")
-                : "Queda «sin cuenta» hasta que el líder la configure; el reembolso se registra igual."}
-            </p>
-          )}
-
-          {revision.bloqueo && (
-            <Aviso tono="atencion" chico>
-              {revision.bloqueo}
-            </Aviso>
-          )}
-          {revision.aviso && (
-            <Aviso tono="info" chico>
-              {revision.aviso}
-            </Aviso>
-          )}
+          <CamposReembolso r={reembolso} id={d.id} autoFocus />
           {error && (
             <Aviso tono="error" chico>
               {error}

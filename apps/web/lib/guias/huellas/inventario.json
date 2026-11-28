@@ -235,6 +235,7 @@
       "input «(sin nombre)»",
       "button «Quitar»",
       "ComboResponsable «{responsable}»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Volver «→atras»",
       "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"

@@ -16,7 +16,7 @@ type TipoDelCobro = "boleta" | "factura" | "nota_venta";
 
 export type EntradaCelularFicha = {
   /** El cliente de la venta; `null` = venta sin cliente (no hay ficha donde guardar). */
-  clienta: { celular: string | null } | null;
+  clienta: { celular: string | null; porDocumento?: boolean } | null;
   /** Lo que quedó en el campo del paso Comprobante (solo dígitos; vacío = sin celular). */
   celularBoleta: string;
   tipoComprobante: TipoDelCobro | null;
@@ -29,6 +29,8 @@ const tieneCelular = (celular: string | null | undefined) => ajustarCelular(celu
 /** El celular (9 dígitos) que se guardaría en la ficha, o `null` si no corresponde guardar nada. */
 export function celularParaLaFicha(e: EntradaCelularFicha): string | null {
   if (!e.clienta || !e.puedeGuardarEnFicha) return null;
+  // Unida sola por el DNI (ADR-0718): nadie la eligió, así que lo tecleado no se escribe en esa ficha.
+  if (e.clienta.porDocumento) return null;
   // La nota de venta no tiene PDF que mandar: su campo ni se muestra.
   if (e.tipoComprobante === null || e.tipoComprobante === "nota_venta") return null;
   // Una ficha con celular no se toca, aunque lo escrito sea otro: es el de ESA boleta.

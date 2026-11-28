@@ -3,6 +3,9 @@ import {
   ALTA_VACIA,
   altaDesdeBusqueda,
   clientaDeTicketGuardado,
+  dniDelComprobante,
+  fichaDeEseDni,
+  seSueltaLaFicha,
   filaDeClienta,
   nombreDeFichaParaComprobante,
   type ClientaDelTicket,
@@ -85,5 +88,46 @@ describe("nombreDeFichaParaComprobante: la boleta no vuelve a consultar el padr�
     expect(nombreDeFichaParaComprobante({ ...ANA, nombre: " Ana Lozano " }, "dni", "4567 8912")).toBe("Ana Lozano");
     const conCarne: ClientaDelTicket = { ...ANA, documentoTipo: "carne_extranjeria", documentoNumero: "ab12345" };
     expect(nombreDeFichaParaComprobante(conCarne, "carne_extranjeria", "AB12345")).toBe("Ana Lozano");
+  });
+});
+
+describe("la ficha que se une sola por el DNI del comprobante (ADR-0718)", () => {
+  const boleta = { tipoComprobante: "boleta" as const, identidad: "dni" as const, numero: "45678912" };
+
+  it("busca con un DNI completo en boleta o nota de venta", () => {
+    expect(dniDelComprobante(boleta)).toBe("45678912");
+    expect(dniDelComprobante({ ...boleta, tipoComprobante: "nota_venta" })).toBe("45678912");
+  });
+
+  it("no busca a medias, en factura, con carné o sin comprobante elegido", () => {
+    expect(dniDelComprobante({ ...boleta, numero: "4567891" })).toBeNull();
+    expect(dniDelComprobante({ ...boleta, tipoComprobante: "factura" })).toBeNull();
+    expect(dniDelComprobante({ ...boleta, identidad: "carne_extranjeria" })).toBeNull();
+    expect(dniDelComprobante({ ...boleta, tipoComprobante: null })).toBeNull();
+  });
+
+  it("une solo la ficha con ese DNI exacto, no la que coincide por nombre o celular", () => {
+    const otra: ClientaDelTicket = { ...ANA, id: "c2", documentoNumero: "11111111" };
+    expect(fichaDeEseDni([otra, ANA], "45678912")?.id).toBe("c1");
+    expect(fichaDeEseDni([otra], "45678912")).toBeNull();
+    expect(fichaDeEseDni([{ ...ANA, documentoTipo: "carne_extranjeria" }], "45678912")).toBeNull();
+  });
+
+  it("al corregir el DNI, pasar a factura o a otro documento, la ficha unida sola se suelta", () => {
+    const sola = { ...ANA, porDocumento: true };
+    expect(seSueltaLaFicha(sola, boleta)).toBe(false);
+    expect(seSueltaLaFicha(sola, { ...boleta, numero: "45678913" })).toBe(true);
+    expect(seSueltaLaFicha(sola, { ...boleta, tipoComprobante: "factura" })).toBe(true);
+    expect(seSueltaLaFicha(sola, { ...boleta, identidad: "pasaporte" })).toBe(true);
+  });
+
+  it("la elegida a mano no se suelta: la boleta puede ir a otro nombre", () => {
+    expect(seSueltaLaFicha(ANA, { ...boleta, numero: "11111111" })).toBe(false);
+    expect(seSueltaLaFicha(null, boleta)).toBe(false);
+  });
+
+  it("un ticket en espera conserva que la ficha se unió sola", () => {
+    expect(clientaDeTicketGuardado({ ...ANA, porDocumento: true })?.porDocumento).toBe(true);
+    expect(clientaDeTicketGuardado(ANA)).not.toHaveProperty("porDocumento");
   });
 });

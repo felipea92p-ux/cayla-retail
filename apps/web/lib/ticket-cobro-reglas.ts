@@ -40,6 +40,8 @@ export type CobroDelTicket = {
   /** Una fila por medio, con lo que ya se había tecleado. Si el total cambió, el cobro sigue bloqueado hasta que cuadre. */
   pagos: PagoAplicado[];
   cupon: CuponPuesto | null;
+  /** El DNI cuya ficha la persona QUITÓ de este ticket (ADR-0718): no se vuelve a unir sola, aunque el ticket espere. */
+  dniSinFicha?: string;
 };
 
 /** El cobro de un ticket recién abierto. Una función y no una constante: `pagos` es una lista y dos tickets no la comparten. */
@@ -98,6 +100,7 @@ export function cobroDeTicketGuardado(valor: unknown): CobroDelTicket {
     clienteNombre: texto(c.clienteNombre),
     celularBoleta: texto(c.celularBoleta),
     pagos: Array.isArray(c.pagos) ? c.pagos.flatMap((p) => pagoGuardado(p) ?? []) : [],
+    ...(texto(c.dniSinFicha) ? { dniSinFicha: texto(c.dniSinFicha) } : {}),
     cupon: cuponGuardado(c.cupon),
   };
 }
