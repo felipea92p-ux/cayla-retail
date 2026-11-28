@@ -3,6 +3,7 @@ import {
   Briefcase,
   Car,
   Coffee,
+  Crown,
   Droplet,
   House,
   Landmark,
@@ -51,6 +52,7 @@ const DIBUJO: Record<IconoGasto, LucideIcon> = {
   regla: PencilRuler,
   rollo: ScrollText,
   prenda: Shirt,
+  corona: Crown,
   recibo: Receipt,
 };
 

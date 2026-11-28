@@ -27,6 +27,7 @@ export type IconoGasto =
   | "regla"
   | "rollo"
   | "prenda"
+  | "corona"
   | "recibo";
 
 /** @internal La tabla entera, para la prueba que exige que no haya dos categorías con el mismo dibujo. */
@@ -38,6 +39,7 @@ export const ICONO_DE_CATEGORIA: Readonly<Record<string, IconoGasto>> = {
   bolsas: "bolsa",
   consumibles_taller: "regla",
   gastos_bancarios: "billete",
+  gastos_ceo: "corona",
   internet: "wifi",
   limpieza: "aerosol",
   luz: "rayo",

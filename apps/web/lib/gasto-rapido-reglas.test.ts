@@ -14,7 +14,7 @@ import {
   ordenarPorFrecuencia,
   textosDelMedio,
   type EstadoGastoRapido,
-} from "./gasto-rapido-reglas";
+  opcionesOtro } from "./gasto-rapido-reglas";
 
 const CATEGORIAS_DE_LA_BASE = [
   "alquileres",
@@ -249,5 +249,12 @@ describe("la guía dice lo mismo que validarGasto", () => {
       const descripcion = descripcionDe({ concepto: c.clave, otroTexto: "", nota: "lo que sea" });
       expect(conceptoDeGasto({ descripcion, categoria: c.categoria })).toBe(c.clave);
     }
+  });
+});
+
+describe("«Otro» en la caja", () => {
+  it("no ofrece «Gastos del CEO», que se anota desde Finanzas", () => {
+    const c = (codigo: string) => ({ codigo, nombre: codigo, ejemplos: "x", cuenta: "639", cuentaNombre: "x" });
+    expect(opcionesOtro([c("transporte"), c("gastos_ceo")]).map((o) => o.valor)).toEqual(["transporte"]);
   });
 });

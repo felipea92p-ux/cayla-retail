@@ -270,7 +270,7 @@ select count(*) from retail.fn_facturas_para_nota_credito(null, :'prov', 'todas'
 set local role authenticated;
 select pg_temp.intento('select count(*) from retail.gastos');
 select pg_temp.intento('select count(*) from retail.categorias_gasto');
-select count(*) from retail.fn_categorias_gasto();`);
+select count(*) from retail.fn_categorias_gasto() where codigo <> 'gastos_ceo' or (cuenta = '6393' and cuenta_nombre = 'Gastos del CEO');`);
   const [mes, lista, prov, metricas, nc, gastosDirecto, catDirecto, categorias] = lineas(r);
   esperar("las compras y el IGV del mes de Compras no cambian con un gasto", r.ok && mes === "t", r);
   esperar("la lista de Facturas de proveedor no cambia", r.ok && lista === "t", r);
@@ -283,7 +283,7 @@ select count(*) from retail.fn_categorias_gasto();`);
   // 18 desde Luz, Agua, Internet, Telefonía y Software (ADR-0477, 20261022205000): son 5 filas nuevas del catálogo.
   // 21 desde «Consumibles del Taller» (ADR-0594, 20261031195000).
   // 23 desde «Telas e insumos del Taller» (241) y «Maquila del Taller» (231) (20261106234000).
-  esperar("las 23 categorías (las 18 de siempre, «limpieza» y «bolsas» de 20261029044000, «consumibles_taller» de 20261031195000 y «telas_insumos» y «maquila» de 20261106234000) se leen por su función", r.ok && Number(categorias) === 23, r);
+  esperar("las 24 categorías (las 18 de siempre, «limpieza» y «bolsas» de 20261029044000, «consumibles_taller» de 20261031195000, «telas_insumos» y «maquila» de 20261106234000 y «gastos_ceo» de 20261128045000, en su subcuenta 6393) se leen por su función", r.ok && Number(categorias) === 24, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y

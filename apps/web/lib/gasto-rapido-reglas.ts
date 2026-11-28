@@ -367,7 +367,8 @@ export function textosDelMedio(medio: MedioRapido, sede: string): { subtitulo: s
 
 /** Las categorías contables para «Otro»: cada una con sus ejemplos, que es lo que la persona reconoce. */
 export function opcionesOtro(categorias: readonly CategoriaGasto[]) {
-  return categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }));
+  // «Gastos del CEO» se anota desde Finanzas: no es algo que la tienda pague de su caja, y no se le ofrece.
+  return categorias.filter((c) => c.codigo !== "gastos_ceo").map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }));
 }
 
 /** «Servicios básicos», para la línea «Va a …» bajo el mosaico. */
