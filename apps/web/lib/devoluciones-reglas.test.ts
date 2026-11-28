@@ -330,13 +330,13 @@ describe("dondeQuedoLaAnulacion: la pantalla de éxito de Anular venta dice dón
   });
   it("lo dañado queda en Dañadas, con cualquiera de las tres condiciones", () => {
     for (const c of ["danada_reparacion", "danada_donar", "devolver_proveedor"] as const) {
-      expect(dondeQuedoLaAnulacion([prenda(c)])).toBe("La prenda quedó en Dañadas, en Existencias.");
+      expect(dondeQuedoLaAnulacion([prenda(c)])).toBe("La prenda está en Dañadas, en Existencias.");
     }
-    expect(dondeQuedoLaAnulacion([prenda("danada_donar"), prenda("devolver_proveedor")])).toBe("Las prendas quedaron en Dañadas, en Existencias.");
+    expect(dondeQuedoLaAnulacion([prenda("danada_donar"), prenda("devolver_proveedor")])).toBe("Las prendas están en Dañadas, en Existencias.");
   });
   it("una venta con las dos cosas dice las dos", () => {
     expect(dondeQuedoLaAnulacion([prenda("vendible"), prenda("danada_donar")])).toBe(
-      "Lo vendible volvió al stock y lo dañado quedó en Dañadas, en Existencias."
+      "Lo vendible volvió al stock y lo dañado está en Dañadas, en Existencias."
     );
   });
   it("la «Prenda sin registrar» no mueve stock: no se cuenta, y sola lo dice", () => {
@@ -344,7 +344,7 @@ describe("dondeQuedoLaAnulacion: la pantalla de éxito de Anular venta dice dón
     expect(dondeQuedoLaAnulacion([sinRegistrar("vendible")])).toBe("No movió stock: la prenda no estaba registrada.");
     expect(dondeQuedoLaAnulacion([sinRegistrar("danada_donar")])).toBe("No movió stock: la prenda no estaba registrada.");
     expect(dondeQuedoLaAnulacion([prenda("vendible"), sinRegistrar("danada_donar")])).toBe("La prenda volvió al stock.");
-    expect(dondeQuedoLaAnulacion([prenda("danada_reparacion"), sinRegistrar("vendible")])).toBe("La prenda quedó en Dañadas, en Existencias.");
+    expect(dondeQuedoLaAnulacion([prenda("danada_reparacion"), sinRegistrar("vendible")])).toBe("La prenda está en Dañadas, en Existencias.");
   });
 });
 

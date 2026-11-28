@@ -105,8 +105,8 @@ export function dondeQuedoLaAnulacion(lineas: readonly LineaAnulada[]): string {
   const danadas = reales.filter((l) => l.condicion !== "vendible").reduce((s, l) => s + l.cantidad, 0);
   if (sanas === 0 && danadas === 0) return "No movió stock: la prenda no estaba registrada.";
   if (danadas === 0) return sanas === 1 ? "La prenda volvió al stock." : "Las prendas volvieron al stock.";
-  if (sanas === 0) return danadas === 1 ? "La prenda quedó en Dañadas, en Existencias." : "Las prendas quedaron en Dañadas, en Existencias.";
-  return "Lo vendible volvió al stock y lo dañado quedó en Dañadas, en Existencias.";
+  if (sanas === 0) return danadas === 1 ? "La prenda está en Dañadas, en Existencias." : "Las prendas están en Dañadas, en Existencias.";
+  return "Lo vendible volvió al stock y lo dañado está en Dañadas, en Existencias.";
 }
 
 // ============================================================================

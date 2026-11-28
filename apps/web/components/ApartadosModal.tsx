@@ -173,7 +173,7 @@ export function ApartadosModal({
                           <Link
                             href={a.separacion.href}
                             title={`Abre el apartado ${a.separacion.codigo}`}
-                            className="label-cayla text-xs text-secundario underline underline-offset-2 hover:text-tinta"
+                            className="btn-cayla btn-enlace shrink-0 text-xs leading-tight"
                           >
                             Liberar en Apartados
                           </Link>
