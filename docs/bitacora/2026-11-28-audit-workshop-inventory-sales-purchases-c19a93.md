@@ -1,0 +1,9 @@
+## 2026-11-28 (Auditoría de Taller, Inventario, Ventas y Compras: 103 hallazgos verificados)
+Qué hice: 16 auditores, 4 módulos por 4 lentes (lógica, datos, responsive y flujos reales), y 2 o 3 escépticos por hallazgo, contra una pila privada de Supabase con todo main. Producción no se tocó. Quedaron 103 hallazgos (97 confirmados y 6 plausibles) y 6 refutados, en `docs/AUDITORIA-2026-11-28-taller-inventario-ventas-compras.md`.
+Por qué así: la severidad es la mediana de los escépticos, no la del auditor; un hallazgo que nadie pudo reproducir no entra. La base compartida iba 13 días atrás, por eso la pila propia.
+Felipe se lleva: el informe ordenado (primero lo que deja el stock o la plata en un estado imposible), con cómo reproducir y el arreglo de cada uno. Compras quedó sin probar en el navegador porque el servidor se cayó a mitad.
+
+## 2026-11-28 (Los cinco primeros arreglos de la auditoría, ADR-0719)
+Qué hice: anular una venta con la prenda dañada la manda a Dañadas (N.º 1); la prenda de un APT ya no se suelta desde Existencias y el vencimiento diario sigue aunque un apartado esté trabado (N.º 2 y 45); Por pagar del Taller cuenta solo lo pagado al servicio actual (N.º 3); el saldo del lote se redondea a 3 decimales (N.º 4); una compra con mercadería no se anula y «123» y «000123» son el mismo comprobante (N.º 9, 10 y 31). Cinco migraciones, 20261128161000 a 165000, sin pegar.
+Por qué así: cada candado va en la base y la pantalla solo deja de ofrecer lo que la base rechaza (principio 2). Cada migración aborta si la función viva no es la del repo, y la de los índices aborta y lista los repetidos antes de crear nada.
+Felipe se lleva: probado en el celular (anular con «Dañada para donar» la deja en Dañadas; Existencias dice «Liberar en Apartados» y la base rechaza soltarla); Vitest 169 270 en verde y las pruebas de Postgres de los módulos en verde. Falta su OK para pegar y decidir qué se hace con lo que ya pasó en producción.

@@ -1488,6 +1488,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `crearClienteAdmin()` → `fn_vencer_apartados_de_todas()` (solo `service_role`): libera en todas las tiendas los apartados vencidos hace
   más de 2 días (`fn_vencer_separaciones_de`, la misma pieza que llama `fn_vencer_separaciones` al abrir la pantalla) y los apartados
   simples de Existencias con su fecha pasada; no los pedidos entre tiendas ni los web. Devuelve `{apartados_con_adelanto, apartados_simples}`.
+  Desde `20261128162000` (auditoría 2026-11-28, N.º 45; sin pegar en producción) cada apartado va aislado
+  (`fn_vencer_separaciones_resumen`): uno trabado no deshace la corrida; suma `{fallidas, fallidas_ids, simples_fallidos_ids}` y la ruta
+  los manda a Sentry (`fallidosDelBarrido` en `lib/apartados-reglas.ts`), con respuesta 200.
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
@@ -1717,7 +1720,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `comprobantes` y `papel`, y anula con `anular_compra` (también con Órdenes de compra si el comprobante sale de una orden).
   `compra_items` acepta líneas sin prenda (`categoria_id` + `marca_id`, `orden_compra_item_id`, `precio_venta_sugerido`); Recibir no
   las ofrece (`lineas_compra_operativo`, `listar_compras_operativo`, `resumen_recepciones`) y `recibir_compras`, `recibir_envio` y
-  `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes (`compras_papel_vigente_unico`). **«Sin comprobante»**
+  `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes por proveedor, tipo, serie y número sin ceros a la izquierda (`compras_comprobante_clave_vigente_unico` y `compra_papeles_comprobante_unico`, con la clave de `fn_numero_comprobante_clave`; auditoría 2026-11-28). **«Sin comprobante»**
   (decisión 50, migración `20261012235000`, **sin pegar**): cuarto tipo, sin serie ni número (la base pone `SC` + la secuencia
   `compras_sin_comprobante_seq`), sin IGV; en la web, `pidePapel`/`palabrasDelTipo` y, a 375 px, el tipo en un desplegable.
 - **Nueva orden de compra: prefiltro, registrar proveedor y «Cómo pagarle»** (ADR-0362, actualización 2026-10-21; migraciones `20261021200000`,
@@ -1968,7 +1971,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   candado de la base `fn_pedido_web_exigir`. Los plazos (24 h, 48 h, 7 días) salen de `configuracion_tienda_web` (`fn_pedido_web_plazos`).
   El número del menú: `lib/pedidos-web.ts` → `fn_pedidos_web_por_confirmar` (desde `app/(app)/layout.tsx`, contador
   `pedidosWebPorConfirmar`). Existencias rotula la reserva de un pedido web en «Apartados» (`fn_apartados_de_pedidos_web` en
-  `lib/apartados.ts`; sin «Liberar») y Catálogo dice «tiene pedidos web» (renglón 25 de `fn_producto_historia`). Migraciones
+  `lib/apartados.ts`; sin «Liberar»); igual la prenda de un apartado con adelanto (`fn_apartados_de_separaciones`, `20261128162000`: enlace «Liberar en Apartados» y `liberar_apartado` la rechaza) y Catálogo dice «tiene pedidos web» (renglón 25 de `fn_producto_historia`). Migraciones
   `20261015010000_pedidos_web_erp.sql` y `20261015011000_pedidos_web_en_catalogo_y_existencias.sql` (sin aplicar en producción).
   **Cobrar** (actividad 9): en la hoja de un pedido confirmado, «Registrar pago» abre encima `RegistrarPagoHoja.tsx` (monto —el
   adelanto de lo que se consigue no viene puesto—, `components/ui/FichasMedio.tsx` para el medio, n.º de operación si es digital,
