@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -24,7 +25,8 @@ import { firmar } from "@/lib/responsable-reglas";
 // Los apartados abiertos de esta tienda (ADR-0141). Lo que vence primero —o ya venció— sale arriba, y
 // lo vencido va en rojo: NO se libera solo (la clienta pudo dejar adelanto), decide quien lo ve. El
 // botón «Liberar» solo aparece donde la base lo permite (`puedeLiberar`, calculado en `listar_apartados`:
-// quien apartó, o una líder) — nadie ve un botón que la base le va a rechazar.
+// quien apartó, o una líder) — nadie ve un botón que la base le va a rechazar. La prenda de un apartado con adelanto (un APT) no se
+// libera aquí: lleva un enlace a Apartados, donde se entrega o se libera con su adelanto (auditoría 2026-11-28, N.º 2).
 export function ApartadosModal({
   apartados,
   otraSede = false,
@@ -164,6 +166,20 @@ export function ApartadosModal({
                         <Chip tono="pizarra">Para otra sede · no vence</Chip>
                       ) : (
                         <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
+                      )}
+                      {a.separacion && !otraSede && (
+                        // La prenda es del APT del cliente: se entrega o se libera allá, con su adelanto. Sin el módulo, se dice dónde.
+                        a.separacion.href ? (
+                          <Link
+                            href={a.separacion.href}
+                            title={`Abre el apartado ${a.separacion.codigo}`}
+                            className="label-cayla text-xs text-secundario underline underline-offset-2 hover:text-tinta"
+                          >
+                            Liberar en Apartados
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-secundario">Se libera en Apartados</span>
+                        )
                       )}
                       {a.puedeLiberar && !otraSede && (
                         <button

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   diasHasta,
   estadoVencimiento,
+  fallidosDelBarrido,
+  puedeLiberarApartado,
   resumirApartados,
   textoVencimiento,
   type Apartado,
@@ -69,5 +71,34 @@ describe("resumirApartados", () => {
   it("la reserva de un pedido de otra sede (sin fecha) cuenta como apartada pero nunca como vencida", () => {
     const lista = [apartado({ id: "1", cantidad: 1, venceEl: null }), apartado({ id: "2", cantidad: 1, venceEl: "2026-09-18" })];
     expect(resumirApartados(lista, HOY)).toEqual({ abiertos: 2, unidades: 2, vencidos: 1 });
+  });
+});
+
+describe("puedeLiberarApartado", () => {
+  const base = { puedeLiberarBase: true, esTerminal: false, esPedidoWeb: false, esDeSeparacion: false };
+  it("un apartado simple: lo decide la base, y la terminal libera siempre", () => {
+    expect(puedeLiberarApartado(base)).toBe(true);
+    expect(puedeLiberarApartado({ ...base, puedeLiberarBase: false })).toBe(false);
+    expect(puedeLiberarApartado({ ...base, puedeLiberarBase: false, esTerminal: true })).toBe(true);
+  });
+  it("la prenda de un apartado con adelanto nunca se libera aquí, ni la líder ni la terminal (auditoría 2026-11-28, N.º 2)", () => {
+    expect(puedeLiberarApartado({ ...base, esDeSeparacion: true })).toBe(false);
+    expect(puedeLiberarApartado({ ...base, esDeSeparacion: true, esTerminal: true })).toBe(false);
+  });
+  it("la reserva de un pedido web tampoco (se libera desde Tienda web)", () => {
+    expect(puedeLiberarApartado({ ...base, esPedidoWeb: true })).toBe(false);
+    expect(puedeLiberarApartado({ ...base, esPedidoWeb: true, esTerminal: true })).toBe(false);
+  });
+});
+
+describe("fallidosDelBarrido", () => {
+  it("lee los apartados que el barrido no pudo vencer", () => {
+    expect(
+      fallidosDelBarrido({ apartados_con_adelanto: 3, apartados_simples: 1, fallidas: 2, fallidas_ids: ["s1"], simples_fallidos_ids: ["a9"] }),
+    ).toEqual({ total: 2, apartadosConAdelanto: ["s1"], simples: ["a9"] });
+  });
+  it("una base sin la migración (o una respuesta vacía) es «nada falló»", () => {
+    expect(fallidosDelBarrido({ apartados_con_adelanto: 3, apartados_simples: 1 })).toEqual({ total: 0, apartadosConAdelanto: [], simples: [] });
+    expect(fallidosDelBarrido(null)).toEqual({ total: 0, apartadosConAdelanto: [], simples: [] });
   });
 });

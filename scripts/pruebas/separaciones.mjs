@@ -529,6 +529,61 @@ exito("D4: el barrido solo lo corre el servidor (ni anon, ni authenticated, ni l
   (x) => x === "t|0");
 
 // ---------------------------------------------------------------------------
+// «Liberar» en Existencias y el barrido con un apartado trabado (20261128162000; auditoría 2026-11-28, N.º 2 y N.º 45)
+// ---------------------------------------------------------------------------
+// La prenda de un apartado con adelanto es la reserva de un cliente que ya pagó una parte: soltarla desde Existencias la dejaba libre para
+// venderse a otro con la separación todavía abierta, y después nadie podía entregarla, liberarla ni devolver el adelanto sin SQL a mano.
+const apDe = (sep, como = "ap") => `select apartado_id as ${como} from retail.separacion_items where separacion_id = :'${sep}' limit 1 \\gset
+`;
+error("N.º 2: quien apartó no suelta desde Existencias la prenda de un apartado con adelanto",
+  `${preparar()}${separar()}${apDe("sep")}
+select retail.liberar_apartado(:'ap', 'clienta_no_vino');`, "se libera desde Apartados");
+error("N.º 2: la líder tampoco: la prenda de un apartado con adelanto se libera desde Apartados",
+  `${preparar(FELIPE)}${separar()}${apDe("sep")}
+select retail.liberar_apartado(:'ap', 'entregada');`, "se libera desde Apartados");
+exito("N.º 2: Existencias no ofrece «Liberar» en la prenda de un apartado con adelanto (sí en un apartado simple) y dice de qué apartado es",
+  `${preparar(FELIPE)}${separar()}${apDe("sep")}
+select retail.apartar_stock(:'v', :'ubic', 1, 'Apartado simple', '999888777', retail.fn_hoy_lima(), 'prueba') as ap_simple \\gset
+select (select puede_liberar from retail.listar_apartados(:'ubic') where id = :'ap'),
+       (select puede_liberar from retail.listar_apartados(:'ubic') where id = :'ap_simple'),
+       (select x.separacion_id = :'sep' and x.separacion_codigo = s.codigo
+          from retail.fn_apartados_de_separaciones(:'ubic') x join retail.separaciones s on s.id = x.separacion_id where x.apartado_id = :'ap'),
+       (select count(*) from retail.fn_apartados_de_separaciones(:'ubic') where apartado_id = :'ap_simple');`,
+  (x) => x === "f|t|t|0");
+// Un apartado con adelanto «trabado»: su prenda ya se cerró por fuera (lo que hacía «Liberar» en Existencias antes de este arreglo).
+const TRABAR = (sep) => `select retail.fn_cerrar_apartado_de_separacion((select apartado_id from retail.separacion_items where separacion_id = :'${sep}' limit 1), 'otro', null) as _t \\gset
+`;
+exito("N.º 45: un apartado con adelanto trabado no frena el barrido diario: vence el sano y los simples, y el trabado queda contado como fallido",
+  `${preparar(FELIPE)}${separar({ como: "s_sana" })}${separar({ como: "s_trabada" }).replace("'987 111 222'", "'987 111 999'")}
+update retail.separaciones set vence_el = retail.fn_hoy_lima() - 3 where id in (:'s_sana', :'s_trabada');
+${TRABAR("s_trabada")}
+select retail.apartar_stock(:'v', :'ubic', 1, 'Apartado simple', '999888777', retail.fn_hoy_lima(), 'prueba') as ap_viejo \\gset
+update retail.apartados set vence_el = retail.fn_hoy_lima() - 3 where id = :'ap_viejo';
+reset role;
+set local role service_role;
+select retail.fn_vencer_apartados_de_todas() as r \\gset
+reset role;
+select (select estado || '/' || coalesce(liberada_motivo, '-') from retail.separaciones where id = :'s_sana'),
+       (select estado from retail.separaciones where id = :'s_trabada'),
+       (select estado || '/' || cierre_motivo from retail.apartados where id = :'ap_viejo'),
+       ((:'r')::jsonb ->> 'fallidas')::integer >= 1,
+       (:'r')::jsonb -> 'fallidas_ids' ? :'s_trabada';`,
+  (x) => x === "liberada/vencio|abierta|liberado/clienta_no_vino|t|t");
+exito("N.º 45: la pantalla de Apartados (fn_vencer_separaciones) tampoco se cae por uno trabado: libera el sano",
+  `${preparar(FELIPE)}${separar({ como: "s_sana" })}${separar({ como: "s_trabada" }).replace("'987 111 222'", "'987 111 999'")}
+update retail.separaciones set vence_el = retail.fn_hoy_lima() - 3 where id in (:'s_sana', :'s_trabada');
+${TRABAR("s_trabada")}
+select retail.fn_vencer_separaciones(:'ubic') as n \\gset
+select :n >= 1, (select estado from retail.separaciones where id = :'s_sana'), (select estado from retail.separaciones where id = :'s_trabada');`,
+  (x) => x === "t|liberada|abierta");
+exito("N.º 45: el resumen del barrido por sede es pieza interna (nadie de afuera la llama); la lista de apartados con adelanto es de quien opera la tienda",
+  `select (select count(*) from unnest(array['anon', 'authenticated', 'tienda_web']) r
+          where has_function_privilege(r, 'retail.fn_vencer_separaciones_resumen(uuid)', 'EXECUTE')),
+       has_function_privilege('authenticated', 'retail.fn_apartados_de_separaciones(uuid)', 'EXECUTE'),
+       has_function_privilege('anon', 'retail.fn_apartados_de_separaciones(uuid)', 'EXECUTE');`,
+  (x) => x === "0|t|f");
+
+// ---------------------------------------------------------------------------
 // Caja, lectura y seguridad
 // ---------------------------------------------------------------------------
 exito("el arqueo cuadra: adelanto en efectivo + saldo en efectivo + devolución en efectivo, al céntimo",

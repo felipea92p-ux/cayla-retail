@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 204,
+  "total": 205,
   "controles": {
     "app/(app)/inventario/page.tsx": [
       "BotonVer «{avisoBarrido.boton}»"
@@ -22,6 +22,7 @@
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "a «{a.contacto}»",
+      "Link «{`Abre el apartado ${a.separacion.codigo}»",
       "button «Liberar»"
     ],
     "components/BotonSonidoConfirmar.tsx": [

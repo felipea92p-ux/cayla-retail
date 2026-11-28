@@ -6110,6 +6110,11 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { apartado_id: string; pedido_codigo: string; tienda_pedido: string; para_otra_tienda: boolean }[]
       }
+      // De qué apartado con adelanto (APT) es cada prenda apartada de una sede (20261128162000): Existencias la rotula y no ofrece «Liberar».
+      fn_apartados_de_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: { apartado_id: string; separacion_id: string; separacion_codigo: string }[]
+      }
       // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
       fn_vitrina_looks: { Args: never; Returns: Json }
       // En qué tiendas sale cada look y qué prenda le falta a cada una (20261027204000): las mismas reglas que la tienda online.

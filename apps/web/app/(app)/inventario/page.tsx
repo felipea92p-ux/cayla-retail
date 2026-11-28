@@ -168,7 +168,7 @@ export default async function InventarioPage({
     medir("danadas", getPrendasDanadasPendientes(ubicacionActivaId)),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
     // Una terminal libera cualquier apartado (Felipe, 2026-09-22, ADR-0162): `persona.terminal` lo dice.
-    vende ? medir("apartados", getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal })) : Promise.resolve([]),
+    vende ? medir("apartados", getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal, veApartados: veModulo(persona, "apartados") })) : Promise.resolve([]),
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total» y el
     // overlay de categorías — sin cambios (2026-09-25): sigue siendo un dato de 7 días aparte del
     // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
