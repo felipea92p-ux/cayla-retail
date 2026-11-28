@@ -1869,7 +1869,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca bajo su objetivo), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El costo y el precio (con el costo, el precio sugerido llega a su objetivo, y la IA da otra opinión si se la pides), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "que-tiene",
@@ -1883,7 +1883,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       ancla: "alta.precio-sugerido",
       opcional: true,
       titulo: "El precio sugerido",
-      texto: "Con el costo y lo que la prenda tiene, el sistema calcula el precio que llega a tu objetivo, terminado en .90. Tócalo y queda escrito en el precio; puedes cambiarlo.",
+      texto: "Con el costo y lo que la prenda tiene, el sistema calcula el precio que llega a tu objetivo, terminado en .90. «Usar» lo escribe en el precio y puedes cambiarlo. Si quieres otra opinión, la IA puede proponer otro mirando las parecidas.",
     },
     {
       id: "quien",

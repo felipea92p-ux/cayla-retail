@@ -179,6 +179,16 @@ casillas no se podía eliminar, y al fusionar dos fichas las casillas del duplic
 `on delete cascade` (las casillas son configuración de la ficha, como `producto_taller`) y `fusionar_productos` las trata «uno por
 producto»: mandan las del que queda; las del duplicado pasan solo si el que queda no tiene. En producción desde el 2026-11-26.
 
+## Actualización 2026-11-28: el precio sugerido manda en Nuevo producto; la IA, segunda opinión
+
+Felipe, mirando «Costo y precio» de Nuevo producto: «debería ser más vistoso el precio sugerido, ya que no se nota; lo inicial que se ve es lo
+de la IA, pero son otro tipo de datos». El sugerido era un botón chico bajo «Margen —», y la propuesta de la IA, un bloque con el monto en
+28 px. Ahora, con el costo y sin precio, la tercera columna es «Precio sugerido» (el monto grande, «Llega a tu objetivo de N %», «Usar»); con
+el precio escrito vuelve a ser «Margen». La IA se pide con un enlace chico y responde en una línea (`PropuestaDePrecio discreta`). Recibir
+no cambia: ahí se elige entre lo que sugirió quien compró y la IA (Felipe 2026-11-11). La base vigente en producción es 33 % desde el
+2026-11-28 (la puso Felipe en Configuración ▸ Precios); la pantalla sigue mostrando «Recomendado: 37 %», el número del análisis de gastos.
+Auditoría: `docs/milimetro/auditorias/2026-11-28-precio-sugerido-a-la-vista.md`.
+
 ## Lo que falta
 
 - **Producción:** al día. Las seis primeras desde el 2026-11-24 y `20261124201000` y `20261126211000` desde el 2026-11-26. Falta
