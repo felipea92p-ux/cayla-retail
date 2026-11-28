@@ -60,7 +60,7 @@ export function EncabezadoDia({ fecha, hoyLima, operaciones }: { fecha: string; 
               type="button"
               data-mv-tono={info.tono}
               style={{ "--k": Math.min(i, 24) } as CSSProperties}
-              title={`${op.hora} · ${info.nombre}`}
+              title={`${info.nombre} a las ${op.hora}`}
               aria-label={`${op.hora}, ${info.nombre}: ir a esa fila`}
               onClick={() => irA(op.filas[0].id)}
             />

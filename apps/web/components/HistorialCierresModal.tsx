@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarX, CircleCheck, Clock } from "lucide-react";
 import { leerCierresDelMes } from "@/app/actions/caja";
 import { Aviso } from "@/components/ui/Aviso";
-import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { SelectorMes } from "@/components/ui/SelectorMes";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
@@ -39,7 +39,8 @@ const veces = (n: number) => (n === 1 ? "vez" : "veces");
  * entre cinco). Abre siempre en el mes actual; arriba a la derecha se elige otro mes o el año anterior (`SelectorMes`), y
  * sobre los sellos va «Cómo cerró cada día», una barra por cierre con lo que se contó (`GraficoCierresDelMes`, maqueta 1,
  * Felipe el mismo día). El ticket no lleva quién cerró: eso está en el detalle. Tocar un ticket o una barra abre el detalle de ese cierre EN LA
- * MISMA HOJA (Felipe 2026-10-10, opción «A ampliada»): la hoja crece de ancho para dejar los movimientos a la derecha y
+ * MISMA HOJA (Felipe 2026-10-10, opción «A ampliada»). La lista y el detalle comparten el mismo ancho (Felipe 2026-11-28:
+ * la lista más ancha, para ver los cierres por día más fácil; tres tickets por fila desde 1024 px) y el detalle
  * arriba lleva «← Historial de cierres» para volver. La lista queda montada (escondida) mientras se mira un cierre, así que
  * al volver el filtro y el lugar del desplazamiento siguen donde estaban. La lógica (resumen, filtro, agrupado, estado) vive
  * en `lib/historial-cierres-reglas.ts`; el papel y el sello, en `app/estilos/historial-tickets.css`.
@@ -145,8 +146,7 @@ export function HistorialCierresModal({
           : `${ubicacionNombre} · ${errorMes ? `${nombre} de ${mes.anio}` : !yaLeido && cierres.length === 0 ? "leyendo…" : cierres.length === 0 ? `sin cierres en ${nombre}` : `${cierres.length} ${cierres.length === 1 ? "cierre" : "cierres"} en ${nombre}`}`
       }
       onClose={onClose}
-      // La hoja crece (o se encoge) al pasar de la lista al detalle con el mismo ritmo de las demás: `ease-cayla`, sin rebote.
-      ancho={`${abierto ? ANCHO_DETALLE_CIERRE : ANCHO_HOJA.mediana} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`} /* unificar-fijo: crece de mediana a ancha al abrir un cierre, con su transición */
+      ancho={ANCHO_DETALLE_CIERRE} /* unificar-fijo: el mismo ancho que el detalle de un cierre: la lista no cambia de tamaño al abrirlo */
       arriba={
         abierto ? (
           <div className="mb-3 flex items-center gap-2.5 pr-10">
@@ -209,7 +209,7 @@ export function HistorialCierresModal({
                   {filtro === "falto" ? `En ningún cierre de ${nombre} faltó plata.` : `En ningún cierre de ${nombre} sobró plata.`}
                 </Vacio>
               ) : (
-                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {visibles.map((c) => (
                     <li key={c.id}>
                       <Ticket cierre={c} onVer={() => verCierre(c)} />

@@ -4,7 +4,9 @@
 // nunca lo deja bajo el margen objetivo de la prenda (ADR-0700: la base del Admin más lo que tiene). La propuesta no se guarda sola: «Usar S/ …» llena el campo y la persona confirma al crear la
 // prenda, como siempre.
 //
-// Dos lugares: Nuevo producto (con el botón, Felipe 2026-11-10) y la hoja de la prenda nueva de Recibir mercadería, donde sale SOLA al llegar
+// Dos lugares: Nuevo producto (con el botón, Felipe 2026-11-10; desde el 2026-11-28 `discreta`: el precio que manda es el sugerido de la regla
+// y la IA queda como una segunda opinión chica, a pedido —«lo inicial que se ve es lo de la IA y son otro tipo de datos»—) y la hoja de la
+// prenda nueva de Recibir mercadería, donde sale SOLA al llegar
 // al paso del precio y se elige entre lo que sugirió quien compró y lo que propone la IA (Felipe 2026-11-11, «sola, al llegar al paso»). Una
 // respuesta ya pedida con los mismos datos se recuerda mientras la pantalla está abierta: ir y volver de paso no vuelve a gastar.
 //
@@ -19,6 +21,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Boton } from "@/components/ui/campos";
 import { soles } from "@/lib/compras-reglas";
+import { listaDicha } from "@/lib/lista-dicha";
 import type { Rasgo } from "@/lib/margen-por-rasgos";
 
 type Estado = { tipo: "nada" } | { tipo: "pidiendo" } | { tipo: "error"; texto: string } | RespuestaEnPantalla;
@@ -101,6 +104,7 @@ export function PropuestaDePrecio({
   onDejar,
   productoId,
   rasgos,
+  discreta = false,
 }: {
   categoriaId: string;
   tejidoId: string;
@@ -120,6 +124,8 @@ export function PropuestaDePrecio({
   productoId?: string;
   /** Lo que la prenda tiene (ADR-0700): sube el objetivo bajo el que la propuesta nunca baja. */
   rasgos?: readonly Rasgo[];
+  /** Una segunda opinión junto a un precio sugerido que ya está a la vista (Nuevo producto): se pide con un enlace y responde en chico. */
+  discreta?: boolean;
 }) {
   // Cada estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
   const datosDePropuesta: DatosPropuesta = { origen, productoId, rasgos, categoriaId, tejidoId, referencia, descripcion, costoBase };
@@ -164,7 +170,15 @@ export function PropuestaDePrecio({
 
   return (
     <div className="mt-4 space-y-3">
-      {!propuesta && (
+      {!propuesta && discreta && (
+        <Boton type="button" peso="discreto" className="btn-chico" onClick={() => proponer()} cargando={estado.tipo === "pidiendo"} textoCargando="Pensando…" disabled={disabled || (!categoriaId && !productoId)}>
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles aria-hidden className="h-3.5 w-3.5" />
+            {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Pedir otra vez a la IA" : "Pedir otra opinión a la IA"}
+          </span>
+        </Boton>
+      )}
+      {!propuesta && !discreta && (
         <div className="flex flex-wrap items-center gap-3">
           <Boton type="button" peso="fantasma" onClick={() => proponer()} cargando={estado.tipo === "pidiendo"} textoCargando="Calculando…" disabled={disabled || (!categoriaId && !productoId)}>
             <span className="inline-flex items-center gap-2">
@@ -187,7 +201,38 @@ export function PropuestaDePrecio({
         </Aviso>
       )}
 
-      {propuesta && (
+      {propuesta && discreta && (
+        <div className="nota-cayla sin-i space-y-1.5" data-precio-propuesto>
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 self-center text-secundario">
+              <Sparkles aria-hidden className="h-3.5 w-3.5" />
+              Otra opinión, de la IA:
+            </span>
+            <b className="font-semibold tabular-nums text-tinta">{soles(propuesta.precio)}</b>
+            <span className="tabular-nums text-secundario">(ganas {propuesta.margen.toFixed(0)} %)</span>
+            {propuesta.costoEstimado && (
+              <Chip tono="ambar" title={`Esta prenda no tiene costo: se usó el promedio de su categoría (${soles(propuesta.costo)}).`}>
+                Costo estimado
+              </Chip>
+            )}
+          </p>
+          <p className="text-detalle text-secundario">
+            {propuesta.razon}
+            {propuesta.parecidas.length > 0 && ` Parecidas: ${listaDicha(propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`))}.`}
+          </p>
+          {/* Enlaces, pero de 24 px de alto: el mínimo para atinarles con el mouse (WCAG 2.5.8; medidos en 21 px el 2026-11-28). */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className="btn-cayla btn-enlace min-h-6" disabled={disabled || yaUsada} onClick={() => onUsar(propuesta.precio.toFixed(2))}>
+              {yaUsada ? "Precio puesto" : `Usar ${soles(propuesta.precio)}`}
+            </button>
+            <button type="button" className="btn-cayla btn-enlace min-h-6" onClick={() => proponer()} disabled={disabled}>
+              Pedir otra
+            </button>
+          </div>
+        </div>
+      )}
+
+      {propuesta && !discreta && (
         <div className="nota-cayla sin-i space-y-2.5" data-precio-propuesto>
           <p className="inline-flex items-center gap-1.5 text-sm text-taupe">
             <Sparkles aria-hidden className="h-3.5 w-3.5" />
@@ -208,7 +253,7 @@ export function PropuestaDePrecio({
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">
-              Parecidas: {propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`).join(" · ")}
+              Parecidas: {listaDicha(propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`))}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3 pt-1">

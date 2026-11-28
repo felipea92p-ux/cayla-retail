@@ -33,6 +33,7 @@ import {
   type Separado,
   type VarianteSeparada,
 } from "./recepcion-conteo-reglas";
+import { listaDicha } from "./lista-dicha";
 
 /** Las líneas que son de lo mismo, vistas como una sola categoría. */
 export type GrupoDeLineas = {
@@ -520,5 +521,5 @@ export function textoDeLoQueFalta(faltan: readonly Pick<CampoDeGuia, "id" | "nom
     proveedor > 0 ? (proveedor === 1 ? "el proveedor de 1 marca" : `el proveedor de ${proveedor} marcas`) : null,
     ...obligatorios.filter((c) => !conocidos.test(c.id)).map((c) => (c.id === "responsable" ? "quién cierra" : c.nombre.toLocaleLowerCase("es"))),
   ].filter((p): p is string => !!p);
-  return `Falta: ${new Intl.ListFormat("es", { type: "conjunction" }).format(partes)}.`;
+  return `Falta: ${listaDicha(partes)}.`;
 }

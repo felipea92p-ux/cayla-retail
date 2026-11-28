@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
 import { conDueno } from "@/lib/dueno-reglas";
@@ -1351,34 +1351,43 @@ export function NuevoProductoForm({
                 }}
               />
               <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
-              <div>
-                <p className="label-cayla text-xs text-tinta/65">Margen</p>
-                <p
-                  className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
-                    margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
-                  }`}
-                >
-                  {margen === null ? "—" : `${margen.toFixed(0)} %`}
-                </p>
-                {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
-                {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} rasgos={rasgos} soloSoles className="mt-1" />}
-                <p className="mt-1 text-sm text-taupe">
-                  {margen === null ? "Con el costo, se calcula" : nivel === "bajo" ? `Bajo tu objetivo de ${margenObjetivo} %` : nivel ? etiquetaNivel[nivel] : ""}
-                </p>
-                {/* Solo con el precio vacío: con uno bajo, la línea de arriba ya dice «Sube a S/ …»; con uno alto, nunca se invita a bajarlo. */}
-                {precioSugerido && montoEscrito(precioBase) === null && (
-                  <button
-                    type="button"
-                    className="btn-cayla btn-sutil btn-chico mt-1.5"
-                    data-guia="alta.precio-sugerido"
-                    title={`Tu objetivo para esta prenda es ${precioSugerido.margen} %.`}
-                    disabled={cargando}
-                    onClick={() => setPrecioBase(precioSugerido.precio.toFixed(2))}
+              {/* La tercera columna responde lo que falta saber. Con el costo y sin precio, el precio sugerido —el de tu regla: la base y lo
+                  que la prenda tiene—, grande y con «Usar» (Felipe 2026-11-28: «debería ser más vistoso, no se nota»). Con el precio escrito, el
+                  margen; si queda bajo el objetivo, su línea ya dice «Sube a S/ …», y con uno alto nunca se invita a bajarlo. */}
+              {precioSugerido && montoEscrito(precioBase) === null ? (
+                <div data-guia="alta.precio-sugerido">
+                  <p className="label-cayla text-xs text-tinta/65">Precio sugerido</p>
+                  <p className="font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums text-tinta">{soles(precioSugerido.precio)}</p>
+                  <p className="mt-1 text-sm text-secundario">Llega a tu objetivo de {precioSugerido.margen} %</p>
+                  <Boton type="button" peso="fantasma" className="mt-2" disabled={cargando} onClick={() => setPrecioBase(precioSugerido.precio.toFixed(2))}>
+                    Usar {soles(precioSugerido.precio)}
+                  </Boton>
+                </div>
+              ) : (
+                <div>
+                  <p className="label-cayla text-xs text-tinta/65">Margen</p>
+                  <p
+                    className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
+                      margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
+                    }`}
                   >
-                    Sugerido {soles(precioSugerido.precio)}
-                  </button>
-                )}
-              </div>
+                    {margen === null ? "—" : `${margen.toFixed(0)} %`}
+                  </p>
+                  {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
+                  {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} rasgos={rasgos} soloSoles className="mt-1" />}
+                  <p className="mt-1 text-sm text-taupe">
+                    {margen === null
+                      ? montoEscrito(costoBase) === null
+                        ? "Con el costo, se calcula"
+                        : "Con el precio, se calcula"
+                      : nivel === "bajo"
+                        ? `Bajo tu objetivo de ${margenObjetivo} %`
+                        : nivel
+                          ? etiquetaNivel[nivel]
+                          : ""}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           {/* ADR-0700: lo que la prenda tiene sube su margen objetivo. Opcional: nunca frena el alta. */}
@@ -1401,7 +1410,7 @@ export function NuevoProductoForm({
             </div>
           )}
           {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. Mira costos: solo quien
-              ve el dinero de Compras. */}
+              ve el dinero de Compras. Aquí es una segunda opinión, chica y a pedido (Felipe 2026-11-28): el precio que manda es el sugerido. */}
           {proponePrecio && (
             <PropuestaDePrecio
               categoriaId={categoriaId}
@@ -1413,6 +1422,7 @@ export function NuevoProductoForm({
               precioBase={precioBase}
               disabled={cargando}
               onUsar={setPrecioBase}
+              discreta
             />
           )}
         </FilaAlta>

@@ -12,6 +12,7 @@
  */
 import { NOMBRE_ESPERA_MAX, nombreDeEspera } from "./vender-hoy-reglas";
 import { totalDeLineas } from "./vender-reglas";
+import { listaDicha } from "./lista-dicha";
 
 /** Cuántos tickets puede tener abiertos un equipo a la vez, contando el de la caja (Felipe, 2026-10-25: 9). */
 export const TOPE_TICKETS_ABIERTOS = 9;
@@ -147,7 +148,7 @@ export function ticketsQueDisputanLaPrenda(
 
 /** Lo que dice el aviso de la línea: dónde más está la prenda y cuánto queda. «Ya está en el ticket de Cliente 1, y solo queda 1.» */
 export function textoDePrendaEnOtroTicket(nombres: readonly string[], hay: number): string {
-  const donde = nombres.length === 1 ? `el ticket de ${nombres[0]}` : `los tickets de ${new Intl.ListFormat("es", { style: "long", type: "conjunction" }).format(nombres)}`;
+  const donde = nombres.length === 1 ? `el ticket de ${nombres[0]}` : `los tickets de ${listaDicha(nombres)}`;
   const queda = hay <= 0 ? "y ya no queda" : hay === 1 ? "y solo queda 1" : `y solo quedan ${hay}`;
   return `Ya está en ${donde}, ${queda}.`;
 }

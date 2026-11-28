@@ -15,6 +15,7 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 import { Aviso } from "@/components/ui/Aviso";
 import { SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { listaDicha } from "@/lib/lista-dicha";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -204,7 +205,7 @@ function HojaTallas({
   const nuevas = porOfrecer(marcadas, deLaCategoria)
     .map((id) => todas.find((t) => t.id === id))
     .filter((t): t is ValorVocabulario => Boolean(t));
-  const listaNuevas = new Intl.ListFormat("es", { type: "conjunction" }).format(
+  const listaNuevas = listaDicha(
     [...nuevas].sort((a, b) => compararTallas(a.texto, b.texto)).map((t) => t.texto),
   );
 

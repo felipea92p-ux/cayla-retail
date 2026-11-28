@@ -20,6 +20,7 @@ import { diaLima, diasEntreFechas } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import { textoParaBase } from "./orden-compra-alta";
 import { numeroEnvio } from "./ordenes-compra-reglas";
+import { listaDicha } from "./lista-dicha";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base y topes
@@ -462,7 +463,7 @@ export function textoDeResolucion(r: ResolucionDeuda, hoy: string): string {
 function enUnaFrase(partes: readonly { unidades: number; texto: string }[]): string {
   const primeras = partes.slice(0, 2).map((x) => x.texto);
   const resto = partes.slice(2).reduce((a, x) => a + x.unidades, 0);
-  return new Intl.ListFormat("es", { type: "conjunction" }).format(resto > 0 ? [...primeras, `${cantidadDePrendas(resto, null)} más`] : primeras);
+  return listaDicha(resto > 0 ? [...primeras, `${cantidadDePrendas(resto, null)} más`] : primeras);
 }
 
 /** Lo que se debe de una categoría: las prendas que se sabe cuáles son y, si queda algo sin nombre, «2 vestidos». */
@@ -750,7 +751,7 @@ export function fraseNotaDeLaFactura(v: Pick<ValorDeDeuda, "papeles">): string |
   if (facturas.length === 0) return null;
   const monto = Math.round(facturas.reduce((a, x) => a + x.monto, 0) * 100) / 100;
   const igv = Math.round(facturas.reduce((a, x) => a + x.igv, 0) * 100) / 100;
-  const cuales = new Intl.ListFormat("es", { type: "conjunction" }).format(facturas.map((x) => x.documento));
+  const cuales = listaDicha(facturas.map((x) => x.documento));
   const que = facturas.length === 1 ? `su nota de crédito por ${soles(monto)} contra ${cuales}` : `sus notas de crédito por ${soles(monto)} contra ${cuales}`;
   return `Es una factura: pídele al proveedor ${que}. Hasta que llegue, sus ${soles(igv)} de IGV quedan en espera.`;
 }
@@ -758,7 +759,7 @@ export function fraseNotaDeLaFactura(v: Pick<ValorDeDeuda, "papeles">): string |
 /** «la boleta B001-902», «la factura F001-901 y la boleta B001-902»: los comprobantes de donde sale el valor; sin ellos, «su comprobante». */
 function papelesDelValor(v: Pick<ValorDeDeuda, "papeles">): string {
   const papeles = v.papeles.map((x) => `${x.tipo ? `${nombreDeTipoDePapel(x.tipo)} ` : ""}${x.documento}`);
-  return papeles.length > 0 ? new Intl.ListFormat("es", { type: "conjunction" }).format(papeles) : "su comprobante";
+  return papeles.length > 0 ? listaDicha(papeles) : "su comprobante";
 }
 
 /** «la boleta», «la nota de venta», «la factura», «la compra sin comprobante»: el papel, nombrado. */
@@ -808,7 +809,7 @@ export function detalleDeSaldoAFavor(docs: DocumentoInterno[]): string {
   const facturas = docs.filter((x) => x.igv > 0);
   if (facturas.length === 0) return hecho;
   const pide = facturas.map((x) => `${soles(x.monto)}${x.comprobante ? ` contra ${x.comprobante}` : ""}`);
-  return `${hecho} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${new Intl.ListFormat("es", { type: "conjunction" }).format(pide)}.`;
+  return `${hecho} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${listaDicha(pide)}.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -1023,7 +1024,7 @@ export function detalleDeDeposito(docs: DocumentoInterno[], cuenta: string | nul
   const facturas = docs.filter((x) => x.igv > 0);
   if (facturas.length === 0) return `${hecho}${entro}`;
   const pide = facturas.map((x) => `${soles(x.monto)}${x.comprobante ? ` contra ${x.comprobante}` : ""}`);
-  return `${hecho}${entro} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${new Intl.ListFormat("es", { type: "conjunction" }).format(pide)}.`;
+  return `${hecho}${entro} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${listaDicha(pide)}.`;
 }
 
 /** Qué decir cuando se corta la señal al anotar: pudo guardarse. Reintentar sin cambiar nada es seguro (el mismo token no anota dos veces). */

@@ -133,8 +133,10 @@ export function grupoPorId(id: string | null | undefined): InfoGrupo | null {
 // Cómo se lee una fila: el rótulo de arriba («VENTA», «LLEGADA · Recepción») y los lugares del trayecto.
 // ---------------------------------------------------------------------------
 
-/** El rótulo de una fila: el nombre del tipo y, si el proceso dice algo más, ese detalle («Llegada · Recepción»,
- *  «Ajuste a mano · merma»). Si el proceso ya empieza con el nombre del tipo («Ajuste a mano · merma»), no se repite. */
+/** El rótulo de una fila: el nombre del tipo y, si el proceso dice algo más, ese detalle («Llegada» con «Recepción»,
+ *  «Ajuste a mano» con «merma»). Si el proceso ya empieza con el nombre del tipo («Ajuste a mano (merma)»), no se repite. La
+ *  fila lo dibuja entre paréntesis (caso 5 de «Separar sin punto», ADR-0716), así que el detalle no trae los suyos: un proceso
+ *  con su propio paréntesis se dice con coma («Ajuste, encontrada tras un conteo»). */
 export function rotuloDeMovimiento(m: FilaDeTipo): { tipo: TipoVisual; titulo: string; detalle: string | null } {
   const tipo = tipoVisual(m);
   const nombre = TIPOS_VISUALES[tipo].nombre;
@@ -142,11 +144,11 @@ export function rotuloDeMovimiento(m: FilaDeTipo): { tipo: TipoVisual; titulo: s
   const igual = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
   if (igual(proceso, nombre)) return { tipo, titulo: nombre, detalle: null };
   if (proceso.toLocaleLowerCase("es").startsWith(nombre.toLocaleLowerCase("es"))) {
-    // «Ajuste a mano · merma» → título «Ajuste a mano», detalle «merma»
-    const resto = proceso.slice(nombre.length).replace(/^[\s·]+/, "");
+    // «Ajuste a mano (merma)» → título «Ajuste a mano», detalle «merma»
+    const resto = proceso.slice(nombre.length).trim().replace(/^\((.*)\)$/, "$1").trim();
     return { tipo, titulo: nombre, detalle: resto || null };
   }
-  return { tipo, titulo: nombre, detalle: proceso };
+  return { tipo, titulo: nombre, detalle: proceso.replace(/\s*\((.+)\)$/, ", $1") };
 }
 
 /** Qué ícono lleva cada punto del trayecto: el piso, el almacén, el cliente, «de fuera» (un proveedor o el Taller) o una sede. */

@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 334,
+  "total": 337,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -103,6 +103,9 @@
     ],
     "components/alta-producto/PropuestaDePrecio.tsx": [
       "Boton «→() => proponer()»",
+      "Boton «→() => proponer()» #2",
+      "button «{yaUsada ? \"Precio puesto\" : `Usar ${soles(propuesta.precio)}»",
+      "button «Pedir otra»",
       "Boton «{yaUsada ? \"Precio puesto\" : `Usar ${soles(propuesta.precio)}»",
       "Boton «{seQuedo ? `Se queda ${soles(precioPuesto)}»",
       "button «Proponer otro»"

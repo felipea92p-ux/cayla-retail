@@ -61,7 +61,7 @@ describe("perdidasQueSeRepiten — la misma prenda", () => {
   it("una prenda que pierde en DOS días distintos de los últimos 30 avisa, con cuántas y cuándo fue la última", () => {
     const r = perdidasQueSeRepiten([hecho({ dia: "2026-10-02", unidades: 1 }), hecho({ dia: "2026-10-15", unidades: 2 })], HOY);
     expect(r).toEqual([
-      { tipo: "prenda", clave: `prenda:${V1}`, varianteId: V1, etiqueta: "Polo Básico · M · Negro", veces: 2, unidades: 3, ultimoDia: "2026-10-15" },
+      { tipo: "prenda", clave: `prenda:${V1}`, varianteId: V1, etiqueta: "Polo Básico, negro, talla M", veces: 2, unidades: 3, ultimoDia: "2026-10-15" },
       // El piso también perdió dos días (es la zona de los dos faltantes).
       expect.objectContaining({ tipo: "zona", sububicacionId: PISO, veces: 2, unidades: 3 }),
     ]);
@@ -152,7 +152,7 @@ describe("esRestaGrandeSinNota", () => {
     const grande = hecho({ ...aMano, dia: "2026-10-18", unidades: 3, quedaron: 0, varianteId: V2, producto: "Jean Recto", talla: "28", color: "Azul" });
     const r = perdidasQueSeRepiten([hecho({ dia: "2026-10-02", sububicacionId: null }), hecho({ dia: "2026-10-15", sububicacionId: null }), grande], HOY);
     expect(r.map((x) => x.tipo)).toEqual(["resta_grande", "prenda"]);
-    expect(fraseRepeticion(r[0])).toBe("Se quitaron 3 prendas de Jean Recto · 28 · Azul sin nota y la talla quedó en 0");
+    expect(fraseRepeticion(r[0])).toBe("Se quitaron 3 prendas de Jean Recto, azul, talla 28 sin nota y la talla quedó en 0");
   });
 });
 
@@ -164,7 +164,7 @@ describe("avisoPerdidas — lo que dice el Inicio del líder", () => {
     const r = perdidasQueSeRepiten([hecho({ dia: "2026-10-02", sububicacionId: null }), hecho({ dia: "2026-10-15", sububicacionId: null })], HOY);
     expect(avisoPerdidas(r)).toEqual({
       cantidad: 1,
-      detalle: "Polo Básico · M · Negro perdió 2 prendas en 2 días distintos.",
+      detalle: "Polo Básico, negro, talla M perdió 2 prendas en 2 días distintos.",
       href: `/inventario/movimientos?vista=perdidas&p=30&variante=${V1}`,
     });
   });
@@ -172,7 +172,7 @@ describe("avisoPerdidas — lo que dice el Inicio del líder", () => {
     const r = perdidasQueSeRepiten([hecho({ dia: "2026-10-02" }), hecho({ dia: "2026-10-15" })], HOY);
     const a = avisoPerdidas(r);
     expect(a.cantidad).toBe(2);
-    expect(a.detalle).toMatch(/ · y 1 más\.$/);
+    expect(a.detalle).toMatch(/, y 1 más\.$/);
     expect(a.href).toBe("/inventario/movimientos?vista=perdidas&p=30");
   });
   it("una zona sola lleva a la pestaña filtrada a esa zona", () => {

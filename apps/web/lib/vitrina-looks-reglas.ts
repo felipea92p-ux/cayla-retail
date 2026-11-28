@@ -11,6 +11,7 @@
 //   NO HACE: leer la base ni decidir permisos.
 
 import { normalizarBusqueda } from "./combo-reglas";
+import { listaDicha } from "./lista-dicha";
 
 /** Lo que la base acepta (`vitrina_looks`): de 2 a 4 prendas, el nombre hasta 60 letras y la frase hasta 200. */
 export const MIN_PRENDAS_LOOK = 2;
@@ -397,7 +398,7 @@ export function resumenLook(l: Pick<Look, "piezasDelLook" | "total" | "desde">):
 
 /** Los nombres en una frase: «Blusa Emma», «Blusa Emma y Falda Renata», «Blusa Emma, Falda Renata y Vestido Sofía». */
 export function listaDeNombres(nombres: readonly string[]): string {
-  return new Intl.ListFormat("es", { type: "conjunction" }).format(nombres);
+  return listaDicha(nombres);
 }
 
 /**

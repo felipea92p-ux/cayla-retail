@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SelloTipo } from "@/components/movimientos/SelloTipo";
 import { desgloseAjustes, desgloseCifras, ventasAnuladas, type CategoriaFiltro, type CifrasGrupo, type ResumenTienda } from "@/lib/movimientos-reglas";
+import { listaDicha } from "@/lib/lista-dicha";
 import { GRUPOS_TIPO, TIPOS_VISUALES, type GrupoTipo, type InfoGrupo } from "@/lib/movimientos-tipos";
 
 // La columna de los siete tipos, a la derecha de la lista (rediseño 2026-10-05, ADR-0353; maqueta: opción A · Ruta, columna
@@ -16,7 +17,7 @@ import { GRUPOS_TIPO, TIPOS_VISUALES, type GrupoTipo, type InfoGrupo } from "@/l
 // Desde lg es una columna que acompaña al bajar por la lista; debajo, una fila que se desliza de lado arriba de ella.
 
 /** `detalle`: lo que se lee DENTRO del botón en vez de las prendas (los ajustes en bruto). `desglose`: lo que dice su ayuda al
- *  pasar el mouse —de qué procesos salen las prendas («80 por traslado · 13 de stock inicial»)—, que antes decían las tarjetas. */
+ *  pasar el mouse —de qué procesos salen las prendas («80 por traslado y 13 de stock inicial»)—, que antes decían las tarjetas. */
 type Cifra = { operaciones: number; prendas: number; detalle: string | null; extra: string | null; desglose: string | null };
 
 /** Qué cuenta cada botón, de las cifras por grupo que da la base (`fn_movimientos_resumen_procesos`). */
@@ -37,13 +38,16 @@ function cifraDeGrupo(g: InfoGrupo, resumen: ResumenTienda): Cifra {
       return { operaciones: c.operaciones, prendas: c.salen, detalle: null, extra: null, desglose: desgloseCifras(c, "salen") || null };
     case "cliente":
       // Una devolución suma, un cambio suma y resta: las prendas que se movieron con el cliente son las dos caras.
-      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle: null, extra: null, desglose: [desgloseCifras(c, "entran"), desgloseCifras(c, "salen")].filter(Boolean).join(" · ") || null };
+      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle: null, extra: null, desglose: listaDicha([desgloseCifras(c, "entran"), desgloseCifras(c, "salen")]) || null };
     case "ajuste": {
       // En bruto (Felipe, 2026-10-03, ADR-0234): lo que faltó y lo que apareció por separado, nunca un neto — «+52» escondía
       // 35 prendas que faltaron. El cajón y la lista dicen si hay un documento detrás (conteo) o fue a mano.
       const { faltaron, aparecieron } = desgloseAjustes(c);
-      const desglose = [faltaron && `Faltaron: ${faltaron}`, aparecieron && `Aparecieron: ${aparecieron}`].filter(Boolean).join(" · ") || null;
-      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle: c.operaciones > 0 ? `−${n(c.salen)} faltaron · +${n(c.entran)} aparecieron` : null, extra: null, desglose };
+      // Dos frases, no una lista: cada cara ya trae su «y» («faltaron 26 a mano y 9 en un conteo; aparecieron 4 a mano»).
+      const desglose = [faltaron && `faltaron ${faltaron}`, aparecieron && `aparecieron ${aparecieron}`].filter(Boolean).join("; ") || null;
+      // El lado en cero no se dice: «−1 faltaron», no «−1 faltaron y +0 aparecieron» (/formidable 2026-11-28).
+      const detalle = c.operaciones > 0 ? listaDicha([c.salen > 0 && `−${n(c.salen)} faltaron`, c.entran > 0 && `+${n(c.entran)} aparecieron`]) || null : null;
+      return { operaciones: c.operaciones, prendas: c.entran + c.salen, detalle, extra: null, desglose };
     }
   }
 }
@@ -66,7 +70,7 @@ export function TiposMovimiento({
   const total = resumen?.todos.operaciones ?? 0;
   return (
     <nav aria-label="Tipo de movimiento" data-guia="movimientos.tipos" className="min-w-0">
-      <p className="label-cayla mb-2 hidden text-xs font-bold text-taupe lg:block">Filtrar por tipo · {periodo}</p>
+      <p className="label-cayla mb-2 hidden text-xs font-bold text-taupe lg:block">Filtrar por tipo ({periodo})</p>
       <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:mx-0 lg:grid lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0" data-hay={categoria ? "" : undefined}>
         {GRUPOS_TIPO.map((g) => {
           const info = TIPOS_VISUALES[g.tipo];
@@ -85,7 +89,7 @@ export function TiposMovimiento({
                   ) : (
                     <>
                       {cifra.prendas.toLocaleString("es-PE")} {cifra.prendas === 1 ? "prenda" : "prendas"}
-                      {cifra.extra ? ` · ${cifra.extra}` : ""}
+                      {cifra.extra ? ` (${cifra.extra})` : ""}
                     </>
                   )
                 ) : (

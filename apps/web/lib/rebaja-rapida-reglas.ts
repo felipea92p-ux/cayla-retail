@@ -6,6 +6,7 @@
 import type { CampoDeGuia } from "./guia-campos";
 import { compararTallas } from "./tallas";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
+import { listaDicha } from "./lista-dicha";
 
 export type AlcanceRebaja = "prenda" | "modelo";
 
@@ -269,7 +270,7 @@ export function textoDeDondeSalio(lugares: readonly string[]): string | null {
     }
     return cajon[2] === "Todas las tiendas" ? `${cajon[1]} de todas las tiendas` : cajon[1];
   });
-  const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(partes);
+  const lista = listaDicha(partes);
   return soloDescuentos ? `Antes tenía ${lista}` : `Antes estaba en ${lista}`;
 }
 

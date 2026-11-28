@@ -47,7 +47,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 
 ## Qué se construyó (actividad 1)
 
-- **Base** (`20261124170000_reglas_de_precio_por_rasgos.sql`, solo en local): `retail.reglas_de_precio` (una fila por cambio; candados: base
+- **Base** (`20261124170000_reglas_de_precio_por_rasgos.sql`, en producción desde el 2026-11-24): `retail.reglas_de_precio` (una fila por cambio; candados: base
   20–60, casillas 0–10, base con todas ≤ 75 %; fila de fábrica 37 % y +3), `tejidos.se_nota`, `marcas.conocida`, `fn_reglas_de_precio()`,
   `fn_listas_de_precio()`, `guardar_reglas_de_precio`, `marcar_tejido_que_se_nota` y `marcar_marca_conocida` (solo Admin, firmadas con el
   responsable, anotadas en `configuracion_historial` y en Actividad). Prueba: `pnpm pruebas:reglas-de-precio` (38 casos).
@@ -67,7 +67,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 
 ## Qué se construyó (actividad 3)
 
-- **«Compré ropa» con las casillas** (`20261124174000_compra_con_rasgos_de_la_prenda.sql`, solo en local): `orden_compra_items.rasgos` (los
+- **«Compré ropa» con las casillas** (`20261124174000_compra_con_rasgos_de_la_prenda.sql`, en producción desde el 2026-11-24): `orden_compra_items.rasgos` (los
   códigos de ADR-0700, en el orden de la hoja) y `precio_visto_afuera` (techo del sugerido), con sus candados y sus lectores
   (`fn_rasgos_de_linea`, `fn_precio_visto_de_linea`). Las escribe `fn_registrar_compra_rapida_base` en la misma transacción que crea la línea,
   con un reemplazo anclado que NO toca el bloque que ancla 20261113211000 (las pruebas que la vuelven a pegar siguen pasando). No es
@@ -81,7 +81,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 
 ## Qué se construyó (actividad 4, la base)
 
-- `20261124180000_prenda_con_rasgos_al_recibir.sql` (solo en local): `retail.producto_rasgos` (una fila por prenda: «Nadie la tiene» y «En
+- `20261124180000_prenda_con_rasgos_al_recibir.sql` (en producción desde el 2026-11-24): `retail.producto_rasgos` (una fila por prenda: «Nadie la tiene» y «En
   tendencia» sí/no; «Tela que se nota» sí/no o nula = por su tejido; la marca NO se guarda, sale siempre de la lista) y
   `fn_rasgos_de_producto(uuid)` (lo que tiene en efecto). `fn_envio_detalle` trae `rasgos` y `precio_visto_afuera` de cada línea, y
   `preparar_prenda_al_recibir` deja en la prenda (nueva o ya existente) las casillas de su línea si todavía no tiene las suyas: lo de Catálogo
@@ -96,7 +96,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
   sus motivos, y la base nunca escribió la prenda del catálogo, «a la espera de precio», las casillas ni el precio visto afuera: corregir una
   cantidad de una orden de «Compré ropa» (sin comprobante ni envío, que es cuando se ofrece «Editar») le borraba todo eso. En producción
   ninguna de las 42 órdenes con sugerido estaba en esa ventana (2026-11-24): no llegó a pasar.
-- `20261124181000_editar_orden_conserva_lo_de_la_linea.sql` (solo en local): `fn_orden_compra_detalle` trae `producto_id`,
+- `20261124181000_editar_orden_conserva_lo_de_la_linea.sql` (en producción desde el 2026-11-24): `fn_orden_compra_detalle` trae `producto_id`,
   `precio_por_definir`, `rasgos` y `precio_visto_afuera` por línea, y `fn_orden_compra_escribir_lineas` los escribe en el mismo `insert`,
   revisados: la prenda solo si sigue siendo de la misma categoría y marca; «a la espera» solo sin sugerido ni prenda; casillas y precio visto
   con los lectores de «Compré ropa». Van al principio de las listas del `insert` (20261022080000 ancla el final) y no en un `update` aparte
@@ -108,7 +108,7 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 
 ## Qué se construyó (actividad 5, Catálogo)
 
-- `20261124183000_rasgos_de_la_prenda_en_catalogo.sql` (solo en local): `fn_producto_rasgos(uuid)` (lo guardado tal cual, con la tela nula =
+- `20261124183000_rasgos_de_la_prenda_en_catalogo.sql` (en producción desde el 2026-11-24): `fn_producto_rasgos(uuid)` (lo guardado tal cual, con la tela nula =
   por su tejido) y `guardar_rasgos_de_producto(uuid, boolean, boolean, boolean)` (quien ve Productos; firma el responsable; devuelve lo que
   tiene en efecto). Prueba: `pnpm pruebas:rasgos-en-catalogo` (14).
 - Una sola pieza para las casillas: `components/QueTieneLaPrenda.tsx` («Compré ropa», Nuevo y Editar producto).
@@ -131,6 +131,11 @@ marcan a mano, y las casillas se guardarán con la prenda para medirlo.
 - **Queda aparte:** la hoja de Recibir no manda las casillas a la propuesta hasta que se haga su parte web (después del PR #2001).
 
 ## Actualización 2026-11-24 (b): las casillas son una lista que edita el Admin (`20261124201000`)
+
+**En producción desde el 2026-11-26** (pegada por el SQL Editor a las 16:31 de Lima, antes de fusionar el PR #2004; por eso no figura en
+`supabase_migrations.schema_migrations`). Comprobado el 2026-11-28: las diez funciones que crea o cambia dan el mismo md5 que el repo (sin
+las líneas de comentario en los dos lados), con los mismos permisos; la tabla con RLS y sin acceso directo; Recibir escribe la lista nueva.
+La migración es idempotente: pegarla otra vez no cambia nada.
 
 **El problema.** Felipe pidió más casillas (2026-11-24: «dame más variedad de opciones») mirando «¿Qué tiene esta prenda?» en Nuevo
 producto. Las cuatro vivían fijas: una columna de puntos por casilla en `reglas_de_precio`, una sí/no por casilla en `producto_rasgos`, los
@@ -167,11 +172,29 @@ prenda suma más veces el mismo motivo («Nadie la tiene», «Pocas unidades», 
 exceso, pero lo que de verdad lo corrige es medir: comparar después de una temporada si las prendas con cada casilla se vendieron más a precio
 lleno. Las casillas que calcularía el ERP solo («Llega a inicio de temporada», «Pocas unidades») necesitan un origen nuevo y código.
 
+## Actualización 2026-11-26: las casillas se van con la prenda y pasan al fusionar (`20261126211000`)
+
+En la revisión del PR #2004, las pruebas de deriva de eliminar y fusionar productos frenaron `producto_rasgos`: una prenda sin historia con
+casillas no se podía eliminar, y al fusionar dos fichas las casillas del duplicado se quedaban en él. La llave a `productos` pasó a
+`on delete cascade` (las casillas son configuración de la ficha, como `producto_taller`) y `fusionar_productos` las trata «uno por
+producto»: mandan las del que queda; las del duplicado pasan solo si el que queda no tiene. En producción desde el 2026-11-26.
+
+## Actualización 2026-11-28: el precio sugerido manda en Nuevo producto; la IA, segunda opinión
+
+Felipe, mirando «Costo y precio» de Nuevo producto: «debería ser más vistoso el precio sugerido, ya que no se nota; lo inicial que se ve es lo
+de la IA, pero son otro tipo de datos». El sugerido era un botón chico bajo «Margen —», y la propuesta de la IA, un bloque con el monto en
+28 px. Ahora, con el costo y sin precio, la tercera columna es «Precio sugerido» (el monto grande, «Llega a tu objetivo de N %», «Usar»); con
+el precio escrito vuelve a ser «Margen». La IA se pide con un enlace chico y responde en una línea (`PropuestaDePrecio discreta`). Recibir
+no cambia: ahí se elige entre lo que sugirió quien compró y la IA (Felipe 2026-11-11). La base vigente en producción es 33 % desde el
+2026-11-28 (la puso Felipe en Configuración ▸ Precios); la pantalla sigue mostrando «Recomendado: 37 %», el número del análisis de gastos.
+Auditoría: `docs/milimetro/auditorias/2026-11-28-precio-sugerido-a-la-vista.md`.
+
 ## Lo que falta
 
-- **Producción:** las seis primeras migraciones ya están (2026-11-24, con el OK de Felipe). Falta `20261124201000` (las casillas como lista),
-  con su OK, antes de fusionar: la web de esta rama ya llama a `guardar_rasgos_de_producto(uuid, text[], text[])` y a
-  `guardar_casilla_de_precio`. Después, `pnpm datos:refrescar` para el diccionario.
+- **Producción:** al día. Las seis primeras desde el 2026-11-24 y `20261124201000` y `20261126211000` desde el 2026-11-26. Falta
+  `pnpm datos:refrescar` para el diccionario.
+- **Llenar las listas:** en producción, «Tejidos que se notan» y «Marcas que el cliente conoce» siguen vacías (2026-11-28): hasta que un
+  Admin las marque en Configuración ▸ Precios, ninguna prenda suma esas dos casillas sola.
 - **La pantalla de Recibir** (la web de la actividad 4), cuando se fusione el PR #2001 (ADR-0699 toca la misma hoja).
 - **Calibrar los +3 %** con las ventas de 3 a 6 meses de casillas guardadas: hoy son una hipótesis.
 - El detalle, en `docs/backlog/2026-11-24-margen-ganancia-atributos-2fe4df.md`.

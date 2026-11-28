@@ -15,6 +15,7 @@
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
 import { claveReferencia, faltaDelPaso, faltaLugarCarga, faltaProveedorLlegada, pasoHecho, textoCeldaSinPrecio, textoFaltaStock, textoFotosSinColor, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { listaDicha } from "./lista-dicha";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "empresa" | "categoria" | "marca" | "existe" | "tejido" | "patron" | "descripcion" | "nombre" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -225,7 +226,7 @@ export function faltanHastaElPaso(campos: readonly CampoGuia[], paso: PasoAlta):
 export function resumenFaltan(faltan: readonly CampoGuia[]): string | null {
   if (faltan.length === 0) return null;
   const nombres = faltan.map((c) => c.nombre.toLocaleLowerCase("es"));
-  const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(nombres);
+  const lista = listaDicha(nombres);
   if (faltan.every((c) => !c.requerido)) return `Por revisar: ${lista}`;
   return `${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}`;
 }

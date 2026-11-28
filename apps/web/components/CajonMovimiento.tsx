@@ -255,7 +255,7 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
             <span className="block text-sm leading-tight">piso y almacén juntos</span>
           </span>
           <span className="tabular-nums text-tinta">
-            Había <b>{d.enTienda.antes}</b> · ahora hay <b>{d.enTienda.despues}</b>
+            Había <b>{d.enTienda.antes}</b> y ahora hay <b>{d.enTienda.despues}</b>
           </span>
         </div>
       )}
