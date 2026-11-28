@@ -15,6 +15,7 @@ import type { CifrasEsperan } from "./vitrina-esperan-reglas";
 import type { CifrasLooks } from "./vitrina-looks-reglas";
 import type { CifrasVitrina, ModeloVitrina } from "./vitrina-reglas";
 import { esEncendidoSinPrecio, hrefVitrina, seVeEnLaWeb } from "./vitrina-reglas";
+import { listaDicha } from "./lista-dicha";
 
 /** Cómo llegó cada lectura: leída, sin el módulo (no se pide ni se muestra) o caída (se dice, y el resto de la pantalla sigue). */
 export type Lectura<T> = { estado: "ok"; dato: T } | { estado: "sin_modulo" } | { estado: "fallo" };
@@ -270,7 +271,7 @@ export function vacioDePendientes(e: EntradaResumen): VacioDePendientes {
     };
   }
   const partes: string[] = [];
-  if (caidas.length > 0) partes.push(`No se pudo leer ${new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}: no es lo mismo que estar al día.`);
+  if (caidas.length > 0) partes.push(`No se pudo leer ${listaDicha(caidas)}: no es lo mismo que estar al día.`);
   if (sinTienda) partes.push("Los pedidos se ven desde una tienda: elige una en el selector de arriba.");
   return { completo: false, titulo: "Sin novedades en lo que se pudo leer", detalle: partes.join(" ") };
 }

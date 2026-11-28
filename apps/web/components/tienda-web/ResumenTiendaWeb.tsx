@@ -39,6 +39,7 @@ import {
   type Pendiente,
   type TeselaWeb,
 } from "@/lib/tienda-web-resumen";
+import { listaDicha } from "@/lib/lista-dicha";
 
 const ICONO: Record<IconoPendiente, ReactNode> = {
   confirmar: <ClipboardCheck />,
@@ -189,7 +190,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
     <div className="tw space-y-8">
       {caidas.length > 0 && (
         <Aviso tono="atencion" titulo="Este resumen está incompleto">
-          No se pudo leer {new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}. Recarga la página; si sigue, entra a su pantalla.
+          No se pudo leer {listaDicha(caidas)}. Recarga la página; si sigue, entra a su pantalla.
         </Aviso>
       )}
 

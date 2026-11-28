@@ -50,14 +50,18 @@ describe("PerdidasVista con datos reales de la base", () => {
     expect(t).toContain("no se resta de lo perdido");
   });
 
-  it("«Más faltan» por categoría · talla · color, y el desglose por razón con su explicación", () => {
+  it("«Más faltan» por categoría, talla y color, y el desglose por razón con su explicación", () => {
     const t = texto(dibujar(LIDER));
     const primero = LIDER.masFaltan[0]!;
     expect(t).toContain("Más faltan");
-    expect(t).toContain(`${primero.categoria} · ${primero.talla} · ${primero.color}`);
+    // La línea de datos (ADR-0716): cada dato en su pieza, con su rótulo para el lector.
+    expect(t).toContain(`Categoría: ${primero.categoria}`);
+    expect(t).toContain(`Talla: ${primero.talla}`);
+    expect(t).toContain(`Color: ${primero.color}`);
     expect(t).toContain("Faltó en un traslado");
     expect(t).toContain("Se cuenta en la sede que lo envió");
-    expect(t).toContain("Lo que apareció · por explicar");
+    expect(t).toContain("Lo que apareció");
+    expect(t).not.toContain("·");
   });
 
   it("el líder ve el costo por prenda; la integrante no ve ni la columna", () => {

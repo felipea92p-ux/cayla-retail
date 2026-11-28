@@ -24,9 +24,11 @@ import {
   type Repeticion,
   type ResumenPerdidas,
 } from "../../lib/perdidas-reglas";
-import { FunnelX, PackageCheck } from "lucide-react";
+import { FunnelX, PackageCheck, Palette, Ruler, Tag } from "lucide-react";
 import { Vacio } from "../ui/Vacio";
 import { TituloSeccion } from "../ui/TituloSeccion";
+import { CabeceraConCuenta, type CuentaDeGrupo } from "../ui/CabeceraConCuenta";
+import { LineaDeDatos } from "../ui/LineaDeDatos";
 
 // La pestaña «Pérdidas» de Movimientos (ADR-0328, actividad 14; Felipe, 2026-10-04). Responde «¿cuánto perdimos?» con
 // la MISMA cuenta que Finanzas (Mermas del Estado de resultados) y el resumen de Inventario: la base la decide
@@ -101,6 +103,7 @@ export function PerdidasVista({
               <ListaHechos
                 guia="perdidas.perdido"
                 titulo="Lo que se perdió"
+                cuenta={{ total: resumen.perdido.unidades, que: PRENDAS }}
                 bajada="De lo más reciente a lo más antiguo. Toca una prenda para ver solo sus pérdidas."
                 hechos={resumen.hechos.filter((h) => h.lado === "perdida")}
                 veCosto={resumen.veCosto}
@@ -110,7 +113,9 @@ export function PerdidasVista({
               />
               <ListaHechos
                 guia="perdidas.aparecio"
-                titulo="Lo que apareció · por explicar"
+                titulo="Lo que apareció"
+                // Caso 3 de ADR-0716: el nombre a la izquierda y la cuenta dicha a la derecha, con lo que falta explicar en su color.
+                cuenta={{ total: resumen.aparecio.unidades, urgentes: resumen.aparecio.unidades, que: PRENDAS, comoEsUrgente: "por explicar" }}
                 bajada="Prendas que el sistema no tenía y aparecieron. No se restan de lo perdido: cada una tiene su historia."
                 hechos={resumen.hechos.filter((h) => h.lado === "aparecio")}
                 veCosto={resumen.veCosto}
@@ -135,6 +140,8 @@ export function PerdidasVista({
     </div>
   );
 }
+
+const PRENDAS = { singular: "prenda", plural: "prendas", genero: "f" } as const;
 
 function textoFiltro(r: ResumenPerdidas, filtro: { varianteId: string | null; sububicacionId: string | null }): string | null {
   if (filtro.varianteId) {
@@ -164,7 +171,7 @@ function Cifras({
   return (
     <div data-guia="perdidas.cifras" className="grid gap-3 sm:grid-cols-3">
       <TarjetaCifra
-        etiqueta={`Se perdió en ${sede} · ${periodoTexto}`}
+        etiqueta={`Se perdió en ${sede} (${periodoTexto})`}
         valor={p.unidades === 0 ? "0" : `−${p.unidades.toLocaleString("es-PE")}`}
         unidad={p.unidades === 1 ? "prenda" : "prendas"}
         tono={p.unidades > 0 ? "text-rojo" : undefined}
@@ -185,14 +192,14 @@ function Cifras({
         )}
       </TarjetaCifra>
       <TarjetaCifra
-        etiqueta="Apareció · por explicar"
+        etiqueta="Apareció (por explicar)"
         valor={a.unidades === 0 ? "0" : `+${a.unidades.toLocaleString("es-PE")}`}
         unidad={a.unidades === 1 ? "prenda" : "prendas"}
       >
-        {a.unidades === 0 ? "No apareció nada." : a.soles === null ? "No se resta de lo perdido" : `${solesPerdidas(a.soles)} · no se resta de lo perdido`}
+        {a.unidades === 0 ? "No apareció nada." : a.soles === null ? "No se resta de lo perdido" : `${solesPerdidas(a.soles)} (no se resta de lo perdido)`}
       </TarjetaCifra>
       <TarjetaCifra
-        etiqueta="Se repite · últimos 30 días"
+        etiqueta="Se repite en los últimos 30 días"
         // Sin medir (prenda o zona elegida) es «sin dato»; sin medir porque la lectura falló es «no se pudo leer».
         valor={repeticiones === null ? null : repeticiones.length.toLocaleString("es-PE")}
         noSePudoLeer={!filtrada && repeticiones === null}
@@ -211,13 +218,13 @@ function Cifras({
   );
 }
 
-// «Más faltan»: categoría · talla · color, las 5 con más prendas (Felipe: la señal para el Taller es el atributo, no el
+// «Más faltan»: categoría, talla y color, las 5 con más prendas (Felipe: la señal para el Taller es el atributo, no el
 // modelo, porque los modelos van cambiando).
 function MasFaltan({ resumen }: { resumen: ResumenPerdidas }) {
   return (
     <section aria-labelledby="mas-faltan" className="card-cayla p-5">
       <TituloSeccion id="mas-faltan">Más faltan</TituloSeccion>
-      <p className="mt-1 text-sm text-taupe">Categoría · talla · color con más prendas perdidas en el período.</p>
+      <p className="mt-1 text-sm text-taupe">Categoría, talla y color con más prendas perdidas en el período.</p>
       {resumen.masFaltan.length === 0 ? (
         <p className="mt-4 text-sm text-tinta/75">Nada se perdió en el período.</p>
       ) : (
@@ -226,9 +233,14 @@ function MasFaltan({ resumen }: { resumen: ResumenPerdidas }) {
             <li key={`${m.categoria}-${m.talla}-${m.color}`} className="flex items-center gap-3 py-2.5">
               <span className="w-5 shrink-0 text-right text-sm tabular-nums text-taupe">{i + 1}</span>
               <CapsulaColor fondo={m.colorHex} compacta />
-              <span className="min-w-0 flex-1 truncate text-sm text-tinta">
-                {m.categoria} · {m.talla} · {m.color}
-              </span>
+              <LineaDeDatos
+                className="flex-1 text-sm text-tinta"
+                datos={[
+                  { icono: Tag, rotulo: "Categoría", valor: m.categoria },
+                  { icono: Ruler, rotulo: "Talla", valor: m.talla },
+                  { icono: Palette, rotulo: "Color", valor: m.color },
+                ]}
+              />
               <span className="shrink-0 text-right text-sm tabular-nums text-tinta">
                 {unidadesTexto(m.unidades)}
                 <span className="block text-sm text-taupe">{m.veces === 1 ? "en 1 día" : `en ${m.veces} días`}</span>
@@ -319,6 +331,7 @@ function SeRepite({ repeticiones }: { repeticiones: Repeticion[] }) {
 function ListaHechos({
   guia,
   titulo,
+  cuenta,
   bajada,
   hechos,
   veCosto,
@@ -329,6 +342,8 @@ function ListaHechos({
   /** Ancla de la guía (ADR-0389). */
   guia: string;
   titulo: string;
+  /** Cuántas prendas son, dicho a la derecha del título. */
+  cuenta: CuentaDeGrupo;
   bajada: string;
   hechos: HechoPerdida[];
   veCosto: boolean;
@@ -352,7 +367,14 @@ function ListaHechos({
   ];
   return (
     <section aria-label={titulo} data-guia={guia}>
-      <TituloSeccion>{titulo}</TituloSeccion>
+      {/* Vacía, la cuenta no se dice: «0 prendas» repetiría lo que ya dice el vacío de abajo. */}
+      {cuenta.total > 0 ? (
+        <CabeceraConCuenta nivel={2} cuenta={cuenta}>
+          {titulo}
+        </CabeceraConCuenta>
+      ) : (
+        <TituloSeccion>{titulo}</TituloSeccion>
+      )}
       <p className="mt-1 text-sm text-taupe">{bajada}</p>
       <Tabla className="mt-3">
         {hechos.length === 0 ? (

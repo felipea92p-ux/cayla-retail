@@ -10,6 +10,7 @@ import { SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { listaDicha } from "@/lib/lista-dicha";
 
 // El primer paso: ¿QUÉ producto es? Dos toques (familia → categoría) o una
 // búsqueda que salta directo. Decidido con Felipe (2026-09-18): tarjetas por
@@ -116,7 +117,7 @@ export function ArbolCategoria({
     : [];
   const categoriasDeLaFamilia = familiaAbierta ? (porFamilia[familiaAbierta] ?? []) : [];
 
-  const nombresOcultos = new Intl.ListFormat("es", { type: "conjunction" }).format(masFamilias.map((f) => f.nombre));
+  const nombresOcultos = listaDicha(masFamilias.map((f) => f.nombre));
 
   const tarjeta = (f: FamiliaAlta, indice?: number) => {
     const activa = familiaAbierta === f.codigo;

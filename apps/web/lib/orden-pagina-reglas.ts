@@ -6,6 +6,7 @@ import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelC
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { entradaDeCambioDeTipo } from "./orden-tipo-reglas";
+import { listaDicha } from "./lista-dicha";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -913,9 +914,8 @@ export function pasoPosteriorEmpezado(
  */
 export function textoDePasosBloqueados(bloqueados: ReadonlyArray<Pick<PasoNoAgregable, "nombre" | "yaEmpezo">>): string | null {
   if (bloqueados.length === 0) return null;
-  const lista = new Intl.ListFormat("es", { style: "long", type: "conjunction" });
   const empezaron = [...new Set(bloqueados.map((b) => b.yaEmpezo))];
-  return `${lista.format(bloqueados.map((b) => b.nombre))} ya no ${bloqueados.length === 1 ? "entra" : "entran"}: ${lista.format(empezaron)} ya ${empezaron.length === 1 ? "empezó" : "empezaron"} y ${bloqueados.length === 1 ? "iría" : "irían"} antes.`;
+  return `${listaDicha(bloqueados.map((b) => b.nombre))} ya no ${bloqueados.length === 1 ? "entra" : "entran"}: ${listaDicha(empezaron)} ya ${empezaron.length === 1 ? "empezó" : "empezaron"} y ${bloqueados.length === 1 ? "iría" : "irían"} antes.`;
 }
 
 /**

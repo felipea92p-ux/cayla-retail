@@ -92,6 +92,21 @@ El README de la familia en Dynamic dice qué falta decidir antes de encenderla, 
 tarea allá», con las piezas). Si cambia cómo funciona una pieza, también dice qué tendrá que hacerse a mano. Lo pide `CLAUDE.md` («Los dos sistemas») y una casilla de la plantilla del PR.
 Nunca escribe en el repositorio de Dynamic.
 
+## Separar sin punto (S10, 2026-11-27)
+
+Felipe aprobó para los dos sistemas la regla de once casos para no separar datos con «·» (Retail ADR-0716, Dynamic ADR 0007). Retail
+manda: escribió la regla y las tres piezas compartidas, y Dynamic las trae con la misma forma:
+
+| Pieza en Retail | Qué hace | Lo que reemplaza en Dynamic |
+|---|---|---|
+| `apps/web/components/ui/LineaDeDatos.tsx` | Caso 2: los datos sueltos de una fila, con ícono mudo y rótulo para el lector | `components/ui/linea-de-datos.tsx` (misma forma; aquí el ícono va sin `strokeWidth` y a 14 px) |
+| `apps/web/components/ui/CabeceraConCuenta.tsx` + `apps/web/lib/cuenta-en-frase.ts` | Caso 3: el nombre y la cuenta dicha a la derecha, lo urgente en rojo profundo | `cuentaDeCasos` de `lib/admin/incidencias.ts` (mismos casos de prueba) |
+| `apps/web/lib/lista-dicha.ts` | Caso 7: «a, b y c» con `Intl.ListFormat`, y la prenda dicha | `enFrase` de `lib/admin/incidencias.ts` |
+
+Las dos piezas de React viven en `components/ui/`, que el vigilante de Dynamic **mira**: abre una tarea, no las copia. La regla viaja sola
+en `contrato.json` (S10) con su `aplicacion_pendiente`. Cada sistema tiene su freno por módulo (`apps/web/lib/sin-punto-medio.test.ts`
+aquí, `tests/sin-punto-medio.test.ts` allá).
+
 ## Lo que falta aplicar en Dynamic (P1 = C)
 
 El oscuro quedó decidido el 2026-10-26 y Retail ya lo usa. Dynamic debe cambiar su tema `oscuro` a estos valores (el contrato, versión 2, los guarda en

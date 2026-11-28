@@ -27,6 +27,7 @@ import { aTexto, leerNumero, textoParaBase } from "./orden-compra-alta";
 import { numeroEnvio, numeroOrdenCompra, type EstadoEnvio } from "./ordenes-compra-reglas";
 import { cubrirReposiciones, deudaDe, leerDeudasDelEnvio, opcionReposicion, pendienteDe, VALOR_REPOSICION, type DeudaDelEnvio, type PedidoReposicion } from "./nos-debe-reglas";
 import { compararTallas } from "./tallas";
+import { listaDicha } from "./lista-dicha";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base y topes
@@ -1843,7 +1844,7 @@ export function textoDeLoQueSeCrea(b: BorradorPrenda, ctx: ContextoPrenda, nombr
   if (combinaciones.length === 0) return null;
   const tallas = [...new Set(combinaciones.map((c) => c.talla_id))].map((id) => (id ? (ctx.tallas.find((t) => t.id === id)?.valor ?? "?") : "Única"));
   const colores = [...new Set(combinaciones.map((c) => c.color_codigo))].map((c) => (c ? nombreColor(c) : "Sin color"));
-  const y = (xs: string[]) => new Intl.ListFormat("es", { type: "conjunction" }).format(xs);
+  const y = (xs: string[]) => listaDicha(xs);
   const n = combinaciones.length;
   return `${n === 1 ? "Se crea 1 combinación" : `Se crean ${n} combinaciones`}: ${y(tallas)}${colores.length === 1 && colores[0] === "Sin color" ? "" : ` en ${y(colores)}`}.`;
 }

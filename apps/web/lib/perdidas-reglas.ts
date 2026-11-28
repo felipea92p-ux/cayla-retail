@@ -14,6 +14,7 @@
 // de UNA sede y cubren al menos los últimos 30 días (si `hechosTotal` supera la lista, la lectura está cortada y lo dice
 // `listaCortada`).
 
+import { prendaDicha } from "./lista-dicha";
 import { restarDias } from "./movimientos-reglas";
 
 export type LadoPerdida = "perdida" | "aparecio";
@@ -91,9 +92,9 @@ export function textoRazon(razon: string, lado: LadoPerdida): string {
   return t ? t[lado] : razon.replaceAll("_", " ");
 }
 
-/** «Polo Básico · M · Negro»: la prenda en una línea, sin piezas vacías. */
+/** «Polo Básico, negro, talla M»: la prenda dicha en una frase, sin piezas vacías (ADR-0716). */
 export function etiquetaPrenda(h: Pick<HechoPerdida, "producto" | "talla" | "color">): string {
-  return [h.producto, h.talla, h.color].filter(Boolean).join(" · ");
+  return prendaDicha({ nombre: h.producto, color: h.color, talla: h.talla });
 }
 
 /** «Piso», «Almacén», «Cuarentena», o el nombre de la zona si no es una de las tres. */
@@ -269,7 +270,7 @@ export type AvisoPerdidas = { cantidad: number; detalle: string; href: string };
 export function avisoPerdidas(reps: readonly Repeticion[]): AvisoPerdidas {
   if (reps.length === 0) return { cantidad: 0, detalle: "", href: hrefPerdidas({ periodo: "30" }) };
   const primera = fraseRepeticion(reps[0]);
-  const mas = reps.length > 1 ? ` · y ${reps.length - 1} más` : "";
+  const mas = reps.length > 1 ? `, y ${reps.length - 1} más` : "";
   return { cantidad: reps.length, detalle: `${primera}${mas}.`, href: reps.length === 1 ? hrefRepeticion(reps[0]) : hrefPerdidas({ periodo: "30" }) };
 }
 

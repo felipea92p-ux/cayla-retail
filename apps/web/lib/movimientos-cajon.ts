@@ -34,6 +34,7 @@ import {
   type ReferenciaMovimiento,
 } from "./movimientos-reglas";
 import type { ApartadoDeMovimiento } from "./movimientos-atajos";
+import { prendaDicha } from "./lista-dicha";
 import { tipoDeOperacion, type TipoVisual } from "./movimientos-tipos";
 
 export type FormaCajon = "grupo" | "individual" | "cambio" | "interno" | "ajuste";
@@ -58,7 +59,7 @@ export type TonoCifra = "verde" | "rojo" | "neutro";
 export type ItemPrenda = {
   varianteId: string;
   referencia: string;
-  variante: string | null; // "L · Azul marino"
+  variante: string | null; // «Azul marino, talla L»
   fotoUrl: string | null;
   cantidad: string;
   tono: TonoCifra;
@@ -241,7 +242,7 @@ function itemDeFila(m: Movimiento, ctx: ContextoCajon, cantidad: string, tono: T
   return {
     varianteId: m.varianteId,
     referencia: m.referencia,
-    variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
+    variante: prendaDicha({ color: m.color, talla: m.talla }) || null,
     fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
     cantidad,
     tono,
@@ -309,7 +310,7 @@ export function pasosDeOperacion(op: OperacionMovimiento): PasoCajon[] {
   const hecho = (texto: string): PasoCajon => ({ texto, hecho: true });
   switch (tipo) {
     case "venta": {
-      const doc = primera.venta?.comprobante ? ` · ${textoComprobante(primera.venta.comprobante)}` : "";
+      const doc = primera.venta?.comprobante ? ` (${textoComprobante(primera.venta.comprobante)})` : "";
       return [hecho(`Se cobró en caja${doc}`), hecho(`Salió ${delLugar(primera)}: ${prendas}`), hecho("Se entregó al cliente")];
     }
     case "colgada":
@@ -405,7 +406,7 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
     return {
       ...base,
       titulo: esConteo ? "Ajuste por conteo" : etiquetaProceso(primera.motivo),
-      prenda: una ? { referencia: primera.referencia, variante: [primera.talla, primera.color].filter(Boolean).join(" · ") || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null } : null,
+      prenda: una ? { referencia: primera.referencia, variante: prendaDicha({ color: primera.color, talla: primera.talla }) || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null } : null,
       cifra: una ? `${Math.abs(primera.delta)}` : `${op.filas.length}`,
       frase: una ? fraseDeAjuste(primera.delta, lugarEnFrase(primera)) : "prendas se corrigieron",
       enTienda: una && saldo !== null ? { antes: saldo - primera.delta, despues: saldo } : null,
@@ -437,7 +438,7 @@ export function construirDetalleCajon(op: OperacionMovimiento, ctx: ContextoCajo
     ...base,
     forma: "individual",
     titulo: etiquetaMovimiento(primera),
-    prenda: { referencia: primera.referencia, variante: [primera.talla, primera.color].filter(Boolean).join(" · ") || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null },
+    prenda: { referencia: primera.referencia, variante: prendaDicha({ color: primera.color, talla: primera.talla }) || null, fotoUrl: ctx.prendas[primera.varianteId]?.fotoUrl ?? null },
     cifra: `${n}`,
     frase: fraseDeMovimiento(primera, n),
     enTienda: saldo !== null && !esApartado ? { antes: saldo - primera.delta, despues: saldo } : null,
@@ -463,7 +464,7 @@ export type FilaBajada = {
   id: string;
   hora: string;
   referencia: string;
-  variante: string | null; // "L · Azul marino"
+  variante: string | null; // «Azul marino, talla L»
   fotoUrl: string | null;
   /** «1 prenda», «2 prendas»: la cantidad ya dicha, sin símbolos. */
   cantidad: string;
@@ -528,7 +529,7 @@ export function construirDetalleBajadas(clave: string, operaciones: readonly Ope
       id: m.id,
       hora: op.hora,
       referencia: m.referencia,
-      variante: [m.talla, m.color].filter(Boolean).join(" · ") || null,
+      variante: prendaDicha({ color: m.color, talla: m.talla }) || null,
       fotoUrl: ctx.prendas[m.varianteId]?.fotoUrl ?? null,
       cantidad: cuantasPrendas(Math.abs(m.cantidad)),
       sentido: colgada || guardada ? null : `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`,

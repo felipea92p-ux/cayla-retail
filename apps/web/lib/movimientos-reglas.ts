@@ -2,6 +2,7 @@
 import { ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
 import { esFechaQueExiste, hoyLima } from "./fechas-lima";
+import { listaDicha } from "./lista-dicha";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
@@ -103,28 +104,28 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   conteo_arranque: "Conteo de arranque",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
-  // Los ajustes sueltos llevan «Ajuste a mano ·» delante: «Reposición» a secas se confundía con la bajada del almacén al
+  // Los ajustes sueltos llevan «Ajuste a mano» delante y su motivo entre paréntesis (caso 5 de «Separar sin punto», ADR-0716): «Reposición» a secas se confundía con la bajada del almacén al
   // piso, que es otra cosa; y «a mano» (Felipe, 2026-10-03) los separa del ajuste de un conteo, que tiene documento —
-  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos. El código `reposicion` se muestra como «encontré
+  // «Ajuste (conteo físico)» y «Ajuste (Conteo)» se leían como sinónimos. El código `reposicion` se muestra como «encontré
   // prendas» desde ADR-0328 (actividad 4): es el nombre del motivo en Ajustar, también para lo registrado antes.
-  reposicion: "Ajuste a mano · encontré prendas",
-  merma: "Ajuste a mano · merma",
-  conteo_fisico: "Ajuste a mano · conteo físico",
+  reposicion: "Ajuste a mano (encontré prendas)",
+  merma: "Ajuste a mano (merma)",
+  conteo_fisico: "Ajuste a mano (conteo físico)",
   // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.
-  hallazgo_conteo: "Ajuste · encontrada tras un conteo",
-  otro: "Ajuste a mano · otro",
+  hallazgo_conteo: "Ajuste (encontrada tras un conteo)",
+  otro: "Ajuste a mano (otro)",
   // ADR-0212: lo que ya estaba en la tienda al pasarla al sistema. «Stock inicial», como lo dice Nuevo producto.
   carga_inicial: "Stock inicial",
   // La carga de sistema que repartió el stock cuando la tienda empezó a separar piso y almacén.
   activacion_piso_almacen: "Separación de piso y almacén",
   siembra_cargo_especial: "Cargo especial",
   // ADR-0179: prenda vendida antes de registrarse que llegó en un lote contado sin ella.
-  ingreso_regularizado: "Prenda sin registrar · ingreso",
-  cuarentena_liquidada: "Dañado · liquidada",
-  cuarentena_se_boto: "Dañado · se botó",
-  cuarentena_donada: "Dañado · donada",
+  ingreso_regularizado: "Prenda sin registrar (ingreso)",
+  cuarentena_liquidada: "Dañado (liquidada)",
+  cuarentena_se_boto: "Dañado (se botó)",
+  cuarentena_donada: "Dañado (donada)",
   // ADR-0362, fase 5b, actividad 6a: lo que llegó dañado en una recepción y se le devolvió al proveedor (queda como deuda «por reponer»).
-  cuarentena_devuelta_proveedor: "Dañado · devuelta al proveedor",
+  cuarentena_devuelta_proveedor: "Dañado (devuelta al proveedor)",
 };
 
 /** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
@@ -177,9 +178,9 @@ export const ETIQUETA_GUARDADA = "Guardada en almacén";
 const INTERNO_POR_PAR: Record<string, string> = {
   "almacen_tienda→piso_venta": ETIQUETA_COLGADA,
   "piso_venta→almacen_tienda": ETIQUETA_GUARDADA,
-  "piso_venta→cuarentena": "Dañado · reportada en el piso",
-  "almacen_tienda→cuarentena": "Dañado · reportada en el almacén",
-  "cuarentena→almacen_tienda": "Dañado · se arregló",
+  "piso_venta→cuarentena": "Dañado (reportada en el piso)",
+  "almacen_tienda→cuarentena": "Dañado (reportada en el almacén)",
+  "cuarentena→almacen_tienda": "Dañado (se arregló)",
 };
 
 /** ¿Es una colgada en piso (almacén → piso) o una guardada en almacén (piso → almacén)? Por el par exacto de lugares, como
@@ -217,14 +218,19 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  un caso especial para «transferencia» — que a nivel de categoría sigue siendo transferencia, pero
  *  la pierna que llega a esta sede se LEE como entrada y la que sale, como salida (mismo criterio de
  *  signo que ya usa `etiquetaMovimiento`). Si el texto del proceso ya empieza con esa palabra (los
- *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
+ *  ajustes sueltos ya traen «Ajuste a mano (…)» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
-  if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
+  if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} por ${enMinuscula(etiquetaMovimiento(m))}`;
   // Dentro de la tienda no entra ni sale nada: «Colgada en piso» / «Guardada en almacén» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
-  return detalle.startsWith(direccion) ? detalle : `${direccion} · ${detalle}`;
+  return detalle.startsWith(direccion) ? detalle : `${direccion} por ${enMinuscula(detalle)}`;
+}
+
+/** «Traslado recibido» → «traslado recibido», para decirlo después de «por» (caso 1 de ADR-0716: «Salida por venta»). */
+function enMinuscula(texto: string): string {
+  return texto.charAt(0).toLocaleLowerCase("es") + texto.slice(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -394,7 +400,8 @@ export function referenciaMovimiento(m: Movimiento, opciones: { enlaceCompras?: 
       if (factura) {
         return {
           texto: `Factura ${factura}`,
-          detalle: [guia ? `Guía ${guia}` : null, proveedor].filter(Boolean).join(" · ") || null,
+          // «Guía 123 de Textiles SAC»: la guía y de quién, dichas en una frase (ADR-0716, caso 1).
+          detalle: [guia ? `Guía ${guia}` : null, proveedor ? (guia ? `de ${proveedor}` : proveedor) : null].filter(Boolean).join(" ") || null,
           href: opciones.enlaceCompras && m.compra ? `/compras/factura/${m.compra.id}` : null,
         };
       }
@@ -847,10 +854,10 @@ export const FRASE_PROCESO: Record<string, string | readonly [string, string]> =
 };
 
 /** Un motivo que la base escribió y la web todavía no conoce (`motivo` es texto libre) no rompe la tarjeta: se nombra con
- *  su etiqueta, sin el « · » que la partiría en dos. */
+ *  su etiqueta, con el detalle de sus paréntesis dicho después de una coma («por ajuste a mano, merma»). */
 function frase(proceso: string, cifra: number): string {
   const f = FRASE_PROCESO[proceso];
-  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase().replaceAll(" · ", ", ")}`;
+  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase().replace(/\s*\((.+)\)$/, ", $1")}`;
   return typeof f === "string" ? f : Math.abs(cifra) === 1 ? f[0] : f[1];
 }
 
@@ -864,7 +871,7 @@ function frase(proceso: string, cifra: number): string {
  *  venta y su anulación caen en el mismo turno. */
 export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen", opciones: { anuladas?: number } = {}): string {
   const anuladas = forma === "salen" ? (opciones.anuladas ?? 0) : 0;
-  return g.procesos
+  const partes = g.procesos
     .map((p) => ({ p, v: forma === "entran" ? p.entran : p.salen }))
     .filter(({ v }) => v !== 0)
     .sort((a, b) => b.v - a.v)
@@ -872,8 +879,9 @@ export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen", opcion
       const texto = `${v.toLocaleString("es-PE")} ${frase(p.proceso, v)}`;
       if (p.proceso !== "venta" || anuladas <= 0) return texto;
       return `${texto} (${anuladas === 1 ? "1 se anuló" : `${anuladas.toLocaleString("es-PE")} se anularon`})`;
-    })
-    .join(" · ");
+    });
+  // «80 por traslado y 13 de stock inicial» (ADR-0716, caso 7).
+  return listaDicha(partes);
 }
 
 /** Cuántas prendas volvieron por una venta anulada en el período: la cara «Entró» de esas ventas, para nombrarlas junto a
@@ -898,7 +906,7 @@ export function respaldoDeAjuste(proceso: string | null): RespaldoAjuste {
 /** La tarjeta de Ajustes en BRUTO (Felipe, 2026-10-03): lo que faltó y lo que apareció por separado, nunca un neto. En
  *  TRU, +87 y −35 se mostraban como «+52», y la encargada leía que sobraba mercadería cuando 35 prendas habían faltado;
  *  el neto además restaba dentro de cada motivo («−5 por conteo» eran +4 y −9). Cada cara se parte por RESPALDO
- *  («26 a mano · 9 en un conteo»), no por motivo: lo que se viene a saber es si hay un documento detrás; el motivo sigue
+ *  («26 a mano y 9 en un conteo»), no por motivo: lo que se viene a saber es si hay un documento detrás; el motivo sigue
  *  en cada fila y en los filtros de proceso. Null = esa cara está en cero. */
 export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; aparecieron: string | null } {
   const cara = (lado: "entran" | "salen"): string | null => {
@@ -907,12 +915,8 @@ export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; apar
       [por("a_mano"), "a mano"],
       [por("en_un_conteo"), "en un conteo"],
     ];
-    return (
-      partes
-        .filter(([v]) => v > 0)
-        .map(([v, texto]) => `${v.toLocaleString("es-PE")} ${texto}`)
-        .join(" · ") || null
-    );
+    // «26 a mano y 9 en un conteo» (ADR-0716, caso 7).
+    return listaDicha(partes.filter(([v]) => v > 0).map(([v, texto]) => `${v.toLocaleString("es-PE")} ${texto}`)) || null;
   };
   return { faltaron: cara("salen"), aparecieron: cara("entran") };
 }
