@@ -772,7 +772,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       titulo: "Mis cuentas",
-      texto: "Cada cuenta con su saldo y su estado: abierta o cerrada, sin conciliar, sin depositar, sin abonar. Las agrupas por etapa o por sede con el interruptor de arriba. Con «Todas» en la barra ves todas; con «Empresa», solo la de la empresa y lo que viene en camino. Tocas una y se abre su detalle, con sus movimientos.",
+      texto: "Cada cuenta con su saldo y su estado. Las agrupas por etapa o por sede; «Todas» y «Empresa», en la barra, eligen cuáles ves. Tocas una y se abre su detalle, con sus movimientos. En una caja fuerte, el líder anota ahí el efectivo que se llevó sin depositar: «Se lo llevó el líder».",
     },
     {
       id: "atencion",

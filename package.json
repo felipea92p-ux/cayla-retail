@@ -140,6 +140,7 @@
     "pruebas:planilla-salidas": "node scripts/pruebas/planilla_salidas.mjs",
     "pruebas:planilla-provision": "node scripts/pruebas/planilla_provision.mjs",
     "pruebas:movimientos-dinero-inicio-y-empresa": "node scripts/pruebas/movimientos_dinero_inicio_y_empresa.mjs",
+    "pruebas:lider-se-lleva": "node scripts/pruebas/lider_se_lleva.mjs",
     "pruebas:finanzas-montos-y-caja-fuerte": "node scripts/pruebas/finanzas_montos_y_caja_fuerte.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",

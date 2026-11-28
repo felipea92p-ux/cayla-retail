@@ -272,6 +272,11 @@ export function PanoramaDinero({
                     Registrar el depósito
                   </button>
                 )}
+                {sel.llevar && (
+                  <button type="button" className="btn-cayla btn-enlace" onClick={() => abrirMovimiento("lider_se_lleva", sel.id)}>
+                    Se lo llevó el líder
+                  </button>
+                )}
               </div>
               <MovimientosDeLaCuenta cuenta={{ id: sel.id, nombre: sel.nombre }} movimientos={movimientos} hoy={hoy} />
             </section>
