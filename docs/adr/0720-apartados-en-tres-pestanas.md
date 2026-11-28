@@ -72,6 +72,6 @@ en el Historial.
 Doce actividades, cada una un corte que se ve funcionando y su propio commit: (0) este ADR; (1) las tres pestañas; (2) Pendientes; (3) el
 Historial y su puente; (4) cobrar y entregar; (5–7) Apartar: las prendas, el cliente, el adelanto y las condiciones; (8) las hojas finales;
 (9) las hojas de un apartado; (10) sin «·»; (11) el cierre de cada pantalla (`/guia`, `/focus`, `/sugerir`, `/milimetro`, `/formidable`,
-`/chaos`, el celular a 375 px y una prueba a ciegas sobre lo construido). Tres PR: 0–3; 4, 8 y 9; 5–7 (con la 10). Cada actividad se mira
+`/chaos`, el celular a 375 px y una prueba a ciegas sobre lo construido). Tres PR: 0–4; 8 y 9; 5–7 (con la 10). La 4 va en el primero (antes iba con las hojas): sin ella, aplazar se quedaba sin botón entre un PR y otro, porque vivía en la fila del Historial viejo. Cada actividad se mira
 en el navegador con la página de prueba de la maqueta (datos inventados, sin base ni sesión) a 1024, 1440 y 375 px, y corre las pruebas
 del repo que toca.
