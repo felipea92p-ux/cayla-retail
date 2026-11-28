@@ -14,9 +14,11 @@
 
 ### Sin hacer (dicho sin adornos)
 
-- [ ] **Felipe mira la muestra** y dice si se sigue con otro módulo. Quedan unas 2 380 líneas con «·» en unos 850 archivos del panel.
+- [ ] **Felipe mira la muestra en producción** y dice si se sigue con otro módulo. Quedan unas 2 380 líneas con «·» en unos 850 archivos del panel.
 - [ ] **No se vio la cuenta urgente en rojo con datos reales:** la base local no tiene prendas que «aparecieron» en los últimos 90 días; la
   pieza está probada en su prueba (`lib/sin-punto-medio.test.ts`) y en Dynamic (Incidencias).
 - [ ] **Dynamic:** traer las tres piezas con la misma forma (lo pide `aplicacion_pendiente` del contrato; el vigilante abrirá la tarea por
   `components/ui/`). Desde aquí no se toca ese repositorio.
-- [ ] **Nada subido ni PR abierto:** Felipe lo ve en local antes (su regla para todo lo de diseño).
+- [x] **PR #2052** (2026-11-28): Felipe pidió llevarlo a producción («Realiza lo necesario para tener todo en produccion») y lo confirmó en
+  esta sesión; fusión automática cuando el CI dé verde. Auditoría al milímetro en `docs/milimetro/auditorias/2026-11-28-movimientos-sin-punto.md`.
+- [ ] **`/formidable` y `tema:auditar` no se corrieron** en Movimientos: el cambio es de texto y de la línea de datos; en oscuro midió `/color`.
