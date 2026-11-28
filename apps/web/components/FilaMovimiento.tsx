@@ -98,7 +98,9 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const rotulo = rotuloDeMovimiento(m);
   const esApartado = m.categoria === "apartado" || m.categoria === "liberacion_apartado";
   const referencia = esApartado ? referenciaApartado(m, ctx) : (referenciaMovimiento(m, { enlaceCompras: ctx.enlaceCompras }) ?? referenciaSinDocumento(m));
-  const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
+  // «Dónde» solo en un traslado: ahí el trayecto dice las sedes y esto es lo único que dice si quedó en piso o en almacén. En los
+  // demás repite la ruta de abajo, y en una guardada decía «Piso» (el origen) mientras la ruta terminaba en «Almacén» (/formidable 2026-11-28).
+  const donde = m.sububicacion && m.categoria === "transferencia" ? nombreCortoSububicacion(m.sububicacion) : null;
   const variante = prendaDicha({ color: m.color, talla: m.talla });
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
@@ -110,7 +112,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         type="button"
         data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila-abrir"}
         onClick={() => ctx.onAbrir(m)}
-        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? `, ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
+        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? `, ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan} en la sede` : ""}`}
         className={BOTON_CUBRE_FILA}
       />
       <SelloTipo key={vuelta} tipo={rotulo.tipo} tamano={46} />
@@ -157,7 +159,18 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
       <div className="flex items-center gap-1 text-right">
         <span className="flex flex-col items-end gap-0.5">
           <span className="mv-cant">{esApartado ? textoApartado(m.cantidad, m.categoria as "apartado" | "liberacion_apartado") : textoDelta(m)}</span>
-          <span className="text-right text-sm text-taupe max-sm:max-w-[5.25rem] sm:whitespace-nowrap">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
+          <span className="text-right text-sm text-taupe max-sm:max-w-[5.25rem] sm:whitespace-nowrap">{esApartado ? (
+              ""
+            ) : quedan ? (
+              // El saldo de esta talla y color en la sede, piso más almacén (ADR-0234). «en la sede» desde 640 px: a 375 no cabe en 84 px.
+              <>
+                {quedan}
+                <span className="max-sm:hidden"> en la sede</span>
+              </>
+            ) : (
+              palabraPrendas(m.cantidad)
+            )}
+          </span>
         </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
@@ -176,7 +189,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const rotulo = rotuloDeMovimiento(primera);
   const esApartado = primera.categoria === "apartado" || primera.categoria === "liberacion_apartado";
   const referencia = esApartado ? referenciaApartado(primera, ctx) : (r.referencia ?? referenciaSinDocumento(primera));
-  const donde = primera.sububicacion ? nombreCortoSububicacion(primera.sububicacion) : null;
+  const donde = primera.sububicacion && primera.categoria === "transferencia" ? nombreCortoSububicacion(primera.sububicacion) : null;
   const productos = r.productos.length <= 2 ? r.productos.join(" y ") : `${r.productos.slice(0, 2).join(", ")} y ${r.productos.length - 2} más`;
   // Hasta tres fotos, una por producto: se reconoce el envío de un vistazo.
   const fotos = [...new Set(op.filas.map((m) => m.varianteId))]

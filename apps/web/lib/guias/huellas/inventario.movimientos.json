@@ -44,10 +44,10 @@
     "components/FiltrosMovimientos.tsx": [
       "button «{children}»",
       "Pastilla «{p.texto}»",
+      "Pastilla «Todo»",
       "Pastilla «Personalizado»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
-      "button «Todo el historial»",
       "Pastilla «{etiquetaProceso(proc)}»",
       "button «{f.etiqueta}»",
       "button «{e.nombre}»",

@@ -150,7 +150,8 @@ export function FiltrosMovimientos({
   const cat: CategoriaFiltro | null = CATEGORIAS_FILTRO.find((c) => c === params.get("cat")) ?? categoriaDeProceso(proc);
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
   const [personalizadoAbierto, setPersonalizadoAbierto] = useState(false);
-  const enPersonalizado = periodo === "personalizado" || periodo === "todo";
+  // «Todo» es su propia píldora (/formidable 2026-11-28): antes dejaba marcado «Personalizado» con Desde y Hasta vacíos.
+  const enPersonalizado = periodo === "personalizado";
   const mostrarFechas = enPersonalizado || personalizadoAbierto;
 
   function hrefCon(cambios: Record<string, string>) {
@@ -217,6 +218,15 @@ export function FiltrosMovimientos({
           {p.texto}
         </Pastilla>
       ))}
+      <Pastilla
+        activa={!mostrarFechas && periodo === "todo"}
+        onClick={() => {
+          setPersonalizadoAbierto(false);
+          aplicar({ rango: "todo", desde: "", hasta: "" });
+        }}
+      >
+        Todo
+      </Pastilla>
       <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
         Personalizado
       </Pastilla>
@@ -233,16 +243,6 @@ export function FiltrosMovimientos({
       <div className="w-40 sm:w-44">
         <CampoFecha etiqueta="Hasta" valor={periodo === "todo" ? "" : hasta} onValor={(v) => aplicar({ hasta: v, rango: "" })} />
       </div>
-      <button
-        type="button"
-        onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
-        aria-pressed={periodo === "todo"}
-        // `btn-enlace` agranda su caja 0,25 em hacia abajo para pintar el subrayado y lo devuelve con un margen negativo; aquí `mb-2`
-        // le gana a ese margen, así que se descuenta para que «Todo el historial» quede donde estaba.
-        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-xs leading-tight ${periodo === "todo" ? "font-semibold" : ""}`}
-      >
-        Todo el historial
-      </button>
     </div>
   );
 

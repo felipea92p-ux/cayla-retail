@@ -518,7 +518,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       ancla: "movimientos.periodos",
       opcional: true,
       titulo: "El período",
-      texto: "Hoy, los últimos 7, 30 o 90 días, o las fechas que tú elijas en «Personalizado».",
+      texto: "Hoy, los últimos 7, 30 o 90 días, «Todo» desde el primer día, o las fechas que tú elijas en «Personalizado».",
     },
     {
       id: "zona",
