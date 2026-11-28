@@ -652,7 +652,31 @@ export type BorradorMovimiento = {
   /** Si sale de un cajón: de la caja abierta ahora, o un egreso que la tienda ya registró. */
   fuente: "caja" | "egreso";
   egresoId: string;
+  /** ADR-0713: en un retiro o una devolución, la persona (id) que se lleva la plata; "" mientras no se elige. */
+  seLaLleva: string;
 };
+
+// ---- Quién se lleva la plata del dueño (ADR-0713) -------------------------------------------------------------------------
+
+/** Lo que sale de CAYLA hacia una persona: la base no lo guarda sin decir quién se la llevó. */
+export const TIPOS_CON_QUIEN: readonly TipoMovimiento[] = ["retiro", "devolucion_prestamo"];
+export function pideQuienSeLaLleva(tipo: TipoMovimiento): boolean {
+  return TIPOS_CON_QUIEN.includes(tipo);
+}
+/** Quién se lleva la plata viaja en un encabezado, como la aliada de un pago (`x-aliada`, ADR-0683): la firma de la función no cambia. */
+export const ENCABEZADO_SE_LA_LLEVA = "x-se-la-lleva";
+export function conQuienSeLaLleva<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, personaId: string | null | undefined): C {
+  return personaId ? consulta.setHeader(ENCABEZADO_SE_LA_LLEVA, personaId) : consulta;
+}
+/** Quienes pueden llevarse la plata, con los líderes primero y por nombre (lo que devuelve `fn_colaboradores`). */
+export function opcionesSeLaLleva(filas: readonly { persona_id?: unknown; nombre?: unknown; rol?: unknown }[]): { valor: string; texto: string }[] {
+  const vistas = new Set<string>();
+  return filas
+    .map((f) => ({ valor: String(f.persona_id ?? ""), texto: String(f.nombre ?? "").trim(), lider: f.rol === "lider" }))
+    .filter((f) => f.valor && f.texto && !vistas.has(f.valor) && vistas.add(f.valor))
+    .sort((a, b) => Number(b.lider) - Number(a.lider) || a.texto.localeCompare(b.texto, "es"))
+    .map(({ valor, texto }) => ({ valor, texto }));
+}
 
 export type PayloadMovimiento = {
   p_tipo: TipoMovimiento;
@@ -673,10 +697,15 @@ export function tipoDeMovimiento(b: Pick<BorradorMovimiento, "que" | "clase">): 
   return b.que;
 }
 
-/** Cómo se llama y qué ejemplo trae la nota de un movimiento, según lo que la persona eligió en «Qué pasó» (ADR-0290). Lo que el líder se lleva no tiene voucher. */
-export function notaDelMovimiento(que: QuePaso, esDepositoMaquina: boolean): { etiqueta: string; ejemplo: string | null } {
+/**
+ * Cómo se llama y qué ejemplo trae la nota de un movimiento, según lo que la persona eligió en «Qué pasó» (ADR-0290). Lo que el líder se lleva no
+ * tiene voucher. Al sacar plata del dueño manda `clase` (ADR-0713): en un retiro la nota es «Para qué» y la base la exige.
+ */
+export function notaDelMovimiento(que: QuePaso, esDepositoMaquina: boolean, clase?: BorradorMovimiento["clase"]): { etiqueta: string; ejemplo: string | null } {
   if (esDepositoMaquina) return { etiqueta: "Número de operación o nota", ejemplo: null };
   if (que === "lider_se_lleva") return { etiqueta: "Nota", ejemplo: "Para depositar el lunes" };
+  if (que === "dueno_saca" && clase === "retiro") return { etiqueta: "Para qué", ejemplo: "Gastos personales del mes" };
+  if (que === "dueno_saca" && clase === "devolucion_prestamo") return { etiqueta: "Voucher o nota", ejemplo: "Devolución del préstamo" };
   return { etiqueta: "Voucher o nota", ejemplo: "Voucher 120441" };
 }
 
@@ -1059,6 +1088,9 @@ export function validarMovimiento(
     if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
     fecha = b.fecha;
   }
+  // ADR-0713: lo que sale hacia una persona dice quién se la llevó, y un retiro dice para qué (la base vuelve a exigirlo).
+  if (pideQuienSeLaLleva(tipo) && !b.seLaLleva) return { ok: false, error: "Elige quién se lleva la plata." };
+  if (tipo === "retiro" && !b.referencia.trim()) return { ok: false, error: "Di para qué es el retiro." };
   return {
     ok: true,
     valor: {

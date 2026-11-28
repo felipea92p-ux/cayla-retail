@@ -103,6 +103,8 @@ select (select jsonb_agg(jsonb_build_object('cuenta', cuenta, 'monto', monto, 'o
 select retail.registrar_saldo_inicial('2024-03-01', :'lineas'::jsonb) as filas_arranque \\gset
 
 -- Marzo y abril.
+-- ADR-0713: un retiro o una devolución dice quién se lleva la plata.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, false) as _se_la_lleva \\gset
 select retail.registrar_movimiento_dinero('aporte', 1000, null, :'bcp', '2024-03-12', 'Aporte patrimonio') as aporte \\gset
 select retail.registrar_gasto(null, 'servicios_basicos', 'Internet patrimonio', '2024-03-15', 100, null, 'transferencia') as gasto \\gset
 select retail.registrar_movimiento_dinero('retiro', 300, :'bcp', null, '2024-03-25', 'Retiro patrimonio') as retiro \\gset

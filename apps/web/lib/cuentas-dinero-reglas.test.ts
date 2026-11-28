@@ -40,6 +40,8 @@ import {
   tipoDeMovimiento,
   tiposParaMedio,
   validarMovimiento,
+  pideQuienSeLaLleva,
+  opcionesSeLaLleva,
   notaDelMovimiento,
   ayudaDelOrigen,
   ejemploMontoMovimiento,
@@ -284,7 +286,7 @@ describe("la plata del dueño", () => {
 describe("el formulario «Registrar movimiento»", () => {
   const hoy = "2026-09-24";
   const egresos: EgresoParaMovimiento[] = [{ id: "e1", cajaId: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: "Voucher 7788", creadoEn: "2026-09-23T15:00:00Z", marca: null }];
-  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
+  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "", seLaLleva: "" };
   const ctx = { cuentas: TODAS, egresos, deuda: 6000, hoy };
 
   it("una máquina se cuadra solo con su banco, su tarifa y algo que depositar (tarea 14)", () => {
@@ -465,8 +467,39 @@ describe("el formulario «Registrar movimiento»", () => {
   });
   it("sacar plata: una devolución no pasa lo que CAYLA debe; un retiro, sí se puede", () => {
     expect(validarMovimiento({ ...base, que: "dueno_saca", clase: "devolucion_prestamo", origen: "bcp", destino: "", monto: "7000" }, ctx)).toEqual({ ok: false, error: "CAYLA te debe S/\u00a06,000.00: una devolución no puede ser mayor." });
-    const r = validarMovimiento({ ...base, que: "dueno_saca", clase: "retiro", origen: "bcp", destino: "", monto: "7000" }, ctx);
+    const r = validarMovimiento({ ...base, que: "dueno_saca", clase: "retiro", origen: "bcp", destino: "", monto: "7000", seLaLleva: "felipe" }, ctx);
     expect(r.ok && [r.valor.p_tipo, r.valor.p_cuenta_destino_id]).toEqual(["retiro", null]);
+  });
+  it("ADR-0713: sacar plata dice quién se la lleva, y un retiro dice para qué", () => {
+    const retiro = { ...base, que: "dueno_saca" as const, clase: "retiro" as const, origen: "bcp", destino: "", monto: "300" };
+    expect(validarMovimiento({ ...retiro, seLaLleva: "" }, ctx)).toEqual({ ok: false, error: "Elige quién se lleva la plata." });
+    expect(validarMovimiento({ ...retiro, seLaLleva: "felipe", referencia: "   " }, ctx)).toEqual({ ok: false, error: "Di para qué es el retiro." });
+    expect(validarMovimiento({ ...retiro, seLaLleva: "felipe", referencia: "Gastos de la casa" }, ctx).ok).toBe(true);
+    const devolucion = { ...retiro, clase: "devolucion_prestamo" as const, referencia: "" };
+    expect(validarMovimiento({ ...devolucion, seLaLleva: "" }, ctx)).toEqual({ ok: false, error: "Elige quién se lleva la plata." });
+    expect(validarMovimiento({ ...devolucion, seLaLleva: "felipe" }, ctx).ok).toBe(true);
+    // Lo que no saca plata no pregunta quién.
+    expect(validarMovimiento({ ...base, que: "dueno_pone", clase: "aporte", origen: "", destino: "bcp", monto: "100" }, ctx).ok).toBe(true);
+    expect([pideQuienSeLaLleva("retiro"), pideQuienSeLaLleva("devolucion_prestamo"), pideQuienSeLaLleva("aporte"), pideQuienSeLaLleva("deposito")]).toEqual([true, true, false, false]);
+    // La nota sigue a lo que sale: en un retiro es «Para qué»; en una devolución, el voucher con su ejemplo; lo demás no cambia.
+    expect(notaDelMovimiento("dueno_saca", false, "retiro")).toEqual({ etiqueta: "Para qué", ejemplo: "Gastos personales del mes" });
+    expect(notaDelMovimiento("dueno_saca", false, "devolucion_prestamo")).toEqual({ etiqueta: "Voucher o nota", ejemplo: "Devolución del préstamo" });
+    expect(notaDelMovimiento("dueno_pone", false, "aporte")).toEqual({ etiqueta: "Voucher o nota", ejemplo: "Voucher 120441" });
+  });
+  it("ADR-0713: quienes pueden llevarse la plata, los líderes primero y sin repetir", () => {
+    expect(
+      opcionesSeLaLleva([
+        { persona_id: "c", nombre: "Carla", rol: "colaborador" },
+        { persona_id: "b", nombre: "Bruno", rol: "lider" },
+        { persona_id: "a", nombre: "Ana", rol: "lider" },
+        { persona_id: "a", nombre: "Ana", rol: "lider" },
+        { persona_id: "", nombre: "Sin id", rol: "lider" },
+      ]),
+    ).toEqual([
+      { valor: "a", texto: "Ana" },
+      { valor: "b", texto: "Bruno" },
+      { valor: "c", texto: "Carla" },
+    ]);
   });
   it("sin monto no se registra", () => {
     expect(validarMovimiento({ ...base, monto: "" }, ctx)).toEqual({ ok: false, error: "Escribe el monto." });
@@ -560,7 +593,7 @@ describe("efectivo por tienda y fechas", () => {
 // /chaos de Finanzas 2026-10-14 (ADR-0412): un movimiento de dinero llega hasta S/ 1 000 000 (`movimientos_dinero_monto_con_tope`).
 describe("el monto de un movimiento tiene tope", () => {
   const hoy = "2026-09-24";
-  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: "", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
+  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: "", comision: "", fecha: hoy, fuente: "caja", egresoId: "", seLaLleva: "" };
   const ctx = { cuentas: TODAS, egresos: [], deuda: 6000, hoy };
   it("un millón entra; un sol más, no", () => {
     expect(validarMovimiento({ ...base, monto: "1000000" }, ctx).ok).toBe(true);
