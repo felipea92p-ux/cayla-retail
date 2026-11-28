@@ -12,6 +12,7 @@
 // «Todos los colores» NO falta.
 
 import { vistaDeFotos, type FotoLocal } from "./fotos-por-color-reglas";
+import { listaDicha } from "./lista-dicha";
 
 export type IdPendiente = "tejido" | "patron" | "fotos";
 
@@ -42,7 +43,7 @@ export type EntradaFicha = {
 
 /** Lista con «y» antes del último: «Azul denim, Beige y Mostaza». */
 function lista(nombres: readonly string[]): string {
-  return new Intl.ListFormat("es", { type: "conjunction" }).format(nombres);
+  return listaDicha(nombres);
 }
 
 /** Lo que le falta a la ficha, en el orden de pantalla (tejido y patrón arriba, fotos después). Vacío = completa. */

@@ -75,9 +75,12 @@ export function EncabezadoPagina({
           {volver}
           <p className="flex min-w-0 items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
             <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
-            <span className="min-w-0">
-              {sede} · <FechaHoraLima sinHora={sinHora} />
-              {detalle && <> · {detalle}</>}
+            {/* La sede, el día y de dónde se llegó son datos de distinta clase: cada uno en su pieza, con espacio y sin signo
+                (ADR-0716, caso 2). En un teléfono, el día baja a su propia línea en vez de partirse a la mitad. */}
+            <span className="flex min-w-0 flex-wrap gap-x-4 gap-y-1">
+              <span>{sede}</span>
+              <FechaHoraLima sinHora={sinHora} />
+              {detalle && <span className="min-w-0">{detalle}</span>}
             </span>
           </p>
         </div>

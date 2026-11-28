@@ -37,6 +37,7 @@ import {
 } from "./recepcion-envio-reglas";
 import { opcionReposicion, type PrendaDebida } from "./nos-debe-reglas";
 import { ordenTalla } from "./catalogo-grupos";
+import { listaDicha } from "./lista-dicha";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base
@@ -300,7 +301,7 @@ export function modelosEnCeroDe(lineas: readonly Pick<LineaParaContar, "conteo">
 
 /** «Blusa 2 quedó en 0: no se guarda.» */
 export const textoModelosEnCero = (nombres: readonly string[]): string =>
-  `${new Intl.ListFormat("es", { type: "conjunction" }).format(nombres)} ${nombres.length === 1 ? "quedó en 0: no se guarda." : "quedaron en 0: no se guardan."}`;
+  `${listaDicha(nombres)} ${nombres.length === 1 ? "quedó en 0: no se guarda." : "quedaron en 0: no se guardan."}`;
 
 /** El tacho: el modelo sale de lo separado, con lo que se había contado de él. */
 export function quitarModelo(s: Separado, m: { productoId: string | null; nombre: string }): Separado {

@@ -11,6 +11,7 @@ import { enlaceMapaValido, esRutaDeFotoDeTienda } from "@cayla-retail/shared/tie
 import { celularValido } from "./club-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { Resultado } from "./configuracion-reglas";
+import { listaDicha } from "./lista-dicha";
 
 export type SedeWeb = {
   id: string;
@@ -145,7 +146,7 @@ export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nomb
   if (!s.mostrar) return { tono: "neutro", texto: "No se ve en la web" };
   const falta = faltaParaMostrar(s);
   // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Empresa y tiendas. La web ya no la muestra (`tienda_sedes`).
-  if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${new Intl.ListFormat("es", { type: "conjunction" }).format(falta.map((d) => EN_FRASE[d]))}` };
+  if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${listaDicha(falta.map((d) => EN_FRASE[d]))}` };
   return { tono: "verde", texto: "Se ve en la web" };
 }
 

@@ -30,7 +30,11 @@ export function HojaIngresos({
   return (
     <div id="ingresos-print" className="papel-fijo" data-testid="hoja-ingresos">
       <header className="border-b border-tinta pb-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-taupe">CAYLA · {sede}</p>
+        <p className="flex flex-wrap gap-x-4 text-xs font-semibold uppercase tracking-[0.18em] text-taupe">
+          {/* Un papel: cada dato en su pieza, con espacio (caso 10 de ADR-0716). */}
+          <span>CAYLA</span>
+          <span>{sede}</span>
+        </p>
         <h1 className="mt-1 font-serif text-2xl text-tinta">Ingresos de mercadería</h1>
         <p className="mt-1 text-sm text-tinta">Lo que entró {conPreposicion(rangoTexto)}</p>
         <p className="mt-0.5 text-xs text-taupe">Impreso el {impresoEn}</p>
@@ -64,7 +68,7 @@ export function HojaIngresos({
         <tbody>
           {modelos.map((m) => {
             const a = apariencia[m.productoId];
-            const detalle = [m.codigo, m.categoria].filter(Boolean).join(" · ");
+            const detalle = [m.codigo, m.categoria].filter(Boolean);
             return (
               <tr key={m.productoId} className="border-b border-sand align-top">
                 <td className="py-2 pr-3">
@@ -72,9 +76,15 @@ export function HojaIngresos({
                     <MiniaturaPrenda tamano="xl" fotoUrl={a?.fotoUrl ?? null} prefijo={a?.prefijo} familia={a?.familia} categoria={a?.categoria} />
                     <div className="min-w-0">
                       <p className="font-medium text-tinta">
-                        {m.referencia} <span className="ml-1 text-xs font-normal text-taupe">{m.esNuevo ? "· Nuevo" : "· Reingreso"}</span>
+                        {m.referencia} <span className="ml-2 text-xs font-normal text-taupe">{m.esNuevo ? "Nuevo" : "Reingreso"}</span>
                       </p>
-                      {detalle && <p className="text-xs text-taupe">{detalle}</p>}
+                      {detalle.length > 0 && (
+                        <p className="flex flex-wrap gap-x-3 text-xs text-taupe">
+                          {detalle.map((d) => (
+                            <span key={d}>{d}</span>
+                          ))}
+                        </p>
+                      )}
                       {abiertos.has(m.productoId) && (
                         <div className="mt-2">
                           <MatrizIngreso variantes={m.variantes} />

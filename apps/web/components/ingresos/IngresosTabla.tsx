@@ -178,7 +178,7 @@ export function IngresosTabla({
         destacadaEnTarjeta: true,
         unidadEnTarjeta: "prendas",
         celda: (m) => (
-          <span title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}>
+          <span title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial y ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}>
             {m.unidades.toLocaleString("es-PE")}
           </span>
         ),

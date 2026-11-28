@@ -33,9 +33,9 @@ export function DetalleIngreso({ modelo, id, guia }: { modelo: ModeloIngresado; 
               <p className="ing-placa-dato">
                 {prendasTexto(m.total)}
                 {deDosLados && (
-                  <span className="text-taupe">
+                  <span className="text-secundario">
                     {" "}
-                    · {modelo.deRecepcion} por recepción, {modelo.deStockInicial} de inventario inicial
+                    ({modelo.deRecepcion} por recepción y {modelo.deStockInicial} de inventario inicial)
                   </span>
                 )}
               </p>
@@ -84,7 +84,7 @@ function Reparto({ titulo, filas, total }: { titulo: string; filas: readonly Fil
             <BarraAvance pct={(f.n / mayor) * 100} tono="tinta" alto="fina" decorativa indice={i} />
             <span className="ing-reparto-cifra">
               {f.n}
-              <span className="ing-reparto-pct"> · {total > 0 ? Math.round((f.n / total) * 100) : 0} %</span>
+              <span className="ing-reparto-pct"> ({total > 0 ? Math.round((f.n / total) * 100) : 0} %)</span>
             </span>
           </li>
         ))}

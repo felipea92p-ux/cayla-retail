@@ -1,3 +1,4 @@
+import { listaDicha } from "./lista-dicha";
 // La guía de foco para CUALQUIER conjunto de campos —un modal, una hoja, un formulario corto— (CLAUDE.md «Guía de foco», ADR-0284).
 // Sin React ni red.
 //
@@ -75,7 +76,7 @@ export function sePuedeConfirmar(campos: readonly CampoDeGuia[]): boolean {
 export function fraseDeLoQueFalta(campos: readonly CampoDeGuia[]): string | null {
   const faltan = campos.filter((c) => c.requerido && !c.hecho);
   if (faltan.length === 0) return null;
-  const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(faltan.map((c) => c.nombre.toLocaleLowerCase("es")));
+  const lista = listaDicha(faltan.map((c) => c.nombre.toLocaleLowerCase("es")));
   return `${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}`;
 }
 

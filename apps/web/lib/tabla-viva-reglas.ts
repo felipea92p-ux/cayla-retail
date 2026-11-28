@@ -1,3 +1,5 @@
+import { listaDicha } from "./lista-dicha";
+
 /* ====================================================================
    La tabla con superpoderes · la lógica pura (ADR-0596; Felipe 2026-10-31 eligió «A · Globo desde la cabecera» mirando la maqueta
    docs/maquetas/tabla-superpoderes-2026-10/).
@@ -143,8 +145,7 @@ export function ordenAlTocar<F>(columna: Pick<ColumnaDatos<F>, "clave" | "tipo">
 
 /** «Blusas», «Blusas o Casacas», «Blusas, Casacas o Jeans». */
 export function unirConO(valores: readonly string[]): string {
-  if (valores.length <= 1) return valores[0] ?? "";
-  return `${valores.slice(0, -1).join(", ")} o ${valores[valores.length - 1]}`;
+  return listaDicha(valores, "o");
 }
 
 /** Cómo se dice un filtro de columna en la frase. */

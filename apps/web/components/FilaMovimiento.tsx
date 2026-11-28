@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Layers, MapPin, Palette, Ruler } from "lucide-react";
+import { LineaDeDatos } from "@/components/ui/LineaDeDatos";
+import { listaDicha, prendaDicha } from "@/lib/lista-dicha";
 import { textoQuedan } from "@/lib/movimientos-saldo";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -97,7 +99,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const esApartado = m.categoria === "apartado" || m.categoria === "liberacion_apartado";
   const referencia = esApartado ? referenciaApartado(m, ctx) : (referenciaMovimiento(m, { enlaceCompras: ctx.enlaceCompras }) ?? referenciaSinDocumento(m));
   const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
-  const variante = [m.talla, m.color].filter(Boolean).join(" · ");
+  const variante = prendaDicha({ color: m.color, talla: m.talla });
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
   return (
@@ -108,7 +110,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         type="button"
         data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila-abrir"}
         onClick={() => ctx.onAbrir(m)}
-        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? ` ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
+        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? `, ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
         className={BOTON_CUBRE_FILA}
       />
       <SelloTipo key={vuelta} tipo={rotulo.tipo} tamano={46} />
@@ -117,17 +119,25 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
           <span className="mv-rotulo">
             {rotulo.titulo}
-            {rotulo.detalle ? ` · ${rotulo.detalle}` : ""}
+            {rotulo.detalle ? ` (${rotulo.detalle})` : ""}
           </span>
           <span className="text-sm tabular-nums text-taupe">{m.hora}</span>
         </div>
         {/* La foto (en una tienda de ropa, la prenda se reconoce por la foto antes que por el nombre), el nombre y debajo
-            talla · color · dónde. El SKU queda en el título (y la búsqueda lo encuentra). */}
+            talla, color y dónde, cada uno en su pieza (la línea de datos, ADR-0716). El SKU queda en el título (y la búsqueda lo encuentra). */}
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5" title={m.sku}>
           <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
           <span className="min-w-0">
             <span data-guia="movimientos.prenda-nombre" className="block truncate text-sm font-semibold text-tinta">{m.referencia}</span>
-            <span className="block truncate text-sm tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
+            <LineaDeDatos
+              renglones={2}
+              className="mt-0.5 text-sm"
+              datos={[
+                { icono: Ruler, rotulo: "Talla", valor: m.talla },
+                { icono: Palette, rotulo: "Color", valor: m.color },
+                { icono: MapPin, rotulo: "Dónde", valor: donde },
+              ]}
+            />
           </span>
         </div>
         {/* En el celular la referencia (la boleta) se estira hasta 6 rem a la derecha, bajo la cantidad, para leerse completa. */}
@@ -189,7 +199,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
           <span className="mv-rotulo">
             {rotulo.titulo}
-            {rotulo.detalle ? ` · ${rotulo.detalle}` : ""}
+            {rotulo.detalle ? ` (${rotulo.detalle})` : ""}
           </span>
           <span className="text-sm tabular-nums text-taupe">{op.hora}</span>
         </div>
@@ -205,9 +215,14 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             <span className="block truncate text-sm font-semibold text-tinta" title={r.productos.join(", ")}>
               {productos}
             </span>
-            <span className="block truncate text-sm tabular-nums text-taupe">
-              {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, donde].filter(Boolean).join(" · ")}
-            </span>
+            <LineaDeDatos
+              renglones={2}
+              className="mt-0.5 text-sm"
+              datos={[
+                { icono: Layers, rotulo: "Cuántas", valor: `${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}` },
+                { icono: MapPin, rotulo: "Dónde", valor: donde },
+              ]}
+            />
           </span>
         </div>
         {/* En el celular la referencia (la boleta) se estira hasta 6 rem a la derecha, bajo la cantidad, para leerse completa. */}
@@ -269,7 +284,7 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
               </span>
               <span className="block truncate text-sm tabular-nums text-taupe">
                 entre las {r.desde} y las {r.hasta}
-                {quienes.length > 0 ? ` · ${quienes.join(", ")}` : ""}
+                {quienes.length > 0 ? `, por ${listaDicha(quienes)}` : ""}
               </span>
             </span>
           </div>
