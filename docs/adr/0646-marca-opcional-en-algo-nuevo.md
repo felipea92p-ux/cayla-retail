@@ -51,3 +51,24 @@ la web sin pegar la migración: «Algo nuevo» sin marca da el error de siempre 
 - Navegador (datos inventados, sin base): «Algo nuevo» sin el párrafo, «· opcional», la marca se quita tocándola otra vez, se agrega sin marca
   y una marca a medio escribir frena; escritorio y 375 px, sin errores de consola.
 - **No verificado:** «Compré ropa» con sesión real hasta «Guardar la compra», y el recorrido de Recibir con una línea sin marca.
+
+## Actualización 2026-11-27 · La compra sin marca no pasaba al libro
+
+**El problema.** Revisando las compras de noviembre se vio que **5 papeles de «Mis compras»** (medido en producción el 2026-11-27, solo
+lectura) seguían en `por_completar` con `pasa_sola_error` = «new row for relation "compra_items" violates check constraint
+"compra_items_prenda_o_categoria_marca"». Todos tienen alguna línea sin marca y todas sus líneas con categoría. El contexto de arriba dice
+«`compra_items` … ya la aceptaba vacía»: era cierto de la **columna**, no del **candado de la tabla**, que desde `20261012205000`
+(ADR-0362) pide `producto_id` **o** `categoria_id` **y** `marca_id`. `completar_papel_compra` copia la línea de la orden sin prenda y con
+su marca (nula): el candado la rechaza, `fn_papel_pasa_solo` guarda el motivo y la compra nunca llega al libro (ni a Por pagar, ni al fondo
+de la compradora, ni al costo del mes). Ninguna de las 32 suites de la verificación de arriba mandaba una línea sin marca hasta el libro.
+
+**La decisión.** `20261127152000_compra_sin_marca_pasa_al_libro.sql`: el candado pasa a `producto_id o categoria_id` y se llama
+`compra_items_prenda_o_categoria`. Es la misma regla que ADR-0660 dejó para Recibir el 2026-11-14 («la categoría es obligatoria, la marca
+no»), ahora también en el comprobante. **Descarté** volver a exigir la marca en la pantalla (revierte esta decisión y no destraba lo que
+ya está atascado) y una marca «Sin marca» (ADR-0660 ya la descartó: una marca falsa en el catálogo).
+
+**Los papeles atascados** no se reintentan solos: después de pegar, `select retail.fn_papel_pasa_solo(id)` por cada uno (la receta, con su
+verificación, va en el PR). Corre sin sesión, como desde el SQL Editor: firma la compradora, igual que cuando pasa solo.
+
+**Prueba:** `pnpm pruebas:compra-sin-marca-pasa-al-libro` (4 casos: una línea sin marca, todas sin marca, la línea sin prenda ni categoría
+sigue rechazada, y el papel atascado con el candado viejo que se destraba con `fn_papel_pasa_solo`). Con `--sin-migracion` los 4 fallan.

@@ -506,28 +506,6 @@ export function camposDevolver(
 
 // ---------- Las hojas de Revisar compras (diseño «A · Bandeja serena», Felipe 2026-10-23) ----------
 
-/** La plata que VUELVE a CAYLA (una devolución, el pago de una deuda) se escribe con «+» y en verde; una entrega sale. */
-export const VUELVE_A_CAYLA: Record<TipoMovimientoFondo, boolean> = {
-  entrega_fondo: false,
-  devolucion_fondo: true,
-  pago_deuda_fondo: true,
-};
-
-/**
- * «Entregas y devoluciones», agrupada por día (`aaaa-mm-dd`), en el orden en que llega de la base (lo más nuevo arriba). Si un día
- * aparece dos veces, se junta en su primer lugar: el separador de un día nunca sale repetido.
- */
-export function movimientosPorDia<T extends { fecha: string }>(movimientos: readonly T[]): { dia: string; movimientos: T[] }[] {
-  const grupos = new Map<string, T[]>();
-  for (const m of movimientos) {
-    const dia = m.fecha.slice(0, 10);
-    const grupo = grupos.get(dia);
-    if (grupo) grupo.push(m);
-    else grupos.set(dia, [m]);
-  }
-  return [...grupos].map(([dia, movs]) => ({ dia, movimientos: movs }));
-}
-
 /** Con cuántas personas «¿A quién?» se elige con fichas (su cara y su nombre); con más, el combo de siempre, con su buscador. */
 export const MAX_FICHAS_PERSONA = 6;
 

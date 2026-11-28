@@ -10,6 +10,7 @@ import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 import { CELULAR, ESCRITORIO } from "@/components/ui/useEnCelular";
+import { VeloDeHoja } from "@/components/ui/VeloDeHoja";
 import { useVidrioQueDoblaEn } from "@/components/ui/useVidrioQueDobla";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
@@ -256,7 +257,9 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>
       <Dialog.Portal>
-        <Dialog.Overlay
+        {/* El velo es nuestro, no el `Dialog.Overlay` de Radix: el de Radix bloqueaba el desplazamiento de atrás poniendo y quitando una
+            hoja de estilos, y en Safari cada hoja quedaba ~0,1 s congelada al cerrarse (ADR-0715, `VeloDeHoja`). */}
+        <VeloDeHoja
           ref={velo}
           className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? (salidaPropia ? "" : "anim-velo-salida") : "anim-velo"}`}
         />

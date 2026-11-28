@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CompraDelInsumo, type ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
@@ -105,10 +105,11 @@ export function LlegoUnaCompraModal({
   // Lo opcional va plegado: el código de lote de cada línea (por su clave) y la nota de la compra.
   const [conCodigo, setConCodigo] = useState<readonly string[]>([]);
   const [verNota, setVerNota] = useState(false);
-  const taller = useIdDelTaller();
   // «Tu fondo» primero si quien paga tiene uno (Felipe 2026-11-26): lo que compra para el Taller con su fondo por rendir se descuenta de
   // él. La base valida que el fondo sea de quien paga (`fn_fondo_para_pagar`, en el disparador de los pagos de Producción).
-  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { conMiFondo: true, propuestaSoloDe: PROPUESTA_DEL_TALLER });
+  // Con el Taller que ya trae la pantalla (`getTaller`, la misma consulta que `useIdDelTaller`): preguntarlo otra vez era una vuelta más a
+  // la base antes de pedir las cuentas, 0,16–0,26 s desde Trujillo (ADR-0715).
+  const cuentas = useCuentasParaElegir("pago", tallerId, true, { conMiFondo: true, propuestaSoloDe: PROPUESTA_DEL_TALLER });
   const responsable = useResponsable();
 
   const plazo = proveedores.find((p) => p.id === proveedorId)?.plazoCreditoDias ?? null;
