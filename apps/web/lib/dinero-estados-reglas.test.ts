@@ -104,6 +104,14 @@ describe("filasDeEstado", () => {
     expect(por("cf").pide).toBeNull();
   });
 
+  it("«Se lo llevó el líder» (ADR-0710): solo en una caja fuerte con plata y solo para el líder", () => {
+    expect(filas.some((f) => f.llevar)).toBe(false);
+    const delLider = filasDeEstado(grupos, new Set(["izi"]), true);
+    expect(delLider.filter((f) => f.llevar).map((f) => f.id).sort()).toEqual(["cf", "cf2"]);
+    const vacia = filasDeEstado([grupo("tru", "Tienda TRU", [fila("cf0", "caja_fuerte", 0), fila("cf9", "caja_fuerte", null)])], new Set(), true);
+    expect(vacia.some((f) => f.llevar)).toBe(false);
+  });
+
   it("no inventa un estado: una cuenta sin insignia queda sin estado", () => {
     expect(por("cj").estado).toBeNull();
   });
