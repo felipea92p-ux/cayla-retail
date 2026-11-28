@@ -2137,8 +2137,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
 
   function quitarClienta() {
-    // Unida sola por el DNI: quitarla no borra el documento que tecleó quien cobra.
-    if (clienta?.porDocumento) return quitarFichaDelDni();
     if (clienta) {
       if (celularBoleta === ajustarCelular(clienta.celular ?? "")) setCelularBoleta("");
       const doc = documentoDeClienta(clienta);
@@ -2697,7 +2695,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 <ClientaDelTicket
                   clienta={clienta}
                   onElegir={elegirClienta}
-                  onQuitar={quitarClienta}
+                  // Unida sola por el DNI: quitarla no borra el documento que tecleó quien cobra.
+                  onQuitar={clienta?.porDocumento ? quitarFichaDelDni : quitarClienta}
                   bloqueado={bloqueado}
                   puedeBuscar={puedeBuscarClienta}
                   responsable={responsable}
