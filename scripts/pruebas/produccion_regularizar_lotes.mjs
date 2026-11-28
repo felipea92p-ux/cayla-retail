@@ -197,6 +197,20 @@ caso(
   "OK,0.000"
 );
 caso(
+  // Hallazgo N.º 4 (auditoría 2026-11-28): la base compara EXACTO lo que la persona vio. Un lote de 100 m con dos mermas
+  // de 33.3 queda en 33.4 justo; la web restaba en coma flotante y mandaba 33.400000000000006, que se rechazaba siempre.
+  // Desde el arreglo, `saldoDeLote` (apps/web/lib/insumos-reglas.ts) redondea a los 3 decimales de la columna.
+  "A7 con cortes en decimales, lo que vio la pantalla (redondeado a la escala de la base) se acepta; el número con ruido de coma flotante no",
+  `select retail.recibir_insumo(:'a', :'taller', 100::numeric, 50::numeric, p_origen => 'compra') as _l \\gset
+   select id as lote from retail.insumo_lotes where insumo_id = :'a' \\gset
+   insert into retail.movimientos_insumo (insumo_id, insumo_lote_id, ubicacion_id, tipo, cantidad, costo_unitario, nota) values
+     (:'a', :'lote', :'taller', 'merma', 33.3, 5, 'corte de prueba'), (:'a', :'lote', :'taller', 'merma', 33.3, 5, 'corte de prueba');
+   select ${AJUSTA("33.400000000000006", 30)} as crudo \\gset
+   select ${AJUSTA("33.4", 30)} as redondeado \\gset
+   select concat_ws(',', :'crudo', :'redondeado', ${SALDO_LOTE});`,
+  "lote_cambio_mientras_tanto,OK,30.000"
+);
+caso(
   "Q1 quien no es líder no puede ninguna",
   `${LOTE_USADO}
    ${COMPRA_SP}

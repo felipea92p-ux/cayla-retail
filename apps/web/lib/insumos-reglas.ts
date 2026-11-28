@@ -184,9 +184,20 @@ export function efectoEnSaldo(tipo: TipoMovInsumo, cantidad: number): number {
   return cantidad;
 }
 
-/** Lo que hay de un insumo: la suma con signo de todo su ledger. */
+/** Una cantidad del Taller con la escala de la base: `cantidad` es `numeric(12,3)` en `movimientos_insumo` y
+ *  `cantidad_ingresada` también en `insumo_lotes`. Sumar y restar en JavaScript deja ruido de coma flotante
+ *  (100 − 33.3 − 33.3 da 33.400000000000006); la base resta en `numeric` y da 33.4 justo. Como todo lo que llega del
+ *  ledger trae a lo sumo tres decimales, redondear el resultado a milésimas devuelve el número exacto de la base.
+ *  Mitad lejos del cero (como `round` de `numeric`) y nunca −0. Hallazgo N.º 4 de la auditoría del 2026-11-28:
+ *  sin esto, `ajustar_lote_usado` —que compara exacto lo que la persona vio— rechazaba el ajuste para siempre. */
+export function redondearCantidad(n: number): number {
+  const r = (Math.sign(n) * Math.round(Math.abs(n) * 1000)) / 1000;
+  return r === 0 ? 0 : r;
+}
+
+/** Lo que hay de un insumo: la suma con signo de todo su ledger, con la escala de la base (`redondearCantidad`). */
 export function saldoDeInsumo(movs: Pick<MovimientoInsumo, "tipo" | "cantidad">[]): number {
-  return movs.reduce((s, m) => s + efectoEnSaldo(m.tipo, m.cantidad), 0);
+  return redondearCantidad(movs.reduce((s, m) => s + efectoEnSaldo(m.tipo, m.cantidad), 0));
 }
 
 export type LoteInsumo = {
@@ -218,7 +229,9 @@ export function saldoDeLote(lote: Pick<LoteInsumo, "id" | "cantidadIngresada">, 
     if (m.tipo === "consumo" || m.tipo === "merma") saldo -= m.cantidad;
     else if (m.tipo === "devolucion") saldo += m.cantidad;
   }
-  return saldo;
+  // El mismo número que calcula `ajustar_lote_usado` en `numeric`: la pantalla se lo manda como «lo que vio» y la base lo
+  // compara exacto (ver `redondearCantidad`).
+  return redondearCantidad(saldo);
 }
 
 export type LoteConSaldo = LoteInsumo & { saldo: number };
