@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Archive, Check, ClipboardList, MessageCircle, SearchX } from "lucide-react";
 import { money } from "@/lib/money";
 import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
@@ -14,6 +14,8 @@ import { FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { AvisoCancelacionModal, CancelarPedidoModal, DevolverModal, EnviarPedidoModal, RecordarModal } from "@/components/apartados/ModalesApartado";
 import { DetalleApartadoModal } from "@/components/apartados/DetalleApartado";
+import { ApartadoEnFila, columnaCanal, soloElBoton } from "@/components/apartados/filas";
+import { useCanalesDeApartados } from "@/components/apartados/CanalChip";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
@@ -28,12 +30,6 @@ const ORDEN_INSIGNIAS = ["Por devolver", "Vencido", "Vence hoy", "Vence mañana"
 const TONO_DE_INSIGNIA = (v: string): TonoChip => (v === "Por devolver" || v === "Vencido" ? "rojo" : v === "A tiempo" ? "verde" : "ambar");
 
 type Fila = { a: Apartado; como: ComoSePendiente };
-
-/** El botón de una fila hace lo suyo y nada más: su clic no sube a la fila, que abriría el cobro (o la devolución) además de lo pedido. */
-const soloElBoton = (hacer: () => void) => (e: MouseEvent) => {
-  e.stopPropagation();
-  hacer();
-};
 
 /** La insignia del estado y su única línea (adónde va la plata, cuándo se cancela solo o cuándo vence). `enLinea`: bajo el nombre. */
 function EstadoDeFila({ como, enLinea = false }: { como: ComoSePendiente; enLinea?: boolean }) {
@@ -94,6 +90,9 @@ export function PendientesVista({
   const conLote = encendida(apagadas, "lote");
   const conAbonos = encendida(apagadas, "abonos");
   const conOtraSede = encendida(apagadas, "otra_sede");
+  // ADR-0607: con más de un canal a la vista, cada fila dice por cuál se vendió y la lista se puede acotar a uno.
+  const canales = useCanalesDeApartados();
+  const conCanal = canales.length >= 2;
   const [texto, setTexto] = useState(buscarInicial);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [avisarCancelado, setAvisarCancelado] = useState<Apartado | null>(null);
@@ -159,27 +158,13 @@ export function PendientesVista({
         principal: true,
         alinear: "izquierda",
         ancho: "minmax(0,2fr)",
-        // La prenda que se ve, el nombre con el código del apartado al lado (el que trae en su constancia) y, debajo, qué se apartó. El
-        // botón del nombre es lo que usan el teclado y el lector; con el mouse, toda la fila.
         celda: ({ a }, { debajo }) => (
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="flex shrink-0">
-              {a.prendas.slice(0, 2).map((pr, j) => {
-                const v = porVariante.get(pr.varianteId);
-                return <FotoPrenda key={pr.itemId || `${pr.varianteId}-${j}`} fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={40} className={`w-10 border border-papel ${j ? "-ml-4" : ""}`} />;
-              })}
-            </span>
-            <span className="block min-w-0">
-              <button type="button" className="area-dedo block max-w-full text-left font-medium text-tinta" aria-label={`Abrir el apartado ${a.codigo} de ${a.nombres} ${a.apellidos}`}>
-                <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
-                  <span className="truncate">{a.nombres} {a.apellidos}</span>
-                  <span className="whitespace-nowrap font-mono text-sm font-normal text-tenue">{a.codigo}</span>
-                </span>
-              </button>
-              <span className="tv-sub truncate">{listaDicha(a.prendas.map((pr) => pr.referencia))}</span>
-              {debajo}
-            </span>
-          </span>
+          <ApartadoEnFila
+            a={a}
+            porVariante={porVariante}
+            debajo={debajo}
+            etiqueta={`${a.estado === "abierta" ? "Cobrar y entregar" : puedeGestionar ? "Devolver el adelanto de" : "Ver"} el apartado ${a.codigo} de ${a.nombres} ${a.apellidos}`}
+          />
         ),
       },
       {
@@ -198,6 +183,7 @@ export function PendientesVista({
         dibujarOpcion: (v) => <Chip tono={TONO_DE_INSIGNIA(v)}>{v}</Chip>,
         frase: (v) => listaDicha(v.map((x) => x.toLowerCase()), "o"),
       },
+      ...(conCanal ? [columnaCanal<Fila>(canales, (f) => f.a)] : []),
       {
         clave: "falta",
         titulo: "Le falta",
@@ -237,7 +223,7 @@ export function PendientesVista({
       celda: (f) => accionDe(f),
     });
     return cols;
-  }, [porVariante, conEstante, accionDe]);
+  }, [porVariante, conEstante, conCanal, canales, accionDe, puedeGestionar]);
 
   // De fábrica, lo urgente primero (por devolver, vencido, por vencer, a tiempo): el orden de la columna «Estado».
   const ordenar = useMemo(

@@ -1072,7 +1072,6 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "components/OpcionesComprobante.tsx", "motivo": "«Imprimir de nuevo» es una opción de una lista (abre el PDF), no un botón" },
-      { "archivo": "components/apartados/TodosVista.tsx", "motivo": "fila compacta del mostrador: reimprimir es un ícono con su nombre para el lector, junto al de WhatsApp" },
       { "archivo": "components/GuiaImpresion.tsx", "motivo": "la guía de impresión DIBUJA el botón de la pantalla de etiquetas para explicarlo; no es un botón" }
     ]
   },

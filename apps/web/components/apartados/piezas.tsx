@@ -6,7 +6,7 @@ import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/lib/money";
-import { descuentoDePrenda, esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado, type PrendaApartada } from "@/lib/separaciones-reglas";
+import { descuentoDePrenda, esConstancia, textoDevolucion, type Apartado, type ClaveEstado, type PrendaApartada } from "@/lib/separaciones-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { Chip } from "@/components/ui/Chip";
@@ -74,24 +74,6 @@ export function ImporteDePrenda({ prenda, className = "" }: { prenda: PrendaApar
         </s>
       )}
     </span>
-  );
-}
-
-/** 7 días de plazo + 2 de gracia (en rosa), con el día de hoy marcado. `creadaEl` es el día de Lima en que se apartó
- *  (`diaLima(a.creadaEn)`); sin él no se dibuja una barra que no se sabe dónde empieza. */
-export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string | null; hoy: string }) {
-  if (!creadaEl) return null;
-  return (
-    <div aria-hidden className="grid grid-cols-9 gap-0.5">
-      {tramosDelPlazo(creadaEl, hoy).map((t, i) => (
-        <span
-          key={i}
-          className={`h-1.5 rounded-sm ${
-            t.momento === "hoy" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-tinta") : t.momento === "pasado" ? (t.tipo === "gracia" ? "bg-rojo" : "bg-taupe/50") : t.tipo === "gracia" ? "bg-rojo/20" : "bg-sand" /* beige-fijo: escala del dato: el tramo sin color del recorrido */
-          }`}
-        />
-      ))}
-    </div>
   );
 }
 

@@ -5,12 +5,11 @@ import type { FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 import { Globito } from "@/components/ui/Globito";
 import { Bookmark, ClipboardList, Clock, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
-import type { ResumenApartados } from "@/lib/separaciones";
 import { TOPE_SEPARACIONES, type Apartado, type AvisoApartado, type PedidoApartado } from "@/lib/separaciones-reglas";
-import { cuantosPendientes } from "@/lib/apartados-pestanas";
+import { cuantosPendientes, enPendientes } from "@/lib/apartados-pestanas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
-import { TodosVista } from "@/components/apartados/TodosVista";
+import { HistorialVista } from "@/components/apartados/HistorialVista";
 import { PendientesVista } from "@/components/apartados/PendientesVista";
 import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
@@ -34,7 +33,6 @@ type Props = {
   /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda (`ofertas_de_monto_vigentes`). */
   filasMonto?: readonly FilaOfertaDeMonto[];
   apartados: Apartado[];
-  resumen: ResumenApartados;
   /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
   hayMas?: boolean;
   /** Los avisos por WhatsApp de cada apartado abierto (Recordar en lote); vacío si la migración aún no está. */
@@ -51,8 +49,9 @@ type Props = {
   pedidos?: PedidoApartado[];
   /** Las otras tiendas, con su nombre corto (AQP, LIM…), para pedirles una prenda. */
   tiendas?: { id: string; nombre: string }[];
-  /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Pendientes» con el cobro de ese apartado; ya
-   *  cerrado → «Historial» buscándolo por su código. Un id que no está en la lista no cambia nada. */
+  /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Pendientes» con el cobro de ese apartado; cancelado
+   *  con su adelanto por devolver → «Pendientes» buscándolo por su código; terminado → «Historial», igual. Un id que no está en la lista
+   *  no cambia nada. */
   abrir?: string | null;
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): la entrega cobra el saldo en monedas de S/ 0.10. */
   redondeoEfectivo?: boolean;
@@ -67,11 +66,12 @@ type Props = {
  */
 export function ApartadosPanel(props: Props) {
   const paraAbrir = props.abrir ? (props.apartados.find((a) => a.id === props.abrir) ?? null) : null;
-  const [vista, setVista] = useState<Vista>(paraAbrir ? (paraAbrir.estado === "abierta" ? "pendientes" : "historial") : "apartar");
+  const [vista, setVista] = useState<Vista>(paraAbrir ? (enPendientes(paraAbrir) ? "pendientes" : "historial") : "apartar");
   const [elegido, setElegido] = useState<string | null>(paraAbrir?.estado === "abierta" ? paraAbrir.id : null);
   const [opciones, setOpciones] = useState(false);
-  // Lo que se buscó en una lista y no estaba: se busca en la otra con lo escrito (ADR-0720).
-  const [buscarEnHistorial, setBuscarEnHistorial] = useState("");
+  // Con qué búsqueda arranca la lista que se abre: el código del apartado que llegó por `?abrir=` (si no se abre su cobro) o lo que se
+  // buscó en la otra lista y no estaba (ADR-0720). Tocar una pestaña la borra.
+  const [buscarAlEntrar, setBuscarAlEntrar] = useState(paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : "");
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
   // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
@@ -91,7 +91,7 @@ export function ApartadosPanel(props: Props) {
     // Tocar una pestaña lleva a su lista: el cobro de un apartado se abre desde «Pendientes» y se deja con «Volver»; y la lista empieza sin
     // la búsqueda que llegó de la otra.
     setElegido(null);
-    setBuscarEnHistorial("");
+    setBuscarAlEntrar("");
     // En el celular la pestaña se toca abajo: la vista nueva empieza arriba, no a media página.
     document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   };
@@ -149,7 +149,7 @@ export function ApartadosPanel(props: Props) {
         <div className="ap-avisos space-y-1 text-sm">
           {props.hayMas && (
             <p className="text-tinta/70">
-              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (por devolver y abiertos primero): los más antiguos ya terminados no entran en el Historial.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}
@@ -192,10 +192,11 @@ export function ApartadosPanel(props: Props) {
           avisos={props.avisos ?? {}}
           apagadas={apagadas}
           pedidos={props.pedidos ?? []}
+          buscarInicial={buscarAlEntrar}
           onAbrir={setElegido}
           onBuscarEnHistorial={(texto) => {
             irA("historial");
-            setBuscarEnHistorial(texto);
+            setBuscarAlEntrar(texto);
           }}
           onApartarPedido={(p) => {
             setPedidoParaApartar(p);
@@ -207,11 +208,22 @@ export function ApartadosPanel(props: Props) {
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
       )}
       {vista === "historial" && (
-        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
-          irAEntregar={irAEntregar}
-          buscarInicial={buscarEnHistorial || (paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : "")}
-          key={buscarEnHistorial}
+        <HistorialVista
+          ubicacionId={props.ubicacionId}
+          ubicacionEtiqueta={props.ubicacionEtiqueta}
+          hoy={props.hoy}
+          puedeGestionar={props.puedeGestionar}
+          cajaAbierta={props.cajaAbierta}
+          apartados={props.apartados}
+          prendas={props.prendas}
           apagadas={apagadas}
+          buscarInicial={buscarAlEntrar}
+          onEntregar={irAEntregar}
+          onIrAPendientes={() => irA("pendientes")}
+          onBuscarEnPendientes={(texto) => {
+            irA("pendientes");
+            setBuscarAlEntrar(texto);
+          }}
         />
       )}
 

@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 196,
+  "total": 174,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -130,6 +130,13 @@
       "ComboResponsable «{responsable}»",
       "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
     ],
+    "components/apartados/HistorialVista.tsx": [
+      "BotonImprimir «{`Reimprimir el papel de ${a.codigo}»",
+      "button «apartados.todo-el-historial»",
+      "button «Pendientes»",
+      "Boton «Intentar de nuevo»",
+      "Boton «Ver todo el historial»"
+    ],
     "components/apartados/ModalesApartado.tsx": [
       "BotonImprimir «{principal}»",
       "button «Solo imprimir»",
@@ -189,41 +196,14 @@
       "Boton «Avisarle»",
       "Boton «{`Escribirle a ${a.nombres}»",
       "Boton «{`Ya se le avisó hoy a ${a.nombres}»",
-      "button «{`Abrir el apartado ${a.codigo}»",
       "Boton «apartados.lote»",
       "button «→() => setCancelarPedido(pe)»",
       "Boton «Subir al almacén»",
       "Boton «Enviar»",
       "Boton «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»"
     ],
-    "components/apartados/TodosVista.tsx": [
-      "button «Escribirles en lote»",
-      "button «Subir al almacén»",
-      "button «Enviar»",
-      "button «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»",
-      "button «{pe.direccion === \"me_piden\" ? \"No la tenemos\" : \"Cancelar\"}»",
-      "button «{f.etiqueta}»",
-      "DesplegablePildora «Canal»",
-      "button «Qué ver»",
-      "Casilla «{`Ver ${c.etiqueta}»",
-      "button «Lo de fábrica»",
-      "button «Listo»",
-      "button «{p.etiqueta}»",
-      "CampoFecha «Desde»",
-      "CampoFecha «Hasta»",
-      "button «Todo el historial»",
-      "Boton «Intentar de nuevo»",
-      "Boton «Buscar en todo el historial»",
-      "Boton «Borrar la búsqueda»",
-      "Boton «Ver todo el historial»",
-      "button «{`Ver el detalle del apartado ${a.codigo}»",
-      "button «{`Reimprimir el ticket de ${a.codigo}»",
-      "button «{hoyYa ? `Ya se le avisó hoy a ${a.nombres}»",
-      "button «{a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX}»",
-      "button «Liberar»",
-      "button «Entregar»",
-      "button «{`Avisarle a ${a.nombres}»",
-      "button «Devolver»"
+    "components/apartados/filas.tsx": [
+      "button «{etiqueta}»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"

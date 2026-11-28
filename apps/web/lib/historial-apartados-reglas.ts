@@ -1,7 +1,8 @@
-import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, desdeDeUltimosDias } from "./movimientos-reglas";
+import { DIAS_POR_DEFECTO, desdeDeUltimosDias } from "./movimientos-reglas";
 
-// Historial de Apartados por fecha (Felipe 2026-10-10, migración 20261010180000). Sin nada de servidor: lo usan la
-// página (el rango con que se lee al entrar) y la vista (los botones de período).
+// Historial de Apartados por fecha (Felipe 2026-10-10, migración 20261010180000). Sin nada de servidor: lo usa la página (el rango
+// con que se lee al entrar). Desde ADR-0720 el Historial no tiene botones de período: abre en los últimos 30 días y «Todo el historial»
+// lee sin fechas (`components/apartados/HistorialVista.tsx`).
 //
 // El rango acota SOLO lo cerrado (entregado o devuelto), por el día en que se HIZO el apartado. Lo que sigue esperando
 // algo —abierto, o liberado con el adelanto por devolver— sale siempre: lo decide `buscar_separaciones` en la base.
@@ -11,12 +12,6 @@ export type PeriodoApartados = "hoy" | "7" | "30" | "90" | "todo" | "personaliza
 
 /** Al entrar se ven los últimos 30 días (hoy incluido), como en Movimientos. */
 export const PERIODO_DE_FABRICA: PeriodoApartados = String(DIAS_POR_DEFECTO) as PeriodoApartados;
-
-export const PERIODOS_APARTADOS: { id: PeriodoApartados; etiqueta: string }[] = [
-  { id: "hoy", etiqueta: "Hoy" },
-  ...PERIODOS_RAPIDOS.map((d) => ({ id: String(d) as PeriodoApartados, etiqueta: `${d} días` })),
-  { id: "personalizado", etiqueta: "Personalizado" },
-];
 
 /** Días de Lima (`aaaa-mm-dd`), ambos incluidos; `null` = sin límite de ese lado. */
 export type RangoApartados = { desde: string | null; hasta: string | null };
@@ -34,22 +29,4 @@ export function rangoDelPeriodo(periodo: PeriodoApartados, hoy: string, fechas: 
     return desde && hasta && desde > hasta ? { desde: hasta, hasta: desde } : { desde, hasta };
   }
   return { desde: desdeDeUltimosDias(Number(periodo), hoy), hasta: null };
-}
-
-/** ¿El período cambia lo que se lee? Con el de fábrica la página ya trajo la lista: no hace falta volver a la base. */
-export const esDeFabrica = (periodo: PeriodoApartados, rango: RangoApartados, hoy: string) =>
-  periodo === PERIODO_DE_FABRICA || (rango.desde === rangoDelPeriodo(PERIODO_DE_FABRICA, hoy).desde && rango.hasta === null);
-
-function diaCorto(iso: string): string {
-  const [a, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("es-PE", { day: "numeric", month: "short", timeZone: "UTC" }).replace(/\./g, "");
-}
-
-/** El período en palabras, para decir qué cerrados se están viendo («de hoy», «de los últimos 30 días», «del 2 oct al 9 oct»). */
-export function textoDelPeriodo(periodo: PeriodoApartados, rango: RangoApartados): string {
-  if (periodo === "todo" || (!rango.desde && !rango.hasta)) return "de todo el historial";
-  if (periodo === "hoy") return "de hoy";
-  if (periodo !== "personalizado") return `de los últimos ${periodo} días`;
-  if (rango.desde && rango.hasta) return rango.desde === rango.hasta ? `del ${diaCorto(rango.desde)}` : `del ${diaCorto(rango.desde)} al ${diaCorto(rango.hasta)}`;
-  return rango.desde ? `desde el ${diaCorto(rango.desde)}` : `hasta el ${diaCorto(rango.hasta!)}`;
 }

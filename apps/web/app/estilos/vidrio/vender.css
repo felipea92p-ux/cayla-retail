@@ -244,7 +244,7 @@
 
    Los ganchos los ponen components/apartados/ApartadosPanel.tsx (`ap-mesa`, `ap-cab`, `ap-cab-sep`, `ap-opciones`, `ap-avisos`,
    `ap-pestanas-isla`, `ap-pestanas-gota` con su `--k`), ApartarVista.tsx y EntregarVista.tsx (`ap-dos`, `ap-cuerpo`, `ap-ticket`,
-   `ap-ticket-hilo`, `ap-placa`) y TodosVista.tsx (`ap-cuerpo`, `ap-cifras`, `ap-cifra` con `data-custodia`, `ap-placa`). Nada cambia qué
+   `ap-ticket-hilo`, `ap-placa`) y las dos listas, PendientesVista.tsx e HistorialVista.tsx (`ap-cuerpo`, `ap-placa`). Nada cambia qué
    hace la pantalla. Solo recetas de recetas.css. Movimiento de ADR-0136, sin nada nuevo: la gota de las pestañas viaja como la de Mi
    perfil (450 ms, sin rebote); con «reducir movimiento», salta.
    ===================================================================== */
@@ -373,41 +373,14 @@
     background: var(--serena-fondo-encima);
     box-shadow: var(--serena-sombra-encima);
   }
-  /* La fila del Historial que abre su detalle: la gota, no la crema maciza. */
-  .ap-mesa ul.ap-placa > li:hover {
-    background: var(--gota-fondo);
-  }
 }
 
-/* Las cifras del Historial: ya no una tarjeta partida en cuatro, sino cuatro placas sueltas (la tarjeta de cifra «A · Placa»). La de
-   «En custodia» conserva su rayado (el dinero que se guarda y todavía no es venta), sobre la placa. */
-.ap-mesa .ap-cifras {
-  gap: 12px;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-}
-.ap-mesa .ap-cifra {
-  border: 1px solid var(--serena-borde);
-  border-radius: var(--radius-tarjeta);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
-}
-.ap-mesa .ap-cifra[data-custodia] {
-  background:
-    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--color-sand) 35%, transparent) 9px 10px),
-    var(--serena-fondo);
-}
-/* En el celular, de a dos (como la maqueta): una columna de cuatro placas empujaba la lista fuera de la vista. */
-@media (max-width: 639px) {
-  .ap-mesa .ap-cifras {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-  .ap-mesa .ap-cifra {
-    padding: 12px;
+/* Las listas de Apartados en tarjeta (la tabla viva pasa a tarjeta bajo 660 px de ancho): «pagado» o «devuelto» va al lado del monto,
+   no debajo, donde quedaba suelto junto al nombre de la columna. */
+@container tv (max-width: 659.98px) {
+  .ap-mesa .tv-monto .ap-monto-dice {
+    display: inline;
+    margin-left: 6px;
   }
 }
 
