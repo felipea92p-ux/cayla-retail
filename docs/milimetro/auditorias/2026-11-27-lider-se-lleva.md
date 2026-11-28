@@ -33,8 +33,6 @@ Ninguno.
    detrás de la hoja, sí lo muestra entero, y la hoja frena un monto mayor con «En … hay S/ …: no se puede llevar más».
    **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (`ayudaDelOrigen`). A 375 px el combo ya cabe entero
    y la ayuda lo repite: se aceptó a cambio de que a 1440 px se lea.
-   **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (`ayudaDelOrigen`). A 375 px el combo ya cabe entero
-   y la ayuda lo repite: se aceptó a cambio de que a 1440 px se lea.
 2. **El ejemplo del monto («1,500.00») es mayor que lo que suele haber en una caja fuerte**, y aquí no se puede llevar más que su saldo. — placeholder de
    `mov-monto`, marcado `sugerir-fijo` por ser el formato — regla del repo «Sugerencias coherentes» (ADR-0290) — va a `/sugerir`.
    **Corregida:** en esta opción el ejemplo es una cifra redonda POR DEBAJO del saldo (de 1,200 propone 1,000.00), contada en céntimos enteros
