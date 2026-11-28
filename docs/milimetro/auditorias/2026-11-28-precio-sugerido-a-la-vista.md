@@ -14,7 +14,7 @@ Resumen: **1 grave arreglado · 0 medias · 0 leves** · lo heredado, anotado ab
   «Precio sugerido», el monto en la misma serif de 28 px que el margen, «Llega a tu objetivo de N %» y `<Boton peso="fantasma">` «Usar S/ …».
   Con el precio escrito vuelve a ser «Margen». Sin precio ni costo: «Con el costo, se calcula»; con costo y sin precio ya no lo dice.
 - **La IA como segunda opinión** (`PropuestaDePrecio discreta`): se pide con `<Boton peso="discreto">` chico («Pedir otra opinión a la IA») y
-  responde en una `nota-cayla` de una línea («Otra opinión, de la IA: S/ … · ganas N %»), el motivo y las parecidas a 14 px, y dos enlaces.
+  responde en una `nota-cayla` de una línea («Otra opinión, de la IA: S/ … (ganas N %)»), el motivo y las parecidas dichas «a, b y c» (`listaDicha`, regla «Separar sin punto», ADR-0716) a 14 px, y dos enlaces.
   Recibir sigue con la cara de siempre.
 
 ## Mediciones

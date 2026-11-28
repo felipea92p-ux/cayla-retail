@@ -21,6 +21,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { Boton } from "@/components/ui/campos";
 import { soles } from "@/lib/compras-reglas";
+import { listaDicha } from "@/lib/lista-dicha";
 import type { Rasgo } from "@/lib/margen-por-rasgos";
 
 type Estado = { tipo: "nada" } | { tipo: "pidiendo" } | { tipo: "error"; texto: string } | RespuestaEnPantalla;
@@ -208,7 +209,7 @@ export function PropuestaDePrecio({
               Otra opinión, de la IA:
             </span>
             <b className="font-semibold tabular-nums text-tinta">{soles(propuesta.precio)}</b>
-            <span className="tabular-nums text-secundario">· ganas {propuesta.margen.toFixed(0)} %</span>
+            <span className="tabular-nums text-secundario">(ganas {propuesta.margen.toFixed(0)} %)</span>
             {propuesta.costoEstimado && (
               <Chip tono="ambar" title={`Esta prenda no tiene costo: se usó el promedio de su categoría (${soles(propuesta.costo)}).`}>
                 Costo estimado
@@ -217,7 +218,7 @@ export function PropuestaDePrecio({
           </p>
           <p className="text-detalle text-secundario">
             {propuesta.razon}
-            {propuesta.parecidas.length > 0 && ` Parecidas: ${propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`).join(" · ")}.`}
+            {propuesta.parecidas.length > 0 && ` Parecidas: ${listaDicha(propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`))}.`}
           </p>
           {/* Enlaces, pero de 24 px de alto: el mínimo para atinarles con el mouse (WCAG 2.5.8; medidos en 21 px el 2026-11-28). */}
           <div className="flex flex-wrap items-center gap-3">
@@ -252,7 +253,7 @@ export function PropuestaDePrecio({
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">
-              Parecidas: {propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`).join(" · ")}
+              Parecidas: {listaDicha(propuesta.parecidas.map((p) => `${p.referencia} (${soles(p.precio)})`))}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3 pt-1">
