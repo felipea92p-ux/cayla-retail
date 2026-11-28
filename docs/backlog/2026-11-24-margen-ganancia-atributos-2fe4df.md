@@ -1,4 +1,4 @@
-## 🏷️ Margen objetivo por lo que la prenda tiene (2026-11-24, ADR-0700) — seis migraciones EN PRODUCCIÓN desde el 2026-11-24; PR #2004
+## 🏷️ Margen objetivo por lo que la prenda tiene (2026-11-24, ADR-0700) — las ocho migraciones EN PRODUCCIÓN (2026-11-24 y 26); PR #2004 fusionado
 
 - [x] **Actividad 1 — Configuración ▸ Precios** (`20261124170000`): `retail.reglas_de_precio` (filas que se agregan, con candados), `tejidos.se_nota`,
   `marcas.conocida`, sus funciones (solo Admin) y la pestaña; base recomendada 37 % con «Usar 37 %». `pruebas:reglas-de-precio` (38).
@@ -40,8 +40,10 @@
   `guardar_casilla_de_precio`, disparadores que exigen códigos de la lista y que una casilla no se borre ni cambie de código u origen.
   Pruebas: `pruebas:reglas-de-precio` 63, `pruebas:rasgos-en-catalogo` 29, `pruebas:recibir-con-rasgos` 14, `pruebas:compra-con-rasgos` 18.
 - [x] Web: la pieza lee la lista (con su «?»), Configuración ▸ Precios agrega, renombra y apaga (`CasillaDePrecioModal`).
-- [ ] **Producción:** `20261124201000` solo en local. Espera el OK de Felipe; va **antes** de fusionar (la web nueva llama a
-  `guardar_rasgos_de_producto(uuid, text[], text[])`). Ensayo contra el esquema real y comprobación por md5 sin comentarios, como las seis.
+- [x] **Producción:** `20261124201000` pegada el 2026-11-26 (SQL Editor, 16:31 de Lima), antes de fusionar el PR #2004, junto con
+  `20261126211000` (las casillas al eliminar y fusionar). Comprobado el 2026-11-28: diez funciones con el mismo md5 que el repo, mismos
+  permisos, RLS sin acceso directo; nadie la usó aún (ninguna prenda marcada, listas de tejidos y marcas vacías).
+- [ ] **Llenar las listas** de tejidos que se notan y marcas que el cliente conoce en producción (Configuración ▸ Precios, un Admin).
 - [ ] **Casillas que calcularía el ERP** («Llega a inicio de temporada», «Pocas unidades»): necesitan un origen nuevo y código; esperan
   a que Felipe elija de las opciones del análisis.
 - [ ] **`/milimetro auditar`** de la hoja de una casilla (`CasillaDePrecioModal`) y de la pieza a dos columnas: vistas en el navegador a 1440 y
