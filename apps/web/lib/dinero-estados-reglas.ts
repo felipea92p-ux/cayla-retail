@@ -38,6 +38,8 @@ export type FilaEstado = {
   saldo: number | null;
   estado: EstadoCuenta | null;
   pide: Pedido | null;
+  /** ADR-0710: una caja fuerte con plata, vista por el líder: se puede anotar que se la llevó sin depositar. */
+  llevar: boolean;
 };
 
 export function etapaDe(tipo: CuentaDinero["tipo"]): EtapaDinero {
@@ -54,7 +56,7 @@ const TONO_DE_INSIGNIA: Record<"verde" | "ambar" | "pizarra", TonoChip> = { verd
  * atrasado (`AlertaPos.atrasados > 0`); un «N días sin abonar» solo pide atención si la máquina ya se atrasó. Un saldo negativo
  * (que no es la tarjeta de crédito, que no entra a los grupos) pide revisión siempre.
  */
-export function filasDeEstado(grupos: readonly GrupoCuentas[], atrasadas: ReadonlySet<string>): FilaEstado[] {
+export function filasDeEstado(grupos: readonly GrupoCuentas[], atrasadas: ReadonlySet<string>, esLider = false): FilaEstado[] {
   const filas: FilaEstado[] = [];
   for (const g of grupos) {
     for (const f of g.filas) {
@@ -82,6 +84,7 @@ export function filasDeEstado(grupos: readonly GrupoCuentas[], atrasadas: Readon
         saldo: f.saldo,
         estado,
         pide,
+        llevar: esLider && f.tipo === "caja_fuerte" && f.saldo !== null && Math.round(f.saldo * 100) > 0,
       });
     }
   }

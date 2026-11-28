@@ -357,8 +357,13 @@ function DetalleDeCuenta({ f, abrirMovimiento, onCerrar }: { f: FilaEstado; abri
           Registrar el depósito
         </button>
       )}
+      {f.llevar && (
+        <button type="button" className="btn-cayla btn-enlace" onClick={() => { onCerrar(); abrirMovimiento("lider_se_lleva", f.id); }}>
+          Se lo llevó el líder
+        </button>
+      )}
       {f.pide === "negativo" && <span className="text-rojo-profundo">Lo entregado al líder no puede quedar en negativo: revisa sus movimientos.</span>}
-      {f.pide === null && <span className="text-tinta/55">Sin nada pendiente.</span>}
+      {f.pide === null && !f.llevar && <span className="text-tinta/55">Sin nada pendiente.</span>}
     </div>
   );
 }

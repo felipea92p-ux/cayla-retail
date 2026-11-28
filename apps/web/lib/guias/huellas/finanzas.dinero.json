@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero",
   "ruta": "/finanzas/dinero",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 82,
+  "total": 84,
   "controles": {
     "app/(app)/finanzas/dinero/page.tsx": [
       "Link «Ver en»"
@@ -65,7 +65,8 @@
       "button «{p.accion.texto}»",
       "Link «Cuadrar con el banco»",
       "button «Registrar el depósito»",
-      "button «Registrar el depósito» #2"
+      "button «Registrar el depósito» #2",
+      "button «Se lo llevó el líder»"
     ],
     "components/finanzas/dinero/CobrosDinero.tsx": [
       "button «{c.texto}»",
@@ -87,6 +88,7 @@
       "Link «Cuadrar con el banco»",
       "button «Registrar el depósito»",
       "button «Registrar el depósito» #2",
+      "button «Se lo llevó el líder»",
       "Link «{i.accion.texto}»",
       "button «{i.accion.texto}»",
       "button «Ver historial completo»"

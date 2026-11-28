@@ -81,7 +81,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
 
   // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).
   const atrasadas = new Set(alertas.datos.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
-  const filasEstado = filasDeEstado(grupos, atrasadas);
+  const filasEstado = filasDeEstado(grupos, atrasadas, ctx.esLider);
   const filasCierres = filasDeCierres(cierres.datos);
   const avisosPlanilla = avisosDePlanilla(planilla.datos, cuentasPlanilla ?? []);
   const pendientes = porRegistrar(alertas.datos, avisosPlanilla);
