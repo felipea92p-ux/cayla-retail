@@ -35,6 +35,8 @@ import {
   tituloDelMovimiento,
   opcionQuePaso,
   notaDelMovimiento,
+  ayudaDelOrigen,
+  ejemploMontoMovimiento,
   tituloDeLaHoja,
   avisoDeLoRegistrado,
   netoEsperado,
@@ -910,7 +912,7 @@ function RegistrarMovimientoModal({
 
       <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-cuentas">
         {op.origen && (
-          <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"}>
+          <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"} ayuda={ayudaDelOrigen(b.que, origen) ?? undefined}>
             <SelectFin
               id="mov-de"
               valor={b.origen}
@@ -1140,7 +1142,7 @@ function RegistrarMovimientoModal({
           ) : esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
           ) : (
-            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />
+            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : ejemploMontoMovimiento(b.que, origen)} />
           )}
         </CampoFin>
         <CampoFin etiqueta={nota.etiqueta} htmlFor="mov-ref">
@@ -1190,7 +1192,8 @@ function RegistrarMovimientoModal({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4" data-guia="fin-dinero.mov-botones">
+      {/* `pie-hoja-fijo`: en el celular «Registrar» no queda bajo el pliegue (auditoría /milimetro 2026-11-27, ADR-0710). */}
+      <div className="fin-botones pie-hoja-fijo mt-4" data-guia="fin-dinero.mov-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>

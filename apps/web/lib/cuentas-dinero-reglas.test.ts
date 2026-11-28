@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parsearMonto } from "./gastos-reglas";
 import {
   agruparMaquinas,
   avisoFechaAntesDelInicio,
@@ -40,6 +41,8 @@ import {
   tiposParaMedio,
   validarMovimiento,
   notaDelMovimiento,
+  ayudaDelOrigen,
+  ejemploMontoMovimiento,
   tituloDeLaHoja,
   avisoDeLoRegistrado,
   alcanzaEnLaCajaFuerte,
@@ -415,6 +418,40 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(tituloDeLaHoja("abono_tarjeta", "abono_tarjeta", "Depósito de Izipay")).toBe("Depósito de Izipay");
     expect(alcanzaEnLaCajaFuerte(400, null)).toBe(true);
     expect(alcanzaEnLaCajaFuerte(0.1 + 0.2, 0.3)).toBe(true);
+  });
+  it("lo que el líder se lleva dice el saldo bajo «De» y su ejemplo cabe en la caja fuerte (ADR-0710, ADR-0290)", () => {
+    const con = (saldo: number | null) => ({ saldo });
+    expect(ayudaDelOrigen("lider_se_lleva", con(1200))).toBe("Hay S/\u00a01,200.00");
+    expect(ayudaDelOrigen("lider_se_lleva", con(0))).toBe("Está vacía");
+    expect(ayudaDelOrigen("lider_se_lleva", con(null))).toBeNull();
+    expect(ayudaDelOrigen("lider_se_lleva", null)).toBeNull();
+    // Una cifra redonda que cabe, nunca el saldo exacto ni más.
+    const casos: [number, string][] = [[1200, "1,000.00"], [1800, "1,500.00"], [12345.6, "12,000.00"], [1000, "500.00"], [350, "300.00"], [100, "90.00"], [99.9, "90.00"], [45, "40.00"], [10, "9.00"], [7.5, "7.00"], [1, "0.90"], [1.004, "0.90"], [0.995, "0.90"], [0.5, "0.40"], [0.1 + 0.2, "0.20"], [0.11, "0.10"], [0.02, "0.01"], [0.01, "0.01"], [0, "0.00"], [-20, "0.00"]];
+    for (const [saldo, ejemplo] of casos) {
+      expect(ejemploMontoMovimiento("lider_se_lleva", con(saldo)), `saldo ${saldo}`).toBe(ejemplo);
+    }
+    // La promesa, sobre todos los saldos de 0.01 a 20.00 y una muestra hasta 100 000: el ejemplo queda POR DEBAJO del saldo (salvo S/ 0.01,
+    // el único monto posible) y se lee con el mismo intérprete que el campo Monto.
+    const saldos = [...Array.from({ length: 2000 }, (_, k) => (k + 1) / 100), ...Array.from({ length: 1000 }, (_, k) => Math.round((k * 99.97 + 0.03) * 100) / 100)];
+    for (const saldo of saldos) {
+      const leido = parsearMonto(ejemploMontoMovimiento("lider_se_lleva", con(saldo)));
+      expect(leido.ok, `saldo ${saldo}`).toBe(true);
+      const n = leido.ok ? leido.valor : NaN;
+      expect(saldo === 0.01 ? n === 0.01 : n > 0 && n < saldo, `saldo ${saldo} → ${n}`).toBe(true);
+    }
+    expect(ejemploMontoMovimiento("lider_se_lleva", con(Number.NaN))).toBe("1,500.00");
+    // Totalidad: todo «Qué pasó» tiene ejemplo y ayuda definidas; solo «El líder se lleva efectivo» depende de la cuenta.
+    for (const o of OPCIONES_QUE_PASO) {
+      expect(ejemploMontoMovimiento(o.valor, con(1200))).not.toBe("");
+      if (o.valor !== "lider_se_lleva") {
+        expect(ejemploMontoMovimiento(o.valor, con(1200))).toBe("1,500.00");
+        expect(ayudaDelOrigen(o.valor, con(1200))).toBeNull();
+      }
+    }
+    // Sigue al control (A → B → A) y es estable.
+    const a = ejemploMontoMovimiento("lider_se_lleva", con(350));
+    expect(ejemploMontoMovimiento("deposito", con(350))).toBe("1,500.00");
+    expect(ejemploMontoMovimiento("lider_se_lleva", con(350))).toBe(a);
   });
   it("la misma cuenta en las dos puntas no mueve plata; una cuenta del tipo equivocado no sirve", () => {
     expect(validarMovimiento({ ...base, que: "entre_cuentas", origen: "bcp", destino: "bcp" }, ctx)).toEqual({ ok: false, error: "La plata no cambia de lugar si sale y llega a la misma cuenta." });

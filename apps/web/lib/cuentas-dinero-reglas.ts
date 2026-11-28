@@ -691,6 +691,40 @@ export function avisoDeLoRegistrado(que: QuePaso): { titulo: string; detalle: st
   return que === "lider_se_lleva" ? { titulo: "Anotado: lo tiene el líder", detalle: "Cuando lo deposite, registra el depósito al banco." } : null;
 }
 
+/**
+ * ADR-0710: lo que el líder se lleva no puede pasar el saldo de la caja fuerte, y en el combo «De» ese saldo se corta. Se dice entero bajo
+ * el campo; `null` en cualquier otro «Qué pasó» o si no se sabe el saldo (no se inventa un número).
+ */
+export function ayudaDelOrigen(que: QuePaso, origen: Pick<CuentaDinero, "saldo"> | null): string | null {
+  if (que !== "lider_se_lleva" || !origen || origen.saldo === null) return null;
+  return origen.saldo > 0 ? `Hay ${soles2(origen.saldo)}` : "Está vacía";
+}
+
+/** El formato de un monto en el ejemplo de la caja (como lo escribe la persona, sin «S/»). */
+const EJEMPLO_MONTO = "1,500.00";
+const comoMonto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * El ejemplo del campo Monto, según lo elegido (ADR-0290). Lo que el líder se lleva sale de la caja fuerte de «De»: el ejemplo es una cifra
+ * redonda que queda POR DEBAJO de su saldo (de 1,200 propone 1,000.00; de 350, 300.00; de 0.50, 0.40), nunca el saldo exacto (ese lo dice la
+ * ayuda de «De», y un dato real invita a copiarlo) ni más de lo que hay. Se cuenta en céntimos enteros, hacia abajo: 0.1 + 0.2 o 0.995 no
+ * suben el ejemplo. Única excepción: con S/ 0.01 no cabe nada por debajo, y ese céntimo es el único monto posible. En lo demás, el formato de siempre.
+ */
+export function ejemploMontoMovimiento(que: QuePaso, origen: Pick<CuentaDinero, "saldo"> | null): string {
+  if (que !== "lider_se_lleva" || !origen || origen.saldo === null || !Number.isFinite(origen.saldo)) return EJEMPLO_MONTO;
+  // `+ 1e-6`: 0.1 + 0.2 vale 0.30000000000000004 y 0.3 * 100 vale 29.999999999999996; sin el margen, el piso perdería un céntimo que sí está.
+  const centimos = Math.floor(origen.saldo * 100 + 1e-6);
+  if (centimos <= 0) return comoMonto(0);
+  // Los pasos, de mayor a menor, en céntimos: 500 · 100 · 10 · 1 soles y 0.10 · 0.01. Gana el más grande que deja una cifra por debajo del saldo.
+  for (const paso of [50000, 10000, 1000, 100, 10, 1]) {
+    if (paso > centimos) continue;
+    let redondo = Math.floor(centimos / paso) * paso;
+    if (redondo >= centimos) redondo -= paso;
+    if (redondo > 0) return comoMonto(redondo / 100);
+  }
+  return comoMonto(centimos / 100);
+}
+
 /** ¿El saldo de la caja fuerte alcanza para lo que el líder dice que se llevó? La base lo vuelve a preguntar; aquí se dice antes de guardar. */
 export function alcanzaEnLaCajaFuerte(monto: number, saldo: number | null): boolean {
   return saldo === null || Math.round(monto * 100) <= Math.round(saldo * 100);

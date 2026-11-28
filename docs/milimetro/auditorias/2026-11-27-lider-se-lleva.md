@@ -1,6 +1,6 @@
 # Auditoría al milímetro — «Se lo llevó el líder» en Cuentas y dinero (ADR-0710) · 2026-11-27 · claude/intelligent-elbakyan-89f80b (60506e7ee)
 Medido: 1440×900 claro (quieto y vivo) · 1440 oscuro · 375×812 claro con dedo     Servidor: `http://localhost:3010` contra una base privada con las migraciones de `main` y el seed
-Resumen: 0 graves · 1 media · 2 leves · 1 de antes de este PR
+Resumen: 0 graves · 0 medias · 0 leves abiertas · 1 media y 2 leves corregidas el mismo día · 1 de antes de este PR
 
 Qué se midió: las dos piezas que trae el PR, **el botón «Se lo llevó el líder»** (`btn-cayla btn-enlace` en el detalle de una caja fuerte,
 `components/finanzas/dinero/PanoramaDinero.tsx`, y en la campana, `CampanaDinero.tsx`) y **la hoja «Registrar movimiento» abierta en «El líder se lleva
@@ -24,12 +24,15 @@ Ninguno.
 1. **A 375 px, «Cancelar» y «Registrar» quedan bajo el pliegue de la hoja.** — `div.fin-botones` de `RegistrarMovimientoModal` (`CuentasDinero.tsx`) —
    medido: la hoja termina en «Fecha» y la nota de quien firma; los botones aparecen recién al desplazar — regla del repo «Botones a la vista en una hoja larga»
    (`modales.md`: la fila de acciones lleva `pie-hoja-fijo`, y «las demás hojas largas la piden cuando se toquen») — sin prueba — va a `/milimetro`.
-   Arreglo de una clase; espera el OK de Felipe.
+   **Corregida (2026-11-27, con el OK de Felipe):** la fila lleva \`pie-hoja-fijo\`, como \`GastosFijosYActivos\`. Medido a 375×812: «Cancelar» y «Registrar»
+   entre y = 743 y 787, a la vista sin desplazar; en oscuro, 0 hallazgos (\`tema:auditar --ancho 375\`).
 
 ## Leves
 1. **En «De», el saldo de la caja fuerte se corta** a 1440 px: «Caja fuerte · Tienda Trujillo · S/ 1,2…». Justo en esta opción el saldo es lo que dice cuánto
    se puede llevar. — `conSaldo` en `CuentasDinero.tsx`, dos campos por fila (`fin-dos-campos`) — [Práctica] — va a `/textos`. El detalle de la cuenta,
    detrás de la hoja, sí lo muestra entero, y la hoja frena un monto mayor con «En … hay S/ …: no se puede llevar más».
+   **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (\`ayudaDelOrigen\`). A 375 px el combo ya cabe entero
+   y la ayuda lo repite: se aceptó a cambio de que a 1440 px se lea.
 2. **El ejemplo del monto («1,500.00») es mayor que lo que suele haber en una caja fuerte**, y aquí no se puede llevar más que su saldo. — placeholder de
    `mov-monto`, marcado `sugerir-fijo` por ser el formato — regla del repo «Sugerencias coherentes» (ADR-0290) — va a `/sugerir`.
 
