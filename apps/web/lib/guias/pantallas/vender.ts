@@ -283,7 +283,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "El DNI o el RUC del cliente",
-      texto: "Para una factura escribe el RUC de la empresa. Para una boleta, el DNI es opcional: sin documento sale a «Cliente varios». Con DNI o RUC, el nombre se busca solo.",
+      texto: "Para una factura escribe el RUC de la empresa. Para una boleta, el DNI es opcional: sin documento sale a «Cliente varios». Con DNI o RUC, el nombre se busca solo. Si ese DNI es de un cliente registrado, la venta queda en su ficha; «Quitar» lo evita.",
     },
     {
       id: "cobro-confirmar",

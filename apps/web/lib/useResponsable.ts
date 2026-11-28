@@ -47,6 +47,9 @@ export type ControlResponsable = {
   /** ADR-0454 (temporal): el nombre de la persona a cuyo nombre firma esta terminal, si tiene firma de respaldo (no pide responsable).
    *  `null` en todo lo demás. El combo lo muestra como una línea informativa en vez de pedir nada. */
   firmaDeRespaldo: string | null;
+  /** El responsable llegó puesto sin que nadie tocara el combo (la persona de la sesión, el Admin o la firma de respaldo).
+   *  Una pantalla lo usa para no pedir «Quién» como paso aparte (ADR-0718). En una terminal compartida es falso. */
+  vinoPuesto: boolean;
   /** Hay un responsable vigente: se puede guardar. */
   listo: boolean;
   /** Por qué no se puede guardar todavía (`null` si `listo`). */
@@ -167,6 +170,7 @@ export function useResponsable(
     recargando: deTurno.recargando,
     deMemoria: deTurno.deMemoria,
     firmaDeRespaldo: respaldo ? respaldo.nombre : null,
+    vinoPuesto: elegidoId !== null && tocado === undefined,
     listo,
     motivo: listo ? null : motivoSinResponsable(estado, sede, modo),
     firma,
