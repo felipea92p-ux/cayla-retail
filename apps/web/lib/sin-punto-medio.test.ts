@@ -194,11 +194,11 @@ describe("las piezas que reemplazan al «·»", () => {
 
   it("la cabecera con cuenta es el título de sección con la cuenta dicha a su derecha y lo urgente en rojo profundo", () => {
     const html = renderToStaticMarkup(
-      createElement(CabeceraConCuenta, {
-        codigo: "AQP",
-        cuenta: { total: 7, urgentes: 7, que: { singular: "caso", plural: "casos", genero: "m" }, comoEsUrgente: "de prioridad alta" },
-        children: "Tienda Arequipa",
-      }),
+      createElement(
+        CabeceraConCuenta,
+        { codigo: "AQP", cuenta: { total: 7, urgentes: 7, que: { singular: "caso", plural: "casos", genero: "m" }, comoEsUrgente: "de prioridad alta" } },
+        "Tienda Arequipa",
+      ),
     );
     expect(html).not.toMatch(PUNTO_MEDIO);
     expect(html).toContain('class="titulo-seccion ');
