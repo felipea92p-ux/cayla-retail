@@ -45,7 +45,7 @@ export const NOMBRE_IGV_VENTAS = "IGV de tus ventas";
 const GRUPOS: readonly { clave: string; nombre: string; cuentas: readonly string[] }[] = [
   { clave: "local", nombre: "Local y servicios", cuentas: ["635", "636", "634", "651"] },
   { clave: "publicidad", nombre: "Publicidad, envíos y comisiones", cuentas: ["637", "631", "639"] },
-  { clave: "administracion", nombre: "Administración", cuentas: ["632", "64", "656"] },
+  { clave: "administracion", nombre: "Administración", cuentas: ["632", "64", "656", "6393"] },
   // Una diferencia de caja no es un gasto que se decide: va aparte para que se vea (auditoría del Resumen, hallazgo 14).
   { clave: "caja", nombre: "Diferencias de caja", cuentas: ["6599", "6598"] },
 ];

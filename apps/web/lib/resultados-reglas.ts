@@ -169,6 +169,7 @@ const NOMBRE_GASTO: Record<string, string> = {
   "656": "Suministros",
   "634": "Mantenimiento",
   "639": "Comisiones bancarias",
+  "6393": "Gastos del CEO",
   "64": "Tributos y licencias",
   "651": "Seguros",
   "681": "Depreciación",
