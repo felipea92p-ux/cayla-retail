@@ -9,7 +9,7 @@ quien construye una de las dos partes no inventa lo que la otra espera. Decision
   `20261127152000` la marca es opcional —antes `compra_items_prenda_o_categoria_marca` la exigía—; y `compra_items_variante_con_prenda`). Columnas nuevas: `categoria_id`, `marca_id`, `orden_compra_item_id` (N a 1),
   `precio_venta_sugerido` (opcional, ≥ 0).
 - `compras.orden_compra_id` y `compras.huella_envio`. El papel (proveedor, serie, número) es único solo entre los **vigentes**
-  (`compras_papel_vigente_unico`).
+  (`compras_papel_vigente_unico`; desde el 2026-11-28 lo reemplaza `compras_comprobante_clave_vigente_unico`, que ignora los ceros a la izquierda del número).
 
 ## La función: `retail.registrar_comprobante_orden` (migración `20261012211000`)
 

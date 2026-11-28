@@ -361,12 +361,14 @@ select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.
     gravedad: 1,
     nivel: "cruzada",
     clave: ["compra_id"],
-    dice: "Una factura de proveedor anulada no tiene mercadería ingresada: `anular_compra` lo prohíbe («dejaría stock o dinero sin respaldo»). Si la tiene, hay prendas en el stock que ya no le deben nada a nadie. Nació de /chaos 2026-10-13 (recibir y anular a la vez: las dos pasaban).",
+    dice: "Una factura de proveedor anulada no tiene mercadería ingresada: `anular_compra` lo prohíbe («dejaría stock o dinero sin respaldo»). Si la tiene, hay prendas en el stock que ya no le deben nada a nadie. La mercadería entra por dos caminos: recibida contra la factura (los movimientos de sus líneas) o, en una compra de «Mis compras», recibida ANTES de que existiera el comprobante (`compra_item_recibido_antes`, sin movimiento en la línea). Nació de /chaos 2026-10-13 (recibir y anular a la vez: las dos pasaban); el segundo camino, de la auditoría del 2026-11-28 (N.º 9).",
     sql: `
-select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad) as unidades_ingresadas
+select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(x.cantidad) as unidades_ingresadas
   from retail.compras c
   join retail.compra_items ci on ci.compra_id = c.id
-  join retail.movimientos m on m.compra_item_id = ci.id
+  join (select m.compra_item_id, m.cantidad from retail.movimientos m where m.compra_item_id is not null
+        union all
+        select a.compra_item_id, a.cantidad from retail.compra_item_recibido_antes a) x on x.compra_item_id = ci.id
  where c.estado = 'anulada'
  group by c.id, c.serie, c.numero`,
     corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()

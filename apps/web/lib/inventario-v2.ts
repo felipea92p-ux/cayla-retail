@@ -598,7 +598,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     cantidad: f.cantidad,
     creadoEn: f.created_at,
     precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
-    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
+    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id, tipoDano: f.tipo_dano }),
     motivoReporte: f.motivo_reporte,
     tipoDano: leerTipoDano(f.tipo_dano),
     enArreglo: salidas.get(f.id)?.enArreglo ?? null,

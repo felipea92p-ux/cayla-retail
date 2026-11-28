@@ -22,6 +22,7 @@
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "a «{a.contacto}»",
+      "Link «{`Abre el apartado ${a.separacion.codigo}»",
       "button «Liberar»"
     ],
     "components/BotonSonidoConfirmar.tsx": [

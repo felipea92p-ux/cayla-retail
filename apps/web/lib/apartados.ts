@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import type { Apartado } from "@/lib/apartados-reglas";
+import { puedeLiberarApartado, type Apartado } from "@/lib/apartados-reglas";
 
 // Los apartados ABIERTOS de una ubicación (`retail.listar_apartados`, 20260920160000, ADR-0141).
 // Solo lectura: se escribe únicamente por las RPC `apartar_stock`/`liberar_apartado`, que llaman los
@@ -12,7 +12,7 @@ import type { Apartado } from "@/lib/apartados-reglas";
 // que apartó — entregar la prenda o soltar un apartado vencido es operación del mostrador. `listar_apartados` todavía
 // calcula `puede_liberar` con la persona de la sesión (una terminal no tiene), así que aquí se abre para la terminal
 // hasta que la lectura se alinee en la base. La base sigue siendo la que decide al liberar.
-export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTerminal?: boolean } = {}): Promise<Apartado[]> {
+export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTerminal?: boolean; veApartados?: boolean } = {}): Promise<Apartado[]> {
   const supabase = await createClient();
   // Por páginas, en serie (ADR-0192): PostgREST corta también las RPC en 1.000 filas sin avisar. Mismo orden que la
   // función (lo que vence primero arriba) más `id`, único.
@@ -27,9 +27,25 @@ export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTe
   const filas = exigir(respuesta, "los apartados");
   // Cuáles son la reserva de un pedido web (ADR-0408, act. 8). Si la función no responde (no está pegada), la lista sigue sin el
   // rótulo: la base igual rechaza «Liberar» con su propio aviso.
-  const web = filas.length === 0 ? null : await supabase.rpc("fn_apartados_de_pedidos_web", { p_ubicacion_id: ubicacionId });
+  // Y cuáles son la prenda de un apartado con adelanto (auditoría 2026-11-28, N.º 2): se rotulan con su APT y enlazan a Apartados en
+  // vez de ofrecer «Liberar». Igual de secundaria: si no responde, `listar_apartados` ya devuelve `puede_liberar` en falso para ellas
+  // y la base rechaza la liberación con su propio aviso.
+  const [web, deApt] =
+    filas.length === 0
+      ? [null, null]
+      : await Promise.all([
+          supabase.rpc("fn_apartados_de_pedidos_web", { p_ubicacion_id: ubicacionId }),
+          supabase.rpc("fn_apartados_de_separaciones", { p_ubicacion_id: ubicacionId }),
+        ]);
   const deWeb = new Map(
     (web?.error ? [] : (web?.data ?? [])).map((w) => [w.apartado_id, { codigo: w.pedido_codigo, tiendaPedido: w.tienda_pedido, paraOtraTienda: w.para_otra_tienda }]),
+  );
+  // El enlace solo a quien ve Apartados (como Movimientos, `FilaMovimiento.tsx`): a los demás se les dice dónde, sin un enlace que da «Sin acceso».
+  const deSeparacion = new Map(
+    (deApt?.error ? [] : (deApt?.data ?? [])).map((s) => [
+      s.apartado_id,
+      { id: s.separacion_id, codigo: s.separacion_codigo, href: opciones.veApartados === true ? `/vender/apartados?abrir=${s.separacion_id}` : null },
+    ]),
   );
 
   return filas.map((f) => ({
@@ -48,7 +64,13 @@ export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTe
     venceEl: f.vence_el ?? null,
     creadoEn: f.created_at,
     apartoNombre: f.creado_por_nombre ?? null,
-    puedeLiberar: (opciones.esTerminal === true || f.puede_liberar) && !deWeb.has(f.id),
+    puedeLiberar: puedeLiberarApartado({
+      puedeLiberarBase: f.puede_liberar,
+      esTerminal: opciones.esTerminal === true,
+      esPedidoWeb: deWeb.has(f.id),
+      esDeSeparacion: deSeparacion.has(f.id),
+    }),
     pedidoWeb: deWeb.get(f.id) ?? null,
+    separacion: deSeparacion.get(f.id) ?? null,
   }));
 }

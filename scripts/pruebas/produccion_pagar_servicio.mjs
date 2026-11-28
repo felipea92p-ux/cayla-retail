@@ -25,6 +25,10 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
 const MIGRACION = sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", "20261105222000_pagar_servicio_de_la_orden.sql"), "utf8"));
+// Auditoría 2026-11-28, N.º 3: lo pagado cuenta solo para el servicio que hoy hace la fase, y no se cambia de servicio con un papel suyo que todavía se puede anular.
+const MIGRACION_PROVEEDOR_ACTUAL = sinCandadosDePegado(
+  readFileSync(join(RAIZ, "supabase", "migrations", "20261128163000_servicio_pagado_al_proveedor_actual.sql"), "utf8"),
+);
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
@@ -51,6 +55,16 @@ exception when others then
   return coalesce(nullif(v_hint, ''), v_estado || ':' || v_msg);
 end;
 $f$;
+create function pg_temp.mensaje(p_sql text) returns text language plpgsql as $f$
+declare v_msg text;
+begin
+  execute p_sql;
+  return 'OK';
+exception when others then
+  get stacked diagnostics v_msg = message_text;
+  return v_msg;
+end;
+$f$;
 create table pg_temp.ultima (id uuid);
 create function pg_temp.abre(p_apertura jsonb, p_fases jsonb) returns text language plpgsql as $f$
 declare v_fila record;
@@ -69,9 +83,11 @@ set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
 ${MIGRACION}
+${MIGRACION_PROVEEDOR_ACTUAL}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
 insert into retail.proveedores_produccion (nombre, rubro) values ('Costura Prueba Por Pagar', 'maquila') returning id as maquila \\gset
+insert into retail.proveedores_produccion (nombre, rubro) values ('Costura Prueba Por Pagar B', 'maquila') returning id as maquila_b \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1 \\gset
 select p.id as prod from retail.productos p
   where p.es_prueba is not true and p.estado <> 'descontinuado'
@@ -250,6 +266,91 @@ caso(
    select pg_temp.intento(format('select retail.registrar_comprobante_produccion(%L, %L, %L, %L, %L::jsonb, p_tipo => %L, p_fecha_vencimiento => retail.fn_hoy_lima() + 7)', :'maquila', 'F9', '2', 'credito', jsonb_build_array(jsonb_build_object('descripcion', 'Flete', 'cantidad', '1', 'costo_unitario', '50')), 'boleta')) as r \\gset
    select concat_ws(',', :'r', (select i.fase_id is null from retail.comprobantes_produccion_items i where i.descripcion = 'Flete'));`,
   "OK,t"
+);
+
+// ── Auditoría 2026-11-28, N.º 3: se cambia de servicio después de anular la salida y la vuelta del primero ─────────────────────────────
+/** Anula la última vuelta y la última salida de la costura («mandé al taller equivocado»). */
+const ANULA_VUELTA_Y_SALIDA = `select v.id as vta from retail.produccion_vueltas v where v.fase_id = :'f_cost' and v.anula_id is null order by v.created_at desc limit 1 \\gset
+   select retail.anular_vuelta(:'vta', 'era otro taller') as _av \\gset
+   select s.id as sal from retail.produccion_salidas s where s.fase_id = :'f_cost' and s.anula_id is null order by s.created_at desc limit 1 \\gset
+   select retail.anular_salida(:'sal', 'era otro taller') as _as \\gset`;
+const A_B = `pg_temp.intento(format('select retail.cambiar_quien_fase(%L, %L, %L, 3.00)', :'f_cost', 'servicio', :'maquila_b'))`;
+const QUIEN_DEBE = `(select concat_ws('/', s.proveedor_id = :'maquila_b', s.devengado, s.documentado, s.falta) from retail.fn_servicios_por_pagar() s where s.fase_id = :'f_cost')`;
+caso(
+  "N0 la migración del proveedor actual se vuelve a cargar sin error ni duplicar sus bloques",
+  `${MIGRACION_PROVEEDOR_ACTUAL}
+   set local search_path = retail, public, extensions;
+   select concat_ws(',',
+     (length(pg_get_functiondef('retail.cambiar_quien_fase(uuid,text,uuid,numeric,numeric,integer,date)'::regprocedure))
+       - length(replace(pg_get_functiondef('retail.cambiar_quien_fase(uuid,text,uuid,numeric,numeric,integer,date)'::regprocedure), 'fn_servicio_exigir_sin_papel_anulable', ''))) / 37,
+     has_function_privilege('authenticated', 'retail.fn_servicio_exigir_sin_papel_anulable(uuid,uuid)', 'execute'));`,
+  "1,f"
+);
+caso(
+  "N1 se le pagó a A, se anuló su trabajo y lo hizo B: B aparece en Por pagar con su monto y se le puede pagar",
+  `${LISTO}
+   select ${PAGA(100, "sin_comprobante", CONTADO_FN("100.00"))} as pago_a \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select ${A_B} as cambio \\gset
+   ${SALE_Y_VUELVE(20)}
+   select coalesce(${QUIEN_DEBE}, 'sin fila') as antes \\gset
+   select ${PAGA(60, "sin_comprobante", CONTADO_FN("60.00"))} as pago_b \\gset
+   select concat_ws(',', :'pago_a', :'cambio', :'antes', :'pago_b', coalesce(${FILA}, 'saldada'),
+     (select d.saldo from retail.fn_deuda_consolidada() d where d.origen = 'produccion' and d.proveedor_id = :'maquila_b'));`,
+  "OK,OK,t/60.00/0/60.00,OK,saldada"
+);
+caso(
+  "N2 lo pagado a A no se le resta a B ni en la deuda consolidada mientras B espera su pago",
+  `${LISTO}
+   select ${PAGA(100, "sin_comprobante", CONTADO_FN("100.00"))} as pago_a \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select ${A_B} as cambio \\gset
+   ${SALE_Y_VUELVE(20)}
+   select concat_ws(',', :'cambio', (select d.saldo from retail.fn_deuda_consolidada() d where d.origen = 'produccion' and d.proveedor_id = :'maquila_b'));`,
+  "OK,60.00"
+);
+caso(
+  "N3 con un papel de A a crédito y sin pagar, no se cambia de servicio hasta anularlo; anulado, sí",
+  `${LISTO}
+   select ${PAGA(100, "boleta", SERIE_FN("B001", "31") + CREDITO_FN)} as r \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select ${A_B} as bloqueado \\gset
+   select c.id as comp from retail.comprobantes_produccion c join retail.comprobantes_produccion_items i on i.comprobante_id = c.id where i.fase_id = :'f_cost' \\gset
+   select pg_temp.intento(format('select retail.anular_comprobante_produccion(%L, %L)', :'comp', 'era otro taller')) as anulado \\gset
+   select ${A_B} as cambio \\gset
+   select concat_ws(',', :'r', :'bloqueado', :'anulado', :'cambio', (select f.proveedor_id = :'maquila_b' from retail.produccion_fases f where f.id = :'f_cost'));`,
+  "OK,servicio_con_papel_anulable,OK,OK,t"
+);
+caso(
+  "N4 el aviso dice qué papel anular y dónde, y la fase queda como estaba",
+  `${LISTO}
+   select ${PAGA(100, "boleta", SERIE_FN("B001", "32") + CREDITO_FN)} as r \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select pg_temp.mensaje(format('select retail.cambiar_quien_fase(%L, %L)', :'f_cost', 'taller')) as m \\gset
+   select concat_ws(',', position('B001-32' in :'m') > 0, position('Facturas de insumos' in :'m') > 0,
+     (select f.quien = 'servicio' and f.proveedor_id = :'maquila' from retail.produccion_fases f where f.id = :'f_cost'));`,
+  "t,t,t"
+);
+caso(
+  "N5 tampoco se deja pendiente de registrar con ese papel vivo, y cambiar solo la tarifa del mismo servicio sí se puede",
+  `${LISTO}
+   select ${PAGA(100, "boleta", SERIE_FN("B001", "33") + CREDITO_FN)} as r \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L)', :'f_cost')) as pendiente \\gset
+   select pg_temp.intento(format('select retail.cambiar_quien_fase(%L, %L, %L, 6.00)', :'f_cost', 'servicio', :'maquila')) as tarifa \\gset
+   select concat_ws(',', :'pendiente', :'tarifa');`,
+  "servicio_con_papel_anulable,OK"
+);
+caso(
+  "N6 volver a A después de B: lo pagado a A vuelve a contar para A",
+  `${LISTO}
+   select ${PAGA(100, "sin_comprobante", CONTADO_FN("100.00"))} as pago_a \\gset
+   ${ANULA_VUELTA_Y_SALIDA}
+   select ${A_B} as cambio \\gset
+   select pg_temp.intento(format('select retail.cambiar_quien_fase(%L, %L, %L, 5.00)', :'f_cost', 'servicio', :'maquila')) as vuelta_a_a \\gset
+   ${SALE_Y_VUELVE(20)}
+   select concat_ws(',', :'cambio', :'vuelta_a_a', coalesce(${FILA}, 'saldada'));`,
+  "OK,OK,saldada"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR}, base: ${BASE})`);

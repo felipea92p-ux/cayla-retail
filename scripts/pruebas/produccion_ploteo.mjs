@@ -74,6 +74,18 @@ const DESHACER_CATALOGO = [...PARCHES_CATALOGO].reverse().map(
   ({ firma, viejo, nuevo }) => `  v_def := pg_get_functiondef('${firma}'::regprocedure);
   execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
 ).join("\n");
+// 20261128163000 (auditoría 2026-11-28, N.º 3) insertó en `cambiar_quien_fase` el freno de un papel anulable del servicio de antes; esta suite recarga 20261019192000, cuyo
+// candado de md5 espera la función sin él. Su inverso exacto se LEE de la misma migración y va primero: es lo más nuevo.
+const PARCHES_PROVEEDOR_ACTUAL = [
+  ...leer("20261128163000_servicio_pagado_al_proveedor_actual.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\(\s*'retail\.cambiar_quien_fase\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\);/g
+  ),
+].map(([, viejo, nuevo]) => ({ viejo, nuevo }));
+if (PARCHES_PROVEEDOR_ACTUAL.length !== 1) throw new Error(`20261128163000 debería tener 1 reemplazo de cambiar_quien_fase y tiene ${PARCHES_PROVEEDOR_ACTUAL.length}: revisa el inverso de esta suite`);
+const DESHACER_PROVEEDOR_ACTUAL = PARCHES_PROVEEDOR_ACTUAL.map(
+  ({ viejo, nuevo }) => `  v_def := pg_get_functiondef('retail.cambiar_quien_fase(uuid,text,uuid,numeric,numeric,integer,date)'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
 // Y `registrar_avance`, que ADR-0570 volvió un envoltorio de `anotar_termine`: vuelve a ser la de 20261014155000 (leída de esa migración), donde 20261019192000 inserta su regla
 // «una fase que se marca no lleva Terminé» como la primera vez.
 const REGISTRAR_AVANCE_DE_ANTES = (() => {
@@ -97,6 +109,7 @@ ${REGISTRAR_AVANCE_DE_ANTES}
 do $deshacer_cinco$
 declare v_def text;
 begin
+${DESHACER_PROVEEDOR_ACTUAL}
 ${DESHACER_CATALOGO}
 ${DESHACER_FALLAS}
   v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);

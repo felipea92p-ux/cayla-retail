@@ -12,6 +12,7 @@
 
 import { DIAS_PLAZO_CAMBIO, estadoPlazoCambio, fechaLimiteCambio, unidadesDisponibles, type EstadoVisual, type ImpactoOperacion, type Validacion } from "./cambios-reglas";
 import { soles } from "./compras-reglas";
+import { ID_CARGO_ESPECIAL } from "./cargo-especial";
 
 // ============================================================================
 // Motivo (D-79, ADR-0158, 2026-09-22). `crear_devolucion` ahora recibe DOS motivos: el
@@ -87,6 +88,25 @@ export type ItemElegido = {
 /** null = todavía falta decir qué se hará con una prenda dañada. */
 export function condicionDeItem(item: ItemElegido): CondicionDevolucion | null {
   return item.grupo === "vendible" ? "vendible" : item.destino;
+}
+
+/** Una línea de una venta que se anuló, con la condición que se le dio. */
+export type LineaAnulada = { varianteId: string | null; cantidad: number; condicion: CondicionDevolucion };
+
+/**
+ * Dónde quedó lo anulado, en una frase (la pantalla de éxito de Anular venta). `anular_venta` (20261128161000) devuelve lo
+ * vendible a su lugar y lo dañado a la cuarentena de la tienda, que es la cola de Dañadas de Existencias. La «Prenda sin
+ * registrar» (`ID_CARGO_ESPECIAL`, ADR-0179) nunca sacó stock, así que no vuelve a ningún lado: no se cuenta. Habla en plural
+ * cuando son varias unidades.
+ */
+export function dondeQuedoLaAnulacion(lineas: readonly LineaAnulada[]): string {
+  const reales = lineas.filter((l) => l.varianteId !== ID_CARGO_ESPECIAL);
+  const sanas = reales.filter((l) => l.condicion === "vendible").reduce((s, l) => s + l.cantidad, 0);
+  const danadas = reales.filter((l) => l.condicion !== "vendible").reduce((s, l) => s + l.cantidad, 0);
+  if (sanas === 0 && danadas === 0) return "No movió stock: la prenda no estaba registrada.";
+  if (danadas === 0) return sanas === 1 ? "La prenda volvió al stock." : "Las prendas volvieron al stock.";
+  if (sanas === 0) return danadas === 1 ? "La prenda está en Dañadas, en Existencias." : "Las prendas están en Dañadas, en Existencias.";
+  return "Lo vendible volvió al stock y lo dañado está en Dañadas, en Existencias.";
 }
 
 // ============================================================================

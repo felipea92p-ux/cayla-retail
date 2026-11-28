@@ -452,8 +452,8 @@ export function notaSinEnvio(nota: string | null): string | null {
  * ¿El detalle ofrece «Anular comprobante»? Vigente, sin pagos, de mercadería y sin nada recibido. «Recibido» se pregunta de dos formas porque la mercadería
  * entra por dos caminos: por Recibir contra la factura (`tieneRecepciones`, los movimientos de sus líneas) y, en una compra de «Mis compras», ANTES de que
  * exista el comprobante (`compra_item_recibido_antes`): esa no deja movimientos en sus líneas, pero sí cuenta en `recibidoCantidad`. Sin la segunda, el botón
- * aparecía en una compra «Recibida 12 de 12» (auditoría 2026-11-15). Es una defensa de la pantalla: el candado de verdad va en `anular_compra`, que al
- * 2026-11-15 todavía solo mira los movimientos (pendiente de decisión de Felipe: toca stock y dinero).
+ * aparecía en una compra «Recibida 12 de 12» (auditoría 2026-11-15). Es una defensa de la pantalla: el candado de verdad va en `anular_compra`, que desde
+ * 20261128164000 (auditoría 2026-11-28, N.º 9) también rechaza lo recibido antes del comprobante, con hint `compra_con_mercaderia`.
  */
 export function ofreceAnularCompra(
   compra: Pick<CompraResumen, "estado" | "pagado" | "recibidoCantidad" | "naturaleza">,

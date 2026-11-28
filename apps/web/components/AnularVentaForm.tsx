@@ -12,6 +12,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
+import { dondeQuedoLaAnulacion } from "@/lib/devoluciones-reglas";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -23,6 +24,8 @@ type Condicion = (typeof CONDICIONES)[number]["valor"];
 
 type ItemVenta = {
   ventaItemId: string;
+  /** Para saber si es la «Prenda sin registrar» (no mueve stock al anularse). */
+  varianteId: string | null;
   sku: string;
   /** Código de etiqueta (`variantes.codigo`); se muestra con `codigoPrenda`. */
   codigo: string | null;
@@ -61,7 +64,7 @@ export function AnularVentaForm({
       const { data, error } = await supabase
         .from("venta_items")
         .select(
-          `id, cantidad, variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
+          `id, cantidad, variante_id, variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
         )
         .eq("venta_id", linea.ventaId);
       if (cancelado) return;
@@ -71,6 +74,7 @@ export function AnularVentaForm({
       }
       const cargados: ItemVenta[] = (data ?? []).map((f) => ({
         ventaItemId: f.id,
+        varianteId: f.variante_id,
         sku: f.variante?.sku ?? "",
         codigo: f.variante?.codigo ?? null,
         referencia: f.variante?.producto?.referencia ?? "",
@@ -125,7 +129,10 @@ export function AnularVentaForm({
         {(cerrar) => (
           <div className="space-y-4 text-center">
             <p className="text-sm text-tinta/75">
-              La venta de {linea.referencia} {codigoPrenda(linea)} quedó anulada — el stock ya se actualizó.
+              La venta de {linea.referencia} {codigoPrenda(linea)} quedó anulada.{" "}
+              {dondeQuedoLaAnulacion(
+                (items ?? []).map((i) => ({ varianteId: i.varianteId, cantidad: i.cantidad, condicion: condiciones[i.ventaItemId] ?? "vendible" }))
+              )}
             </p>
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Listo

@@ -1,6 +1,7 @@
 import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { cronAutorizado } from "@/lib/rutas-cron";
 import { capturarError } from "@/lib/errores";
+import { fallidosDelBarrido } from "@/lib/apartados-reglas";
 
 // GET /api/apartados/vencer — el trabajo programado de Vercel (`vercel.json` → `crons`), una vez al día de madrugada (3:40 de Lima).
 // Felipe 2026-10-15 (D4, 20261016003000): libera en TODAS las tiendas los apartados vencidos hace más de 2 días (la misma regla y la misma
@@ -15,6 +16,10 @@ import { capturarError } from "@/lib/errores";
 //
 // SE DEGRADA ASÍ: si la base no responde o la migración no está pegada, 500 y `capturarError`. Mientras tanto, la pantalla de Apartados
 // sigue liberando lo vencido de su tienda al abrirse, como siempre.
+//
+// Un apartado que no se puede vencer (por ejemplo, uno cuya prenda se soltó por fuera) ya no deshace la corrida (20261128162000,
+// auditoría 2026-11-28, N.º 45): la base lo salta, vence los demás y lo devuelve en el resumen. Aquí se manda a Sentry con sus ids
+// para que alguien lo arregle; la respuesta sigue siendo 200 porque lo demás sí se venció.
 
 export async function GET(request: Request) {
   if (!cronAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET)) {
@@ -34,6 +39,14 @@ export async function GET(request: Request) {
   if (error) {
     capturarError("apartados/vencer (cron): fn_vencer_apartados_de_todas falló", error);
     return Response.json({ error: error.message }, { status: 500 });
+  }
+  const fallidos = fallidosDelBarrido(data);
+  if (fallidos.total > 0) {
+    capturarError(
+      "apartados/vencer (cron): apartados que no se pudieron vencer",
+      new Error(`${fallidos.total} apartados vencidos no se pudieron liberar y siguen abiertos`),
+      { separaciones: fallidos.apartadosConAdelanto, apartados_simples: fallidos.simples },
+    );
   }
   return Response.json((data as object | null) ?? {});
 }

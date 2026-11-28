@@ -10,6 +10,7 @@ import {
   leerCantidad,
   loteMasAntiguoConSaldo,
   piezasDeCompra,
+  redondearCantidad,
   saldoDeInsumo,
   saldoDeLote,
   semanasDeCobertura,
@@ -72,6 +73,73 @@ describe("saldoDeLote", () => {
   });
   it("ignora los movimientos de otros lotes y los ajustes sin lote", () => {
     expect(saldoDeLote(l, [mov("consumo", 30, "L-2"), mov("ajuste", -4, null)])).toBe(120);
+  });
+});
+
+// Hallazgo N.º 4 de la auditoría del 2026-11-28: la resta en coma flotante daba 33.400000000000006 y
+// `ajustar_lote_usado` (que compara exacto contra el `numeric(12,3)` de la base) rechazaba el ajuste para siempre.
+describe("el saldo sale con la escala de la base (3 decimales), no con el ruido de la coma flotante", () => {
+  const cien = lote("L-1", "2026-09-02", 100);
+  // Lo que da Postgres con `numeric`, calculado en milésimas enteras (exacto en JS).
+  const exacto = (ingresado: number, salidas: number[]) => (Math.round(ingresado * 1000) - salidas.reduce((s, c) => s + Math.round(c * 1000), 0)) / 1000;
+  // Generador con semilla fija: los mismos cortes en cada corrida.
+  const azar = (semilla: number) => () => {
+    semilla = (semilla * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return semilla / 2_147_483_648;
+  };
+
+  it("redondearCantidad deja tres decimales, la mitad lejos del cero (como `round` de `numeric`) y nunca −0", () => {
+    expect(redondearCantidad(33.400000000000006)).toBe(33.4);
+    expect(redondearCantidad(98.99999999999523)).toBe(99);
+    expect(redondearCantidad(1.0005)).toBe(1.001);
+    expect(redondearCantidad(-1.0005)).toBe(-1.001);
+    expect(redondearCantidad(12.25)).toBe(12.25);
+    expect(Object.is(redondearCantidad(-1e-15), 0)).toBe(true);
+    expect(Object.is(redondearCantidad(-0), 0)).toBe(true);
+  });
+  it("100 − 33.3 − 33.3 es 33.4 en el lote", () => {
+    expect(100 - 33.3 - 33.3).not.toBe(33.4); // el bug: así resta JavaScript
+    expect(saldoDeLote(cien, [mov("merma", 33.3, "L-1"), mov("merma", 33.3, "L-1")])).toBe(33.4);
+  });
+  it("100 − 33.3 − 33.3 es 33.4 en el insumo", () => {
+    expect(saldoDeInsumo([mov("compra", 100), mov("merma", 33.3), mov("consumo", 33.3)])).toBe(33.4);
+  });
+  it("con devoluciones y cortes de tres decimales también cuadra", () => {
+    expect(saldoDeLote(cien, [mov("consumo", 12.345, "L-1"), mov("devolucion", 0.1, "L-1"), mov("merma", 0.2, "L-1")])).toBe(87.555);
+    expect(saldoDeInsumo([mov("compra", 0.3), mov("consumo", 0.1), mov("consumo", 0.2)])).toBe(0);
+  });
+  it("un lote que se acabó dice 0 justo (no 1e-15), así no vuelve a salir primero en el PEPS", () => {
+    const tres = lote("L-1", "2026-09-02", 0.3);
+    const saldo = saldoDeLote(tres, [mov("consumo", 0.1, "L-1"), mov("consumo", 0.2, "L-1")]);
+    expect(Object.is(saldo, 0)).toBe(true);
+    expect(loteMasAntiguoConSaldo([conSaldo(tres, saldo)])).toBeNull();
+  });
+  it("nunca devuelve −0 (un saldo negativo que se cierra en cero es cero)", () => {
+    expect(Object.is(saldoDeInsumo([mov("ajuste", -0.1), mov("ajuste", -0.2), mov("compra", 0.3)]), 0)).toBe(true);
+  });
+  it("un saldo negativo se redondea igual que uno positivo", () => {
+    expect(saldoDeInsumo([mov("ajuste", -0.1), mov("ajuste", -0.2)])).toBe(-0.3);
+  });
+  it("muchas mermas pequeñas: 1 000 cortes de 0.001 m dejan 99 m", () => {
+    expect(saldoDeLote(cien, Array.from({ length: 1000 }, () => mov("merma", 0.001, "L-1")))).toBe(99);
+  });
+  it("cortes al azar con 1 a 3 decimales dan siempre lo mismo que la base", () => {
+    const r = azar(20261128);
+    for (let caso = 0; caso < 2000; caso++) {
+      const ingresado = Math.round(r() * 5_000_000) / 1000; // hasta 5 000 m
+      const salidas: number[] = [];
+      let queda = Math.round(ingresado * 1000);
+      for (let i = 0; i < 1 + Math.floor(r() * 40) && queda > 0; i++) {
+        const decimales = 1 + Math.floor(r() * 3);
+        const paso = 10 ** (3 - decimales);
+        const corte = Math.min(queda, Math.floor((r() * queda) / paso) * paso);
+        queda -= corte;
+        salidas.push(corte / 1000);
+      }
+      const l = lote("L-1", "2026-09-02", ingresado);
+      expect(saldoDeLote(l, salidas.map((c) => mov("consumo", c, "L-1")))).toBe(exacto(ingresado, salidas));
+      expect(saldoDeInsumo([mov("compra", ingresado), ...salidas.map((c) => mov("merma", c))])).toBe(exacto(ingresado, salidas));
+    }
   });
 });
 

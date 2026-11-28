@@ -443,15 +443,22 @@ export function textoErrorDeResolucion(error: ErrorEscritura, contexto: string):
   return { mensaje: traducirError(error, contexto), yaResuelta: false };
 }
 
-export type OrigenDanada = "reporte" | "devolucion" | "cambio" | "recepcion";
+export type OrigenDanada = "reporte" | "devolucion" | "cambio" | "recepcion" | "anulacion";
 
 /** El motivo que escribe la recepción en lo que llegó dañado (`fn_recepcion_entrar`): «Llegó dañada en ENV-000302». */
 const MOTIVO_DE_RECEPCION = /^Llegó dañada en ENV-/;
 
+/** El motivo que escribe `anular_venta` en la prenda dañada de una venta anulada (`fn_anulacion_a_danadas`, 20261128161000):
+ *  «Venta anulada para donar: <motivo>». */
+const MOTIVO_DE_ANULACION = /^Venta anulada para /;
+
 /** De dónde llegó la prenda a Dañadas. La base exige exactamente uno (`prendas_danadas_un_origen`): con el motivo de la recepción llegó
- *  dañada en un envío; con otro motivo es un reporte, con cambio es un cambio, y lo demás es una devolución (el origen más antiguo). */
-export function origenDeDanada(f: { motivoReporte: string | null; cambioId: string | null }): OrigenDanada {
+ *  dañada en un envío; con el de una anulación, de una venta anulada; con otro motivo es un reporte, con cambio es un cambio, y lo demás
+ *  es una devolución (el origen más antiguo). Un reporte de la tienda siempre trae su tipo de daño (`reportar_danada` pone «otro» si no
+ *  se eligió) y una anulación nunca: con `tipoDano`, un reporte escrito a mano que empiece como el de una anulación sigue siendo un reporte. */
+export function origenDeDanada(f: { motivoReporte: string | null; cambioId: string | null; tipoDano?: string | null }): OrigenDanada {
   if (f.motivoReporte && MOTIVO_DE_RECEPCION.test(f.motivoReporte)) return "recepcion";
+  if (f.motivoReporte && !f.tipoDano && MOTIVO_DE_ANULACION.test(f.motivoReporte)) return "anulacion";
   if (f.motivoReporte) return "reporte";
   if (f.cambioId) return "cambio";
   return "devolucion";
@@ -481,5 +488,7 @@ export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | 
     const queTiene = textoDeLoQueTiene(tipoDano, motivoReporte);
     return queTiene ? `Reportada en la tienda: ${queTiene}` : "Reportada en la tienda";
   }
+  // La anulación ya dice qué pidió quien anuló («Venta anulada para donar: el cliente se arrepintió»).
+  if (origen === "anulacion") return motivoReporte ?? "Volvió al anular una venta";
   return origen === "cambio" ? "Volvió en un cambio" : "Volvió en una devolución";
 }
