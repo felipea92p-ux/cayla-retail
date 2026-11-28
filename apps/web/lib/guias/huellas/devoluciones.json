@@ -59,10 +59,6 @@
       "Link «Abrir caja»"
     ],
     "components/DevolucionesPendientes.tsx": [
-      "input «S/ 0.00»",
-      "button «Todo (»",
-      "CampoSelect «¿Cómo se le devuelve?»",
-      "CampoSelect «Sale de»",
       "ComboResponsable «{responsable}»",
       "input «{`rechazo-${d.id}»",
       "ComboResponsable «{responsable}» #2"
@@ -82,6 +78,12 @@
       "button «{hecho ? `Volver a «${nombre}»",
       "button «{guia}»",
       "button «{children}»"
+    ],
+    "components/devoluciones/Reembolso.tsx": [
+      "input «S/ 0.00»",
+      "button «Todo (»",
+      "CampoSelect «¿Cómo se le devuelve?»",
+      "CampoSelect «Sale de»"
     ]
   }
 }

@@ -972,7 +972,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Devolver",
-      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que alguien la revisa y la aprueba. En la demo no lo tocamos.",
+      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven y el motivo. Al final la registras y la apruebas ahí mismo, o la dejas pendiente. En la demo no lo tocamos.",
     },
     // El flujo que abre «Devolver» (ADR-0536): el asistente que acompaña una devolución real los enciende uno a uno. La demo no abre el
     // flujo, así que se saltan solos (opcionales).
@@ -1005,6 +1005,13 @@ export const GUIA_DEVOLUCIONES: Guia = {
       texto: "Muestra todo junto antes de registrarla: las prendas, el motivo y cuánto se le devuelve.",
     },
     {
+      id: "devolucion-reembolso",
+      ancla: "devolucion.reembolso",
+      opcional: true,
+      titulo: "Si se le reembolsa algo",
+      texto: "Es opcional. Escribe cuánto o toca «Todo», y revisa cómo se le devuelve. En efectivo sale del cajón y hace falta la caja abierta.",
+    },
+    {
       id: "devolucion-responsable",
       ancla: "devolucion.responsable",
       opcional: true,
@@ -1015,8 +1022,8 @@ export const GUIA_DEVOLUCIONES: Guia = {
       id: "devolucion-confirmar",
       ancla: "devolucion.confirmar",
       opcional: true,
-      titulo: "Registrar la devolución",
-      texto: "La deja por aprobar: el stock y el dinero no se mueven hasta que alguien la revisa y la aprueba. La registras tú.",
+      titulo: "Registrar y aprobar",
+      texto: "«Registrar y aprobar» hace las dos cosas: las prendas vuelven y sale el reembolso. «Dejar pendiente» no mueve nada hasta que la apruebes. Si SUNAT aún no acepta la boleta, solo puedes dejarla pendiente.",
     },
     {
       id: "anular",

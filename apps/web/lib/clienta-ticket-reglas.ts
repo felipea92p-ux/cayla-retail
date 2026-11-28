@@ -20,6 +20,8 @@ export type ClientaDelTicket = {
   documentoTipo: TipoDocumentoClienta;
   documentoNumero: string | null;
   celular: string | null;
+  /** Se unió sola porque el comprobante lleva su DNI (ADR-0718): si el comprobante deja de llevarlo, se suelta. */
+  porDocumento?: boolean;
 };
 
 /** Lo que se lee de ella en la fila del ticket: nombre (o, si la ficha no lo tiene, el documento) y un dato para
@@ -107,5 +109,35 @@ export function clientaDeTicketGuardado(valor: unknown): ClientaDelTicket | null
     documentoTipo: tipoDocumentoDe(texto(c.documentoTipo)),
     documentoNumero: texto(c.documentoNumero) ?? texto(c.dni),
     celular: texto(c.celular),
+    ...(c.porDocumento === true ? { porDocumento: true } : {}),
   };
+}
+
+// --- La ficha que se une sola por el DNI del comprobante (ADR-0718, Felipe 2026-11-28) ---
+// Antes, un DNI escrito en la boleta solo iba al papel: la venta no entraba en la ficha ni sumaba puntos aunque el cliente
+// existiera, porque `p_cliente_id` salía únicamente de «Agregar cliente».
+
+/** Lo que dice el comprobante del ticket, para saber qué ficha le toca. */
+export type DocumentoDelTicket = {
+  tipoComprobante: "boleta" | "factura" | "nota_venta" | null;
+  identidad: TipoDocumentoClienta;
+  numero: string;
+};
+
+/** El DNI completo que lleva el comprobante, o `null`: en una factura va el RUC, y un carné o pasaporte no se adivina. */
+export function dniDelComprobante({ tipoComprobante, identidad, numero }: DocumentoDelTicket): string | null {
+  if (!tipoComprobante || tipoComprobante === "factura" || identidad !== "dni") return null;
+  const limpio = normalizarNumeroDocumento(numero);
+  return /^[0-9]{8}$/.test(limpio) ? limpio : null;
+}
+
+/** De lo que devuelve la libreta, SOLO la ficha con ese DNI exacto (la búsqueda también mira nombres y celulares). */
+export function fichaDeEseDni<T extends Pick<ClientaDelTicket, "documentoTipo" | "documentoNumero">>(clientas: readonly T[], dni: string): T | null {
+  return clientas.find((c) => c.documentoTipo === "dni" && c.documentoNumero === dni) ?? null;
+}
+
+/** La ficha que se unió sola deja de valer cuando el comprobante ya no lleva su DNI: un dígito corregido es otra persona.
+ *  La elegida a mano se queda: ahí la boleta puede ir a otro nombre. */
+export function seSueltaLaFicha(clienta: ClientaDelTicket | null, documento: DocumentoDelTicket): boolean {
+  return clienta?.porDocumento === true && dniDelComprobante(documento) !== clienta.documentoNumero;
 }

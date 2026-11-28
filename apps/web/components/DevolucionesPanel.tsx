@@ -220,6 +220,7 @@ export function DevolucionesPanel({
         sede={sede}
         colaboradora={colaboradora}
         ahora={ahora}
+        cajaAbierta={cajaAbierta}
         onCerrar={cerrarFlujo}
         onNuevo={() => {
           setFlujo(null);

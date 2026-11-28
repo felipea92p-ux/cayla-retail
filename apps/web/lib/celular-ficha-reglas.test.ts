@@ -101,6 +101,13 @@ describe("resultadoDeGuardarCelular: la respuesta de la base nunca frena la vent
   });
 });
 
+describe("una ficha unida sola por el DNI (ADR-0718)", () => {
+  it("no recibe el celular escrito para la boleta: nadie la eligió", () => {
+    expect(celularParaLaFicha({ ...BASE, clienta: { celular: null, porDocumento: true } })).toBeNull();
+    expect(notaDelCelularDeLaBoleta({ ...BASE, clienta: { celular: null, porDocumento: true } })).toBeNull();
+  });
+});
+
 describe("textoCelularEnFicha", () => {
   it("dice lo que pasó, y nada si no hay nada que decir", () => {
     expect(textoCelularEnFicha("guardado")).toMatch(/Quedó guardado en su ficha/);
