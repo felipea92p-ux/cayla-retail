@@ -85,3 +85,10 @@ describe("el cobro de un ticket en espera", () => {
     expect(JSON.parse(JSON.stringify(viejo))).not.toHaveProperty("cobro");
   });
 });
+
+describe("el DNI cuya ficha se quitó (ADR-0718)", () => {
+  it("viaja con el ticket en espera, y un ticket de antes vuelve sin él", () => {
+    expect(cobroDeTicketGuardado({ ...cobroVacio(), dniSinFicha: "45678912" }).dniSinFicha).toBe("45678912");
+    expect(cobroDeTicketGuardado(cobroVacio())).not.toHaveProperty("dniSinFicha");
+  });
+});

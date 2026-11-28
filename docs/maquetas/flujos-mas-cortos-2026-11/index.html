@@ -1,0 +1,214 @@
+<meta charset="utf-8">
+<title>Tres flujos más cortos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@500&display=swap">
+<style>
+/* Layout: pestañas por flujo; dos columnas (Hoy | Propuesta) que se apilan en el celular. Colores del ERP (globals.css). */
+:root{--fondo:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--linea:#e0d6c3;--borde:#8f8272;--tinta:#1a1a18;--sec:#4a4742;--tenue:#6a655e;--rojo:#8b2a1f;--verde:#48603f;--ambar:#74501a;--boton:#1a1a18;--boton-letra:#f5f0e8;
+--serif:"EB Garamond",Georgia,serif;--sans:"DM Sans",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fondo:#1c1a17;--papel:#262320;--hueso:#2f2b26;--linea:#3d3831;--borde:#857b6d;--tinta:#f5f0e8;--sec:#d6d0c6;--tenue:#aaa398;--rojo:#e88f7d;--verde:#a9c39c;--ambar:#e0b868;--boton:#f5f0e8;--boton-letra:#1c1a17;color-scheme:dark}}
+:root[data-theme="dark"]{--fondo:#1c1a17;--papel:#262320;--hueso:#2f2b26;--linea:#3d3831;--borde:#857b6d;--tinta:#f5f0e8;--sec:#d6d0c6;--tenue:#aaa398;--rojo:#e88f7d;--verde:#a9c39c;--ambar:#e0b868;--boton:#f5f0e8;--boton-letra:#1c1a17;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.45 var(--sans);padding-inline:max(16px,env(safe-area-inset-left,0px));padding-block:20px 40px}
+main{max-width:1120px;margin:0 auto}
+h1{font:500 34px/1.1 var(--serif);margin:0 0 4px;text-wrap:balance}
+h2{font:500 22px/1.2 var(--serif);margin:0}
+p{margin:0}
+.sub{color:var(--sec);max-width:62ch}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+button{font:500 14px var(--sans);color:var(--tinta);cursor:pointer}
+button:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.tab{border:1px solid var(--borde);background:transparent;border-radius:999px;padding:9px 16px}
+.tab[aria-pressed="true"]{background:var(--boton);color:var(--boton-letra);border-color:var(--boton)}
+.opciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;color:var(--sec)}
+.columnas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:820px){.columnas{grid-template-columns:minmax(0,1fr)}}
+.col{min-width:0}
+.cabeza{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.cuenta{font-variant-numeric:tabular-nums;color:var(--sec)}
+.cuenta b{font:500 22px var(--serif);color:var(--tinta)}
+.pantalla{background:var(--papel);border:1px solid var(--linea);border-radius:22px;padding:18px;min-height:520px;display:flex;flex-direction:column;gap:12px}
+.col.nueva .pantalla{border-color:var(--tinta)}
+.rot{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--tenue)}
+.placa{background:var(--hueso);border-radius:14px;padding:10px 12px}
+.fila{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+.fila span:first-child{color:var(--sec)}
+.fila span:last-child{font-weight:600;text-align:right}
+.campo{border:1px solid var(--borde);border-radius:14px;padding:9px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:42px}
+.campo.vacio{color:var(--tenue)}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.chip{border:1px solid var(--borde);border-radius:14px;padding:9px;text-align:center}
+.chip.on{background:var(--boton);color:var(--boton-letra);border-color:var(--boton)}
+.pie{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;border-top:1px solid var(--linea);padding-top:12px}
+.btn{border-radius:999px;border:1px solid var(--borde);background:transparent;padding:10px 18px;min-height:42px}
+.btn.primario{background:var(--boton);color:var(--boton-letra);border-color:var(--boton)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sigue{box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.enlace{border:0;background:none;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.nota{color:var(--sec);font-size:14px}
+.ok{color:var(--verde);font-weight:600}
+.mal{color:var(--ambar);font-weight:600}
+.centro{text-align:center;margin:auto 0;display:flex;flex-direction:column;gap:10px;align-items:center}
+.pasos{display:flex;gap:6px;flex-wrap:wrap}
+.pasos span{border:1px solid var(--linea);border-radius:999px;padding:3px 10px;font-size:13px;color:var(--tenue)}
+.pasos span.on{background:var(--boton);color:var(--boton-letra);border-color:var(--boton)}
+.cantidad{display:flex;gap:14px;align-items:center;font:500 26px var(--serif)}
+.cantidad i{font-style:normal;border:1px solid var(--borde);border-radius:999px;width:34px;height:34px;display:grid;place-items:center;font:500 18px var(--sans)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dos .placa{text-align:center}
+.dos b{display:block;font:500 30px var(--serif)}
+.resumen{margin-top:18px;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.resumen div{border-top:1px solid var(--borde);padding-top:10px}
+.pie-pagina{margin-top:16px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+<main>
+  <h1>Tres flujos más cortos</h1>
+  <p class="sub">A la izquierda, cómo funciona hoy en producción. A la derecha, la propuesta. Toca los botones de cada lado: se cuenta cada toque. Datos de ejemplo; nada se guarda.</p>
+  <nav id="tabs" aria-label="Flujos"></nav>
+  <div class="opciones" id="opciones"></div>
+  <div class="columnas">
+    <section class="col"><div class="cabeza"><h2>Hoy</h2><span class="cuenta" id="c-hoy"></span></div><div class="pantalla" id="p-hoy" aria-live="polite"></div></section>
+    <section class="col nueva"><div class="cabeza"><h2>Propuesta</h2><span class="cuenta" id="c-nueva"></span></div><div class="pantalla" id="p-nueva" aria-live="polite"></div></section>
+  </div>
+  <div class="resumen" id="resumen"></div>
+  <div class="pie-pagina"><button class="btn" id="reiniciar">Empezar de nuevo</button></div>
+</main>
+<script>
+const FLUJOS = {
+  dni: { nombre: "3. DNI al cobrar", opcion: null,
+    resumen: [["Qué cambia","Son los mismos toques. Si el DNI ya es de un cliente, la venta entra sola en su ficha y suma puntos."],["Qué no cambia","El cliente sigue siendo opcional. No se crea ninguna ficha ni se inscribe a nadie en el club. Si el DNI se corrige, la ficha se suelta."],["Si el DNI no está registrado","Todo sigue como hoy."]] },
+  colgar: { nombre: "5. Colgar una prenda", opcion: { etiqueta: "Quién está en el equipo:", valores: [["personal","Cuenta personal"],["tablet","Tablet compartida"]] },
+    resumen: [["Qué cambia","Con cuenta personal, cantidad y responsable van en una sola pantalla. Lo mismo en Subir, Pedir y Reportar dañada."],["Qué no cambia","En la tablet compartida se sigue eligiendo el responsable en su paso. El tope de stock y la función que mueve las prendas son los mismos."]] },
+  devolucion: { nombre: "4. Devolución", opcion: { etiqueta: "La boleta en SUNAT:", valores: [["aceptada","Ya aceptada"],["pendiente","Todavía no"]] },
+    resumen: [["Qué cambia","Se registra, se reembolsa y se aprueba en la misma pantalla, con una sola firma. «Dejar pendiente» sigue disponible."],["Qué no cambia","Efectivo exige caja abierta. Sin boleta aceptada por SUNAT no se puede aprobar. La nota de crédito sale igual que hoy."],["Si falla la aprobación","La devolución queda pendiente, como hoy, y la pantalla lo dice."]] }
+};
+let flujo = "dni", opcion = {}, est = {};
+const reset = () => { est = { hoy: { paso: "ini", toques: 0, d: {} }, nueva: { paso: "ini", toques: 0, d: {} } }; };
+const b = (txt, a, cls="") => `<button class="btn ${cls}" data-a="${a}">${txt}</button>`;
+const p1 = (txt, a) => b(txt, a, "primario sigue");
+const fila = (a,c) => `<div class="fila"><span>${a}</span><span>${c}</span></div>`;
+
+/* ---------- 3. DNI ---------- */
+function dni(lado, s) {
+  const nueva = lado === "nueva";
+  if (s.paso === "hecho") {
+    const unida = nueva || s.d.ficha;
+    return `<div class="centro"><h2>Venta registrada</h2>
+      ${unida ? `<p class="ok">Quedó en la ficha de María y suma sus puntos.</p>` : `<p class="mal">No quedó en la ficha de María. No suma puntos.</p><p class="nota">Nadie avisa: la boleta sale con su nombre igual.</p><button class="enlace" data-a="bien">¿Cómo se hace bien hoy?</button>`}</div>`;
+  }
+  if (s.paso === "hoja") return `<span class="rot">Agregar cliente</span>
+    <div class="campo ${s.d.buscado?"":"vacio"}">${s.d.buscado?"45678912":"Documento, celular o nombre"}</div>
+    ${s.d.buscado ? `<div class="placa fila"><span>María Torres Quispe</span>${p1("Elegir","elegir")}</div>` : p1("Escribir el DNI en el buscador","buscar")}`;
+  const conDni = s.d.dni;
+  const conFicha = (nueva && conDni && !s.d.quitada) || s.d.ficha;
+  return `<span class="rot">Cobro, total S/ 34.90</span>
+    ${!nueva && s.d.porBien ? `<div class="campo">${s.d.ficha?"Cliente: María Torres Quispe":"Sin cliente"}${s.d.ficha?"":p1("Agregar cliente","hoja")}</div>` : ""}
+    <div class="rejilla"><div class="chip on">Efectivo</div><div class="chip">Yape</div><div class="chip">Tarjeta</div></div>
+    <div class="rejilla"><div class="chip on">Boleta</div><div class="chip">Factura</div></div>
+    <div><span class="rot">DNI del cliente (opcional)</span><div class="campo ${conDni?"":"vacio"}">${conDni?"45678912":"8 dígitos"}${conDni?"":p1("Escribir el DNI","dni")}</div></div>
+    ${conDni ? `<div class="placa"><h2>María Torres Quispe</h2><p class="nota">${conFicha?"De la ficha del cliente":"Según RENIEC, consultado ahora"}</p></div>` : ""}
+    ${nueva && conDni ? (conFicha ? `<p class="nota">La venta queda en su ficha. <button class="enlace" data-a="quitar">Quitar</button></p>` : `<p class="nota">La venta no entra en su ficha.</p>`) : ""}
+    <div class="pie"><button class="btn primario ${conDni?"sigue":""}" data-a="cobrar" ${conDni?"":"disabled"}>Confirmar cobro S/ 34.90</button></div>`;
+}
+function dniAccion(lado, s, a) {
+  if (a === "dni") s.d.dni = true;
+  if (a === "quitar") s.d.quitada = true;
+  if (a === "cobrar") { if (lado==="nueva" && s.d.quitada) { s.paso="hechoSin"; return; } s.paso = "hecho"; }
+  if (a === "bien") { s.paso = "ini"; s.d = { porBien: true }; s.toques = 0; s.sinContar = true; }
+  if (a === "hoja") s.paso = "hoja";
+  if (a === "buscar") s.d.buscado = true;
+  if (a === "elegir") { s.paso = "ini"; s.d.ficha = true; s.d.dni = true; }
+}
+
+/* ---------- 5. Colgar ---------- */
+function colgar(lado, s) {
+  const tablet = opcion.colgar === "tablet";
+  const unaSola = lado === "nueva" && !tablet;
+  if (s.paso === "hecho") return `<div class="centro"><h2>Colgado: 1 unidad al piso</h2><p class="ok">Almacén 5, piso 1.</p></div>`;
+  if (s.paso === "ini") return `<span class="rot">Existencias</span><h2>Blusa Emma, beige</h2><p class="nota">Talla M: 0 en piso y 6 en almacén.</p>
+    <div class="rejilla"><div class="chip">S, 2 en piso</div>${p1("M, falta colgar","abrir")}<div class="chip">L, 5 en piso</div></div>`;
+  const cabeza = `<span class="rot">Colgar en el piso, beige talla M</span>${unaSola?"":`<div class="pasos"><span class="${s.paso==="cant"?"on":""}">1 Cuántas</span><span class="${s.paso==="quien"?"on":""}">2 Quién</span></div>`}`;
+  const cant = `<h2>¿Cuántas sacas del almacén?</h2><p class="nota">Hay 6 unidades en almacén.</p>
+    <div class="cantidad"><i>−</i>1<i>+</i></div><div class="dos"><div class="placa">Almacén<b>5</b><span class="nota">antes 6</span></div><div class="placa">En el piso<b>1</b><span class="nota">antes 0</span></div></div>`;
+  const elegido = !tablet || s.d.quien;
+  const quien = `<div><span class="rot">¿Quién lo hace?</span><div class="campo ${elegido?"":"vacio"}">${elegido?"Rosa Huamán":"Elige quién"}${elegido?"":p1("Elegir a Rosa","quien")}</div></div>`;
+  const confirmar = `<button class="btn primario ${elegido?"sigue":""}" data-a="colgar" ${elegido?"":"disabled"}>Colgar 1</button>`;
+  if (unaSola) return `${cabeza}${cant}${quien}<div class="pie">${b("Cancelar","cancelar")}${confirmar}</div>`;
+  if (s.paso === "cant") return `${cabeza}${cant}<div class="pie">${b("Cancelar","cancelar")}${p1("Continuar","seguir")}</div>`;
+  return `${cabeza}<div class="placa">${fila("Al piso","1 unidad")}${fila("Queda en almacén","5")}</div>${quien}<div class="pie">${b("Atrás","atras")}${confirmar}</div>`;
+}
+function colgarAccion(lado, s, a) {
+  if (a === "abrir" || a === "atras") s.paso = "cant";
+  if (a === "seguir") s.paso = "quien";
+  if (a === "quien") s.d.quien = true;
+  if (a === "colgar") s.paso = "hecho";
+  if (a === "cancelar") { s.paso = "ini"; s.d = {}; }
+}
+
+/* ---------- 4. Devolución ---------- */
+const prenda = `<div class="placa">${fila("Venta","Boleta B001-000123, hoy")}${fila("Devuelve","Blusa Emma beige M")}${fila("Motivo","No le quedó")}${fila("Lo que pagó","S/ 79.90")}</div>`;
+const reembolso = (s) => `<div><span class="rot">¿Se le reembolsa algo?</span>
+  <div class="campo ${s.d.monto?"":"vacio"}">${s.d.monto?"S/ 79.90":"S/ 0.00"}${s.d.monto?"":b("Todo (S/ 79.90)","monto")}</div></div>
+  ${s.d.monto?`<div class="dos"><div><span class="rot">Cómo se le devuelve</span><div class="campo">Efectivo</div></div><div><span class="rot">Sale de</span><div class="campo">El cajón</div></div></div>`:""}`;
+const firma = (s, a) => `<div><span class="rot">Responsable</span><div class="campo ${s.d[a]?"":"vacio"}">${s.d[a]?"Rosa Huamán":"¿Quién está atendiendo?"}${s.d[a]?"":p1("Elegir a Rosa",a)}</div></div>`;
+function devolucion(lado, s) {
+  const sinSunat = opcion.devolucion === "pendiente";
+  const aviso = `<p class="mal">La boleta aún no llega a SUNAT.</p><p class="nota">Se aprueba cuando la acepte: así sale su nota de crédito.</p>`;
+  if (s.paso === "aprobada") return `<div class="centro"><h2>Devolución aprobada</h2><p class="ok">Las prendas vuelven al piso y se reserva la nota de crédito.</p></div>`;
+  if (s.paso === "pendienteFin") return `<div class="centro"><h2>Devolución registrada</h2><p class="nota">Queda pendiente. El stock y la caja no cambian hasta aprobarla.</p></div>`;
+  if (lado === "nueva") {
+    return `<span class="rot">Paso 4: confirmar</span>${prenda}${sinSunat?aviso:reembolso(s)}${firma(s,"quien")}
+      <div class="pie">${b("Cancelar","cancelar")}${sinSunat
+        ? `<button class="btn primario ${s.d.quien?"sigue":""}" data-a="dejar" ${s.d.quien?"":"disabled"}>Registrar y dejar pendiente</button>`
+        : `<button class="btn" data-a="dejar" ${s.d.quien?"":"disabled"}>Dejar pendiente</button><button class="btn primario ${s.d.quien?"sigue":""}" data-a="aprobarYa" ${s.d.quien?"":"disabled"}>Registrar y aprobar</button>`}</div>`;
+  }
+  if (s.paso === "ini") return `<span class="rot">Paso 4: confirmar</span>${prenda}<p class="nota">Al registrarla queda <b>pendiente de aprobación</b>.</p>${firma(s,"quien")}
+    <div class="pie">${b("Cancelar","cancelar")}<button class="btn primario ${s.d.quien?"sigue":""}" data-a="registrar" ${s.d.quien?"":"disabled"}>Registrar devolución</button></div>`;
+  if (s.paso === "exito") return `<div class="centro"><h2>Devolución registrada</h2><p class="nota">Queda pendiente de aprobación.</p>${p1("Revisar y aprobar","revisar")}${b("Nueva devolución","cancelar")}</div>`;
+  if (s.paso === "lista") return `<span class="rot">Por aprobar: buscar la tuya</span>
+    <div class="placa">${fila("Pantalón Lía negro 30","S/ 129.90")}<p class="nota">De ayer</p></div>
+    <div class="placa">${fila("Blusa Emma beige M","S/ 79.90")}<p class="nota">La que acabas de registrar</p>${sinSunat?aviso:""}<div class="pie">${b("Rechazar","nada")}<button class="btn primario ${sinSunat?"":"sigue"}" data-a="abrirAprobar">Aprobar</button></div></div>`;
+  return `<span class="rot">Aprobar devolución</span>${prenda}${reembolso(s)}${sinSunat?aviso:""}${firma(s,"quien2")}
+    <div class="pie">${b("Cancelar","revisar")}<button class="btn primario ${s.d.quien2&&!sinSunat?"sigue":""}" data-a="aprobar" ${s.d.quien2&&!sinSunat?"":"disabled"}>Aprobar devolución</button></div>`;
+}
+function devolucionAccion(lado, s, a) {
+  if (a === "quien" || a === "quien2" || a === "monto") s.d[a] = true;
+  if (a === "registrar") s.paso = "exito";
+  if (a === "revisar") s.paso = "lista";
+  if (a === "abrirAprobar") s.paso = "panel";
+  if (a === "aprobar" || a === "aprobarYa") s.paso = "aprobada";
+  if (a === "dejar") s.paso = "pendienteFin";
+  if (a === "cancelar") { s.paso = "ini"; s.d = {}; }
+}
+
+const VISTAS = { dni: [dni, dniAccion], colgar: [colgar, colgarAccion], devolucion: [devolucion, devolucionAccion] };
+
+function pintar() {
+  document.getElementById("tabs").innerHTML = Object.entries(FLUJOS).map(([k,f]) => `<button class="tab" aria-pressed="${k===flujo}" data-flujo="${k}">${f.nombre}</button>`).join("");
+  const f = FLUJOS[flujo];
+  if (f.opcion && !opcion[flujo]) opcion[flujo] = f.opcion.valores[0][0];
+  document.getElementById("opciones").innerHTML = f.opcion ? `<span>${f.opcion.etiqueta}</span>` + f.opcion.valores.map(([v,t]) => `<button class="tab" aria-pressed="${opcion[flujo]===v}" data-opcion="${v}">${t}</button>`).join("") : "";
+  for (const lado of ["hoy","nueva"]) {
+    const s = est[lado];
+    document.getElementById("p-"+lado).innerHTML = s.paso === "hechoSin"
+      ? `<div class="centro"><h2>Venta registrada</h2><p class="nota">Sin ficha, porque la quitaste.</p></div>`
+      : VISTAS[flujo][0](lado, s);
+    document.getElementById("c-"+lado).innerHTML = `<b>${s.toques}</b> ${s.toques===1?"toque":"toques"}`;
+  }
+  document.getElementById("resumen").innerHTML = f.resumen.map(([t,x]) => `<div><h2>${t}</h2><p class="nota">${x}</p></div>`).join("");
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.flujo) { flujo = t.dataset.flujo; reset(); return pintar(); }
+  if (t.dataset.opcion) { opcion[flujo] = t.dataset.opcion; reset(); return pintar(); }
+  if (t.id === "reiniciar") { reset(); return pintar(); }
+  const a = t.dataset.a; if (!a || a === "nada") return;
+  const lado = t.closest("#p-hoy") ? "hoy" : "nueva";
+  const s = est[lado];
+  s.sinContar = false;
+  s.toques += 1;
+  VISTAS[flujo][1](lado, s, a);
+  if (s.sinContar) s.toques = 0;
+  pintar();
+});
+reset(); pintar();
+</script>

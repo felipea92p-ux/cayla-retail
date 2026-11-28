@@ -133,11 +133,12 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, dniDelComprobante, nombreDeFichaParaComprobante, seSueltaLaFicha } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, BotonSepararDanada, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useFichaPorDni } from "@/components/punto-de-venta/useFichaPorDni";
 import { useCuponDelClub } from "@/components/punto-de-venta/useCuponDelClub";
 import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta/PuntosYCuponModales";
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
@@ -542,6 +543,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El WhatsApp al que se le manda la boleta de ESTA venta (solo dígitos). Se llena solo con el celular de su ficha y se puede
   // escribir o corregir en el paso Comprobante: es del comprobante, no de la ficha (no toca el celular del club).
   const [celularBoleta, setCelularBoleta] = useState("");
+  // El DNI cuya ficha se quitó de ESTE ticket (ADR-0718): viaja con él a la espera y a la foto en curso.
+  const [dniSinFicha, setDniSinFicha] = useState<string | null>(null);
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
@@ -933,9 +936,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       celularBoleta,
       pagos,
       cupon: cuponClub.cupon,
+      ...(dniSinFicha ? { dniSinFicha } : {}),
     };
     guardar(claveFoto, ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro }, "en-curso", new Date().toISOString()), "pestana");
-  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon]);
+  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon, dniSinFicha]);
 
   useEffect(() => {
     // Misma razón que arriba: no existe `localStorage` en el servidor. A diferencia de
@@ -1626,6 +1630,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       celularBoleta,
       pagos,
       cupon: cuponClub.cupon,
+      ...(dniSinFicha ? { dniSinFicha } : {}),
     };
   }
   /** «Dejar en espera» de un clic, sin preguntar nombre (Felipe 2026-10-26: escribirlo era tedio; la hoja del nombre, del spike
@@ -1752,6 +1757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setClienteNumDoc(cobro.docNumero);
       setClienteNombre(cobro.clienteNombre);
       setCelularBoleta(cobro.celularBoleta);
+      setDniSinFicha(cobro.dniSinFicha ?? null);
     }
     // Quién atendió vuelve SOLO si se eligió a propósito para este ticket, y el combo lo muestra solo si esa persona sigue
     // presente en la tienda (`responsableVigente`): nunca se hereda de la sesión ni del ticket anterior (ADR-0161, A6).
@@ -2090,6 +2096,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNombre("");
     setCelularBoleta("");
     setClienta(null);
+    setDniSinFicha(null);
   }
 
   // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después. Su documento
@@ -2106,6 +2113,49 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNombre(c.nombre ?? "");
     setCelularBoleta(ajustarCelular(c.celular ?? ""));
   }
+  // El DNI escrito en el comprobante une la ficha sola (ADR-0718). No toca el documento: lo escribió quien cobra. El nombre
+  // lo pone la propia caja del DNI («De la ficha del cliente») y el celular solo si estaba vacío.
+  const documentoDelTicket = { tipoComprobante, identidad: clienteDocIdentidad, numero: clienteNumDoc };
+  const dniEnComprobante = dniDelComprobante(documentoDelTicket);
+  useFichaPorDni({
+    dni: dniEnComprobante,
+    quitado: dniSinFicha,
+    hayClienta: clienta !== null,
+    activo: puedeBuscarClienta && !loading && !envio.incierto,
+    onEncontrada: (c) => {
+      setClienta({ ...c, porDocumento: true });
+      setCelularBoleta((v) => v || ajustarCelular(c.celular ?? ""));
+    },
+  });
+  // Un dígito corregido, factura u otro documento: la ficha unida sola se suelta, con lo que ella había llenado.
+  const sueltaFicha = !loading && !envio.incierto && seSueltaLaFicha(clienta, documentoDelTicket);
+  // El cupón canjeado con SUS puntos se va con la ficha (si no, quedaría en la compra de otra persona). Uno escrito por código es
+  // al portador y se queda.
+  function soltarCuponDeSusPuntos() {
+    if (cuponClub.cupon?.origen !== "puntos") return;
+    cuponClub.quitar();
+    setCuponSoltado((n) => n + 1);
+  }
+  const [cuponSoltado, setCuponSoltado] = useState(0);
+  useEffect(() => {
+    if (cuponSoltado > 0) avisar.aviso("Se quitó el cupón de sus puntos", { detalle: "La venta ya no está en su ficha." });
+  }, [cuponSoltado]);
+  // Se ajusta al dibujar (no en un efecto): así ningún cuadro llega a mostrar la ficha de otro DNI.
+  if (sueltaFicha && clienta) {
+    setClienteNombre((v) => (v === (clienta.nombre ?? "") ? "" : v));
+    setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    soltarCuponDeSusPuntos();
+    setClienta(null);
+  }
+  /** «Quitar» bajo el DNI: la boleta sigue con ese DNI, la venta no entra en la ficha. */
+  function quitarFichaDelDni() {
+    if (!clienta?.documentoNumero) return;
+    setDniSinFicha(clienta.documentoNumero);
+    setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    soltarCuponDeSusPuntos();
+    setClienta(null);
+  }
+
   function quitarClienta() {
     if (clienta) {
       if (celularBoleta === ajustarCelular(clienta.celular ?? "")) setCelularBoleta("");
@@ -2553,6 +2603,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
               nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
+            {clienta?.porDocumento && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-secundario">
+                <span>La venta queda en su ficha.</span>
+                <button type="button" className="btn-cayla btn-enlace min-h-6" onClick={quitarFichaDelDni}>
+                  Quitar
+                </button>
+              </p>
+            )}
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}
             {tipoComprobante !== "nota_venta" && (
@@ -2657,7 +2715,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 <ClientaDelTicket
                   clienta={clienta}
                   onElegir={elegirClienta}
-                  onQuitar={quitarClienta}
+                  // Unida sola por el DNI: quitarla no borra el documento que tecleó quien cobra.
+                  onQuitar={clienta?.porDocumento ? quitarFichaDelDni : quitarClienta}
                   bloqueado={bloqueado}
                   puedeBuscar={puedeBuscarClienta}
                   responsable={responsable}

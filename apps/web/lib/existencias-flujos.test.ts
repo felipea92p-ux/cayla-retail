@@ -3,6 +3,7 @@ import { problemasReporte } from "./danadas-reglas";
 import {
   asiQueda,
   faltanHasta,
+  firmaAqui,
   maxCantidad,
   mejorOrigen,
   pasoCompleto,
@@ -183,5 +184,31 @@ describe("Subir varias: la tabla del modelo, del piso al almacén (2026-10-08)",
       ["Total al almacén", "2 unidades"],
       ["Destino", "Se queda aquí"],
     ]);
+  });
+});
+
+describe("quien ya viene puesto no tiene paso propio (ADR-0718)", () => {
+  const junto: ContextoFlujo = { ...CTX, quienJunto: true };
+
+  it("quita «Quién» de todas las acciones y no toca los demás pasos", () => {
+    expect(pasosDe("colgar", {}, junto)).toEqual(["cantidad"]);
+    expect(pasosDe("colgarVarias", {}, junto)).toEqual(["varias"]);
+    expect(pasosDe("subir", {}, junto)).toEqual(["cantidad", "destino"]);
+    expect(pasosDe("pedir", { para: "cliente" }, junto)).toEqual(["para", "origen", "cliente"]);
+    expect(pasosDe("danada", {}, junto)).toEqual(["lugar", "cantidad", "quetiene"]);
+    expect(pasosDe("enviar", {}, junto)).toEqual(["cantidad", "hacia"]);
+  });
+
+  it("se firma en el último paso de datos, y «Enviar» nunca", () => {
+    expect(firmaAqui("colgar", 0, {}, junto)).toBe(true);
+    expect(firmaAqui("subir", 0, {}, junto)).toBe(false);
+    expect(firmaAqui("subir", 1, {}, junto)).toBe(true);
+    expect(firmaAqui("enviar", 1, {}, junto)).toBe(false);
+    expect(firmaAqui("colgar", 0, {}, CTX)).toBe(false);
+  });
+
+  it("sin responsable en ese paso, «Falta: quién» sigue diciéndose", () => {
+    expect(faltanHasta("colgar", 0, { n: 1 }, { ...junto, responsableListo: false })).toEqual(["quien"]);
+    expect(faltanHasta("colgar", 0, { n: 1 }, junto)).toEqual([]);
   });
 });

@@ -277,13 +277,13 @@ export function impactoDevolucion(e: {
       donde: p.condicion === "vendible" ? `volverá al piso de ${e.sede} al aprobarla` : `entrará a cuarentena en ${e.sede} al aprobarla`,
     })),
     caja: {
-      titulo: "Al registrarla, la caja no se mueve",
-      detalle: `El cliente pagó ${soles(e.valorPagado)} por lo que devuelve. Si se le reembolsa, lo decide quien la apruebe.`,
+      titulo: "El reembolso sale al aprobarla",
+      detalle: `El cliente pagó ${soles(e.valorPagado)} por lo que devuelve. El reembolso es opcional; si la dejas pendiente, la caja no se mueve.`,
     },
     documento: e.comprobanteAceptado
       ? {
           titulo: `Nota de crédito ${e.esTotal ? "por devolución total" : "por devolución parcial"}`,
-          detalle: "La venta tiene un comprobante aceptado por SUNAT: al aprobar la devolución se emite sola la nota de crédito, lista para transmitir desde Facturación.",
+          detalle: "La venta tiene un comprobante aceptado por SUNAT: al aprobarla se emite sola la nota de crédito y sale a SUNAT después.",
         }
       : undefined,
   };
@@ -360,4 +360,27 @@ export function revisarAprobacion(e: {
     return { bloqueo: null, aviso: `Esta venta se pagó con ${como}. Vas a devolver en ${nombre(e.metodo)}: confírmalo con el cliente.` };
   }
   return { bloqueo: null, aviso: null };
+}
+
+// --- Registrar y aprobar en el mismo paso (ADR-0718, Felipe 2026-11-28) ---
+
+export type DatosParaAprobar = { sinAceptar: ComprobanteSinAceptar | null; pagos: PagoDeLaVenta[] };
+
+/** De las filas de la venta (`comprobantes`, `venta_pagos`) a lo que «Registrar y aprobar» necesita. Mismas reglas que
+ *  «Por aprobar»: el documento se nombra como lo hace la base y el anticipo de un apartado no es un medio para devolver. */
+export function datosParaAprobar(
+  comprobantes: readonly { tipo: string; estado: string; serie: string; numero: number; created_at: string }[],
+  pagos: readonly { metodo: string; monto: number | string }[],
+): DatosParaAprobar {
+  return {
+    sinAceptar: comprobanteSinAceptar(
+      comprobantes.map((c) => ({ tipo: c.tipo, estado: c.estado, documento: `${c.tipo} ${c.serie}-${String(c.numero).padStart(6, "0")}`, creadoEn: c.created_at })),
+    ),
+    pagos: pagos.filter((p) => p.metodo !== "anticipo").map((p) => ({ metodo: p.metodo, monto: Number(p.monto) })),
+  };
+}
+
+/** Lo que se avisa de la nota de crédito reservada: sale a SUNAT con la cola, no en el momento. */
+export function textoNotaReservada(serie: string, numero: number): string {
+  return `Nota de crédito ${serie}-${String(numero).padStart(6, "0")} reservada. Sale a SUNAT con la siguiente venta o al abrir Comprobantes.`;
 }

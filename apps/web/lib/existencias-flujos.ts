@@ -62,6 +62,9 @@ export type ContextoFlujo = {
   /** ¿Puede pedir para un cliente que espera? (módulo Apartados, y es una tienda). */
   puedePedirParaCliente: boolean;
   responsableListo: boolean;
+  /** El responsable ya venía puesto (cuenta personal, Admin o firma de respaldo): se firma en el último paso de datos, sin
+   *  un paso «Quién» aparte (ADR-0718, Felipe 2026-11-28). En la terminal compartida es falso y «Quién» sigue siendo su paso. */
+  quienJunto?: boolean;
 };
 
 export const NOMBRE_FLUJO: Record<TipoFlujo, string> = {
@@ -101,7 +104,18 @@ export const FALTA_PASO: Record<PasoFlujo, string> = {
   quien: "quién lo hace",
 };
 
-export function pasosDe(tipo: TipoFlujo, d: DatosFlujo, c: Pick<ContextoFlujo, "separa" | "destinos">): PasoFlujo[] {
+export function pasosDe(tipo: TipoFlujo, d: DatosFlujo, c: Pick<ContextoFlujo, "separa" | "destinos" | "quienJunto">): PasoFlujo[] {
+  const pasos = todosLosPasos(tipo, d, c);
+  return c.quienJunto ? pasos.filter((p) => p !== "quien") : pasos;
+}
+
+/** ¿El paso `i` es donde además se firma? Solo con «Quién» junto y en el último paso de datos. «Enviar» no firma aquí:
+ *  lo pide «Nuevo traslado». */
+export function firmaAqui(tipo: TipoFlujo, i: number, d: DatosFlujo, c: Pick<ContextoFlujo, "separa" | "destinos" | "quienJunto">): boolean {
+  return Boolean(c.quienJunto) && tipo !== "enviar" && i >= pasosDe(tipo, d, c).length - 1;
+}
+
+function todosLosPasos(tipo: TipoFlujo, d: DatosFlujo, c: Pick<ContextoFlujo, "separa" | "destinos">): PasoFlujo[] {
   switch (tipo) {
     case "colgar":
       return ["cantidad", "quien"];
@@ -193,9 +207,10 @@ export function pasoCompleto(paso: PasoFlujo, tipo: TipoFlujo, d: DatosFlujo, c:
 
 /** Los pasos hasta el de ahora que no están completos: lo que dice «Falta: …» (cada uno lleva a su paso). */
 export function faltanHasta(tipo: TipoFlujo, i: number, d: DatosFlujo, c: ContextoFlujo): PasoFlujo[] {
-  return pasosDe(tipo, d, c)
+  const faltan = pasosDe(tipo, d, c)
     .slice(0, i + 1)
     .filter((p) => !pasoCompleto(p, tipo, d, c));
+  return firmaAqui(tipo, i, d, c) && !c.responsableListo ? [...faltan, "quien"] : faltan;
 }
 
 export function totalVarias(d: DatosFlujo): number {
