@@ -265,6 +265,18 @@ const HUELLAS: Huella[] = [
     frase: "Esa prenda ya está en otra línea del traslado. Deja una sola línea por prenda y suma sus cantidades.",
   },
   {
+    // 20261128165000_compras_comprobante_unico_por_clave.sql (auditoría 2026-11-28, N.º 10 y 31) — un comprobante vigente es
+    // uno solo por proveedor, tipo, serie y número sin ceros a la izquierda (F001-5 y F001-0005 son el mismo). Compra rápida y
+    // el escritorio lo frenan antes con su propio mensaje; esto es la red de Gastos y Activos, que comparan el texto tal cual.
+    marca: "compras_comprobante_clave_vigente_unico",
+    frase: "Ese comprobante ya está registrado para este proveedor (con o sin ceros a la izquierda es el mismo). Búscalo antes de anotarlo otra vez.",
+  },
+  {
+    // Misma migración — el mismo candado sobre los papeles de «Mis compras» que esperan pasar al libro.
+    marca: "compra_papeles_comprobante_unico",
+    frase: "Ese comprobante ya está anotado en otra compra de este proveedor (con o sin ceros a la izquierda es el mismo). Búscalo antes de anotarlo otra vez.",
+  },
+  {
     // 20260914220804_nota_en_ventas.sql — la nota del ticket tiene tope; la pantalla ya
     // corta en 200, esto es por si llega por otro camino.
     marca: "ventas_nota_corta",

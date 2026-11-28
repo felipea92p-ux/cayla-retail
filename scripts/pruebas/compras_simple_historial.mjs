@@ -12,6 +12,9 @@
  *   · El mismo comprobante del mismo proveedor no se registra dos veces (`papel_repetido`), ni contra otra compra anotada.
  *   · Un reintento con el mismo id y lo mismo devuelve lo mismo; con otra serie, `compra_rapida_otros_datos`.
  *   · Lo que escribió no cambia (ni como postgres).
+ *   · El mismo papel es uno aunque el número lleve ceros a la izquierda o la serie venga en minúsculas (`fn_numero_comprobante_clave`,
+ *     auditoría 2026-11-28 N.º 10): contra otra compra anotada y contra el libro. La base tampoco deja meter el repetido por otra puerta
+ *     (los índices de 20261128165000), y esa migración no crea nada si ya hay repetidos: aborta diciendo cuáles.
  *
  * QUÉ PROMETE (actividad 5: los gastos que no son ropa)
  *   · Un gasto se anota con el papel que le dieron (y su RUC): sin papel solo el taxi y el cargador; el RUC, 11 números; sin papel (una pantalla de
@@ -28,6 +31,9 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const arg = (nombre, porDefecto) => {
   const i = process.argv.indexOf(nombre);
@@ -163,6 +169,58 @@ ${COMPRA(1, "factura", "F001", "500")} \\g /dev/null
 select ${hint(COMPRA(2, "factura", "F001", "500"))}, ${intento(COMPRA(3, "factura", "F001", "501"))},
        ${intento(COMPRA(4, "factura", "F001", "500", "current_setting('t.otro')::uuid"))};`,
   "papel_repetido|SIN_ERROR|SIN_ERROR",
+);
+
+// ---------- La clave del comprobante (auditoría 2026-11-28, N.º 10 y N.º 31: 20261128164000 y 20261128165000) ----------
+const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const MIGRACION_INDICE = readFileSync(join(RAIZ, "supabase", "migrations", "20261128165000_compras_comprobante_unico_por_clave.sql"), "utf8");
+// Una compra en el libro, escrita directo (como postgres): la base del CI no trae compras.
+const LIBRO = (tipo, serie, numero) =>
+  `insert into retail.compras (proveedor_id, tipo, serie, numero, condicion, subtotal, igv, total, ubicacion_gestion_id) values (current_setting('t.prov')::uuid, '${tipo}', '${serie}', '${numero}', 'contado', 100, 0, 100, current_setting('t.tru')::uuid)`;
+
+caso(
+  "F777-123 y F777-000123 al mismo proveedor: la segunda es papel_repetido (también en minúsculas y con espacios); otro número, no",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
+${COMPRA(1, "factura", "F777", "123")} \\g /dev/null
+select ${hint(COMPRA(2, "factura", "F777", "000123"))}, ${hint(COMPRA(3, "factura", " f777", "0123"))}, ${intento(COMPRA(4, "factura", "F777", "1230"))};
+reset role;
+select count(*) from retail.compra_papeles where proveedor_id = current_setting('t.prov')::uuid and estado <> 'anulado';`,
+  "papel_repetido|papel_repetido|SIN_ERROR / 2",
+);
+
+caso(
+  "contra el libro, por la clave: F778-000045 vigente frena F778-45, y la nota de venta NV-0012 frena la 12",
+  `reset role;
+${LIBRO("factura", "F778", "000045")};
+${LIBRO("nota_venta", "NV", "0012")};
+${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
+select ${hint(COMPRA(1, "factura", "F778", "45"))}, ${hint(COMPRA(2, "nota_venta", null, "12"))}, ${intento(COMPRA(3, "factura", "F778", "46"))};`,
+  "papel_repetido|papel_repetido|SIN_ERROR",
+);
+
+caso(
+  "la base no deja meter el repetido por otra puerta: ni en el libro (F779-7 y F779-0007) ni en otro papel (F780-5 y F780-0005)",
+  `reset role;
+${LIBRO("factura", "F779", "7")};
+${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
+${COMPRA(1, "factura", "F780", "5")} \\g /dev/null
+reset role;
+select split_part(${intento(LIBRO("factura", "F779", "0007"))}, '|', 1),
+       split_part(${intento(`insert into retail.compra_papeles (id, persona_id, proveedor_id, tipo, monto, foto_ruta, fecha, huella, registrado_por, pagado, medio_pago, serie, numero, ronda_id)
+         select gen_random_uuid(), persona_id, proveedor_id, tipo, monto, foto_ruta, fecha, huella, registrado_por, pagado, medio_pago, serie, '0005', ronda_id
+           from retail.compra_papeles where id = '${ID(1)}'`)}, '|', 1);`,
+  "23505|23505",
+);
+
+caso(
+  "la migración del índice no crea nada si ya hay repetidos: aborta diciendo cuántos y cuáles",
+  `reset role;
+drop index if exists retail.compras_comprobante_clave_vigente_unico;
+drop index if exists retail.compra_papeles_comprobante_unico;
+${LIBRO("factura", "F781", "9")};
+${LIBRO("factura", "F781", "009")};
+${MIGRACION_INDICE}`,
+  (o) => /no se creó nada\. Hay 1 comprobantes repetidos en compras vigentes/.test(o) && /F781-9/.test(o) && /F781-009/.test(o),
 );
 
 caso(

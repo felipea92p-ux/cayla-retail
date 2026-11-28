@@ -700,5 +700,41 @@ caso(
   "0 / 0 / union_sin_modulo",
 );
 
+// Auditoría 2026-11-28, N.º 9 (`20261128164000`): una compra a crédito (pagó 0) que llegó ANTES de su comprobante no deja `compra_item_id`
+// en sus movimientos, sino filas en `compra_item_recibido_antes`. `anular_compra` solo miraba los movimientos y la anulaba: la deuda salía
+// de Por pagar y las 8 prendas seguían en el stock. Ahora frena con `compra_con_mercaderia` y la compra sigue vigente.
+const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: anula comprobantes
+caso(
+  "U25 una compra a crédito recibida antes de su comprobante no se anula (compra_con_mercaderia): sigue vigente y con su deuda",
+  `${COMPRADORA("compra_rapida")}
+   select retail.registrar_compra_rapida(p_id => '${A1}', p_proveedor_id => :'prov'::uuid, p_tipo => 'nota_venta', p_monto => 80,
+     p_foto_ruta => 'papeles/prueba-p1.jpg', p_pagado => 0, p_medio => null, p_lineas => jsonb_build_array(
+       jsonb_build_object('descripcion', 'Polo prueba', 'categoria_id', current_setting('t.cat')::uuid, 'marca_id', current_setting('t.marca')::uuid,
+                          'cantidad', 8, 'costo', 10, 'destino_id', current_setting('t.tru')::uuid))) \\g /dev/null
+   reset role;
+   select '${A1}'::uuid as p1 \\gset
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1")}
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   select c.id as compra from retail.compras c where c.token_cliente = :'p1' \\gset
+   create function pg_temp.anula(p_compra uuid) returns text language plpgsql as $f$
+   declare v_h text;
+   begin
+     perform retail.anular_compra(p_compra, 'prueba de auditoría');
+     return 'SIN_ERROR';
+   exception when others then
+     get stacked diagnostics v_h = pg_exception_hint;
+     return coalesce(nullif(v_h, ''), sqlstate);
+   end $f$;
+   grant execute on function pg_temp.anula(uuid) to authenticated;
+   ${como(FELIPE, "compra_anular")}
+   select pg_temp.anula(:'compra') as anula \\gset
+   reset role;
+   select concat_ws(' / ', :'u'::jsonb ->> 'paso_al_libro', (select coalesce(sum(a.cantidad), 0) from retail.compra_item_recibido_antes a),
+     :'anula', (select c.estado || ':' || c.saldo from retail.compras c where c.id = :'compra'), ${STOCK});`,
+  "true / 8 / compra_con_mercaderia / vigente:80.00 / 8",
+);
+
 console.log(`\n${casos - fallas}/${casos} casos en verde.`);
 process.exit(fallas ? 1 : 0);

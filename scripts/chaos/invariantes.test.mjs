@@ -32,6 +32,15 @@ test("la invariante del nombre compuesto cuenta la MEDIDA: si no, todo avío con
   assert.match(inv.dice, /medida/i, "INV-24 no cuenta en su texto que la medida entra en el nombre");
 });
 
+// Auditoría 2026-11-28 (N.º 9): una compra de «Mis compras» recibida ANTES de tener comprobante no deja movimientos en sus líneas, sino
+// filas en `compra_item_recibido_antes`. INV-14 solo miraba los movimientos: anularla dejaba las prendas en el stock con la vigía en verde.
+test("INV-14 mira los dos caminos por los que entra la mercadería de una compra: los movimientos y lo recibido antes del comprobante", () => {
+  const inv = INVARIANTES.find((i) => i.id === "INV-14");
+  assert.ok(inv, "INV-14 existe");
+  assert.match(inv.sql, /retail\.movimientos/, "INV-14 dejó de mirar lo recibido contra la factura");
+  assert.match(inv.sql, /retail\.compra_item_recibido_antes/, "INV-14 no mira lo recibido antes del comprobante: una compra anulada con prendas en el stock sale limpia");
+});
+
 test("una sospecha lo dice en su texto: no se la puede confundir con un estado imposible", () => {
   for (const i of INVARIANTES.filter((x) => x.nivel === "sospecha")) assert.match(i.dice, /^SOSPECHA/, i.id);
   for (const i of INVARIANTES.filter((x) => x.nivel === "cruzada")) assert.doesNotMatch(i.dice, /^SOSPECHA/, i.id);
