@@ -133,11 +133,12 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, dniDelComprobante, nombreDeFichaParaComprobante, seSueltaLaFicha } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, BotonSepararDanada, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useFichaPorDni } from "@/components/punto-de-venta/useFichaPorDni";
 import { useCuponDelClub } from "@/components/punto-de-venta/useCuponDelClub";
 import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta/PuntosYCuponModales";
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
@@ -2106,7 +2107,38 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNombre(c.nombre ?? "");
     setCelularBoleta(ajustarCelular(c.celular ?? ""));
   }
+  // El DNI escrito en el comprobante une la ficha sola (ADR-0718). No toca el documento: lo escribió quien cobra. El nombre
+  // lo pone la propia caja del DNI («De la ficha del cliente») y el celular solo si estaba vacío.
+  const documentoDelTicket = { tipoComprobante, identidad: clienteDocIdentidad, numero: clienteNumDoc };
+  const dniEnComprobante = dniDelComprobante(documentoDelTicket);
+  const fichaPorDni = useFichaPorDni({
+    dni: dniEnComprobante,
+    hayClienta: clienta !== null,
+    activo: puedeBuscarClienta && !loading && !envio.incierto,
+    onEncontrada: (c) => {
+      setClienta({ ...c, porDocumento: true });
+      setCelularBoleta((v) => v || ajustarCelular(c.celular ?? ""));
+    },
+  });
+  // Un dígito corregido, factura u otro documento: la ficha unida sola se suelta, con lo que ella había llenado.
+  const sueltaFicha = !loading && !envio.incierto && seSueltaLaFicha(clienta, documentoDelTicket);
+  // Se ajusta al dibujar (no en un efecto): así ningún cuadro llega a mostrar la ficha de otro DNI.
+  if (sueltaFicha && clienta) {
+    setClienteNombre((v) => (v === (clienta.nombre ?? "") ? "" : v));
+    setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    setClienta(null);
+  }
+  /** «Quitar» bajo el DNI: la boleta sigue con ese DNI, la venta no entra en la ficha. */
+  function quitarFichaDelDni() {
+    if (!clienta?.documentoNumero) return;
+    fichaPorDni.noUnir(clienta.documentoNumero);
+    setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    setClienta(null);
+  }
+
   function quitarClienta() {
+    // Unida sola por el DNI: quitarla no borra el documento que tecleó quien cobra.
+    if (clienta?.porDocumento) return quitarFichaDelDni();
     if (clienta) {
       if (celularBoleta === ajustarCelular(clienta.celular ?? "")) setCelularBoleta("");
       const doc = documentoDeClienta(clienta);
@@ -2553,6 +2585,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
               nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
+            {clienta?.porDocumento && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-secundario">
+                <span>La venta queda en su ficha.</span>
+                <button type="button" className="btn-cayla btn-enlace" onClick={quitarFichaDelDni}>
+                  Quitar
+                </button>
+              </p>
+            )}
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}
             {tipoComprobante !== "nota_venta" && (
