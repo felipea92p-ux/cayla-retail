@@ -199,7 +199,7 @@ caso(
 caso(
   // Hallazgo N.º 4 (auditoría 2026-11-28): la base compara EXACTO lo que la persona vio. Un lote de 100 m con dos mermas
   // de 33.3 queda en 33.4 justo; la web restaba en coma flotante y mandaba 33.400000000000006, que se rechazaba siempre.
-  // Desde el arreglo, `saldoDeLote` (apps/web/lib/insumos-reglas.ts) redondea a los 3 decimales de la columna.
+  // Desde el arreglo, `saldoDeLote` (lib/insumos-reglas.ts de la web) redondea a los 3 decimales de la columna.
   "A7 con cortes en decimales, lo que vio la pantalla (redondeado a la escala de la base) se acepta; el número con ruido de coma flotante no",
   `select retail.recibir_insumo(:'a', :'taller', 100::numeric, 50::numeric, p_origen => 'compra') as _l \\gset
    select id as lote from retail.insumo_lotes where insumo_id = :'a' \\gset
