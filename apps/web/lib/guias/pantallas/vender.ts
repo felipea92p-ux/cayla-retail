@@ -389,7 +389,7 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.pestanas",
       opcional: true,
       titulo: "Tres vistas",
-      texto: "«Apartar» separa prendas nuevas, «Entregar» cobra el saldo cuando el cliente vuelve, y «Todos» es la lista completa con lo que necesita algo hoy.",
+      texto: "«Apartar» separa prendas nuevas, «Pendientes» es todo lo que sigue vivo (ahí cobras y entregas) e «Historial», lo terminado.",
     },
     {
       id: "buscador",
@@ -431,9 +431,9 @@ export const GUIA_APARTADOS: Guia = {
       id: "entregar",
       ancla: "apartados.entregar-buscador",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "apartados.pestana-entregar" }],
+      preparar: [{ tipo: "clic", ancla: "apartados.pestana-pendientes" }],
       titulo: "Cuando el cliente vuelve",
-      texto: "Búscalo por su nombre, DNI, celular o el número del apartado. Al elegirlo, a la derecha ves sus prendas, cuánto pagó y cuánto falta.",
+      texto: "Búscalo en «Pendientes» por su nombre, DNI, celular o el número del apartado. Al tocarlo se abre su cobro: sus prendas, cuánto pagó y cuánto le falta.",
     },
     {
       id: "entregar-detalle",
@@ -447,8 +447,8 @@ export const GUIA_APARTADOS: Guia = {
       id: "todos",
       ancla: "apartados.filtros",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "apartados.pestana-todos" }],
-      titulo: "Todos los apartados",
+      preparar: [{ tipo: "clic", ancla: "apartados.pestana-historial" }],
+      titulo: "El Historial",
       texto: "«Necesitan algo» junta lo que vence pronto, lo vencido y lo que espera su devolución; «Por recoger», los abiertos; «Cerrados», los entregados o liberados. «Canal» (si vendes por TikTok) deja ver solo un canal. El buscador encuentra por nombre, DNI, celular o número.",
     },
     {

@@ -119,7 +119,7 @@
       "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/apartados/EntregarVista.tsx": [
-      "button «Otro cliente»",
+      "Volver «→() => elegir(null)»",
       "BotonEditar «Editar prendas»",
       "Boton «Liberar apartado»",
       "Boton «Borrar la búsqueda»",

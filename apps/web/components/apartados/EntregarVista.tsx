@@ -34,6 +34,8 @@ import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { Volver } from "@/components/ui/Volver";
+import { enPendientes } from "@/lib/apartados-pestanas";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -110,7 +112,8 @@ export function EntregarVista({
     onElegir(id);
   }
 
-  const abiertos = apartados.filter((a) => a.estado === "abierta");
+  // La lista de «Pendientes» (ADR-0720): la misma regla que cuenta su pestaña.
+  const abiertos = apartados.filter(enPendientes);
   const encontrados = abiertos.filter((a) => coincide(a, texto)).sort((x, y) => x.venceEl.localeCompare(y.venceEl));
   const a = elegido ? abiertos.find((x) => x.id === elegido) ?? null : null;
   const saldo = a ? a.saldo : 0;
@@ -177,28 +180,34 @@ export function EntregarVista({
   return (
     <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
-        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+        <div className="ap-dos-aviso px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
         </div>
       )}
       {/* En duda, nada se toca: otro apartado u otros pagos podrían entregar dos veces. */}
       <fieldset disabled={envio.incierto} className="contents">
-      <div className="flex min-w-0 flex-col">
-      {cabecera}
+      {/* La cabecera va aparte: sobre esta columna si cabe y, si no, a todo el ancho (`.ap-dos-cab`, vidrio/vender.css). */}
+      <div className="ap-dos-cab min-w-0">{cabecera}</div>
+      <div className="ap-dos-trabajo flex min-w-0 flex-col">
       <div className="ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6">
-        {/* El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe. */}
-        <Buscador guia="apartados.entregar-buscador"
-          tamano="mostrador"
-          autoFocus
-          valor={texto}
-          onCambio={(v) => {
-            setTexto(v);
-            elegir(null);
-            setPagos([]);
-          }}
-          placeholder="Nombre, DNI, celular o código APT-"
-          etiqueta="Buscar apartado"
-        />
+        {a ? (
+          // Con un apartado abierto, lo de arriba es la vuelta a la lista de Pendientes (ADR-0720): aquí ya no se busca.
+          <Volver onClick={() => elegir(null)} a="Volver a la lista de pendientes" className="self-start" />
+        ) : (
+          // El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe.
+          <Buscador guia="apartados.entregar-buscador"
+            tamano="mostrador"
+            autoFocus
+            valor={texto}
+            onCambio={(v) => {
+              setTexto(v);
+              elegir(null);
+              setPagos([]);
+            }}
+            placeholder="Nombre, DNI, celular o código APT-"
+            etiqueta="Buscar apartado"
+          />
+        )}
 
         {a ? (
           <article className="ap-placa anim-revelar space-y-4 rounded-2xl border border-sand p-5">
@@ -219,9 +228,6 @@ export function EntregarVista({
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md vd-gota-chica px-2 py-0.5 font-mono text-sm"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
-                <button type="button" onClick={() => elegir(null)} className="area-dedo label-cayla mt-1 h-7 rounded-md px-2 text-xs text-tinta/70 vd-pasa-gota">
-                  Otro cliente
-                </button>
               </div>
             </div>
             <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
