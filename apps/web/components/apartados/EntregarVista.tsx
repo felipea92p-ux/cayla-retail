@@ -246,7 +246,7 @@ export function EntregarVista({
         {/* La tarjeta dice quién, cuál y dónde (la Mínima): el nombre con el código del apartado al lado, como en la lista; debajo, cómo
             va, por dónde se vendió y en qué estante está. Lo que se le puede hacer además de cobrarlo, en «Más acciones». */}
         <article className="ap-placa anim-revelar space-y-4 rounded-tarjeta border border-sand p-5">
-          <div className="flex items-start gap-3.5">
+          <div className="flex items-start gap-3">
             <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">

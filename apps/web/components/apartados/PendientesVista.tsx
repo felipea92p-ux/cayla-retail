@@ -246,7 +246,7 @@ export function PendientesVista({
 
 
   return (
-    <div className="ap-cuerpo space-y-6 p-5 sm:p-6">
+    <div className="ap-cuerpo space-y-5 p-5 sm:p-6">
       <section className="@container/barra-filtros space-y-4" aria-label="Apartados pendientes">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Buscador
@@ -314,9 +314,9 @@ export function PendientesVista({
               const prendaTexto = prendaDicha({ nombre: pr?.referencia ?? "Prenda", color: pr?.color, talla: pr?.talla });
               const pide = Boolean(envio?.subirAlAlmacen || envio?.enviar || (pe.direccion === "pedi" && pe.estado === "llego"));
               return (
-                <li key={pe.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
+                <li key={pe.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <FotoPrenda fotoUrl={pr?.fotoUrl} referencia={pr?.referencia ?? "Prenda"} colorHex={pr?.colorHex} categoria={pr?.categoria} categoriaPrefijo={pr?.categoriaPrefijo} categoriaFamilia={pr?.categoriaFamilia} ancho={40} className="w-10" />
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 basis-48">
                     <p className="truncate font-medium text-tinta">{pr?.referencia ?? "Prenda"}</p>
                     <p className="text-sm text-secundario">{prendaDicha({ color: pr?.color, talla: pr?.talla })}</p>
                     <p className="text-sm text-secundario">
