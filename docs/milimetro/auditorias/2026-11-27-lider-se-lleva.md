@@ -24,17 +24,22 @@ Ninguno.
 1. **A 375 px, «Cancelar» y «Registrar» quedan bajo el pliegue de la hoja.** — `div.fin-botones` de `RegistrarMovimientoModal` (`CuentasDinero.tsx`) —
    medido: la hoja termina en «Fecha» y la nota de quien firma; los botones aparecen recién al desplazar — regla del repo «Botones a la vista en una hoja larga»
    (`modales.md`: la fila de acciones lleva `pie-hoja-fijo`, y «las demás hojas largas la piden cuando se toquen») — sin prueba — va a `/milimetro`.
-   **Corregida (2026-11-27, con el OK de Felipe):** la fila lleva \`pie-hoja-fijo\`, como \`GastosFijosYActivos\`. Medido a 375×812: «Cancelar» y «Registrar»
-   entre y = 743 y 787, a la vista sin desplazar; en oscuro, 0 hallazgos (\`tema:auditar --ancho 375\`).
+   **Corregida (2026-11-27, con el OK de Felipe):** la fila lleva `pie-hoja-fijo`, como `GastosFijosYActivos`. Medido a 375×812: «Cancelar» y «Registrar»
+   entre y = 743 y 787, a la vista sin desplazar; en oscuro, 0 hallazgos (`tema:auditar --ancho 375`).
 
 ## Leves
 1. **En «De», el saldo de la caja fuerte se corta** a 1440 px: «Caja fuerte · Tienda Trujillo · S/ 1,2…». Justo en esta opción el saldo es lo que dice cuánto
    se puede llevar. — `conSaldo` en `CuentasDinero.tsx`, dos campos por fila (`fin-dos-campos`) — [Práctica] — va a `/textos`. El detalle de la cuenta,
    detrás de la hoja, sí lo muestra entero, y la hoja frena un monto mayor con «En … hay S/ …: no se puede llevar más».
-   **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (\`ayudaDelOrigen\`). A 375 px el combo ya cabe entero
+   **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (`ayudaDelOrigen`). A 375 px el combo ya cabe entero
+   y la ayuda lo repite: se aceptó a cambio de que a 1440 px se lea.
+   **Corregida:** bajo «De» la ayuda dice «Hay S/ 1,200.00» (o «Está vacía»), solo en esta opción (`ayudaDelOrigen`). A 375 px el combo ya cabe entero
    y la ayuda lo repite: se aceptó a cambio de que a 1440 px se lea.
 2. **El ejemplo del monto («1,500.00») es mayor que lo que suele haber en una caja fuerte**, y aquí no se puede llevar más que su saldo. — placeholder de
    `mov-monto`, marcado `sugerir-fijo` por ser el formato — regla del repo «Sugerencias coherentes» (ADR-0290) — va a `/sugerir`.
+   **Corregida:** en esta opción el ejemplo es una cifra redonda POR DEBAJO del saldo (de 1,200 propone 1,000.00), contada en céntimos enteros
+   (`ejemploMontoMovimiento`); su prueba recorre los saldos de 0.01 a 20.00 y una muestra hasta 100 000. Una revisión adversarial con agentes encontró
+   que la primera versión daba el saldo exacto con S/ 1 o menos; se corrigió y la prueba lo atrapa (control con mutación: falla).
 
 ## De antes de este PR (sin severidad aquí)
 - El error de un monto vacío («Escribe el monto.») sale en el aviso de la esquina, no bajo su campo. Es la hoja entera: está en la deuda de la guía de foco
