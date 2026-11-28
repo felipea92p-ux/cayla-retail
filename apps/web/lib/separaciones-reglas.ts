@@ -121,27 +121,6 @@ export function estadoVisible(a: Pick<Apartado, "estado" | "venceEl" | "adelanto
 /** Orden de la lista «Todos»: primero lo que exige una acción hoy. */
 export const ORDEN_ESTADO: Record<ClaveEstado, number> = { devolver: 0, vencida: 1, porvencer: 2, vigente: 3, cerrada: 4 };
 
-/** La barra del plazo: 7 tramos de plazo + 2 de gracia. `pasado` ya transcurrió, `hoy` es el día actual. `creadaEl` es el día de
- *  Lima en que se apartó, `diaLima(a.creadaEn)`: la base guarda el instante en UTC y calcula `vence_el` con ese mismo día de Lima
- *  (`fn_hoy_lima()` + 7); con los 10 primeros caracteres del instante, lo apartado de 7 pm a medianoche arrancaba «mañana». */
-export type TramoPlazo = { tipo: "plazo" | "gracia"; momento: "pasado" | "hoy" | "futuro" };
-export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
-  const dia = diasEntre(creadaEl, hoy);
-  return Array.from({ length: PLAZO_DIAS + GRACIA_DIAS }, (_, i) => ({
-    tipo: i < PLAZO_DIAS ? "plazo" : "gracia",
-    momento: i < dia ? "pasado" : i === dia ? "hoy" : "futuro",
-  }));
-}
-
-/** La línea de tiempo de Entregar (Apartó → Hoy → Vence): cuántos días tiene el plazo y cuántos ya pasaron, contados desde el día
- *  de Lima en que se apartó (`diaLima(a.creadaEn)`, como `tramosDelPlazo`). Sin ese día —un instante que no se lee—, la línea no
- *  avanza: no se inventa cuándo se apartó. */
-export function avanceDelPlazo(creadaEl: string | null, hoy: string, venceEl: string): { total: number; pasados: number } {
-  if (!creadaEl) return { total: 1, pasados: 0 };
-  const total = Math.max(1, diasEntre(creadaEl, venceEl));
-  return { total, pasados: Math.min(total, Math.max(0, diasEntre(creadaEl, hoy))) };
-}
-
 export const soloDigitos = (s: string) => s.replace(/\D/g, "");
 
 /** ¿El apartado se hizo CON constancia (sin boleta de anticipo)? Es todo apartado nuevo (ADR-0399, Felipe 2026-10-14): el adelanto es un pacto
@@ -565,17 +544,11 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
 
 
 /** `buscar_separaciones` devuelve como mucho 200 (tope dentro de la función, ordenado: liberados, abiertos, y al final
- *  lo ya cerrado). No se pagina (ADR-0192): la lista es el trabajo del mostrador, no un archivo; el resumen de arriba
- *  sale de `resumen_separaciones`, que cuenta todo. Si llegan justo 200 la pantalla AVISA que hay más en vez de callarlo. */
+ *  lo ya cerrado). No se pagina (ADR-0192): la lista es el trabajo del mostrador, no un archivo. Si llegan justo 200 la
+ *  pantalla AVISA que hay más en vez de callarlo. */
 export const TOPE_SEPARACIONES = 200;
 
 // ---- Abonos (Apartados v2, paso 2 — 20260927100000) ----------------------------------------------------------------
-
-/** «2 pagos» en la fila del Historial: el adelanto y los abonos, todos. Con un solo pago no dice nada (ya lo dice «pagó S/…»). Antes la
- *  fila contaba solo los abonos («1 abono») y un cliente que pagó dos veces parecía haber pagado una (prueba ciega, 2026-10-15). */
-export function textoPagosDeFila(pagos: readonly PagoApartado[]): string | null {
-  return pagos.length > 1 ? `${pagos.length} pagos` : null;
-}
 
 /** El detalle del aviso «Abono de S/… anotado». La boleta de anticipo solo existe en los apartados viejos: desde ADR-0399 el abono no
  *  emite comprobante, y nombrarla mandaba a buscar un papel que no salió (/chaos 2026-10-15). */

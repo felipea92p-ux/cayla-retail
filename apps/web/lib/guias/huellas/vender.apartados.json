@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 187,
+  "total": 173,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -119,18 +119,22 @@
       "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/apartados/EntregarVista.tsx": [
-      "button «Otro cliente»",
-      "BotonEditar «Editar prendas»",
-      "Boton «Liberar apartado»",
-      "Boton «Borrar la búsqueda»",
-      "button «{x.nombres}»",
-      "button «{`${m}»",
+      "Volver «→() => elegir(null)»",
+      "BotonImprimir «Reimprimir»",
+      "button «{ICONO_METODO[m]}»",
       "EntradaMonto «{`Monto en ${pg.metodo}»",
       "button «{`Quitar ${pg.metodo}»",
       "button «Borrar (»",
-      "button «Abonar»",
+      "button «Solo abona una parte»",
       "ComboResponsable «{responsable}»",
       "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
+    ],
+    "components/apartados/HistorialVista.tsx": [
+      "BotonImprimir «{`Reimprimir el papel de ${a.codigo}»",
+      "button «apartados.todo-el-historial»",
+      "button «Pendientes»",
+      "Boton «Intentar de nuevo»",
+      "Boton «Ver todo el historial»"
     ],
     "components/apartados/ModalesApartado.tsx": [
       "BotonImprimir «{principal}»",
@@ -146,6 +150,7 @@
       "Boton «{!motivo ? \"Elige por qué se libera.\" : (responsable.motivo ?? undefined)}»",
       "button «Ahora no»",
       "Boton «Avisar por WhatsApp»",
+      "button «Avisarle por WhatsApp que se canceló»",
       "button «{ICONO_METODO[m]}»",
       "input «{apartado.devolucionCciFinal ? `…${apartado.devolucionCciFinal}»",
       "input «Obligatorio»",
@@ -185,34 +190,19 @@
       "button «Mejor no» #7",
       "Boton «{responsable.motivo ?? undefined}» #5"
     ],
-    "components/apartados/TodosVista.tsx": [
-      "button «Escribirles en lote»",
-      "button «Subir al almacén»",
-      "button «Enviar»",
-      "button «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»",
-      "button «{pe.direccion === \"me_piden\" ? \"No la tenemos\" : \"Cancelar\"}»",
-      "button «{f.etiqueta}»",
-      "DesplegablePildora «Canal»",
-      "button «Qué ver»",
-      "Casilla «{`Ver ${c.etiqueta}»",
-      "button «Lo de fábrica»",
-      "button «Listo»",
-      "button «{p.etiqueta}»",
-      "CampoFecha «Desde»",
-      "CampoFecha «Hasta»",
-      "button «Todo el historial»",
-      "Boton «Intentar de nuevo»",
-      "Boton «Buscar en todo el historial»",
-      "Boton «Borrar la búsqueda»",
-      "Boton «Ver todo el historial»",
-      "button «{`Ver el detalle del apartado ${a.codigo}»",
-      "button «{`Reimprimir el ticket de ${a.codigo}»",
-      "button «{hoyYa ? `Ya se le avisó hoy a ${a.nombres}»",
-      "button «{a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX}»",
-      "button «Liberar»",
-      "button «Entregar»",
-      "button «{`Avisarle a ${a.nombres}»",
-      "button «Devolver»"
+    "components/apartados/PendientesVista.tsx": [
+      "Boton «Devolver»",
+      "Boton «Avisarle»",
+      "Boton «{`Escribirle a ${a.nombres}»",
+      "Boton «{`Ya se le avisó hoy a ${a.nombres}»",
+      "Boton «apartados.lote»",
+      "button «→() => setCancelarPedido(pe)»",
+      "Boton «Subir al almacén»",
+      "Boton «Enviar»",
+      "Boton «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»"
+    ],
+    "components/apartados/filas.tsx": [
+      "button «{etiqueta}»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"

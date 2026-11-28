@@ -784,16 +784,17 @@ export function ApartarVista({
   return (
     <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
-        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+        <div className="ap-dos-aviso px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
         </div>
       )}
       {/* En duda, nada se toca: cambiar una prenda o el adelanto y reenviar podría apartar dos veces. */}
       <fieldset disabled={envio.incierto} className="contents">
-      {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
-          pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
-      <div className="flex min-w-0 flex-col">
-      {cabecera}
+      {/* Arriba, la cabecera de la hoja: sobre esta columna si cabe y, si no, a todo el ancho (`.ap-dos-cab`, vidrio/vender.css). */}
+      <div className="ap-dos-cab min-w-0">{cabecera}</div>
+      {/* Izquierda: solo lo escaneado, nunca el catálogo entero. En el celular, en los pasos de la clienta y el adelanto se esconde lo
+          escaneado, no la cabecera. */}
+      <div className="ap-dos-trabajo flex min-w-0 flex-col">
       <div className={`ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">

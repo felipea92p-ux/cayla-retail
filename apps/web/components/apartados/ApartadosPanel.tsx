@@ -1,23 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 import { Globito } from "@/components/ui/Globito";
-import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
+import { Bookmark, ClipboardList, Clock, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
-import type { ResumenApartados } from "@/lib/separaciones";
-import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado, type PedidoApartado } from "@/lib/separaciones-reglas";
+import { TOPE_SEPARACIONES, type Apartado, type AvisoApartado, type PedidoApartado } from "@/lib/separaciones-reglas";
+import { cuantosPendientes, enPendientes } from "@/lib/apartados-pestanas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
-import { TodosVista } from "@/components/apartados/TodosVista";
+import { HistorialVista } from "@/components/apartados/HistorialVista";
+import { PendientesVista } from "@/components/apartados/PendientesVista";
 import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 import type { CanalVenta } from "@/lib/canales-venta-reglas";
 import { CanalesDeApartados } from "@/components/apartados/CanalChip";
 
-export type Vista = "apartar" | "entregar" | "todos";
+/** Las tres pestañas (ADR-0720): «Apartar» hace uno nuevo, «Pendientes» es lo que sigue vivo (y, al abrir uno, su cobro) e
+ *  «Historial», lo terminado. «Entregar» dejó de ser pestaña: es abrir un apartado de Pendientes. */
+export type Vista = "apartar" | "pendientes" | "historial";
 
 type Props = {
   ubicacionId: string;
@@ -30,8 +34,6 @@ type Props = {
   /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda (`ofertas_de_monto_vigentes`). */
   filasMonto?: readonly FilaOfertaDeMonto[];
   apartados: Apartado[];
-  resumen: ResumenApartados;
-  liberadosAhora: number;
   /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
   hayMas?: boolean;
   /** Los avisos por WhatsApp de cada apartado abierto (Recordar en lote); vacío si la migración aún no está. */
@@ -48,8 +50,9 @@ type Props = {
   pedidos?: PedidoApartado[];
   /** Las otras tiendas, con su nombre corto (AQP, LIM…), para pedirles una prenda. */
   tiendas?: { id: string; nombre: string }[];
-  /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Entregar» con ese apartado elegido; ya
-   *  cerrado → «Todos» buscándolo por su código. Un id que no está en la lista no cambia nada. */
+  /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Pendientes» con el cobro de ese apartado; cancelado
+   *  con su adelanto por devolver → «Pendientes» buscándolo por su código; terminado → «Historial», igual. Un id que no está en la lista
+   *  no cambia nada. */
   abrir?: string | null;
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): la entrega cobra el saldo en monedas de S/ 0.10. */
   redondeoEfectivo?: boolean;
@@ -58,15 +61,37 @@ type Props = {
 };
 
 /**
- * La hoja de «Apartados»: la misma forma que «Venta en tienda» (a la izquierda la sede, las tres pestañas y la
- * búsqueda; a la derecha, de arriba abajo, el panel de cobro). Cada pestaña es una pieza aparte; esta solo decide cuál se ve y guarda el
- * apartado elegido al pasar de «Todos» a «Entregar».
+ * La hoja de «Apartados»: la misma forma que «Venta en tienda» (a la izquierda las tres pestañas y lo de trabajo; a la derecha, de
+ * arriba abajo, el panel de cobro). Cada pestaña es una pieza aparte; esta solo decide cuál se ve y guarda el apartado abierto en
+ * «Pendientes» (su cobro) hasta volver a la lista.
  */
 export function ApartadosPanel(props: Props) {
   const paraAbrir = props.abrir ? (props.apartados.find((a) => a.id === props.abrir) ?? null) : null;
-  const [vista, setVista] = useState<Vista>(paraAbrir ? (paraAbrir.estado === "abierta" ? "entregar" : "todos") : "apartar");
+  const [vista, setVista] = useState<Vista>(paraAbrir ? (enPendientes(paraAbrir) ? "pendientes" : "historial") : "apartar");
   const [elegido, setElegido] = useState<string | null>(paraAbrir?.estado === "abierta" ? paraAbrir.id : null);
   const [opciones, setOpciones] = useState(false);
+  // Lo escrito en el buscador de cada lista. Vive aquí, no en la lista, para seguir ahí al volver de un cobro con «Volver»; llega con el
+  // código del apartado que vino por `?abrir=` (si no se abre su cobro) o con lo que se buscó en la otra lista y no estaba (ADR-0720).
+  // Tocar una pestaña lo borra.
+  const [buscar, setBuscar] = useState({
+    pendientes: paraAbrir?.estado === "liberada" ? paraAbrir.codigo : "",
+    historial: paraAbrir && !enPendientes(paraAbrir) ? paraAbrir.codigo : "",
+  });
+  // Abrir un apartado cambia de vista sin cambiar de URL (ADR-0185): el cobro empieza arriba y «Volver» regresa al lugar de la lista.
+  const lugarDeLaLista = useRef<number | null>(null);
+  const abrirCobro = (id: string) => {
+    lugarDeLaLista.current = window.scrollY;
+    setElegido(id);
+  };
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    if (elegido) {
+      document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
+    } else if (lugarDeLaLista.current !== null) {
+      window.scrollTo({ top: lugarDeLaLista.current });
+      lugarDeLaLista.current = null;
+    }
+  }, [elegido]);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
   // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
@@ -78,39 +103,44 @@ export function ApartadosPanel(props: Props) {
     setPedidoParaApartar(null);
   }
   const apagadas = props.apagadas ?? [];
-  const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
+  // El número de «Pendientes» es el de filas de su lista (ADR-0720): dos números que no coinciden hacen dudar de los dos.
+  const pendientes = cuantosPendientes(props.apartados);
 
   const irA = (v: Vista) => {
     setVista(v);
+    // Tocar una pestaña lleva a su lista: el cobro de un apartado se abre desde «Pendientes» y se deja con «Volver»; y la lista empieza sin
+    // la búsqueda que llegó de la otra.
+    lugarDeLaLista.current = null;
+    setElegido(null);
+    setBuscar({ pendientes: "", historial: "" });
     // En el celular la pestaña se toca abajo: la vista nueva empieza arriba, no a media página.
     document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   };
   const irAEntregar = (id: string) => {
+    irA("pendientes");
     setElegido(id);
-    irA("entregar");
   };
 
-  const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; insignia?: number }[] = [
+  const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; cuenta?: number }[] = [
     { id: "apartar", etiqueta: "Apartar", icono: <Bookmark className="h-5 w-5" aria-hidden /> },
-    { id: "entregar", etiqueta: "Entregar", icono: <ShoppingBag className="h-5 w-5" aria-hidden /> },
-    // «Historial» (ADR-0367, Felipe 2026-10-09: «debe haber un apartado donde se vea el historial»): la lista de todos los
-    // apartados de la tienda, con su ticket para reimprimir. La clave sigue siendo «todos».
-    { id: "todos", etiqueta: "Historial", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
+    { id: "pendientes", etiqueta: "Pendientes", icono: <ClipboardList className="h-5 w-5" aria-hidden />, cuenta: pendientes },
+    // «Historial» (ADR-0367, Felipe 2026-10-09: «debe haber un apartado donde se vea el historial»): lo terminado, con su papel para
+    // reimprimir.
+    { id: "historial", etiqueta: "Historial", icono: <Clock className="h-5 w-5" aria-hidden /> },
   ];
 
-  // Pestañas, «Opciones» y avisos, pegados a la izquierda (Felipe, 2026-09-26, spike
-  // `docs/maquetas/apartados-ticket-alto-2026-09/`): en Apartar y Entregar la vista los pinta al tope de su columna de
-  // trabajo, y el ticket de la derecha sube hasta el borde de la hoja. En Todos, sin ticket, van a todo el ancho.
+  // El nombre, las pestañas y «Opciones». En Apartar y en el cobro la vista los pone sobre su columna de trabajo cuando caben (con el
+  // ticket de la derecha subiendo hasta el borde, Felipe 2026-09-26) y a todo el ancho cuando no (`.ap-dos-cab`, vidrio/vender.css):
+  // así las pestañas no cambian de lugar al pasar de una lista al cobro (ADR-0720). En las listas van a todo el ancho.
   const cabecera = (
     <>
-      {/* Entre 1024 y 1280 px la columna de trabajo mide ~290 px (el ticket, 380): la etiqueta se oculta (la sede ya está en la barra de
-          arriba y Apartados, en el menú) y «Opciones» queda en su ícono. En Todos, a todo el ancho, siempre caben. */}
-      <header className="ap-cab flex flex-wrap items-center gap-x-4 gap-y-2 sm:min-h-16 sm:gap-x-6 lg:max-xl:gap-x-4">
-        <p className={`label-cayla text-xs text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
-        <span aria-hidden className={`ap-cab-sep h-[22px] w-px max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
-        <div className="flex items-center gap-6 lg:max-xl:gap-4">
-        {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Entregar / Todos» cambia de sección. Solo en escritorio; el celular lleva las
-            suyas abajo (la isla de pestañas). El conteo de «Todos» es el que pide algo (Felipe 2026-10-07). */}
+      <header className="ap-cab flex flex-wrap items-center gap-x-4 gap-y-2 sm:min-h-16 sm:gap-x-6">
+        {/* La sede ya está arriba, en la barra del ERP: aquí, solo el nombre de la pantalla. */}
+        <p className="label-cayla text-xs text-tinta/80">Apartados</p>
+        <span aria-hidden className="ap-cab-sep h-[22px] w-px max-lg:hidden" />
+        <div className="flex items-center gap-6">
+        {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Pendientes / Historial» cambia de sección. Solo en escritorio; el celular
+            lleva las suyas abajo (la isla de pestañas). */}
         <Pestanas
           className="max-lg:hidden"
           etiquetaAccesible="Apartados"
@@ -118,7 +148,7 @@ export function ApartadosPanel(props: Props) {
           guia="apartados.pestanas"
           activa={vista}
           onCambio={(c) => irA(c as Vista)}
-          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined, guia: `apartados.pestana-${p.id}` }))}
+          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.cuenta ?? null, pide: p.cuenta != null ? "pendientes" : undefined, tono: p.cuenta != null ? ("neutro" as const) : undefined, guia: `apartados.pestana-${p.id}` }))}
         />
         {props.esLider && (
           <button
@@ -130,23 +160,17 @@ export function ApartadosPanel(props: Props) {
             className="ap-opciones area-dedo label-cayla flex h-9 items-center gap-1.5 px-3 text-xs text-tinta/80"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-            <span className={vista === "todos" ? "" : "lg:max-xl:hidden"}>Opciones</span>
+            <span>Opciones</span>
           </button>
         )}
         </div>
       </header>
 
-      {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
+      {(!props.cajaAbierta || props.hayMas) && (
         <div className="ap-avisos space-y-1 text-sm">
-          {props.liberadosAhora > 0 && (
-            <p className="text-rojo-profundo">
-              {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
-              la prenda volvió al stock y falta devolver el adelanto (ver «Historial»).
-            </p>
-          )}
           {props.hayMas && (
             <p className="text-tinta/70">
-              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (por devolver y abiertos primero): los más antiguos ya terminados no entran en el Historial.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}
@@ -162,7 +186,7 @@ export function ApartadosPanel(props: Props) {
     // plana sobre el fondo y lo de adentro son placas (`ap-mesa`, vidrio/vender.css).
     <CanalesDeApartados canales={props.canales ?? []}>
     <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100svh-9rem)] scroll-mt-4 flex-col max-lg:mb-40">
-      {vista === "todos" && cabecera}
+      {(vista === "historial" || (vista === "pendientes" && !elegido)) && cabecera}
 
       {vista === "apartar" && (
         <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} filasMonto={props.filasMonto}
@@ -177,18 +201,50 @@ export function ApartadosPanel(props: Props) {
           canales={props.canales ?? []}
         />
       )}
-      {vista === "entregar" && (
-        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
-      )}
-      {vista === "todos" && (
-        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
-          irAEntregar={irAEntregar}
-          buscarInicial={paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : ""}
+      {vista === "pendientes" && !elegido && (
+        <PendientesVista
+          ubicacionId={props.ubicacionId}
+          ubicacionEtiqueta={props.ubicacionEtiqueta}
+          hoy={props.hoy}
+          puedeGestionar={props.puedeGestionar}
+          cajaAbierta={props.cajaAbierta}
+          apartados={props.apartados}
+          prendas={props.prendas}
+          avisos={props.avisos ?? {}}
           apagadas={apagadas}
           pedidos={props.pedidos ?? []}
+          buscarInicial={buscar.pendientes}
+          onTexto={(texto) => setBuscar((b) => ({ ...b, pendientes: texto }))}
+          onAbrir={abrirCobro}
+          onBuscarEnHistorial={(texto) => {
+            irA("historial");
+            setBuscar({ pendientes: "", historial: texto });
+          }}
           onApartarPedido={(p) => {
             setPedidoParaApartar(p);
             irA("apartar");
+          }}
+        />
+      )}
+      {vista === "pendientes" && elegido && (
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} puedeGestionar={props.puedeGestionar} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
+      )}
+      {vista === "historial" && (
+        <HistorialVista
+          ubicacionId={props.ubicacionId}
+          ubicacionEtiqueta={props.ubicacionEtiqueta}
+          hoy={props.hoy}
+          puedeGestionar={props.puedeGestionar}
+          cajaAbierta={props.cajaAbierta}
+          apartados={props.apartados}
+          prendas={props.prendas}
+          apagadas={apagadas}
+          buscarInicial={buscar.historial}
+          onEntregar={irAEntregar}
+          onIrAPendientes={() => irA("pendientes")}
+          onBuscarEnPendientes={(texto) => {
+            irA("pendientes");
+            setBuscar({ pendientes: texto, historial: "" });
           }}
         />
       )}
@@ -215,7 +271,7 @@ export function ApartadosPanel(props: Props) {
           >
             {p.icono}
             {p.etiqueta}
-            <Globito n={p.insignia ?? 0} pide esquina etiqueta="necesitan algo" className="absolute top-2 left-[calc(50%+6px)]" />
+            <Globito n={p.cuenta ?? 0} esquina etiqueta="pendientes" className="absolute top-2 left-[calc(50%+6px)]" />
           </button>
         ))}
       </nav>

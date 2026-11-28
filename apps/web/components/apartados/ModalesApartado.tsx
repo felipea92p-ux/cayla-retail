@@ -430,7 +430,20 @@ export function AvisoCancelacionModal({ apartado, ubicacion, onClose }: { aparta
 }
 
 /** Devolver el adelanto (D4): por el medio que la clienta dejó anotado; efectivo solo si vino a la tienda. */
-export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; cajaAbierta: boolean; onClose: () => void }) {
+export function DevolverModal({
+  apartado,
+  ubicacion,
+  cajaAbierta,
+  onClose,
+  onAvisar,
+}: {
+  apartado: Apartado;
+  ubicacion: UbicacionApartado;
+  cajaAbierta: boolean;
+  onClose: () => void;
+  /** Desde Pendientes (ADR-0720), donde la fila lleva un solo botón: avisarle por WhatsApp que se canceló queda aquí, junto a lo que se le devuelve. */
+  onAvisar?: () => void;
+}) {
   const router = useRouter();
   const [medio, setMedio] = useState<MedioDevolucionReal>(apartado.devolucionMedio);
   const [operacion, setOperacion] = useState("");
@@ -481,6 +494,11 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
             <p className="label-cayla text-xs text-rojo-profundo">A devolver</p>{/* unificar-fijo: el rótulo de una cifra que sale de caja, no un aviso de error */}
             <p className="font-display mt-1 text-3xl text-tinta">{money(apartado.adelanto)}</p>
             <p className="mt-1 text-sm text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
+            {onAvisar && apartado.celular !== "" && (
+              <button type="button" onClick={onAvisar} className="btn-enlace mt-1 text-sm">
+                Avisarle por WhatsApp que se canceló
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-5 gap-1 rounded-xl vd-hundido p-1">
             {medios.map((m) => (

@@ -2,11 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   adelantoDe,
   avisoDeAbono,
-  textoPagosDeFila,
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
   descuentoDePrenda,
-  avanceDelPlazo,
   cobroDelSaldo,
   coincide,
   enlaceWhatsapp,
@@ -27,7 +25,6 @@ import {
   pagosParaRpcApartado,
   sumarDiasIso,
   textoDevolucion,
-  tramosDelPlazo,
   vueltoDelAdelanto,
   type Apartado,
   type FormularioApartado,
@@ -78,15 +75,6 @@ describe("estadoVisible (D3: 7 días, aviso a 2, 2 de gracia)", () => {
   });
 });
 
-describe("tramosDelPlazo", () => {
-  it("9 tramos: 7 de plazo y 2 de gracia, marcando el día de hoy", () => {
-    const t = tramosDelPlazo("2026-09-22", "2026-09-24");
-    expect(t).toHaveLength(9);
-    expect(t.filter((x) => x.tipo === "gracia")).toHaveLength(2);
-    expect(t.map((x) => x.momento).slice(0, 4)).toEqual(["pasado", "pasado", "hoy", "futuro"]);
-  });
-});
-
 describe("el plazo cuenta desde el día de LIMA en que se apartó", () => {
   // Como lo manda `buscar_separaciones`: `creada_en` es un instante en UTC. Ejemplo inventado: apartado el 13 de octubre a las
   // 20:00 de Lima (2026-10-14 01:00 UTC); la base le puso `vence_el` = 13 + 7 = 20 de octubre.
@@ -94,20 +82,6 @@ describe("el plazo cuenta desde el día de LIMA en que se apartó", () => {
 
   it("lo apartado a las 20:00 del 13 es del 13, aunque en UTC ya sea el 14", () => {
     expect(apartoEl).toBe("2026-10-13");
-  });
-
-  it("al día siguiente, la barra marca el segundo tramo", () => {
-    const t = tramosDelPlazo(apartoEl!, "2026-10-14");
-    expect(t.map((x) => x.momento).slice(0, 3)).toEqual(["pasado", "hoy", "futuro"]); // con el corte de UTC, «hoy» caía en el primero
-  });
-
-  it("la línea de tiempo de Entregar tiene los 7 días del plazo y ya pasó uno", () => {
-    expect(avanceDelPlazo(apartoEl, "2026-10-14", "2026-10-20")).toEqual({ total: 7, pasados: 1 }); // con el corte de UTC, 6 y 0
-    expect(avanceDelPlazo(apartoEl, "2026-10-25", "2026-10-20")).toEqual({ total: 7, pasados: 7 }); // vencido: la línea llega al final
-  });
-
-  it("sin un día de apartado que se lea, la línea no avanza", () => {
-    expect(avanceDelPlazo(diaLima("ayer"), "2026-10-14", "2026-10-20")).toEqual({ total: 1, pasados: 0 });
   });
 
   it("un aviso de las 20:00 de Lima es de ese día para la tienda", () => {
@@ -465,12 +439,6 @@ describe("el tope del vuelto en el adelanto", () => {
 });
 
 describe("lo que se lee de los pagos no miente (chaos y prueba ciega 2026-10-15)", () => {
-  const pago = (abono: boolean) => ({ metodo: "yape" as const, monto: 10, fecha: "2026-10-15T15:00:00Z", abono });
-  it("la fila cuenta TODOS los pagos (adelanto y abonos), no solo los abonos: «1 abono» con dos pagos confundía", () => {
-    expect(textoPagosDeFila([pago(false)])).toBeNull();
-    expect(textoPagosDeFila([pago(false), pago(true)])).toBe("2 pagos");
-    expect(textoPagosDeFila([pago(false), pago(true), pago(true)])).toBe("3 pagos");
-  });
   it("el aviso del abono solo nombra una boleta de anticipo si el apartado es de los viejos que la emiten (ADR-0399)", () => {
     const nuevo = apartado({ comprobanteAnticipo: null });
     expect(avisoDeAbono(nuevo, { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90.");

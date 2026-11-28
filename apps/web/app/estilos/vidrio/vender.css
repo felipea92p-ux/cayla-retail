@@ -244,7 +244,7 @@
 
    Los ganchos los ponen components/apartados/ApartadosPanel.tsx (`ap-mesa`, `ap-cab`, `ap-cab-sep`, `ap-opciones`, `ap-avisos`,
    `ap-pestanas-isla`, `ap-pestanas-gota` con su `--k`), ApartarVista.tsx y EntregarVista.tsx (`ap-dos`, `ap-cuerpo`, `ap-ticket`,
-   `ap-ticket-hilo`, `ap-placa`) y TodosVista.tsx (`ap-cuerpo`, `ap-cifras`, `ap-cifra` con `data-custodia`, `ap-placa`). Nada cambia qué
+   `ap-ticket-hilo`, `ap-placa`) y las dos listas, PendientesVista.tsx e HistorialVista.tsx (`ap-cuerpo`, `ap-placa`). Nada cambia qué
    hace la pantalla. Solo recetas de recetas.css. Movimiento de ADR-0136, sin nada nuevo: la gota de las pestañas viaja como la de Mi
    perfil (450 ms, sin rebote); con «reducir movimiento», salta.
    ===================================================================== */
@@ -285,6 +285,46 @@
 /* Apartar y Entregar: el trabajo a la izquierda y el ticket a la derecha, con aire entre los dos en vez de la raya de la hoja. */
 .ap-mesa .ap-dos {
   gap: 20px;
+}
+/* La cabecera de Apartados (el nombre, las pestañas y «Opciones») en Apartar y en el cobro (ADR-0720). Sobre la columna de trabajo
+   cuando cabe, con el ticket subiendo hasta el borde (Felipe 2026-09-26); cuando no cabe, a todo el ancho, encima de las dos columnas.
+   Así las pestañas quedan en el mismo lugar en las listas, en Apartar y en el cobro: antes, entre 1024 y 1280 px, el cobro escondía
+   «Apartados» para que cupieran y las pestañas saltaban de lugar (lo marcó el QA de la maqueta). Lo decide el ancho de la mesa, no el
+   de la ventana. La cabecera, la columna de trabajo y el ticket viven dentro de un `fieldset.contents`: por eso los selectores no usan `>`. */
+@media (min-width: 64rem) {
+  .ap-mesa .ap-dos {
+    container-type: inline-size;
+    row-gap: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ap-mesa .ap-dos:has(.ap-dos-aviso) {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .ap-mesa .ap-dos .ap-dos-aviso,
+  .ap-mesa .ap-dos .ap-dos-cab {
+    grid-column: 1 / -1;
+  }
+  .ap-mesa .ap-dos .ap-dos-trabajo {
+    grid-column: 1;
+  }
+  /* El ticket empieza a la altura de lo de adentro de la columna (que tiene sus 20 px arriba). */
+  .ap-mesa .ap-dos .ap-ticket {
+    grid-column: 2;
+    margin-top: 20px;
+  }
+  /* La fila del ticket va escrita: la colocación automática no vuelve a la primera fila después de poner la columna de trabajo. */
+  @container (min-width: 72rem) {
+    .ap-mesa .ap-dos .ap-dos-cab {
+      grid-column: 1;
+    }
+    .ap-mesa .ap-dos .ap-ticket {
+      grid-row: 1 / span 2;
+      margin-top: 0;
+    }
+    .ap-mesa .ap-dos:has(.ap-dos-aviso) .ap-ticket {
+      grid-row: 2 / span 2;
+    }
+  }
 }
 /* Sin hoja, lo de adentro se alinea con la cabecera de la pantalla: sin el margen interior que tenía dentro del papel. */
 .ap-mesa .ap-cuerpo {
@@ -333,41 +373,38 @@
     background: var(--serena-fondo-encima);
     box-shadow: var(--serena-sombra-encima);
   }
-  /* La fila del Historial que abre su detalle: la gota, no la crema maciza. */
-  .ap-mesa ul.ap-placa > li:hover {
-    background: var(--gota-fondo);
+}
+
+/* El panel de cobro (ADR-0720, la Mínima): en escritorio queda quieto donde empieza mientras la tarjeta corre, y su alto llega hasta el
+   borde de la pantalla: el responsable y «Entregar y cobrar» siempre a la vista, lo de en medio corre por dentro. Antes, a 900 px de alto,
+   el botón quedaba bajo el borde. `--cobro-tope` lo mide EntregarVista.tsx; sin él, bajo la cabecera del ERP. */
+@media (min-width: 64rem) {
+  .ap-mesa .ap-dos .ap-ticket[data-cobro] {
+    position: sticky;
+    top: var(--cobro-tope, calc(var(--alto-cabecera) + 12px));
+    align-self: start;
+    max-height: calc(100svh - var(--cobro-tope, calc(var(--alto-cabecera) + 12px)) - 16px);
   }
 }
 
-/* Las cifras del Historial: ya no una tarjeta partida en cuatro, sino cuatro placas sueltas (la tarjeta de cifra «A · Placa»). La de
-   «En custodia» conserva su rayado (el dinero que se guarda y todavía no es venta), sobre la placa. */
-.ap-mesa .ap-cifras {
-  gap: 12px;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-}
-.ap-mesa .ap-cifra {
-  border: 1px solid var(--serena-borde);
-  border-radius: var(--radius-tarjeta);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
-}
-.ap-mesa .ap-cifra[data-custodia] {
-  background:
-    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--color-sand) 35%, transparent) 9px 10px),
-    var(--serena-fondo);
-}
-/* En el celular, de a dos (como la maqueta): una columna de cuatro placas empujaba la lista fuera de la vista. */
-@media (max-width: 639px) {
-  .ap-mesa .ap-cifras {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+/* En una pantalla baja (el panel de 1024 × 768 de Felipe) el panel de cobro aprieta su cabecera y su pie (la cifra, en EntregarVista.tsx):
+   «Solo abona una parte» y el botón entran sin correr por dentro. */
+@media (min-width: 64rem) and (max-height: 820px) {
+  .ap-mesa .ap-ticket[data-cobro] > .ap-ticket-hilo:first-child {
+    min-height: 0;
+    padding-block: 8px;
   }
-  .ap-mesa .ap-cifra {
-    padding: 12px;
+  .ap-mesa .ap-ticket[data-cobro] > .ap-ticket-hilo:last-child {
+    padding-block: 12px;
+  }
+}
+
+/* Las listas de Apartados en tarjeta (la tabla viva pasa a tarjeta bajo 660 px de ancho): «pagado» o «devuelto» va al lado del monto,
+   no debajo, donde quedaba suelto junto al nombre de la columna. */
+@container tv (max-width: 659.98px) {
+  .ap-mesa .tv-monto .ap-monto-dice {
+    display: inline;
+    margin-left: 6px;
   }
 }
 
