@@ -118,6 +118,10 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         setConsulta({ clave, fase: "error", mensaje: "No se pudo consultar" });
+      } else {
+        // Cancelada (llegó la ficha, ADR-0718, o cambió el número): se olvida, para poder preguntar otra vez.
+        if (ultima.current === clave) ultima.current = "";
+        setConsulta((c) => (c?.clave === clave ? null : c));
       }
     }
   }

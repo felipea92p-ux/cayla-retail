@@ -310,9 +310,9 @@ export function FlujoTalla({
 
   const almacenPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.almacenDisponible ?? 0)])));
   const pisoPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.pisoDisponible ?? 0)])));
-  // Con el responsable ya puesto, «Quién» no es un paso aparte (ADR-0718). Se decide una vez y se queda: si después se cambia
-  // el nombre en el combo, los pasos no se vuelven a partir. Nunca cambia estando ya en «Quién».
-  const [quienJunto, setQuienJunto] = useState(false);
+  // Con el responsable ya puesto, «Quién» no es un paso aparte (ADR-0718). Se decide UNA vez, cuando ya se sabe quién está de
+  // turno, y mientras tanto el botón no avanza: así nunca cambia de «Continuar» a «Colgar» bajo el dedo.
+  const [quienJunto, setQuienJunto] = useState<boolean | null>(null);
   const ctx: ContextoFlujo = {
     piso: Math.max(0, fila.pisoDisponible ?? (separa ? 0 : fila.disponible)),
     almacen: Math.max(0, fila.almacenDisponible ?? 0),
@@ -323,16 +323,17 @@ export function FlujoTalla({
     origenes,
     puedePedirParaCliente,
     responsableListo: responsable.listo,
-    quienJunto,
+    quienJunto: quienJunto === true,
   };
   const pasos = pasosDe(tipo, d, ctx);
   const paso = pasos[Math.min(i, pasos.length - 1)];
-  if (!quienJunto && tipo !== "enviar" && responsable.vinoPuesto && paso !== "quien") setQuienJunto(true);
+  const decidiendo = quienJunto === null && tipo !== "enviar";
+  if (decidiendo && responsable.estado !== "cargando") setQuienJunto(responsable.vinoPuesto && paso !== "quien");
   const firma = firmaAqui(tipo, i, d, ctx);
   const ultimo = i >= pasos.length - 1;
   // Con un envío en duda solo falta quién lo hace: se reenvía EXACTAMENTE lo enviado, aunque las cifras releídas ya no lo validen
   // (si se guardó, lo libre ya bajó; apagar el botón dejaría sin saber qué pasó). La misma regla que tenía «Reportar dañada».
-  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && (!firma || responsable.listo), responsable.listo);
+  const completo = !decidiendo && puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && (!firma || responsable.listo), responsable.listo);
   const nombreSede = (id: string | undefined) => [...destinos, ...origenes].find((s) => s.id === id)?.nombre ?? null;
   const nombreTalla = (varianteId: string) => {
     for (const c of colores) {

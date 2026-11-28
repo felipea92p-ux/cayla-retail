@@ -52,6 +52,17 @@ ADR-0534 la misma persona puede hacer las dos cosas.
 DESCARTÉ: una función nueva en la base que hiciera las dos cosas en una transacción (migración y un segundo camino que mantener para el
 mismo efecto). SE ROMPE SI: la conexión se corta entre registrar y aprobar: queda pendiente, que es un estado válido y visible.
 
+## Ajustes de la revisión antes del PR (2026-11-28)
+
+- Si la respuesta de la aprobación no llega, la pantalla dice «No sabemos si se aprobó» y nunca que no; un reenvío que contesta «ya está
+  aprobada» se toma como aprobada.
+- Reembolsar más de lo pagado frena «Registrar y aprobar» (la base lo rechaza: quedaría pendiente sin querer). El botón muestra lo que
+  sale de plata o «Sin reembolso».
+- El DNI quitado viaja con el ticket (`dniSinFicha`): espera, recarga y caja.
+- Una ficha unida sola no recibe el celular tecleado, y al soltarse se va el cupón canjeado con sus puntos.
+- En Existencias, hasta saber quién está de turno el botón no avanza: no cambia de «Continuar» a confirmar bajo el dedo.
+- La consulta del padrón cancelada ya no se queda «consultando».
+
 ## Lo que quedó fuera
 
 - El botón «Guardar como cliente» para un DNI sin ficha.

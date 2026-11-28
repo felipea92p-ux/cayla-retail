@@ -73,10 +73,22 @@ type Resultado = {
   operacion: string;
   prendas: { referencia: string; talla: string | null; color: string | null; cantidad: number }[];
   valorPagado: number;
-  /** Aprobada en el mismo paso (ADR-0718), con lo que dice de su nota de crédito; `null` = quedó pendiente. */
-  aprobada: { nota: string | null } | null;
-  /** Se pidió aprobar y no salió: quedó registrada y pendiente. */
-  falloAprobacion: string | null;
+  /** Cómo quedó la aprobación (ADR-0718). `incierta`: se cortó la respuesta y NO se sabe si se aprobó: nunca se dice que no. */
+  aprobacion: { estado: "pendiente" } | { estado: "aprobada"; nota: string | null } | { estado: "fallo"; mensaje: string } | { estado: "incierta" };
+};
+
+const ESTADO_APROBACION: Record<Resultado["aprobacion"]["estado"], string> = {
+  aprobada: "Aprobada",
+  pendiente: "Pendiente de aprobación",
+  fallo: "Pendiente de aprobación",
+  incierta: "Sin confirmar",
+};
+
+const TEXTO_APROBACION: Record<Resultado["aprobacion"]["estado"], string> = {
+  aprobada: "Las prendas ya entraron al stock de la tienda.",
+  pendiente: "Queda pendiente de aprobación: el stock y la caja no cambian hasta que la revises y la apruebes.",
+  fallo: "Queda pendiente de aprobación: el stock y la caja no cambiaron.",
+  incierta: "La devolución quedó registrada, pero la respuesta de la aprobación no llegó.",
 };
 
 /** Por defecto, una unidad y vuelve impecable (lo normal). El motivo y el estado de las
@@ -208,6 +220,9 @@ export function DevolucionesFlujo({
     activo: paso === 4,
   });
   const seAprueba = paraAprobar.datos !== null && paraAprobar.datos.sinAceptar === null;
+  // La base rechaza reembolsar más de lo pagado: aquí se frena ANTES, o quedaría registrada y sin aprobar.
+  const reembolsoDeMas = reembolso.montoNumero !== null && reembolso.montoNumero > valorTotal;
+  const aprobacionFrenada = !!reembolso.revision.bloqueo || reembolsoDeMas;
 
   useVistaDelPaso(paso, raiz, titulo);
   // Si la base rechazó la devolución, el foco va al aviso, al lado del botón.
@@ -281,7 +296,7 @@ export function DevolucionesFlujo({
       setError(responsable.motivo);
       return;
     }
-    if (aprobar && (!seAprueba || reembolso.revision.bloqueo)) return;
+    if (aprobar && (!seAprueba || aprobacionFrenada)) return;
     // Una sola firma para registrar y aprobar: se toma antes, porque `despues` vuelve a dejar el combo como vino.
     const firma = responsable.firma();
     const items = lineasElegidas.map((l) => ({
@@ -314,19 +329,21 @@ export function DevolucionesFlujo({
       return;
     }
     // Ya está registrada. Si ahora la aprobación no sale, queda pendiente (como antes de ADR-0718) y se dice por qué.
-    let aprobada: Resultado["aprobada"] = null;
-    let falloAprobacion: string | null = null;
+    let aprobacion: Resultado["aprobacion"] = { estado: "pendiente" };
     let falloDeBase: Parameters<typeof responsable.despues>[0] = null;
     if (aprobar) {
       const r = await firmar(createClient().rpc("aprobar_devolucion", { p_devolucion_id: String(data), ...reembolso.params } as never), firma);
-      if (r.error) {
-        falloDeBase = r.error;
-        falloAprobacion = esRespuestaIncierta(r.error)
-          ? "No sabemos si se aprobó. Míralo en «Resueltas» y «Por aprobar» antes de volver a intentarlo."
-          : traducirError(r.error, "aprobar la devolución");
-      } else {
+      if (!r.error) {
         const nota = (r.data as { nota_credito_id: string | null; nota_credito_serie: string; nota_credito_numero: number }[] | null)?.[0];
-        aprobada = { nota: nota?.nota_credito_id ? textoNotaReservada(nota.nota_credito_serie, nota.nota_credito_numero) : null };
+        aprobacion = { estado: "aprobada", nota: nota?.nota_credito_id ? textoNotaReservada(nota.nota_credito_serie, nota.nota_credito_numero) : null };
+      } else if (/ya está aprobada/i.test(r.error.message ?? "")) {
+        // El navegador puede reenviar el envío por su cuenta: la segunda respuesta dice que ya estaba aprobada.
+        aprobacion = { estado: "aprobada", nota: null };
+      } else if (esRespuestaIncierta(r.error)) {
+        aprobacion = { estado: "incierta" };
+      } else {
+        falloDeBase = r.error;
+        aprobacion = { estado: "fallo", mensaje: traducirError(r.error, "aprobar la devolución") };
       }
     }
     enviandoAhora.current = false;
@@ -336,8 +353,7 @@ export function DevolucionesFlujo({
       operacion: String(data ?? "").slice(0, 8).toUpperCase(),
       prendas: lineasElegidas.map((l) => ({ referencia: l.referencia, talla: l.talla, color: l.color, cantidad: elegidas[l.ventaItemId]!.cantidad })),
       valorPagado: valorTotal,
-      aprobada,
-      falloAprobacion,
+      aprobacion,
     });
     setPaso("exito");
     // «Por aprobar» y las cifras de arriba se ponen al día por detrás.
@@ -607,8 +623,9 @@ export function DevolucionesFlujo({
                     onClick={() => void registrar(true)}
                     cargando={enviando}
                     textoCargando="Registrando…"
-                    disabled={!responsable.listo || !seAprueba || !!reembolso.revision.bloqueo}
-                    monto={soles(valorTotal)}
+                    disabled={!responsable.listo || !seAprueba || aprobacionFrenada}
+                    // Lo que SALE de plata al aprobar, nunca el valor de las prendas: sin monto, se dice que no hay reembolso.
+                    monto={reembolso.hayReembolso ? soles(reembolso.montoNumero ?? 0) : "Sin reembolso"}
                   >
                     <Check className="h-4 w-4" aria-hidden />
                     Registrar y aprobar
@@ -629,18 +646,21 @@ export function DevolucionesFlujo({
         <div className="posv-placa anim-revelar mx-auto max-w-2xl p-6 text-center sm:p-10">
           <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
-            {resultado.aprobada ? "Devolución aprobada" : TITULOS.exito}
+            {resultado.aprobacion.estado === "aprobada" ? "Devolución aprobada" : TITULOS.exito}
           </h2>
-          <p className="mt-2 text-sm text-secundario">
-            {resultado.aprobada
-              ? "Las prendas ya entraron al stock de la tienda."
-              : "Queda pendiente de aprobación: el stock y la caja no cambian hasta que la revises y la apruebes."}
-          </p>
-          {resultado.aprobada?.nota && <p className="mt-2 text-sm text-secundario">{resultado.aprobada.nota}</p>}
-          {resultado.falloAprobacion && (
+          <p className="mt-2 text-sm text-secundario">{TEXTO_APROBACION[resultado.aprobacion.estado]}</p>
+          {resultado.aprobacion.estado === "aprobada" && resultado.aprobacion.nota && <p className="mt-2 text-sm text-secundario">{resultado.aprobacion.nota}</p>}
+          {resultado.aprobacion.estado === "fallo" && (
             <div className="mt-4 text-left">
               <Aviso tono="error" titulo="Quedó registrada, pero no se aprobó.">
-                {resultado.falloAprobacion}
+                {resultado.aprobacion.mensaje}
+              </Aviso>
+            </div>
+          )}
+          {resultado.aprobacion.estado === "incierta" && (
+            <div className="mt-4 text-left">
+              <Aviso tono="atencion" titulo="No sabemos si se aprobó.">
+                Antes de entregar plata o repetirla, mírala en «Resueltas» y en «Por aprobar».
               </Aviso>
             </div>
           )}
@@ -649,17 +669,17 @@ export function DevolucionesFlujo({
               {resultado.prendas.map((p) => `${p.referencia} · ${varianteLegible(p)}${p.cantidad > 1 ? ` (×${p.cantidad})` : ""}`).join(", ")}
             </Dato>
             <Dato titulo="Lo que pagó por esto">{soles(resultado.valorPagado)}</Dato>
-            <Dato titulo="Estado">{resultado.aprobada ? "Aprobada" : "Pendiente de aprobación"}</Dato>
+            <Dato titulo="Estado">{ESTADO_APROBACION[resultado.aprobacion.estado]}</Dato>
             <Dato titulo="N.º de operación">
               <span className="font-mono">{resultado.operacion}</span>
             </Dato>
           </dl>
           <div className="mt-9 flex flex-wrap justify-center gap-2">
-            {resultado.aprobada ? (
+            {resultado.aprobacion.estado === "aprobada" ? (
               <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>
             ) : (
               <>
-                <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal>
+                <BotonPrincipal onClick={onIrAAprobar}>{resultado.aprobacion.estado === "incierta" ? "Revisar en Devoluciones" : "Revisar y aprobar"}</BotonPrincipal>
                 <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario>
               </>
             )}

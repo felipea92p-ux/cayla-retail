@@ -9,7 +9,13 @@
 
 ### Sin hacer (dicho sin adornos)
 
-- [ ] Antes del PR: `/milimetro auditar` de `/vender`, `/inventario` y `/devoluciones`, `/formidable`, `/chaos` y `guias:recorrer`; no se corrieron.
+- [x] `/milimetro auditar` de lo que cambió (`docs/milimetro/auditorias/2026-11-28-retail-workflow-analysis-646492.md`), medición de
+  oficio de la devolución, revisión independiente del diff y `guias:recorrer` de las tres pantallas (escritorio y 375 px).
+- [ ] `/chaos` completo (núcleo de 8 familias con semilla) y `/formidable` con prueba ciega: no se corrieron; solo ataques dirigidos
+  (triple clic, corte de red al aprobar, reembolso de más, «Quitar» con el ticket en espera).
+- [ ] `tema:auditar` no se corrió; el color en oscuro se midió solo en lo que cambió.
+- [ ] Guía de foco: `/devoluciones` y `/vender` siguen «pendiente» de antes; el reembolso del último paso no la lleva.
+- [ ] «Por aprobar» deja confirmar un reembolso mayor que lo pagado y la base lo rechaza (de antes); el paso nuevo sí lo frena.
 - [ ] La terminal compartida (sin responsable puesto) no se probó en el navegador: se sostiene en el código y en las pruebas de reglas.
 - [ ] En las mejoras 3 y 5 no se grabó nada: se leyó lo que viajaba a la base y se bloqueó.
 - [ ] De la 4 no se probó en el navegador: el reembolso sin caja abierta, un medio distinto de efectivo y el fallo al aprobar.

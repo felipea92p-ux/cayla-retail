@@ -543,6 +543,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El WhatsApp al que se le manda la boleta de ESTA venta (solo dígitos). Se llena solo con el celular de su ficha y se puede
   // escribir o corregir en el paso Comprobante: es del comprobante, no de la ficha (no toca el celular del club).
   const [celularBoleta, setCelularBoleta] = useState("");
+  // El DNI cuya ficha se quitó de ESTE ticket (ADR-0718): viaja con él a la espera y a la foto en curso.
+  const [dniSinFicha, setDniSinFicha] = useState<string | null>(null);
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
@@ -934,9 +936,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       celularBoleta,
       pagos,
       cupon: cuponClub.cupon,
+      ...(dniSinFicha ? { dniSinFicha } : {}),
     };
     guardar(claveFoto, ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro }, "en-curso", new Date().toISOString()), "pestana");
-  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon]);
+  }, [carrito, fotoBloqueada, claveFoto, nota, nombreActivo, clienta, responsable.elegidoId, tipoComprobante, clienteDocIdentidad, clienteNumDoc, clienteNombre, celularBoleta, pagos, cuponClub.cupon, dniSinFicha]);
 
   useEffect(() => {
     // Misma razón que arriba: no existe `localStorage` en el servidor. A diferencia de
@@ -1627,6 +1630,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       celularBoleta,
       pagos,
       cupon: cuponClub.cupon,
+      ...(dniSinFicha ? { dniSinFicha } : {}),
     };
   }
   /** «Dejar en espera» de un clic, sin preguntar nombre (Felipe 2026-10-26: escribirlo era tedio; la hoja del nombre, del spike
@@ -1753,6 +1757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setClienteNumDoc(cobro.docNumero);
       setClienteNombre(cobro.clienteNombre);
       setCelularBoleta(cobro.celularBoleta);
+      setDniSinFicha(cobro.dniSinFicha ?? null);
     }
     // Quién atendió vuelve SOLO si se eligió a propósito para este ticket, y el combo lo muestra solo si esa persona sigue
     // presente en la tienda (`responsableVigente`): nunca se hereda de la sesión ni del ticket anterior (ADR-0161, A6).
@@ -2091,6 +2096,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNombre("");
     setCelularBoleta("");
     setClienta(null);
+    setDniSinFicha(null);
   }
 
   // La clienta del ticket llena el comprobante; quitarla lo vacía solo si nadie lo cambió a mano después. Su documento
@@ -2111,8 +2117,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // lo pone la propia caja del DNI («De la ficha del cliente») y el celular solo si estaba vacío.
   const documentoDelTicket = { tipoComprobante, identidad: clienteDocIdentidad, numero: clienteNumDoc };
   const dniEnComprobante = dniDelComprobante(documentoDelTicket);
-  const fichaPorDni = useFichaPorDni({
+  useFichaPorDni({
     dni: dniEnComprobante,
+    quitado: dniSinFicha,
     hayClienta: clienta !== null,
     activo: puedeBuscarClienta && !loading && !envio.incierto,
     onEncontrada: (c) => {
@@ -2122,17 +2129,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   });
   // Un dígito corregido, factura u otro documento: la ficha unida sola se suelta, con lo que ella había llenado.
   const sueltaFicha = !loading && !envio.incierto && seSueltaLaFicha(clienta, documentoDelTicket);
+  // El cupón canjeado con SUS puntos se va con la ficha (si no, quedaría en la compra de otra persona). Uno escrito por código es
+  // al portador y se queda.
+  function soltarCuponDeSusPuntos() {
+    if (cuponClub.cupon?.origen !== "puntos") return;
+    cuponClub.quitar();
+    setCuponSoltado((n) => n + 1);
+  }
+  const [cuponSoltado, setCuponSoltado] = useState(0);
+  useEffect(() => {
+    if (cuponSoltado > 0) avisar.aviso("Se quitó el cupón de sus puntos", { detalle: "La venta ya no está en su ficha." });
+  }, [cuponSoltado]);
   // Se ajusta al dibujar (no en un efecto): así ningún cuadro llega a mostrar la ficha de otro DNI.
   if (sueltaFicha && clienta) {
     setClienteNombre((v) => (v === (clienta.nombre ?? "") ? "" : v));
     setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    soltarCuponDeSusPuntos();
     setClienta(null);
   }
   /** «Quitar» bajo el DNI: la boleta sigue con ese DNI, la venta no entra en la ficha. */
   function quitarFichaDelDni() {
     if (!clienta?.documentoNumero) return;
-    fichaPorDni.noUnir(clienta.documentoNumero);
+    setDniSinFicha(clienta.documentoNumero);
     setCelularBoleta((v) => (v === ajustarCelular(clienta.celular ?? "") ? "" : v));
+    soltarCuponDeSusPuntos();
     setClienta(null);
   }
 
@@ -2586,7 +2606,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             {clienta?.porDocumento && (
               <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-secundario">
                 <span>La venta queda en su ficha.</span>
-                <button type="button" className="btn-cayla btn-enlace" onClick={quitarFichaDelDni}>
+                <button type="button" className="btn-cayla btn-enlace min-h-6" onClick={quitarFichaDelDni}>
                   Quitar
                 </button>
               </p>

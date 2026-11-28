@@ -283,7 +283,7 @@ export function impactoDevolucion(e: {
     documento: e.comprobanteAceptado
       ? {
           titulo: `Nota de crédito ${e.esTotal ? "por devolución total" : "por devolución parcial"}`,
-          detalle: "La venta tiene un comprobante aceptado por SUNAT: al aprobar la devolución se emite sola la nota de crédito, que sale a SUNAT con la siguiente venta o al abrir Comprobantes.",
+          detalle: "La venta tiene un comprobante aceptado por SUNAT: al aprobarla se emite sola la nota de crédito y sale a SUNAT después.",
         }
       : undefined,
   };
