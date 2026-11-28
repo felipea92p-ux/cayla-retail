@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getMiPlata } from "@/lib/mi-plata";
 import {
   RPC_FONDOS,
   RPC_MI_FONDO_RESUMEN,
@@ -82,12 +83,14 @@ export async function getDatosFondos(): Promise<DatosFondos> {
  * si la lectura falló. Una falla se registra y la tarjeta no sale: la mayoría de las personas no tiene fondo, y pintarles a todos «no se
  * pudo leer tu fondo» por una base caída sería avisar de algo que no tienen (principio 9: se degrada, nunca muestra un número falso).
  */
-export async function getResumenMiFondo(): Promise<ResumenMiFondo | null> {
+export async function getResumenMiFondo(conMisCompras: boolean): Promise<ResumenMiFondo | null> {
   const supabase = await createClient();
-  const [r, x] = await Promise.all([
+  const [r, x, plata] = await Promise.all([
     supabase.rpc(RPC_MI_FONDO_RESUMEN as never) as unknown as Respuesta,
     // La rendición (actividad 5): si la base todavía no la tiene, la tarjeta sale igual, sin «Rendir».
     supabase.rpc(RPC_MI_FONDO_RENDICION as never) as unknown as Respuesta,
+    // Lo anotado en «Mis compras» que Compras aún no revisa: solo quien tiene ese módulo (sin él, la función responde 42501).
+    conMisCompras ? getMiPlata() : Promise.resolve(undefined),
   ]);
   if (r.error) {
     console.error(`tu fondo: ${r.error.message}`);
@@ -95,5 +98,9 @@ export async function getResumenMiFondo(): Promise<ResumenMiFondo | null> {
   }
   if (x.error) console.error(`tu fondo (rendición): ${x.error.message}`);
   const resumen = leerResumenMiFondo(r.data);
-  return resumen ? { ...resumen, rendicion: x.error ? null : leerMiFondoRendicion(x.data) } : null;
+  if (!resumen) return null;
+  // Si «Mis compras» no se pudo leer, la tarjeta no sale: el libro solo diría «te queda» lo que ya se gastó (principio 9).
+  if (plata === null) return null;
+  const porRevisar = plata?.persona ? Math.round((plata.saldo - plata.tiene) * 100) / 100 : 0;
+  return { ...resumen, porRevisar, rendicion: x.error ? null : leerMiFondoRendicion(x.data) };
 }

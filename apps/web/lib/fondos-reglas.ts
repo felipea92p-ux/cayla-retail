@@ -208,6 +208,11 @@ export type ResumenMiFondo = {
   paraQue: string | null;
   ultimaEntrega: string | null;
   rendicion: RendicionDeMiFondo | null;
+  /** Lo que la persona ya anotó en «Mis compras» y Compras todavía no revisa: compras y gastos «por completar», menos la plata que le
+   *  dieron y falta confirmar. El libro del fondo (`saldo`) recién lo descuenta al revisarse, pero la plata ya salió de su mano: sin
+   *  restarlo, la tarjeta decía «te quedan S/ 11,413» a quien tenía S/ 331 (Bhekam, 27-nov). Sale de la misma cuenta que «Tienes para
+   *  comprar» (`leerMiPlata().tiene`), así que las dos pantallas dicen el mismo número. 0 si no tiene Mis compras. */
+  porRevisar: number;
 };
 
 /** La fila de `fn_mi_fondo_resumen`, o nada si no tiene fondo, si es una terminal o si la base no la mandó entera. */
@@ -227,6 +232,7 @@ export function leerResumenMiFondo(data: unknown): ResumenMiFondo | null {
     paraQue: texto(f.para_que),
     ultimaEntrega: texto(f.ultima_entrega),
     rendicion: null,
+    porRevisar: 0,
   };
 }
 
@@ -268,7 +274,9 @@ export type CaraTuFondo = {
 
 /** `fecha` escribe un día (`diaMes` de `fechas-lima`) e `instante` el día de un momento en hora de Lima (cuándo se rindió): se reciben
  *  para que esta lógica no dependa del reloj ni del formato. */
-export function caraTuFondo(r: ResumenMiFondo, fecha: (iso: string) => string, instante: (iso: string) => string = fecha): CaraTuFondo {
+export function caraTuFondo(fondo: ResumenMiFondo, fecha: (iso: string) => string, instante: (iso: string) => string = fecha): CaraTuFondo {
+  // Lo que de verdad tiene en la mano: el libro menos lo anotado que Compras aún no revisa (la misma cifra que «Tienes para comprar»).
+  const r = { ...fondo, saldo: redondo(fondo.saldo - fondo.porRevisar) };
   const debe = r.saldo < -CENTAVO;
   const x = r.rendicion;
   const arrastre = x?.arrastre ?? 0;
