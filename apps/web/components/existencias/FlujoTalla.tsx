@@ -42,6 +42,7 @@ import {
   maxCantidad,
   pasoCompleto,
   pasosDe,
+  firmaAqui,
   resumenDeFlujo,
   textoHecho,
   totalVarias,
@@ -309,6 +310,9 @@ export function FlujoTalla({
 
   const almacenPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.almacenDisponible ?? 0)])));
   const pisoPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.pisoDisponible ?? 0)])));
+  // Con el responsable ya puesto, «Quién» no es un paso aparte (ADR-0718). Se decide una vez y se queda: si después se cambia
+  // el nombre en el combo, los pasos no se vuelven a partir. Nunca cambia estando ya en «Quién».
+  const [quienJunto, setQuienJunto] = useState(false);
   const ctx: ContextoFlujo = {
     piso: Math.max(0, fila.pisoDisponible ?? (separa ? 0 : fila.disponible)),
     almacen: Math.max(0, fila.almacenDisponible ?? 0),
@@ -319,13 +323,16 @@ export function FlujoTalla({
     origenes,
     puedePedirParaCliente,
     responsableListo: responsable.listo,
+    quienJunto,
   };
   const pasos = pasosDe(tipo, d, ctx);
   const paso = pasos[Math.min(i, pasos.length - 1)];
+  if (!quienJunto && tipo !== "enviar" && responsable.vinoPuesto && paso !== "quien") setQuienJunto(true);
+  const firma = firmaAqui(tipo, i, d, ctx);
   const ultimo = i >= pasos.length - 1;
   // Con un envío en duda solo falta quién lo hace: se reenvía EXACTAMENTE lo enviado, aunque las cifras releídas ya no lo validen
   // (si se guardó, lo libre ya bajó; apagar el botón dejaría sin saber qué pasó). La misma regla que tenía «Reportar dañada».
-  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx), responsable.listo);
+  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && (!firma || responsable.listo), responsable.listo);
   const nombreSede = (id: string | undefined) => [...destinos, ...origenes].find((s) => s.id === id)?.nombre ?? null;
   const nombreTalla = (varianteId: string) => {
     for (const c of colores) {
@@ -337,9 +344,9 @@ export function FlujoTalla({
 
   // La guía de foco del repo (ADR-0284) sobre los pasos hasta el de ahora: «Falta: …» tocable lleva a ESE paso.
   const guia = useGuiaCampos(
-    pasos.slice(0, i + 1).map((p) => ({ id: p, nombre: ETIQUETA_PASO[p], requerido: true, hecho: pasoCompleto(p, tipo, d, ctx), pendiente: `Falta ${FALTA_PASO[p]}.` })),
+    [...pasos.slice(0, i + 1), ...(firma ? (["quien"] as const) : [])].map((p) => ({ id: p, nombre: ETIQUETA_PASO[p], requerido: true, hecho: pasoCompleto(p, tipo, d, ctx), pendiente: `Falta ${FALTA_PASO[p]}.` })),
   );
-  const guiaDePasos = { ...guia, ir: (id: string) => irAlPaso(Math.max(0, pasos.indexOf(id as PasoFlujo))) };
+  const guiaDePasos = { ...guia, ir: (id: string) => (id === "quien" && firma ? guia.ir(id) : irAlPaso(Math.max(0, pasos.indexOf(id as PasoFlujo)))) };
 
   function poner(cambios: Partial<DatosFlujo>) {
     if (incierto || enviando) return;
@@ -1091,6 +1098,7 @@ export function FlujoTalla({
             </span>
           </span>
         </p>
+        {pasos.length > 1 && (
         <ol aria-label="Pasos" className="flex flex-wrap gap-1.5">
           {pasos.map((p, j) => {
             const hecho = j < i && pasoCompleto(p, tipo, d, ctx);
@@ -1102,12 +1110,20 @@ export function FlujoTalla({
             );
           })}
         </ol>
+        )}
       </div>
 
       <div ref={cuerpo} key={`${tipo}-${paso}`} className="anim-asentar scroll-cayla min-h-0 flex-1 overflow-y-auto px-[18px] pb-4 pt-4">
         <CampoGuiado id={paso} guia={guia} retiene="fila">
           {cuerpoDelPaso()}
         </CampoGuiado>
+        {firma && (
+          <CampoGuiado id="quien" guia={guia} retiene="fila">
+            <div className="mt-4">
+              <ComboResponsable control={responsable} deshabilitado={enviando} />
+            </div>
+          </CampoGuiado>
+        )}
       </div>
 
       <div className="grid gap-2 border-t border-sand bg-papel px-[18px] pb-4 pt-3">
