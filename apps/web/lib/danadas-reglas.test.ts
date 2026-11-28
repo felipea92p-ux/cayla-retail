@@ -472,6 +472,18 @@ describe("devolver al proveedor lo que llegó dañado", () => {
     expect(textoOrigenDanada("recepcion", "Llegó dañada en ENV-000302")).toBe("Llegó dañada en ENV-000302");
   });
 
+  it("la dañada de una venta anulada dice que volvió al anular, con lo que pidió quien anuló (20261128161000)", () => {
+    expect(origenDeDanada({ motivoReporte: "Venta anulada para donar: el cliente se arrepintió", cambioId: null })).toBe("anulacion");
+    expect(origenDeDanada({ motivoReporte: "Venta anulada para devolver al proveedor", cambioId: null })).toBe("anulacion");
+    // Un reporte escrito a mano que empieza parecido sigue siendo un reporte.
+    expect(origenDeDanada({ motivoReporte: "Venta anulada sin querer", cambioId: null })).toBe("reporte");
+    // Uno que empieza igual, pero con su tipo de daño, lo escribió la tienda al reportarla.
+    expect(origenDeDanada({ motivoReporte: "Venta anulada para reparar algo", cambioId: null, tipoDano: "otro" })).toBe("reporte");
+    expect(origenDeDanada({ motivoReporte: "Venta anulada para reparar algo", cambioId: null, tipoDano: null })).toBe("anulacion");
+    expect(textoOrigenDanada("anulacion", "Venta anulada para reparar: talla equivocada")).toBe("Venta anulada para reparar: talla equivocada");
+    expect(textoOrigenDanada("anulacion", null)).toBe("Volvió al anular una venta");
+  });
+
   it("la guía: la nota es opcional y hasta 200 letras; quién lo hace, obligatorio", () => {
     expect(sePuedeConfirmar(camposGuiaDevolucion("", true))).toBe(true);
     expect(camposGuiaDevolucion("", true)[0]).toMatchObject({ id: "devolucion", requerido: false, hecho: false });

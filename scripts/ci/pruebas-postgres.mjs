@@ -886,6 +886,11 @@ export const PRUEBAS = [
   // que corregir_pagos_venta. Con control (sin el candado, sí anulaba). Cada caso: ROLLBACK.
   "pruebas:anular-venta-misma-sede",
 
+  // Anular una venta con la prenda dañada (auditoría 2026-11-28, N.º 1): «Dañada para reparar», «para donar» y «devolver al
+  // proveedor» entran a la cuarentena y a Dañadas como en aprobar_devolucion, la pérdida se cuenta al resolverla (no al anular),
+  // y una dañada de CLAURE deja el Diario de CAYLA en 0. Con controles que deshacen la migración por partes. ROLLBACK.
+  "pruebas:anular-venta-danada-a-cuarentena",
+
   // El token sigue al contenido (/chaos 2026-10-13): en las diez funciones de Ventas y Caja con p_token, el mismo token
   // con otro contenido se rechaza (token_reusado), el resolver dice «hecho» o «no llegó» (definitivo) y espera al envío
   // que todavía guarda. Con controles. Cada caso: ROLLBACK (la concurrencia, dos sesiones que terminan en ROLLBACK).

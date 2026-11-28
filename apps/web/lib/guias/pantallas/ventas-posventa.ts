@@ -1023,7 +1023,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       ancla: "devoluciones.anular",
       opcional: true,
       titulo: "Anular una venta de hoy",
-      texto: "Solo el mismo día en que se vendió: «Anular venta» deshace la compra entera, hecha por error. Las prendas vuelven al stock y la venta queda anotada como anulada, nunca se borra. Después de ese día, se hace un cambio o una devolución.",
+      texto: "Solo el mismo día en que se vendió: «Anular venta» deshace la compra entera, hecha por error. Las prendas vuelven al stock (o a Dañadas, si se marcan dañadas) y la venta queda anotada como anulada, nunca se borra. Después de ese día, se hace un cambio o una devolución.",
     },
     {
       id: "pendientes",

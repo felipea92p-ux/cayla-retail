@@ -490,6 +490,7 @@
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",
     "pruebas:anular-venta-misma-sede": "node scripts/pruebas/anular_venta_misma_sede.mjs",
+    "pruebas:anular-venta-danada-a-cuarentena": "node scripts/pruebas/anular_venta_danada_a_cuarentena.mjs",
     "pruebas:token-sigue-al-contenido": "node scripts/pruebas/token_sigue_al_contenido.mjs",
     "pruebas:inventario-token-y-textos": "node scripts/pruebas/inventario_token_y_textos.mjs",
     "pruebas:ajuste-lo-que-habia": "node scripts/pruebas/ajuste_lo_que_habia.mjs",

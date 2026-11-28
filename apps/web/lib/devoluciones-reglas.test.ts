@@ -5,6 +5,7 @@ import {
   condicionDeItem,
   esDevolucionTotal,
   destinoPrendaResuelta,
+  dondeQuedoLaAnulacion,
   estadoPlazoDevolucion,
   estadoPrendaDevolucion,
   etiquetaCondicion,
@@ -310,5 +311,37 @@ describe("el medio del reembolso: libre, con aviso (Felipe 2026-10-12)", () => {
   it("con el mismo medio, o sin reembolso, no hay nada que avisar", () => {
     expect(revisarAprobacion({ ...base, metodo: "tarjeta", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
     expect(revisarAprobacion({ ...base, monto: null, metodo: "efectivo", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
+  });
+});
+
+describe("dondeQuedoLaAnulacion: la pantalla de éxito de Anular venta dice dónde quedó cada prenda (20261128161000)", () => {
+  const SIN_REGISTRAR = "22222222-2222-4222-8222-222222222222";
+  const prenda = (condicion: "vendible" | "danada_reparacion" | "danada_donar" | "devolver_proveedor", cantidad = 1) => ({
+    varianteId: "v-real",
+    cantidad,
+    condicion,
+  });
+  it("lo vendible vuelve al stock, en singular o en plural", () => {
+    expect(dondeQuedoLaAnulacion([prenda("vendible")])).toBe("La prenda volvió al stock.");
+    expect(dondeQuedoLaAnulacion([prenda("vendible", 2)])).toBe("Las prendas volvieron al stock.");
+    expect(dondeQuedoLaAnulacion([prenda("vendible"), prenda("vendible")])).toBe("Las prendas volvieron al stock.");
+  });
+  it("lo dañado queda en Dañadas, con cualquiera de las tres condiciones", () => {
+    for (const c of ["danada_reparacion", "danada_donar", "devolver_proveedor"] as const) {
+      expect(dondeQuedoLaAnulacion([prenda(c)])).toBe("La prenda quedó en Dañadas, en Existencias.");
+    }
+    expect(dondeQuedoLaAnulacion([prenda("danada_donar"), prenda("devolver_proveedor")])).toBe("Las prendas quedaron en Dañadas, en Existencias.");
+  });
+  it("una venta con las dos cosas dice las dos", () => {
+    expect(dondeQuedoLaAnulacion([prenda("vendible"), prenda("danada_donar")])).toBe(
+      "Lo vendible volvió al stock y lo dañado quedó en Dañadas, en Existencias."
+    );
+  });
+  it("la «Prenda sin registrar» no mueve stock: no se cuenta, y sola lo dice", () => {
+    const sinRegistrar = (condicion: "vendible" | "danada_donar") => ({ varianteId: SIN_REGISTRAR, cantidad: 1, condicion });
+    expect(dondeQuedoLaAnulacion([sinRegistrar("vendible")])).toBe("No movió stock: la prenda no estaba registrada.");
+    expect(dondeQuedoLaAnulacion([sinRegistrar("danada_donar")])).toBe("No movió stock: la prenda no estaba registrada.");
+    expect(dondeQuedoLaAnulacion([prenda("vendible"), sinRegistrar("danada_donar")])).toBe("La prenda volvió al stock.");
+    expect(dondeQuedoLaAnulacion([prenda("danada_reparacion"), sinRegistrar("vendible")])).toBe("La prenda quedó en Dañadas, en Existencias.");
   });
 });
