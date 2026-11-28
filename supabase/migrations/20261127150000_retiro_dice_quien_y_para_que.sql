@@ -25,7 +25,8 @@
 -- CÓMO. Reemplazo anclado sobre la función VIVA (`pg_temp.reemplazar`, el patrón de 20261029011000): aborta sin cambiar nada si el texto que
 -- espera no está exactamente una vez. Una sola parte: un `alter table` con candado corto, sin políticas ni triggers.
 -- CÓMO VERIFICAR. pnpm pruebas:retiro-quien-y-para-que
--- CÓMO SE PEGA. Una sola parte, después de 20261121162000. Se puede pegar dos veces.
+-- CÓMO SE PEGA. Una sola parte, después de 20261121162000. Se puede pegar dos veces. DESPUÉS de publicar la web de este cambio: la web de
+-- antes no manda quién se lleva la plata y todo retiro se rechazaría; la web nueva con la base vieja funciona (el encabezado se ignora).
 -- ============================================================================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';

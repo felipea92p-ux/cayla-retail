@@ -45,6 +45,12 @@ SE ROMPE SI alguien agrega otra función que inserte un retiro o una devolución
 - **Los retiros de antes** (19 movimientos del dueño en producción al 2026-11-27) siguen sin quién. Si uno estuvo mal registrado (el ajuste
   de S/ 1,312.10 del 14-oct, que no es un retiro), se anula y se vuelve a anotar como lo que fue.
 
+## Orden de pegado
+
+La migración se pega **después** de fusionar y de que Vercel publique la web. Al revés, la web de antes no manda quién se lleva la plata y
+todo retiro se rechazaría hasta publicar. La web nueva con la base vieja funciona: el encabezado se ignora y el gráfico cuenta como antes.
+Lo único que se pierde en ese rato es el quién de los retiros que se registren.
+
 ## Cómo se verifica
 
 - `pnpm pruebas:retiro-quien-y-para-que` (15 casos; con la regla quitada de la función, 11 en rojo).
