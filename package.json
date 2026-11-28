@@ -88,6 +88,7 @@
     "pruebas:gasto-fijo-ficha": "node scripts/pruebas/gasto_fijo_ficha.mjs",
     "pruebas:activos-carga-inicial": "node scripts/pruebas/activos_carga_inicial.mjs",
     "pruebas:cuentas-dinero": "node scripts/pruebas/cuentas_dinero.mjs",
+    "pruebas:retiro-quien-y-para-que": "node scripts/pruebas/retiro_quien_y_para_que.mjs",
     "pruebas:editar-cuentas": "node scripts/pruebas/editar_cuentas.mjs",
     "pruebas:cuenta-sellada": "node scripts/pruebas/cuenta_sellada.mjs",
     "pruebas:pos-maquinas": "node scripts/pruebas/pos_maquinas.mjs",

@@ -235,6 +235,8 @@ values (pg_temp.k('G2'), null, 'servicios_basicos', 'Internet oficina F7', '2024
 
 -- La plata que cambia de lugar y la del dueño (con la MISMA función de Cuentas y dinero).
 select retail.registrar_movimiento_dinero('abono_tarjeta', 97, :'pos', :'bcp', '2024-03-10', 'Lote 1', 3) as abono \\gset
+-- ADR-0713: un retiro o una devolución dice quién se lleva la plata.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, false) as _se_la_lleva \\gset
 select retail.registrar_movimiento_dinero('aporte', 1000, null, :'bcp', '2024-03-12', 'Aporte F7') as aporte \\gset
 select retail.registrar_movimiento_dinero('prestamo', 500, null, :'bcp', '2024-03-12', 'Préstamo F7') as prestamo \\gset
 select retail.registrar_movimiento_dinero('retiro', 300, :'bcp', null, '2024-03-25', 'Retiro F7') as retiro \\gset
