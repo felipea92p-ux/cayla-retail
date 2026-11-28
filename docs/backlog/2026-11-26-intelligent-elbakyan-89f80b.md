@@ -5,5 +5,7 @@
 - [x] Guía interactiva de `finanzas.dinero` al día (huella aceptada).
 - [x] **Pegada (2026-11-26):** Felipe aprobó la regla y pegó `supabase/migrations/20261127010000_lider_se_lleva_de_la_caja_fuerte.sql`. Leída después en producción: la huella md5 de `retail.fn_movimientos_dinero_validar()` es `d9e7c5f8c3e049123746c8bb19fdc674`, la esperada.
 - [ ] **Falta fusionar y publicar** el PR #2044: hasta entonces el botón no existe en la web de producción.
-- [ ] **Sin hacer:** `/milimetro auditar`, `/chaos`, `tema:auditar` (oscuro) y `guias:recorrer` sobre la hoja. El cambio visual es un botón de enlace y una opción de combo con piezas que ya existían.
+- [x] **Auditada (2026-11-27):** `/milimetro` 0 graves, 1 media, 2 leves (`docs/milimetro/auditorias/2026-11-27-lider-se-lleva.md`); `/chaos` semilla 710, 20 ataques, 20 resistieron, 0 violaciones (fila en `docs/chaos/README.md`); `tema:auditar` con el escenario nuevo `dinero.lider-se-lleva`: 0 hallazgos solo en oscuro.
+- [ ] **Por decidir (Felipe):** la media (a 375 px los botones de la hoja quedan bajo el pliegue: falta `pie-hoja-fijo`) y las dos leves (el saldo se corta en «De»; el ejemplo de monto, 1,500.00, pasa lo que suele haber en una caja fuerte).
+- [ ] **Sin correr:** `guias:recorrer` de `finanzas.dinero`.
 - [ ] **Decide Felipe:** (1) abrir el camino de vuelta, de lo que tiene el líder a la caja fuerte; (2) candado para que «Efectivo entregado al líder» no quede bajo cero; (3) nombre propio del movimiento en las listas (hoy «Entre cuentas»).
