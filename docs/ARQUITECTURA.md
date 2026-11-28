@@ -1938,7 +1938,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (qué tienda puede mirar la cuenta) con las pantallas; el CSV lo arma `lib/reportes-ventas-exportar-reglas.ts`.
 
 - **Apartados** (2026-09-23, ADR-0166; módulo propio `apartados` desde ADR-0196): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`,
-  `resumen_separaciones`) + `lib/separaciones-reglas.ts` → `components/apartados/*` (Apartar/Entregar/Todos) → RPC `separar_prendas`,
+  `resumen_separaciones`) + `lib/separaciones-reglas.ts` → `components/apartados/*` (tres pestañas desde ADR-0720: «Apartar» `ApartarVista`, «Pendientes»
+  `PendientesVista` —lo vivo, lo urgente primero, con `lib/apartados-pendientes.ts` y `lib/apartados-pestanas.ts`; tocar una fila abierta abre su cobro,
+  `EntregarVista`— e «Historial» `TodosVista`) → RPC `separar_prendas`,
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`
   sale optimizada solo si `fotoOptimizable` (`lib/foto-prenda-reglas.ts`) y `next.config.ts` → `images.remotePatterns` lo permiten.

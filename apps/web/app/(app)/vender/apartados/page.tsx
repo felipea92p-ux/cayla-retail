@@ -133,7 +133,6 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
         filasMonto={filasMonto}
         apartados={datos.apartados}
         resumen={datos.resumen}
-        liberadosAhora={datos.liberadosAhora}
         hayMas={datos.hayMas}
         avisos={datos.avisos}
         apagadas={datos.apagadas}

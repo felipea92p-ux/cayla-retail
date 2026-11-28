@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 187,
+  "total": 196,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -122,8 +122,6 @@
       "Volver «→() => elegir(null)»",
       "BotonEditar «Editar prendas»",
       "Boton «Liberar apartado»",
-      "Boton «Borrar la búsqueda»",
-      "button «{x.nombres}»",
       "button «{`${m}»",
       "EntradaMonto «{`Monto en ${pg.metodo}»",
       "button «{`Quitar ${pg.metodo}»",
@@ -146,6 +144,7 @@
       "Boton «{!motivo ? \"Elige por qué se libera.\" : (responsable.motivo ?? undefined)}»",
       "button «Ahora no»",
       "Boton «Avisar por WhatsApp»",
+      "button «Avisarle por WhatsApp que se canceló»",
       "button «{ICONO_METODO[m]}»",
       "input «{apartado.devolucionCciFinal ? `…${apartado.devolucionCciFinal}»",
       "input «Obligatorio»",
@@ -184,6 +183,18 @@
       "ComboResponsable «{responsable}» #7",
       "button «Mejor no» #7",
       "Boton «{responsable.motivo ?? undefined}» #5"
+    ],
+    "components/apartados/PendientesVista.tsx": [
+      "Boton «Devolver»",
+      "Boton «Avisarle»",
+      "Boton «{`Escribirle a ${a.nombres}»",
+      "Boton «{`Ya se le avisó hoy a ${a.nombres}»",
+      "button «{`Abrir el apartado ${a.codigo}»",
+      "Boton «apartados.lote»",
+      "button «→() => setCancelarPedido(pe)»",
+      "Boton «Subir al almacén»",
+      "Boton «Enviar»",
+      "Boton «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»"
     ],
     "components/apartados/TodosVista.tsx": [
       "button «Escribirles en lote»",

@@ -11,6 +11,7 @@ import { cuantosPendientes } from "@/lib/apartados-pestanas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
+import { PendientesVista } from "@/components/apartados/PendientesVista";
 import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
@@ -34,7 +35,6 @@ type Props = {
   filasMonto?: readonly FilaOfertaDeMonto[];
   apartados: Apartado[];
   resumen: ResumenApartados;
-  liberadosAhora: number;
   /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
   hayMas?: boolean;
   /** Los avisos por WhatsApp de cada apartado abierto (Recordar en lote); vacío si la migración aún no está. */
@@ -70,6 +70,8 @@ export function ApartadosPanel(props: Props) {
   const [vista, setVista] = useState<Vista>(paraAbrir ? (paraAbrir.estado === "abierta" ? "pendientes" : "historial") : "apartar");
   const [elegido, setElegido] = useState<string | null>(paraAbrir?.estado === "abierta" ? paraAbrir.id : null);
   const [opciones, setOpciones] = useState(false);
+  // Lo que se buscó en una lista y no estaba: se busca en la otra con lo escrito (ADR-0720).
+  const [buscarEnHistorial, setBuscarEnHistorial] = useState("");
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
   // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
@@ -86,8 +88,10 @@ export function ApartadosPanel(props: Props) {
 
   const irA = (v: Vista) => {
     setVista(v);
-    // Tocar una pestaña lleva a su lista: el cobro de un apartado se abre desde «Pendientes» y se deja con «Volver».
+    // Tocar una pestaña lleva a su lista: el cobro de un apartado se abre desde «Pendientes» y se deja con «Volver»; y la lista empieza sin
+    // la búsqueda que llegó de la otra.
     setElegido(null);
+    setBuscarEnHistorial("");
     // En el celular la pestaña se toca abajo: la vista nueva empieza arriba, no a media página.
     document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   };
@@ -141,14 +145,8 @@ export function ApartadosPanel(props: Props) {
         </div>
       </header>
 
-      {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
+      {(!props.cajaAbierta || props.hayMas) && (
         <div className="ap-avisos space-y-1 text-sm">
-          {props.liberadosAhora > 0 && (
-            <p className="text-rojo-profundo">
-              {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
-              la prenda volvió al stock y falta devolver el adelanto (ver «Historial»).
-            </p>
-          )}
           {props.hayMas && (
             <p className="text-tinta/70">
               Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
@@ -167,7 +165,7 @@ export function ApartadosPanel(props: Props) {
     // plana sobre el fondo y lo de adentro son placas (`ap-mesa`, vidrio/vender.css).
     <CanalesDeApartados canales={props.canales ?? []}>
     <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100svh-9rem)] scroll-mt-4 flex-col max-lg:mb-40">
-      {vista === "historial" && cabecera}
+      {(vista === "historial" || (vista === "pendientes" && !elegido)) && cabecera}
 
       {vista === "apartar" && (
         <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} filasMonto={props.filasMonto}
@@ -182,19 +180,38 @@ export function ApartadosPanel(props: Props) {
           canales={props.canales ?? []}
         />
       )}
-      {vista === "pendientes" && (
+      {vista === "pendientes" && !elegido && (
+        <PendientesVista
+          ubicacionId={props.ubicacionId}
+          ubicacionEtiqueta={props.ubicacionEtiqueta}
+          hoy={props.hoy}
+          puedeGestionar={props.puedeGestionar}
+          cajaAbierta={props.cajaAbierta}
+          apartados={props.apartados}
+          prendas={props.prendas}
+          avisos={props.avisos ?? {}}
+          apagadas={apagadas}
+          pedidos={props.pedidos ?? []}
+          onAbrir={setElegido}
+          onBuscarEnHistorial={(texto) => {
+            irA("historial");
+            setBuscarEnHistorial(texto);
+          }}
+          onApartarPedido={(p) => {
+            setPedidoParaApartar(p);
+            irA("apartar");
+          }}
+        />
+      )}
+      {vista === "pendientes" && elegido && (
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
       )}
       {vista === "historial" && (
         <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
           irAEntregar={irAEntregar}
-          buscarInicial={paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : ""}
+          buscarInicial={buscarEnHistorial || (paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : "")}
+          key={buscarEnHistorial}
           apagadas={apagadas}
-          pedidos={props.pedidos ?? []}
-          onApartarPedido={(p) => {
-            setPedidoParaApartar(p);
-            irA("apartar");
-          }}
         />
       )}
 

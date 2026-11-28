@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money } from "@/lib/money";
 import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
@@ -17,7 +17,7 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_CORTO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CanalChip } from "@/components/apartados/CanalChip";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -27,15 +27,12 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { diaLima } from "@/lib/fechas-lima";
-import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
-import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Volver } from "@/components/ui/Volver";
-import { enPendientes } from "@/lib/apartados-pestanas";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -84,7 +81,6 @@ export function EntregarVista({
 }) {
   const router = useRouter();
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
-  const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
   // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el apartado y los pagos. Si la respuesta se pierde, la vista
   // se congela (ni otro apartado ni otros pagos) hasta saber si la entrega quedó.
@@ -93,7 +89,7 @@ export function EntregarVista({
   const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
-  // El apartado se guarda al abrir: al liberarse sale de `abiertos` y la hoja tiene que seguir para ofrecer el WhatsApp.
+  // El apartado se guarda al abrir: al liberarse deja de estar abierto y la hoja tiene que seguir para ofrecer el WhatsApp.
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
@@ -112,13 +108,17 @@ export function EntregarVista({
     onElegir(id);
   }
 
-  // La lista de «Pendientes» (ADR-0720): la misma regla que cuenta su pestaña.
-  const abiertos = apartados.filter(enPendientes);
-  const encontrados = abiertos.filter((a) => coincide(a, texto)).sort((x, y) => x.venceEl.localeCompare(y.venceEl));
-  const a = elegido ? abiertos.find((x) => x.id === elegido) ?? null : null;
+  // Se cobra y se entrega solo lo abierto: lo cancelado de «Pendientes» (ADR-0720) espera su devolución, no un cobro.
+  const a = elegido ? apartados.find((x) => x.id === elegido && x.estado === "abierta") ?? null : null;
   const saldo = a ? a.saldo : 0;
   const cobro = cobroDelSaldo(pagos, saldo, redondeoEfectivo);
   const efectivo = pagos.find((p) => p.metodo === "efectivo");
+
+  // Se entregó o se canceló (la lista se refrescó y ya no está abierto): sin una hoja a la vista, se vuelve a la lista de Pendientes.
+  const sinApartado = !!elegido && !a;
+  useEffect(() => {
+    if (sinApartado && !entregado && !liberar) onElegir(null);
+  }, [sinApartado, entregado, liberar, onElegir]);
 
   function tocarMedio(m: MetodoPago) {
     setPagos((ps) => {
@@ -172,10 +172,16 @@ export function EntregarVista({
     setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
     avisar.exito(`Venta de ${money(a.total)} registrada`, { detalle: `Apartado ${a.codigo} entregado` });
     setPagos([]);
-    elegir(null);
-    setTexto("");
     router.refresh();
   }
+
+  if (!a)
+    return (
+      <>
+        {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
+        {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      </>
+    );
 
   return (
     <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(340px,40%,380px)] xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -190,27 +196,10 @@ export function EntregarVista({
       <div className="ap-dos-cab min-w-0">{cabecera}</div>
       <div className="ap-dos-trabajo flex min-w-0 flex-col">
       <div className="ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6">
-        {a ? (
-          // Con un apartado abierto, lo de arriba es la vuelta a la lista de Pendientes (ADR-0720): aquí ya no se busca.
-          <Volver onClick={() => elegir(null)} a="Volver a la lista de pendientes" className="self-start" />
-        ) : (
-          // El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe.
-          <Buscador guia="apartados.entregar-buscador"
-            tamano="mostrador"
-            autoFocus
-            valor={texto}
-            onCambio={(v) => {
-              setTexto(v);
-              elegir(null);
-              setPagos([]);
-            }}
-            placeholder="Nombre, DNI, celular o código APT-"
-            etiqueta="Buscar apartado"
-          />
-        )}
+        {/* Lo de arriba es la vuelta a la lista de Pendientes (ADR-0720): aquí ya no se busca. */}
+        <Volver onClick={() => elegir(null)} a="Volver a la lista de pendientes" className="self-start" />
 
-        {a ? (
-          <article className="ap-placa anim-revelar space-y-4 rounded-2xl border border-sand p-5">
+        <article className="ap-placa anim-revelar space-y-4 rounded-2xl border border-sand p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
                 <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
@@ -267,73 +256,19 @@ export function EntregarVista({
               </span>
             </p>
           </article>
-        ) : (
-          <>
-            <p className="label-cayla text-xs text-tinta/60">{texto ? "Coinciden" : `Por recoger en ${ubicacionEtiqueta}`} · {encontrados.length}</p>
-            {encontrados.length === 0 ? (
-              <div className="card-cayla">
-                {texto ? (
-                  <Vacio
-                    icono={<SearchX />}
-                    titulo={`Nadie con «${texto}»`}
-                    acciones={
-                      <Boton peso="fantasma" onClick={() => { setTexto(""); elegir(null); setPagos([]); }}>
-                        Borrar la búsqueda
-                      </Boton>
-                    }
-                  >
-                    Si ya venció y se liberó, está en «Historial».
-                  </Vacio>
-                ) : (
-                  <Vacio icono={<ShoppingBag />} titulo="No hay apartados por recoger">
-                    Lo que se aparte en {ubicacionEtiqueta} aparecerá aquí.
-                  </Vacio>
-                )}
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {encontrados.map((x) => (
-                  <li key={x.id}>
-                    <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe ap-placa">
-                      <AvatarPersona personaId={null} nombre={nombreParaIniciales(x)} tamano={32} />
-                      <span className="min-w-0">
-                        <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-xs text-tinta/55">{x.codigo}</span>
-                        <span className="block truncate text-sm text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
-                      </span>
-                      <span className="text-right">
-                        <EstadoChip {...estadoVisible(x, hoy)} />
-                        <span className="mt-0.5 block"><CanalChip a={x} className="max-w-full" /></span>
-                        <span className="block text-sm tabular-nums">saldo <b>{money(x.saldo)}</b></span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
       </div>
       </div>
 
-      {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
-      <aside data-guia="apartados.entregar-detalle" className={`ap-ticket flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+      <aside data-guia="apartados.entregar-detalle" className="ap-ticket flex min-h-0 flex-col">
         <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <TituloSeccion>
             <span className="inline-flex items-center gap-2.5">
               <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
             </span>
           </TituloSeccion>
-          {a && <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>}
+          <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>
         </div>
-        {!a ? (
-          <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
-            <div>
-              <p className="font-display text-xl text-tinta">Elige un apartado</p>
-              <p className="mx-auto mt-1 max-w-[30ch] text-sm text-tinta/60">Sus datos ya están: aquí solo se cobra lo que falta.</p>
-            </div>
-          </div>
-        ) : (
-          <>
+        <>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               <div className="anim-revelar space-y-5 px-5 py-4">
                 <div className="space-y-1.5 rounded-xl border border-sand bg-crema p-4 text-sm text-tinta/75 tabular-nums">
@@ -469,8 +404,7 @@ export function EntregarVista({
               </button>
               <p className="text-center text-sm text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
             </div>
-          </>
-        )}
+        </>
       </aside>
 
       {a && (
