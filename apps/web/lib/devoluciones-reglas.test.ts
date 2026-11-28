@@ -10,6 +10,8 @@ import {
   etiquetaCondicion,
   impactoDevolucion,
   comprobanteSinAceptar,
+  datosParaAprobar,
+  textoNotaReservada,
   medioSugeridoReembolso,
   revisarAprobacion,
   textoEsperaSunat,
@@ -219,7 +221,7 @@ describe("impactoDevolucion", () => {
   });
 
   it("registrar no mueve la caja, y dice cuánto pagó la clienta", () => {
-    expect(impactoDevolucion(base).caja.titulo).toBe("Al registrarla, la caja no se mueve");
+    expect(impactoDevolucion(base).caja.titulo).toBe("El reembolso sale al aprobarla");
     expect(impactoDevolucion(base).caja.detalle).toContain("S/\u00a0250.00");
   });
 
@@ -310,5 +312,24 @@ describe("el medio del reembolso: libre, con aviso (Felipe 2026-10-12)", () => {
   it("con el mismo medio, o sin reembolso, no hay nada que avisar", () => {
     expect(revisarAprobacion({ ...base, metodo: "tarjeta", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
     expect(revisarAprobacion({ ...base, monto: null, metodo: "efectivo", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
+  });
+});
+
+describe("registrar y aprobar en el mismo paso (ADR-0718)", () => {
+  const boleta = { tipo: "boleta", serie: "B001", numero: 14, created_at: "2026-11-28T10:00:00Z" };
+
+  it("una boleta que SUNAT aún no acepta impide aprobar, nombrada como la base", () => {
+    expect(datosParaAprobar([{ ...boleta, estado: "pendiente" }], []).sinAceptar).toEqual({ documento: "boleta B001-000014", estado: "pendiente" });
+    expect(datosParaAprobar([{ ...boleta, estado: "aceptado" }], []).sinAceptar).toBeNull();
+    expect(datosParaAprobar([], []).sinAceptar).toBeNull();
+  });
+
+  it("el anticipo de un apartado no es un medio para devolver", () => {
+    expect(datosParaAprobar([], [{ metodo: "anticipo", monto: "20" }, { metodo: "yape", monto: "59.90" }]).pagos).toEqual([{ metodo: "yape", monto: 59.9 }]);
+  });
+
+  it("la nota reservada dice cuándo sale", () => {
+    expect(textoNotaReservada("BC01", 1)).toContain("BC01-000001");
+    expect(textoNotaReservada("BC01", 1)).toContain("siguiente venta");
   });
 });
