@@ -3,6 +3,7 @@
 // `fn_movimientos_dinero` y `fn_medios_cobro` ya traen. La deuda con el dueño sigue siendo `deudaConDueno` (cuentas-dinero-reglas.ts).
 
 import { diaLima } from "./fechas-lima";
+import { solesDos } from "./gastos-reglas";
 import { TEXTO_MEDIO_COBRO, idsSoloTransferencia, MEDIOS_COBRO, nombreCorto, type CuentaDinero, type FilaMedio, type MovimientoDinero, type TipoMovimiento } from "./cuentas-dinero-reglas";
 
 // ---- Plata del dueño: quién puso y sacó -----------------------------------------------------------------------------------
@@ -25,25 +26,32 @@ export function movimientosDelDueno<M extends Pick<MovimientoDinero, "tipo" | "e
 const TEXTO_TIPO: Partial<Record<TipoMovimiento, string>> = { aporte: "aporte", prestamo: "préstamo", retiro: "retiro", devolucion_prestamo: "devolución" };
 
 /**
- * El gráfico «Quién puso y sacó plata», agrupado por quien lo REGISTRÓ, por la cuenta donde entró o de donde salió, o por mes. Quién registró
- * no es siempre quién pidió la plata: la base guarda a quien lo anotó. Las filas van de lo que más movió a lo que menos (los meses, en orden).
+ * El gráfico «Quién puso y sacó plata», agrupado por persona, por la cuenta donde entró o de donde salió, o por mes. Las filas van de lo que
+ * más movió a lo que menos (los meses, en orden).
+ *
+ * «Por quién» (ADR-0713): lo que SALIÓ cuenta para quien se lo llevó (`seLaLleva`, de `fn_quien_se_la_llevo`); lo que entró, y lo que salió
+ * antes del 2026-11-27 sin decir quién, para quien lo anotó, y la ayuda de la fila lo dice. Antes todo contaba para quien anotó: un retiro
+ * que anotó una encargada salía como plata que ella se llevó.
  */
 export function graficoDelDueno(
-  movs: readonly Pick<MovimientoDinero, "tipo" | "estado" | "fecha" | "monto" | "registradoPor" | "origenNombre" | "destinoNombre">[],
+  movs: readonly Pick<MovimientoDinero, "id" | "tipo" | "estado" | "fecha" | "monto" | "registradoPor" | "origenNombre" | "destinoNombre">[],
   vista: VistaDueno,
+  seLaLleva: ReadonlyMap<string, string> = new Map(),
 ): { filas: FilaGraficoDueno[]; puso: number; saco: number; maximo: number } {
   const propios = movimientosDelDueno(movs);
+  const sinQuien = (m: (typeof propios)[number]) => TIPOS_QUE_SACAN.includes(m.tipo) && !seLaLleva.has(m.id);
   const claveDe = (m: (typeof propios)[number]): string => {
-    if (vista === "quien") return m.registradoPor ?? "Sin responsable";
+    if (vista === "quien") return (TIPOS_QUE_SACAN.includes(m.tipo) ? seLaLleva.get(m.id) : null) ?? m.registradoPor ?? "Sin responsable";
     if (vista === "cuenta") return nombreCorto((TIPOS_QUE_PONEN.includes(m.tipo) ? m.destinoNombre : m.origenNombre) ?? "Sin cuenta");
     return (diaLima(m.fecha) ?? "0000-00").slice(0, 7);
   };
-  const g = new Map<string, { puso: number; saco: number; tipos: Map<string, number> }>();
+  const g = new Map<string, { puso: number; saco: number; sinQuien: number; tipos: Map<string, number> }>();
   for (const m of propios) {
     const k = claveDe(m);
-    const f = g.get(k) ?? { puso: 0, saco: 0, tipos: new Map() };
+    const f = g.get(k) ?? { puso: 0, saco: 0, sinQuien: 0, tipos: new Map() };
     if (TIPOS_QUE_PONEN.includes(m.tipo)) f.puso += m.monto;
     else f.saco += m.monto;
+    if (vista === "quien" && sinQuien(m)) f.sinQuien += m.monto;
     f.tipos.set(TEXTO_TIPO[m.tipo] ?? m.tipo, (f.tipos.get(TEXTO_TIPO[m.tipo] ?? m.tipo) ?? 0) + m.monto);
     g.set(k, f);
   }
@@ -53,7 +61,10 @@ export function graficoDelDueno(
     titulo: tituloDe(k),
     puso: r2(f.puso),
     saco: r2(f.saco),
-    detalle: [...f.tipos.entries()].map(([t, v]) => `${t}: ${r2(v)}`).join(" · "),
+    detalle: [
+      ...[...f.tipos.entries()].map(([t, v]) => `${t}: ${solesDos(v)}`),
+      ...(f.sinQuien > 0 ? [`salió sin decir quién se la llevó (cuenta para quien lo anotó): ${solesDos(f.sinQuien)}`] : []),
+    ].join(" · "),
   }));
   filas = vista === "mes" ? filas.sort((a, b) => a.clave.localeCompare(b.clave)) : filas.sort((a, b) => b.puso + b.saco - (a.puso + a.saco) || a.titulo.localeCompare(b.titulo, "es"));
   const puso = r2(filas.reduce((a, f) => a + f.puso, 0));

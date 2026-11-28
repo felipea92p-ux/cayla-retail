@@ -67,6 +67,8 @@ ${sinFechaInicio ? sinFecha : ""}
 ${sinTokens ? sinToken : ""}
 set local request.jwt.claim.sub = '${FELIPE}';
 set constraints all immediate;
+-- ADR-0713: un retiro dice quién se lleva la plata (la pantalla lo manda en este encabezado) y para qué.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, true) as _se_la_lleva \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and ubicacion_id = :'lima' \\gset
 select retail.crear_cuenta_dinero('ZZ Banco de prueba', 'banco', 0) as banco \\gset
@@ -90,7 +92,7 @@ const rechaza = (r, marca) => !r.ok && r.error.includes(marca);
 const gasto = (monto, { descripcion = "'Luz'", fecha = "retail.fn_hoy_lima()", cuenta = "null", medio = "'transferencia'" } = {}) =>
   `select retail.registrar_gasto(:'lima', 'servicios_basicos', ${descripcion}, ${fecha}, ${monto}, null, ${medio}, null, null, null, gen_random_uuid(), null, ${cuenta});`;
 const movimiento = (tipo, monto, origen, destino) =>
-  `select retail.registrar_movimiento_dinero('${tipo}', ${monto}, ${origen}, ${destino}, retail.fn_hoy_lima(), null, 0, null, null, gen_random_uuid());`;
+  `select retail.registrar_movimiento_dinero('${tipo}', ${monto}, ${origen}, ${destino}, retail.fn_hoy_lima(), ${tipo === "retiro" ? "'Retiro de prueba'" : "null"}, 0, null, null, gen_random_uuid());`;
 
 // --- 1. Montos que no son números, montos gigantes y textos sin tope: rechazados por la tabla, con control ---
 const ATAQUES = [
@@ -200,6 +202,8 @@ function sesion(sql) {
   const retiraTodo = (dormir) => `begin;
 set local request.jwt.claim.sub = '${FELIPE}';
 set constraints all immediate;
+-- ADR-0713: un retiro dice quién se lleva la plata (la pantalla lo manda en este encabezado) y para qué.
+select set_config('request.headers', json_build_object('x-se-la-lleva', (select persona_id from retail.colaboradores order by persona_id limit 1))::text, true) as _se_la_lleva \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and ubicacion_id = :'lima' \\gset
 select retail.registrar_movimiento_dinero('aporte', 100, null, :'fuerte', retail.fn_hoy_lima(), null, 0, null, null, gen_random_uuid()) as _a \\gset

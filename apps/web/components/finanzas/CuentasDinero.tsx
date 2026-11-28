@@ -27,13 +27,21 @@ import {
   cuadra,
   cuentasPara,
   ejemploMontoDeposito,
+  conQuienSeLaLleva,
   ejemploReferenciaDeposito,
+  opcionesSeLaLleva,
+  pideQuienSeLaLleva,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
+  notaDelMovimiento,
+  ayudaDelOrigen,
+  ejemploMontoMovimiento,
+  tituloDeLaHoja,
+  avisoDeLoRegistrado,
   netoEsperado,
   revisarComision,
   resumenConciliacion,
@@ -709,7 +717,27 @@ function RegistrarMovimientoModal({
   const origen = cuentas.find((c) => c.id === b.origen) ?? null;
   const esCajon = origen?.tipo === "cajon";
   const tipo = tipoDeMovimiento(b);
+  // La nota sigue lo elegido en «Qué pasó»: lo que el líder se lleva no tiene voucher (ADR-0290).
+  const nota = notaDelMovimiento(b.que, tipo === "abono_tarjeta", b.clase);
   const cambiar = (c: Partial<BorradorMovimiento>) => setB((x) => ({ ...x, ...c }));
+  // ADR-0713: quién se lleva la plata (retiro o devolución). La lista se lee recién al sacar plata del dueño, y solo una vez.
+  const pideQuien = pideQuienSeLaLleva(tipo);
+  const [personas, setPersonas] = useState<{ lista: { valor: string; texto: string }[]; falla: boolean } | null>(null);
+  const [intentoPersonas, setIntentoPersonas] = useState(0);
+  useEffect(() => {
+    // Ya leída sin falla: no se vuelve a pedir. Con falla, «Volver a intentar» sube `intentoPersonas` y se lee de nuevo.
+    if (!pideQuien || personas?.falla === false) return;
+    let vivo = true;
+    createClient()
+      .rpc("fn_colaboradores" as never)
+      .then(({ data, error }) => {
+        if (vivo) setPersonas({ lista: error ? [] : opcionesSeLaLleva((data ?? []) as Record<string, unknown>[]), falla: !!error });
+      });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se lee al entrar a «sacar» y al reintentar; no al llegar la lista
+  }, [pideQuien, intentoPersonas]);
   // Lo que la persona eligió a mano no se pisa con la propuesta del banco de la máquina.
   const [bancoElegido, setBancoElegido] = useState(false);
 
@@ -848,13 +876,15 @@ function RegistrarMovimientoModal({
     if (!v.ok) return avisar.error(v.error);
     setGuardando(true);
     // ADR-0683: un pago a una aliada lleva a cuál (`x-aliada`); la base lo pone en el pago y no deja uno sin ella.
-    const consulta = createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never);
+    // ADR-0713: un retiro o una devolución lleva quién se lleva la plata (`x-se-la-lleva`); la base no lo guarda sin eso.
+    const consulta = conQuienSeLaLleva(createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never), pideQuienSeLaLleva(v.valor.p_tipo) ? b.seLaLleva : null);
     const { error } = await firmar(v.valor.p_tipo === "pago_claure" ? conAliada(consulta, aliada?.id) : consulta, responsable.firma());
     setGuardando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar el movimiento"));
-    avisar.exito(`${TEXTO_MOVIMIENTO[v.valor.p_tipo]} registrado`, {
-      detalle: v.valor.p_caja_id ? "Su salida quedó en la caja, con el mismo monto." : v.valor.p_comision > 0 ? "La comisión quedó como gasto bancario de la empresa." : undefined,
+    const propio = avisoDeLoRegistrado(b.que);
+    avisar.exito(propio?.titulo ?? `${TEXTO_MOVIMIENTO[v.valor.p_tipo]} registrado`, {
+      detalle: propio ? propio.detalle : v.valor.p_caja_id ? "Su salida quedó en la caja, con el mismo monto." : v.valor.p_comision > 0 ? "La comisión quedó como gasto bancario de la empresa." : undefined,
     });
     onCerrar();
     router.refresh();
@@ -865,7 +895,7 @@ function RegistrarMovimientoModal({
   const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${soles(c.saldo)}`);
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
+    <Modal variante="hoja" titulo={tituloDeLaHoja(b.que, inicial, titulo)} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
@@ -901,10 +931,37 @@ function RegistrarMovimientoModal({
           />
         </div>
       )}
+      {pideQuien && (
+        <CampoFin
+          etiqueta="¿Quién se lleva la plata?"
+          htmlFor="mov-quien"
+          guia="fin-dinero.mov-quien"
+          ayuda={
+            personas?.falla ? (
+              <>
+                No se pudo leer la lista.{" "}
+                <button type="button" className="btn-enlace" onClick={() => setIntentoPersonas((n) => n + 1)}>
+                  Volver a intentar
+                </button>
+              </>
+            ) : undefined
+          }
+          tono={personas?.falla ? "aviso" : undefined}
+        >
+          <SelectFin
+            id="mov-quien"
+            valor={b.seLaLleva}
+            onValor={(seLaLleva) => cambiar({ seLaLleva })}
+            opciones={personas?.lista ?? []}
+            marcador={!personas ? "Leyendo…" : personas.lista.length === 0 ? "Sin colaboradores" : "Elige a la persona"}
+            deshabilitado={!personas || personas.lista.length === 0}
+          />
+        </CampoFin>
+      )}
 
       <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-cuentas">
         {op.origen && (
-          <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"}>
+          <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"} ayuda={ayudaDelOrigen(b.que, origen) ?? undefined}>
             <SelectFin
               id="mov-de"
               valor={b.origen}
@@ -1134,11 +1191,11 @@ function RegistrarMovimientoModal({
           ) : esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
           ) : (
-            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />
+            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : ejemploMontoMovimiento(b.que, origen)} />
           )}
         </CampoFin>
-        <CampoFin etiqueta={esDepositoMaquina ? "Número de operación o nota" : "Voucher o nota"} htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? ejemploReferenciaDeposito(origen?.nombre) : "Voucher 120441" /* sugerir-fijo: el formato de un voucher, no depende de nada elegido */} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
+        <CampoFin etiqueta={nota.etiqueta} htmlFor="mov-ref">
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={nota.ejemplo ?? ejemploReferenciaDeposito(origen?.nombre)} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 
@@ -1184,7 +1241,8 @@ function RegistrarMovimientoModal({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4" data-guia="fin-dinero.mov-botones">
+      {/* `pie-hoja-fijo`: en el celular «Registrar» no queda bajo el pliegue (auditoría /milimetro 2026-11-27, ADR-0710). */}
+      <div className="fin-botones pie-hoja-fijo mt-4" data-guia="fin-dinero.mov-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
@@ -1228,6 +1286,8 @@ function inicialDe(que: QuePaso, cuentas: CuentaDinero[], ubicacionId: string | 
     fecha: hoy,
     fuente: fuenteInicial(preferido),
     egresoId: "",
+    // Quién se lleva la plata no viene elegido: quien anota no siempre es quien se la lleva (ADR-0713).
+    seLaLleva: antes?.seLaLleva ?? "",
   };
 }
 

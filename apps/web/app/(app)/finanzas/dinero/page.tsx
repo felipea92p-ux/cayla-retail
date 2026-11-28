@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { getAlertasPos, getCierresConDiferencia, getContextoDinero, getEfectivo, getMediosDeCobro, getMovimientos, getPlanillaCuentas, getPlanillaPorRegistrar, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getAlertasPos, getCierresConDiferencia, getContextoDinero, getEfectivo, getMediosDeCobro, getMovimientos, getPlanillaCuentas, getPlanillaPorRegistrar, getQuienSeLaLlevo, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { avisosDePlanilla } from "@/lib/planilla-salidas-reglas";
 import { CuentasPanel, MovimientosEnPantalla, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { AlcanzaDinero } from "@/components/finanzas/dinero/AlcanzaDinero";
@@ -40,7 +40,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo;
   // son del cajón de una tienda, así que la empresa no los lee.
   const sinEfectivo: { datos: EfectivoFila[]; falla: string | null } = { datos: [], falla: null };
-  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla, cuentasAjenas, aliadas] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla, cuentasAjenas, aliadas, seLaLleva] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve({ datos: [], falla: null }),
@@ -62,6 +62,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     ctx.esLider && !ctx.ver.ubicacionId ? getCuentasDeOtrasEmpresas() : Promise.resolve([]),
     // ADR-0683: una pestaña por empresa aliada con cuenta.
     getAliadasConCuenta(),
+    // ADR-0713: quién se llevó cada retiro y cada devolución, para «Plata del dueño» (solo el líder, con todas las sedes, como la tarjeta).
+    ctx.esLider && !ctx.ver.ubicacionId ? getQuienSeLaLlevo() : Promise.resolve({}),
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de la empresa y no se le suman. Con la
   // empresa, solo lo suyo: lo que ponen las cajas de las tiendas no entra.
@@ -79,7 +81,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
 
   // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).
   const atrasadas = new Set(alertas.datos.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
-  const filasEstado = filasDeEstado(grupos, atrasadas);
+  const filasEstado = filasDeEstado(grupos, atrasadas, ctx.esLider);
   const filasCierres = filasDeCierres(cierres.datos);
   const avisosPlanilla = avisosDePlanilla(planilla.datos, cuentasPlanilla ?? []);
   const pendientes = porRegistrar(alertas.datos, avisosPlanilla);
@@ -141,7 +143,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         </p>
       ))}
       {/* Solo el líder y con todas las sedes: lo del dueño es de CAYLA entera, y a qué cuenta entra cada cobro se explica sede por sede (no la empresa). */}
-      {ctx.esLider && !sedeId && !ctx.plataFalla && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} />}
+      {ctx.esLider && !sedeId && !ctx.plataFalla && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} seLaLleva={seLaLleva} />}
       {ctx.esLider && !sedeId && !deLaEmpresa && <CobrosDinero filas={filasDeCobros(medios.datos, ctx.cuentas.datos)} />}
       <CuentasPanel
         sinCuenta={sinCuenta.datos}

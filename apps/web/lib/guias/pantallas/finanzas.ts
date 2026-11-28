@@ -772,7 +772,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       titulo: "Mis cuentas",
-      texto: "Cada cuenta con su saldo y su estado: abierta o cerrada, sin conciliar, sin depositar, sin abonar. Las agrupas por etapa o por sede con el interruptor de arriba. Con «Todas» en la barra ves todas; con «Empresa», solo la de la empresa y lo que viene en camino. Tocas una y se abre su detalle, con sus movimientos.",
+      texto: "Cada cuenta con su saldo y su estado. Las agrupas por etapa o por sede; «Todas» y «Empresa», en la barra, eligen cuáles ves. Tocas una y se abre su detalle, con sus movimientos. En una caja fuerte, el líder anota ahí el efectivo que se llevó sin depositar: «Se lo llevó el líder».",
     },
     {
       id: "atencion",
@@ -822,6 +822,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       preparar: [{ tipo: "clic", ancla: "fin-dinero.poner-plata" }],
       titulo: "¿Aporte o préstamo?",
       texto: "Un aporte se queda en CAYLA para siempre. Un préstamo, CAYLA te lo devuelve después y queda como deuda contigo. Elegirlo bien hace que el Balance diga la verdad. En la demo cerramos sin registrar.",
+    },
+    {
+      id: "mov-quien",
+      ancla: "fin-dinero.mov-quien",
+      opcional: true,
+      titulo: "¿Quién se lleva la plata?",
+      texto: "Al sacar plata del dueño (un retiro o una devolución) eliges quién se la lleva, que no siempre es quien la anota. Un retiro dice también para qué. Así «Plata del dueño» cuenta a cada persona por lo que se llevó. En la demo no guardamos nada.",
     },
     {
       id: "medios",

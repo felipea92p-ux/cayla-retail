@@ -621,9 +621,11 @@ export function deudaConDueno(movs: readonly MovimientoDueno[]): { deuda: number
 // ---- El modal «Registrar movimiento» ----------------------------------------------------------------------------------
 
 /** «Qué pasó» en palabras del negocio. Poner y sacar plata del dueño se abren en dos (aporte o préstamo; devolución o retiro). */
-export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
+export type QuePaso = "deposito" | "lider_se_lleva" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
 export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLider: boolean; origen: readonly TipoCuenta[] | null; destino: readonly TipoCuenta[] | null }[] = [
   { valor: "deposito", texto: "Depósito al banco", soloLider: false, origen: ["cajon", "caja_fuerte", "por_rendir"], destino: ["banco"] },
+  // ADR-0710: el líder se lleva efectivo de la caja fuerte sin depositarlo todavía. En la base es un «entre cuentas» de la caja fuerte a lo que tiene el líder.
+  { valor: "lider_se_lleva", texto: "El líder se lleva efectivo", soloLider: true, origen: ["caja_fuerte"], destino: ["por_rendir"] },
   { valor: "abono_tarjeta", texto: "Depósito de la máquina (tarjeta y QR)", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
   { valor: "pago_tarjeta", texto: "Pagar la tarjeta de crédito", soloLider: true, origen: ["banco"], destino: ["tarjeta_credito"] },
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
@@ -650,7 +652,31 @@ export type BorradorMovimiento = {
   /** Si sale de un cajón: de la caja abierta ahora, o un egreso que la tienda ya registró. */
   fuente: "caja" | "egreso";
   egresoId: string;
+  /** ADR-0713: en un retiro o una devolución, la persona (id) que se lleva la plata; "" mientras no se elige. */
+  seLaLleva: string;
 };
+
+// ---- Quién se lleva la plata del dueño (ADR-0713) -------------------------------------------------------------------------
+
+/** Lo que sale de CAYLA hacia una persona: la base no lo guarda sin decir quién se la llevó. */
+export const TIPOS_CON_QUIEN: readonly TipoMovimiento[] = ["retiro", "devolucion_prestamo"];
+export function pideQuienSeLaLleva(tipo: TipoMovimiento): boolean {
+  return TIPOS_CON_QUIEN.includes(tipo);
+}
+/** Quién se lleva la plata viaja en un encabezado, como la aliada de un pago (`x-aliada`, ADR-0683): la firma de la función no cambia. */
+export const ENCABEZADO_SE_LA_LLEVA = "x-se-la-lleva";
+export function conQuienSeLaLleva<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, personaId: string | null | undefined): C {
+  return personaId ? consulta.setHeader(ENCABEZADO_SE_LA_LLEVA, personaId) : consulta;
+}
+/** Quienes pueden llevarse la plata, con los líderes primero y por nombre (lo que devuelve `fn_colaboradores`). */
+export function opcionesSeLaLleva(filas: readonly { persona_id?: unknown; nombre?: unknown; rol?: unknown }[]): { valor: string; texto: string }[] {
+  const vistas = new Set<string>();
+  return filas
+    .map((f) => ({ valor: String(f.persona_id ?? ""), texto: String(f.nombre ?? "").trim(), lider: f.rol === "lider" }))
+    .filter((f) => f.valor && f.texto && !vistas.has(f.valor) && vistas.add(f.valor))
+    .sort((a, b) => Number(b.lider) - Number(a.lider) || a.texto.localeCompare(b.texto, "es"))
+    .map(({ valor, texto }) => ({ valor, texto }));
+}
 
 export type PayloadMovimiento = {
   p_tipo: TipoMovimiento;
@@ -667,7 +693,70 @@ export type PayloadMovimiento = {
 export function tipoDeMovimiento(b: Pick<BorradorMovimiento, "que" | "clase">): TipoMovimiento {
   if (b.que === "dueno_pone") return b.clase === "prestamo" ? "prestamo" : "aporte";
   if (b.que === "dueno_saca") return b.clase === "devolucion_prestamo" ? "devolucion_prestamo" : "retiro";
+  if (b.que === "lider_se_lleva") return "entre_cuentas";
   return b.que;
+}
+
+/**
+ * Cómo se llama y qué ejemplo trae la nota de un movimiento, según lo que la persona eligió en «Qué pasó» (ADR-0290). Lo que el líder se lleva no
+ * tiene voucher. Al sacar plata del dueño manda `clase` (ADR-0713): en un retiro la nota es «Para qué» y la base la exige.
+ */
+export function notaDelMovimiento(que: QuePaso, esDepositoMaquina: boolean, clase?: BorradorMovimiento["clase"]): { etiqueta: string; ejemplo: string | null } {
+  if (esDepositoMaquina) return { etiqueta: "Número de operación o nota", ejemplo: null };
+  if (que === "lider_se_lleva") return { etiqueta: "Nota", ejemplo: "Para depositar el lunes" };
+  if (que === "dueno_saca" && clase === "retiro") return { etiqueta: "Para qué", ejemplo: "Gastos personales del mes" };
+  if (que === "dueno_saca" && clase === "devolucion_prestamo") return { etiqueta: "Voucher o nota", ejemplo: "Devolución del préstamo" };
+  return { etiqueta: "Voucher o nota", ejemplo: "Voucher 120441" };
+}
+
+/** El título de la hoja: lo que el líder se lleva se llama por su nombre mientras esté elegido; si no, el título con que abrió (que no puede decir «depósito» de algo que no lo es). */
+export function tituloDeLaHoja(que: QuePaso, inicial: QuePaso, deArranque: string): string {
+  if (que === "lider_se_lleva") return "Se lo llevó el líder";
+  return inicial === "lider_se_lleva" ? tituloDelMovimiento(null) : deArranque;
+}
+
+/** Lo que dice el aviso al guardar un movimiento que no se explica con el nombre de su tipo; `null`: el aviso de siempre. */
+export function avisoDeLoRegistrado(que: QuePaso): { titulo: string; detalle: string } | null {
+  return que === "lider_se_lleva" ? { titulo: "Anotado: lo tiene el líder", detalle: "Cuando lo deposite, registra el depósito al banco." } : null;
+}
+
+/**
+ * ADR-0710: lo que el líder se lleva no puede pasar el saldo de la caja fuerte, y en el combo «De» ese saldo se corta. Se dice entero bajo
+ * el campo; `null` en cualquier otro «Qué pasó» o si no se sabe el saldo (no se inventa un número).
+ */
+export function ayudaDelOrigen(que: QuePaso, origen: Pick<CuentaDinero, "saldo"> | null): string | null {
+  if (que !== "lider_se_lleva" || !origen || origen.saldo === null) return null;
+  return origen.saldo > 0 ? `Hay ${soles2(origen.saldo)}` : "Está vacía";
+}
+
+/** El formato de un monto en el ejemplo de la caja (como lo escribe la persona, sin «S/»). */
+const EJEMPLO_MONTO = "1,500.00";
+const comoMonto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * El ejemplo del campo Monto, según lo elegido (ADR-0290). Lo que el líder se lleva sale de la caja fuerte de «De»: el ejemplo es una cifra
+ * redonda que queda POR DEBAJO de su saldo (de 1,200 propone 1,000.00; de 350, 300.00; de 0.50, 0.40), nunca el saldo exacto (ese lo dice la
+ * ayuda de «De», y un dato real invita a copiarlo) ni más de lo que hay. Se cuenta en céntimos enteros, hacia abajo: 0.1 + 0.2 o 0.995 no
+ * suben el ejemplo. Única excepción: con S/ 0.01 no cabe nada por debajo, y ese céntimo es el único monto posible. En lo demás, el formato de siempre.
+ */
+export function ejemploMontoMovimiento(que: QuePaso, origen: Pick<CuentaDinero, "saldo"> | null): string {
+  if (que !== "lider_se_lleva" || !origen || origen.saldo === null || !Number.isFinite(origen.saldo)) return EJEMPLO_MONTO;
+  // `+ 1e-6`: 0.1 + 0.2 vale 0.30000000000000004 y 0.3 * 100 vale 29.999999999999996; sin el margen, el piso perdería un céntimo que sí está.
+  const centimos = Math.floor(origen.saldo * 100 + 1e-6);
+  if (centimos <= 0) return comoMonto(0);
+  // Los pasos, de mayor a menor, en céntimos: 500 · 100 · 10 · 1 soles y 0.10 · 0.01. Gana el más grande que deja una cifra por debajo del saldo.
+  for (const paso of [50000, 10000, 1000, 100, 10, 1]) {
+    if (paso > centimos) continue;
+    let redondo = Math.floor(centimos / paso) * paso;
+    if (redondo >= centimos) redondo -= paso;
+    if (redondo > 0) return comoMonto(redondo / 100);
+  }
+  return comoMonto(centimos / 100);
+}
+
+/** ¿El saldo de la caja fuerte alcanza para lo que el líder dice que se llevó? La base lo vuelve a preguntar; aquí se dice antes de guardar. */
+export function alcanzaEnLaCajaFuerte(monto: number, saldo: number | null): boolean {
+  return saldo === null || Math.round(monto * 100) <= Math.round(saldo * 100);
 }
 
 // ---- El depósito de la máquina (ADR-0429): se cruza contra los días pendientes y la comisión sale sola ------------------
@@ -980,6 +1069,10 @@ export function validarMovimiento(
     }
   }
 
+  if (b.que === "lider_se_lleva" && origen && !alcanzaEnLaCajaFuerte(monto, origen.saldo)) {
+    return { ok: false, error: `En «${origen.nombre}» hay ${soles2(origen.saldo ?? 0)}: no se puede llevar más.` };
+  }
+
   let comision = 0;
   if (tipo === "abono_tarjeta" && b.comision.trim() !== "") {
     const c = parsearMonto(b.comision);
@@ -995,6 +1088,9 @@ export function validarMovimiento(
     if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
     fecha = b.fecha;
   }
+  // ADR-0713: lo que sale hacia una persona dice quién se la llevó, y un retiro dice para qué (la base vuelve a exigirlo).
+  if (pideQuienSeLaLleva(tipo) && !b.seLaLleva) return { ok: false, error: "Elige quién se lleva la plata." };
+  if (tipo === "retiro" && !b.referencia.trim()) return { ok: false, error: "Di para qué es el retiro." };
   return {
     ok: true,
     valor: {
